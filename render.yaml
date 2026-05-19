@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: crm-tool
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: >
+      cd frontend && npm install && npm run build &&
+      cd ../backend && npm install && npm run build && npx prisma generate
+    startCommand: cd backend && node dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
