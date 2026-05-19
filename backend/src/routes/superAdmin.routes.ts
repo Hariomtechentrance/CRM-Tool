@@ -1,0 +1,20 @@
+import { Router } from "express";
+import { authenticate } from "../middleware/auth";
+import { requireSuperAdmin } from "../middleware/superAdmin";
+import {
+  getSuperAdminStats, listAllOrganizations, getOrganizationDetail,
+  updateOrganization, listAllUsers, toggleUserActive, makeSuperAdmin,
+} from "../controllers/superAdmin.controller";
+
+const router = Router();
+router.use(authenticate, requireSuperAdmin);
+
+router.get("/stats",         getSuperAdminStats);
+router.get("/organizations", listAllOrganizations);
+router.get("/organizations/:id", getOrganizationDetail);
+router.patch("/organizations/:id", updateOrganization);
+router.get("/users",         listAllUsers);
+router.patch("/users/:id/toggle-active", toggleUserActive);
+router.patch("/users/:id/super-admin",   makeSuperAdmin);
+
+export default router;

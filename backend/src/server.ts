@@ -1,0 +1,154 @@
+import "dotenv/config";
+import path from "path";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
+import { prisma } from "./lib/prisma";
+import authRoutes from "./routes/auth.routes";
+import orgRoutes from "./routes/org.routes";
+import partyRoutes from "./routes/party.routes";
+import inventoryRoutes from "./routes/inventory.routes";
+import purchaseRoutes from "./routes/purchase.routes";
+import salesRoutes from "./routes/sales.routes";
+import financeRoutes from "./routes/finance.routes";
+import hrRoutes from "./routes/hr.routes";
+import projectsRoutes from "./routes/projects.routes";
+import leadsRoutes from "./routes/leads.routes";
+import supportRoutes from "./routes/support.routes";
+import tradeRoutes from "./routes/trade.routes";
+import retailRoutes from "./routes/retail.routes";
+import warehouseRoutes from "./routes/warehouse.routes";
+import superAdminRoutes from "./routes/superAdmin.routes";
+import orgAdminRoutes from "./routes/orgAdmin.routes";
+import accessControlRoutes from "./routes/accessControl.routes";
+import goodsEntryRoutes from "./routes/goodsEntry.routes";
+import { errorHandler } from "./middleware/errorHandler";
+
+const app = express();
+const PORT = Number(process.env.PORT) || 5000;
+const isProd = process.env.NODE_ENV === "production";
+
+// ── Security headers ─────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: isProd ? undefined : false,
+}));
+
+// ── CORS ─────────────────────────────────────────────────────
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173").split(",").map(s => s.trim());
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization","x-organization-id"],
+}));
+
+// ── Body parsing ─────────────────────────────────────────────
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// ── Request logging ──────────────────────────────────────────
+app.use(morgan(isProd ? "combined" : "dev"));
+
+// ── Rate limits ───────────────────────────────────────────────
+// Strict limit for auth — prevents brute force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  message: { success: false, message: "Too many requests. Please try again in 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// General API limit — generous but stops abuse
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 300,
+  message: { success: false, message: "Rate limit exceeded. Please slow down." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === "/api/health",
+});
+
+app.use("/api/auth/login",    authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/forgot-password", authLimiter);
+app.use("/api", apiLimiter);
+
+// ── Health check ─────────────────────────────────────────────
+app.get("/api/health", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ok", db: "connected", timestamp: new Date().toISOString(), app: "BL-CRM API" });
+  } catch {
+    res.status(503).json({ status: "error", db: "disconnected", timestamp: new Date().toISOString() });
+  }
+});
+
+// ── Routes ───────────────────────────────────────────────────
+app.use("/api/auth",           authRoutes);
+app.use("/api/organizations",  orgRoutes);
+app.use("/api/parties",        partyRoutes);
+app.use("/api/inventory",      inventoryRoutes);
+app.use("/api/purchase-orders",purchaseRoutes);
+app.use("/api/sales-orders",   salesRoutes);
+app.use("/api/finance",        financeRoutes);
+app.use("/api/hr",             hrRoutes);
+app.use("/api/projects",       projectsRoutes);
+app.use("/api/leads",          leadsRoutes);
+app.use("/api/support",        supportRoutes);
+app.use("/api/trade",          tradeRoutes);
+app.use("/api/retail",         retailRoutes);
+app.use("/api/warehouses",     warehouseRoutes);
+app.use("/api/super-admin",    superAdminRoutes);
+app.use("/api/org-admin",      orgAdminRoutes);
+app.use("/api/access",         accessControlRoutes);
+app.use("/api/goods-entries",  goodsEntryRoutes);
+
+// ── Serve React frontend in production ───────────────────────
+if (isProd) {
+  const frontendDist = path.join(__dirname, "../../frontend/dist");
+  app.use(express.static(frontendDist));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+} else {
+  // ── 404 (dev only — in prod React handles unknown routes) ──
+  app.use((_req, res) => {
+    res.status(404).json({ success: false, message: "Route not found" });
+  });
+}
+
+// ── Error handler ─────────────────────────────────────────────
+app.use(errorHandler);
+
+// ── Start server ─────────────────────────────────────────────
+const server = app.listen(PORT, () => {
+  console.log(`\n🚀  BL-CRM API  →  http://localhost:${PORT}`);
+  console.log(`📋  Health      →  http://localhost:${PORT}/api/health`);
+  console.log(`🌍  Env         →  ${process.env.NODE_ENV || "development"}\n`);
+});
+
+// ── Graceful shutdown ─────────────────────────────────────────
+async function shutdown(signal: string) {
+  console.log(`\n${signal} received. Shutting down gracefully…`);
+  server.close(async () => {
+    await prisma.$disconnect();
+    console.log("Server closed. Bye.");
+    process.exit(0);
+  });
+  // Force exit after 10s if connections linger
+  setTimeout(() => { console.error("Forced exit."); process.exit(1); }, 10_000);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("uncaughtException",  (err) => { console.error("Uncaught exception:", err); });
+process.on("unhandledRejection", (reason) => { console.error("Unhandled rejection:", reason); });
+
+export default app;
