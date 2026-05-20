@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div style={S.page}>
+    <div className="page-pad">
       <div style={S.hdr}>
         <h1 style={S.title}>Dashboard — {activeOrg?.name}</h1>
         <p style={S.sub}>Real-time overview of your organisation across all departments</p>
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
         <div style={{ padding: 60, textAlign: "center", color: "#505070" }}>Loading...</div>
       ) : (
         <>
-          <div style={S.kpiGrid}>
+          <div className="kpi-grid">
             {kpis.map((k) => (
               <div key={k.label} style={S.kpi}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>

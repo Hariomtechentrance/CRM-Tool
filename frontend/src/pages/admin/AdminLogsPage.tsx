@@ -50,7 +50,7 @@ export default function AdminLogsPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div style={S.page}>
+    <div className="page-pad">
       <h1 style={S.title}>Audit Logs</h1>
       <p style={S.sub}>Complete history of all actions performed in your organisation</p>
 

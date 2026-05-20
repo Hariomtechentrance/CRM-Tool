@@ -92,7 +92,7 @@ export default function AdminTeamPage() {
   );
 
   return (
-    <div style={S.page}>
+    <div className="page-pad">
       <h1 style={S.title}>Team & Access</h1>
       <p style={S.sub}>Manage team members, module access, and pending requests</p>
 

@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Outlet, Navigate, NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import {
   LayoutDashboard, Users, Puzzle, Settings, ScrollText,
-  LogOut, ChevronLeft, Shield,
+  LogOut, ChevronLeft, Shield, Menu, X,
 } from "lucide-react";
 
 const navLinks = [
@@ -16,6 +17,7 @@ const navLinks = [
 export default function AdminLayout() {
   const { user, isAuthenticated, isOrgAdmin, activeOrg, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!isOrgAdmin) return <Navigate to="/dashboard" replace />;
@@ -28,8 +30,34 @@ export default function AdminLayout() {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#07071A", overflow: "hidden" }}>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 39 }}
+        />
+      )}
+
       {/* ── Sidebar ─────────────────────────────────────────────── */}
-      <div style={{ width: 240, background: "#050514", borderRight: "1px solid #1C1C35", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+      <div style={{
+        width: 240,
+        background: "#050514",
+        borderRight: "1px solid #1C1C35",
+        display: "flex",
+        flexDirection: "column",
+        flexShrink: 0,
+        // Mobile: slide in from left
+        ...(typeof window !== "undefined" && window.innerWidth <= 768 ? {
+          position: "fixed" as const,
+          top: 0, bottom: 0, left: sidebarOpen ? 0 : -248,
+          zIndex: 40,
+          transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)",
+          boxShadow: sidebarOpen ? "8px 0 48px rgba(0,0,0,0.6)" : "none",
+          height: "100vh",
+        } : {}),
+      }}
+      className={`app-sidebar${sidebarOpen ? " sidebar-open" : ""}`}
+      >
 
         {/* Brand / Org */}
         <div style={{ padding: "18px 16px 16px", borderBottom: "1px solid #1C1C35" }}>
@@ -58,6 +86,7 @@ export default function AdminLayout() {
         <nav style={{ flex: 1, padding: "12px 8px", overflowY: "auto" }}>
           {navLinks.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to}
+              onClick={() => setSidebarOpen(false)}
               style={({ isActive }) => ({
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "9px 12px", borderRadius: 8, marginBottom: 2,
@@ -76,6 +105,7 @@ export default function AdminLayout() {
         {/* Footer */}
         <div style={{ padding: "12px 8px", borderTop: "1px solid #1C1C35" }}>
           <NavLink to="/dashboard"
+            onClick={() => setSidebarOpen(false)}
             style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, color: "#505070", textDecoration: "none", fontSize: 12, marginBottom: 4, transition: "all 0.15s" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#CCCCEE")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "#505070")}>
@@ -89,7 +119,16 @@ export default function AdminLayout() {
       </div>
 
       {/* ── Main ─────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
+        {/* Mobile top bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#050514", borderBottom: "1px solid #1C1C35" }}
+          className="mobile-menu-btn" >
+          <button onClick={() => setSidebarOpen(p => !p)}
+            style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#EEEEF5" }}>Admin Panel</span>
+        </div>
         <Outlet />
       </div>
     </div>

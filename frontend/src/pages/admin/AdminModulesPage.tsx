@@ -52,7 +52,7 @@ export default function AdminModulesPage() {
   };
 
   return (
-    <div style={S.page}>
+    <div className="page-pad">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div>
           <h1 style={S.title}>Module Management</h1>

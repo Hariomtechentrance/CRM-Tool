@@ -80,7 +80,9 @@ function OrgSwitcherDropdown() {
   );
 }
 
-export default function Sidebar() {
+interface SidebarProps { open?: boolean; onClose?: () => void; }
+
+export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const { activeOrg, user, moduleAccess, isOrgAdmin } = useAuthStore();
 
   // Show only modules the user has been granted access to (admins see all enabled)
@@ -89,7 +91,8 @@ export default function Sidebar() {
   const navModules = getNavModules(visibleKeys);
 
   return (
-    <aside className="h-screen flex flex-col flex-shrink-0"
+    <aside
+      className={`app-sidebar h-screen flex flex-col flex-shrink-0${open ? " sidebar-open" : ""}`}
       style={{ width: 232, background: "#0A0A1A", borderRight: "1px solid #151528" }}>
 
       {/* Logo */}
@@ -115,6 +118,7 @@ export default function Sidebar() {
         <NavLink
           to="/dashboard"
           end
+          onClick={onClose}
           className={({ isActive }) => cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-1",
             isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
@@ -148,6 +152,7 @@ export default function Sidebar() {
                     <li key={mod.key}>
                       <NavLink
                         to={mod.href}
+                        onClick={onClose}
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
                           isActive
@@ -171,6 +176,7 @@ export default function Sidebar() {
       <div className="flex-shrink-0 px-2.5 pb-4" style={{ borderTop: "1px solid #151528", paddingTop: 10 }}>
         <NavLink
           to="/admin/dashboard"
+          onClick={onClose}
           className={({ isActive }) => cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-0.5",
             isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
@@ -181,6 +187,7 @@ export default function Sidebar() {
         </NavLink>
         <NavLink
           to="/settings"
+          onClick={onClose}
           className={({ isActive }) => cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-0.5",
             isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"

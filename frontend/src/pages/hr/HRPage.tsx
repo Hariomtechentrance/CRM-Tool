@@ -26,7 +26,7 @@ const S = {
   table: { width: "100%", borderCollapse: "collapse" as const },
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
   td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
-  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 },
+  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 520, maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -203,8 +203,8 @@ export default function HRPage() {
   const years = Array.from({ length:4 }, (_,i) => now.getFullYear()-i);
 
   return (
-    <div style={S.page}>
-      <div style={S.header}>
+    <div className="page-pad">
+      <div className="page-hdr">
         <div>
           <h1 style={S.title}>HR & Payroll</h1>
           <p style={S.subtitle}>Employees, attendance, salary and leave management</p>
@@ -216,7 +216,7 @@ export default function HRPage() {
       </div>
 
       {/* KPIs */}
-      <div style={S.kpiGrid}>
+      <div className="kpi-grid">
         {[
           { label:"Total Employees", value:summary?.total ?? "—", icon:<Users size={18} color="#6366f1"/>, color:"#6366f1" },
           { label:"Active", value:summary?.active ?? "—", icon:<UserCheck size={18} color="#10b981"/>, color:"#10b981" },
@@ -250,7 +250,7 @@ export default function HRPage() {
             </div>
           </div>
           {loading ? <div style={S.empty}>Loading...</div> : (
-            <table style={S.table}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>{["Emp Code","Name","Designation","Department","Type","Salary","Joined","Status"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
               <tbody>
                 {employees.length === 0
@@ -288,7 +288,7 @@ export default function HRPage() {
             <span style={{ marginLeft:"auto", fontSize:12, color:"#505070" }}>{attRecords.length} records</span>
           </div>
           {attLoading ? <div style={S.empty}>Loading...</div> : (
-            <table style={S.table}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>{["Employee","Code","Date","Status","Check-In","Check-Out","Notes"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
               </thead>
@@ -329,7 +329,7 @@ export default function HRPage() {
             </span>
           </div>
           {payLoading ? <div style={S.empty}>Loading...</div> : (
-            <table style={S.table}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>{["Employee","Month","Days Present","Basic Earned","HRA+Allowances","Deductions","Gross","Net Salary"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
               </thead>
@@ -371,7 +371,7 @@ export default function HRPage() {
             <span style={{ marginLeft:"auto", fontSize:12, color:"#505070" }}>{leaves.length} requests</span>
           </div>
           {leaveLoading ? <div style={S.empty}>Loading...</div> : (
-            <table style={S.table}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>{["Employee","Leave Type","From","To","Days","Reason","Status","Actions"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
               </thead>
@@ -415,7 +415,7 @@ export default function HRPage() {
       {/* ── Employee Modal ── */}
       {showEmpModal && (
         <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowEmpModal(false)}>
-          <div style={S.modalBox}>
+          <div className="modal-inner">
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>{editId?"Edit Employee":"Add Employee"}</h3>
               <button onClick={() => setShowEmpModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>

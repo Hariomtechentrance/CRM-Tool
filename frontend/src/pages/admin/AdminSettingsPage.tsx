@@ -66,7 +66,7 @@ export default function AdminSettingsPage() {
   );
 
   return (
-    <div style={S.page}>
+    <div className="page-pad">
       <h1 style={S.title}>Organisation Settings</h1>
       <p style={S.sub}>Update your company profile, tax details, and banking information</p>
 

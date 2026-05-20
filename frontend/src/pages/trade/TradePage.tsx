@@ -18,7 +18,7 @@ const S = {
   table: { width: "100%", borderCollapse: "collapse" as const },
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
   td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
-  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 },
+  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 580, maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -139,8 +139,8 @@ export default function TradePage() {
   const pending = docs.filter(d => d.status === "DRAFT" || d.status === "SUBMITTED").length;
 
   return (
-    <div style={S.page}>
-      <div style={S.header}>
+    <div className="page-pad">
+      <div className="page-hdr">
         <div>
           <h1 style={S.title}>Import / Export Suite</h1>
           <p style={S.subtitle}>Trade documents, shipping, and customs management</p>
@@ -149,7 +149,7 @@ export default function TradePage() {
       </div>
 
       {/* KPIs */}
-      <div style={S.kpiGrid}>
+      <div className="kpi-grid">
         {[
           { label:"Total Documents", value:summary?.total ?? docs.length, icon:<Globe size={18} color="#6366f1"/>, color:"#6366f1" },
           { label:"Approved", value:approved, icon:<CheckCircle size={18} color="#10b981"/>, color:"#10b981" },
@@ -190,7 +190,7 @@ export default function TradePage() {
         </div>
 
         {loading ? <div style={{ padding:40, textAlign:"center", color:"#505070" }}>Loading...</div> : (
-          <table style={S.table}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>{["Doc Number","Type","Party","Date","Expiry","Route","Amount","Status","Actions"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
@@ -258,7 +258,7 @@ export default function TradePage() {
       {/* Modal */}
       {showModal && (
         <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowModal(false)}>
-          <div style={S.modalBox}>
+          <div className="modal-inner">
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>{editId ? "Edit Document" : "New Trade Document"}</h3>
               <button onClick={() => setShowModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>

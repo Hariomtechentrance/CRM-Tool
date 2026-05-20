@@ -16,8 +16,7 @@ const S = {
   table: { width: "100%", borderCollapse: "collapse" as const },
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "1px solid #1C1C35" },
   td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
-  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 560, maxHeight: "90vh", overflowY: "auto" as const },
+  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
   select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
@@ -115,13 +114,15 @@ export default function PurchasePage() {
   };
 
   return (
-    <div style={S.page}>
-      <div style={S.header}>
+    <div className="page-pad">
+      <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Purchase & Procurement</h1>
-          <p style={S.subtitle}>Manage purchase orders, vendor quotes and goods receipt</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Purchase & Procurement</h1>
+          <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>Manage purchase orders, vendor quotes and goods receipt</p>
         </div>
-        <button style={S.btn} onClick={openModal}><Plus size={15} /> New Purchase Order</button>
+        <div className="hdr-actions">
+          <button style={S.btn} onClick={openModal}><Plus size={15} /> New Purchase Order</button>
+        </div>
       </div>
 
       <div style={S.card}>
@@ -137,9 +138,10 @@ export default function PurchasePage() {
         </div>
 
         {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
-          <table style={S.table}>
+          <div className="table-wrap">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr>{["PO Number", "Vendor", "Date", "Expected", "Items", "Total", "Status", "Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              <tr>{["PO Number", "Vendor", "Date", "Expected", "Items", "Total", "Status", "Action"].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr>
             </thead>
             <tbody>
               {orders.length === 0 ? (
@@ -168,12 +170,13 @@ export default function PurchasePage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
       {showModal && (
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
-          <div style={S.modalBox}>
+          <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Purchase Order</h3>
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
@@ -181,7 +184,7 @@ export default function PurchasePage() {
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Vendor</label>
                   <select style={S.select} value={form.partyId} onChange={(e) => setForm({ ...form, partyId: e.target.value })}>
                     <option value="">— Select Vendor —</option>
@@ -190,7 +193,7 @@ export default function PurchasePage() {
                 </div>
                 <div><label style={S.label}>Order Date</label><input type="date" style={S.input} value={form.orderDate} onChange={(e) => setForm({ ...form, orderDate: e.target.value })} /></div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Expected Date</label><input type="date" style={S.input} value={form.expectedDate} onChange={(e) => setForm({ ...form, expectedDate: e.target.value })} /></div>
               </div>
 

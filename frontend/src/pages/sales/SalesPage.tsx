@@ -3,22 +3,15 @@ import api from "@/lib/api";
 import { Truck, Plus, Search, X, Check, Clock, Package, ClipboardList } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  sub: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
   btnPrimary: { background: "linear-gradient(135deg,#f59e0b,#d97706)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   btnSecondary: { background: "#1C1C35", border: "none", color: "#CCCCEE", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   btnIndig: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20, marginBottom: 20 } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35", whiteSpace: "nowrap" as const },
   td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327", verticalAlign: "top" as const },
-  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 600, maxHeight: "92vh", overflowY: "auto" as const },
+  modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
   select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
-  g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
-  g3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 } as React.CSSProperties,
 };
 
 const UNITS = ["PCS", "KG", "MT", "LTR", "BOX", "BAG", "ROLL", "BUNDLE", "PAIR", "SET", "DOZEN", "TON"];
@@ -103,10 +96,7 @@ export default function SalesPage() {
     setSaving(false);
   };
 
-  const markDone = async (id: string) => {
-    try { await api.patch(`/goods-entries/${id}`, { status: "COMPLETED" }); load(); } catch { }
-  };
-
+  const markDone = async (id: string) => { try { await api.patch(`/goods-entries/${id}`, { status: "COMPLETED" }); load(); } catch { } };
   const deleteDispatch = async (id: string) => {
     if (!confirm("Delete this entry?")) return;
     try { await api.delete(`/goods-entries/${id}`); load(); } catch { }
@@ -142,32 +132,32 @@ export default function SalesPage() {
 
   const tabBtn = (key: typeof tab, icon: React.ReactNode, label: string, count: number) => (
     <button key={key} onClick={() => setTab(key)} style={{
-      padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+      padding: "9px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
       display: "flex", alignItems: "center", gap: 6,
       background: tab === key ? "rgba(245,158,11,0.15)" : "transparent",
       color: tab === key ? "#f59e0b" : "#505070",
       borderBottom: tab === key ? "2px solid #f59e0b" : "2px solid transparent",
-      transition: "all 0.15s",
+      transition: "all 0.15s", whiteSpace: "nowrap" as const,
     }}>
       {icon} {label} <span style={{ fontSize: 11, opacity: 0.7 }}>({count})</span>
     </button>
   );
 
   return (
-    <div style={S.page}>
+    <div className="page-pad">
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+      <div className="page-hdr">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 10, background: "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Truck size={20} color="#f59e0b" />
           </div>
           <div>
-            <h1 style={S.title}>Dispatch — Outward Register</h1>
-            <p style={S.sub}>Record outgoing goods, manage sales orders and track shipments</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Dispatch — Outward Register</h1>
+            <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>Record outgoing goods, manage sales orders and track shipments</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {tab === "dispatch" && <button style={S.btnPrimary} onClick={openDispatchModal}><Plus size={14} /> New Dispatch Entry</button>}
+        <div className="hdr-actions">
+          {tab === "dispatch" && <button style={S.btnPrimary} onClick={openDispatchModal}><Plus size={14} /> New Dispatch</button>}
           {tab === "orders" && <button style={S.btnIndig} onClick={openSOModal}><Plus size={14} /> New Sales Order</button>}
           {tab === "shipments" && <button style={S.btnSecondary} onClick={() => { setError(""); setShipForm({ salesOrderId: "", carrier: "", trackingNumber: "", shipDate: "", notes: "" }); setShowShipModal(true); }}><Truck size={14} /> New Shipment</button>}
         </div>
@@ -175,7 +165,7 @@ export default function SalesPage() {
 
       {/* Summary (Dispatch tab only) */}
       {tab === "dispatch" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+        <div className="summary-grid">
           {[
             { label: "Today's Dispatches", value: todayDispatches.length, color: "#f59e0b" },
             { label: "Total Entries", value: dispatches.length, color: "#818cf8" },
@@ -190,7 +180,7 @@ export default function SalesPage() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "1px solid #1C1C35", paddingBottom: 0 }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "1px solid #1C1C35", overflowX: "auto" }}>
         {tabBtn("dispatch", <ClipboardList size={14} />, "Dispatch Register", dispatches.length)}
         {tabBtn("orders", <Package size={14} />, "Sales Orders", orders.length)}
         {tabBtn("shipments", <Truck size={14} />, "Shipments", shipments.length)}
@@ -198,7 +188,7 @@ export default function SalesPage() {
 
       {/* Search */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ position: "relative", maxWidth: 320 }}>
+        <div style={{ position: "relative", maxWidth: 360 }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
           <input style={{ ...S.input, paddingLeft: 34, background: "#0D0D1F", border: "1px solid #1C1C35" }} placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
@@ -207,94 +197,95 @@ export default function SalesPage() {
       <div style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 }}>
         {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
 
-          /* ── DISPATCH REGISTER ── */
           tab === "dispatch" ? (
             dispatches.length === 0 ? (
               <div style={{ padding: 60, textAlign: "center" }}>
                 <Truck size={40} color="#1C1C35" style={{ margin: "0 auto 12px", display: "block" }} />
-                <p style={{ color: "#505070", margin: 0 }}>No dispatch entries yet. Click "New Dispatch Entry" to record outgoing goods.</p>
+                <p style={{ color: "#505070", margin: 0 }}>No dispatch entries yet. Click "New Dispatch" to record outgoing goods.</p>
               </div>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr>{["DSP #", "Date & Time", "Material / Description", "Qty", "Party / Customer", "Vehicle", "Dispatched By", "Ref #", "Status", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {dispatches.map(e => {
-                    const sc = DSP_COLORS[e.status] || "#818cf8";
-                    return (
-                      <tr key={e.id}
-                        onMouseEnter={ev => (ev.currentTarget.style.background = "#0A0A1A")}
-                        onMouseLeave={ev => (ev.currentTarget.style.background = "transparent")}>
-                        <td style={{ ...S.td, color: "#f59e0b", fontWeight: 700, whiteSpace: "nowrap" }}>{e.entryNumber}</td>
-                        <td style={{ ...S.td, whiteSpace: "nowrap" }}>
-                          <div>{new Date(e.entryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                          {e.entryTime && <div style={{ fontSize: 11, color: "#505070", display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}><Clock size={10} />{e.entryTime}</div>}
-                        </td>
-                        <td style={S.td}>
-                          <div style={{ fontWeight: 500, color: "#EEEEF5" }}>{e.materialName}</div>
-                          {e.remarks && <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{e.remarks}</div>}
-                        </td>
-                        <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5", whiteSpace: "nowrap" }}>{e.quantity.toLocaleString("en-IN")} <span style={{ fontSize: 11, color: "#505070" }}>{e.unit}</span></td>
-                        <td style={S.td}>{e.partyName || e.party?.name || <span style={{ color: "#505070" }}>—</span>}</td>
-                        <td style={{ ...S.td, fontFamily: "monospace", fontSize: 12 }}>{e.vehicleNumber || <span style={{ color: "#505070" }}>—</span>}</td>
-                        <td style={S.td}>{e.personName || <span style={{ color: "#505070" }}>—</span>}</td>
-                        <td style={{ ...S.td, fontSize: 11, color: "#818cf8" }}>{e.referenceNo || <span style={{ color: "#505070" }}>—</span>}</td>
-                        <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: sc + "20", color: sc }}>{e.status}</span></td>
-                        <td style={{ ...S.td, whiteSpace: "nowrap" }}>
-                          <div style={{ display: "flex", gap: 4 }}>
-                            {e.status === "PENDING" && <button onClick={() => markDone(e.id)} title="Mark Completed" style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 5, padding: "4px 7px", cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}><Check size={11} /> Done</button>}
-                            <button onClick={() => deleteDispatch(e.id)} style={{ background: "#ef444420", color: "#ef4444", border: "none", borderRadius: 5, padding: "4px 7px", cursor: "pointer" }}><X size={11} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="table-wrap">
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>{["DSP #", "Date & Time", "Material / Description", "Qty", "Party / Customer", "Vehicle", "Dispatched By", "Ref #", "Status", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {dispatches.map(e => {
+                      const sc = DSP_COLORS[e.status] || "#818cf8";
+                      return (
+                        <tr key={e.id}
+                          onMouseEnter={ev => (ev.currentTarget.style.background = "#0A0A1A")}
+                          onMouseLeave={ev => (ev.currentTarget.style.background = "transparent")}>
+                          <td style={{ ...S.td, color: "#f59e0b", fontWeight: 700, whiteSpace: "nowrap" }}>{e.entryNumber}</td>
+                          <td style={{ ...S.td, whiteSpace: "nowrap" }}>
+                            <div>{new Date(e.entryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+                            {e.entryTime && <div style={{ fontSize: 11, color: "#505070", display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}><Clock size={10} />{e.entryTime}</div>}
+                          </td>
+                          <td style={S.td}>
+                            <div style={{ fontWeight: 500, color: "#EEEEF5" }}>{e.materialName}</div>
+                            {e.remarks && <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{e.remarks}</div>}
+                          </td>
+                          <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5", whiteSpace: "nowrap" }}>{e.quantity.toLocaleString("en-IN")} <span style={{ fontSize: 11, color: "#505070" }}>{e.unit}</span></td>
+                          <td style={S.td}>{e.partyName || e.party?.name || <span style={{ color: "#505070" }}>—</span>}</td>
+                          <td style={{ ...S.td, fontFamily: "monospace", fontSize: 12 }}>{e.vehicleNumber || <span style={{ color: "#505070" }}>—</span>}</td>
+                          <td style={S.td}>{e.personName || <span style={{ color: "#505070" }}>—</span>}</td>
+                          <td style={{ ...S.td, fontSize: 11, color: "#818cf8" }}>{e.referenceNo || <span style={{ color: "#505070" }}>—</span>}</td>
+                          <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: sc + "20", color: sc }}>{e.status}</span></td>
+                          <td style={{ ...S.td, whiteSpace: "nowrap" }}>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              {e.status === "PENDING" && <button onClick={() => markDone(e.id)} title="Mark Completed" style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 5, padding: "4px 7px", cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}><Check size={11} /> Done</button>}
+                              <button onClick={() => deleteDispatch(e.id)} style={{ background: "#ef444420", color: "#ef4444", border: "none", borderRadius: 5, padding: "4px 7px", cursor: "pointer" }}><X size={11} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )
           ) :
 
-          /* ── SALES ORDERS ── */
           tab === "orders" ? (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["SO #", "Customer", "Date", "Items", "Total", "Status", "Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
-              <tbody>
-                {orders.length === 0 ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No sales orders yet.</td></tr> : orders.map(so => (
-                  <tr key={so.id}>
-                    <td style={{ ...S.td, color: "#818CF8", fontWeight: 600 }}>{so.soNumber}</td>
-                    <td style={S.td}>{so.party?.name || "—"}</td>
-                    <td style={S.td}>{new Date(so.orderDate).toLocaleDateString("en-IN")}</td>
-                    <td style={S.td}>{so._count?.items || 0}</td>
-                    <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5" }}>₹{so.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
-                    <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (SO_COLORS[so.status] || "#818cf8") + "20", color: SO_COLORS[so.status] || "#818cf8" }}>{so.status}</span></td>
-                    <td style={S.td}>
-                      {so.status === "DRAFT" && <button onClick={() => updateSOStatus(so.id, "CONFIRMED")} style={{ background: "#60a5fa20", color: "#60a5fa", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Confirm</button>}
-                      {so.status === "CONFIRMED" && <button onClick={() => updateSOStatus(so.id, "PROCESSING")} style={{ background: "#f59e0b20", color: "#f59e0b", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Process</button>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) :
-
-          /* ── SHIPMENTS ── */
-          (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["Shipment #", "Order", "Customer", "Carrier", "Tracking", "Ship Date", "Status", "Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
-              <tbody>
-                {shipments.length === 0 ? <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No shipments yet.</td></tr> : shipments.map(s => (
-                  <tr key={s.id}>
-                    <td style={{ ...S.td, color: "#818CF8", fontWeight: 600 }}>{s.shipmentNumber}</td>
-                    <td style={S.td}>{s.salesOrder?.soNumber || "—"}</td>
-                    <td style={S.td}>{s.salesOrder?.party?.name || "—"}</td>
-                    <td style={S.td}>{s.carrier || "—"}</td>
-                    <td style={S.td}><span style={{ fontFamily: "monospace", color: "#818CF8" }}>{s.trackingNumber || "—"}</span></td>
-                    <td style={S.td}>{s.shipDate ? new Date(s.shipDate).toLocaleDateString("en-IN") : "—"}</td>
-                    <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (SHP_COLORS[s.status] || "#818cf8") + "20", color: SHP_COLORS[s.status] || "#818cf8" }}>{s.status}</span></td>
-                    <td style={S.td}>{s.status !== "DELIVERED" && <button onClick={() => updateShipStatus(s.id, "DELIVERED")} style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Delivered</button>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-wrap">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>{["SO #", "Customer", "Date", "Items", "Total", "Status", "Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {orders.length === 0 ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No sales orders yet.</td></tr> : orders.map(so => (
+                    <tr key={so.id}>
+                      <td style={{ ...S.td, color: "#818CF8", fontWeight: 600 }}>{so.soNumber}</td>
+                      <td style={S.td}>{so.party?.name || "—"}</td>
+                      <td style={{ ...S.td, whiteSpace: "nowrap" }}>{new Date(so.orderDate).toLocaleDateString("en-IN")}</td>
+                      <td style={S.td}>{so._count?.items || 0}</td>
+                      <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5" }}>₹{so.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                      <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (SO_COLORS[so.status] || "#818cf8") + "20", color: SO_COLORS[so.status] || "#818cf8" }}>{so.status}</span></td>
+                      <td style={S.td}>
+                        {so.status === "DRAFT" && <button onClick={() => updateSOStatus(so.id, "CONFIRMED")} style={{ background: "#60a5fa20", color: "#60a5fa", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Confirm</button>}
+                        {so.status === "CONFIRMED" && <button onClick={() => updateSOStatus(so.id, "PROCESSING")} style={{ background: "#f59e0b20", color: "#f59e0b", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Process</button>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>{["Shipment #", "Order", "Customer", "Carrier", "Tracking", "Ship Date", "Status", "Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {shipments.length === 0 ? <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No shipments yet.</td></tr> : shipments.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ ...S.td, color: "#818CF8", fontWeight: 600 }}>{s.shipmentNumber}</td>
+                      <td style={S.td}>{s.salesOrder?.soNumber || "—"}</td>
+                      <td style={S.td}>{s.salesOrder?.party?.name || "—"}</td>
+                      <td style={S.td}>{s.carrier || "—"}</td>
+                      <td style={S.td}><span style={{ fontFamily: "monospace", color: "#818CF8" }}>{s.trackingNumber || "—"}</span></td>
+                      <td style={{ ...S.td, whiteSpace: "nowrap" }}>{s.shipDate ? new Date(s.shipDate).toLocaleDateString("en-IN") : "—"}</td>
+                      <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (SHP_COLORS[s.status] || "#818cf8") + "20", color: SHP_COLORS[s.status] || "#818cf8" }}>{s.status}</span></td>
+                      <td style={S.td}>{s.status !== "DELIVERED" && <button onClick={() => updateShipStatus(s.id, "DELIVERED")} style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Delivered</button>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )
         )}
       </div>
@@ -302,7 +293,7 @@ export default function SalesPage() {
       {/* Dispatch Modal */}
       {showDispatchModal && (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowDispatchModal(false)}>
-          <div style={S.modalBox}>
+          <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Truck size={18} color="#f59e0b" />
@@ -312,31 +303,26 @@ export default function SalesPage() {
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "9px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Date *</label><input type="date" style={S.input} value={dForm.entryDate} onChange={e => setD("entryDate", e.target.value)} /></div>
                 <div><label style={S.label}>Time</label><input type="time" style={S.input} value={dForm.entryTime} onChange={e => setD("entryTime", e.target.value)} /></div>
               </div>
               <div>
                 <label style={S.label}>Material / Goods Name *</label>
-                <input style={S.input} placeholder="e.g. Cotton Shirts, Steel Rods, Electronic Parts..." value={dForm.materialName} onChange={e => setD("materialName", e.target.value)} />
+                <input style={S.input} placeholder="e.g. Cotton Shirts, Steel Rods..." value={dForm.materialName} onChange={e => setD("materialName", e.target.value)} />
               </div>
-              <div style={S.g3}>
-                <div style={{ gridColumn: "span 2" }}>
-                  <label style={S.label}>Quantity *</label>
-                  <input type="number" style={S.input} placeholder="0" min="0" step="any" value={dForm.quantity} onChange={e => setD("quantity", e.target.value)} />
-                </div>
-                <div>
-                  <label style={S.label}>Unit</label>
+              <div className="grid-r2">
+                <div><label style={S.label}>Quantity *</label><input type="number" style={S.input} placeholder="0" min="0" step="any" value={dForm.quantity} onChange={e => setD("quantity", e.target.value)} /></div>
+                <div><label style={S.label}>Unit</label>
                   <select style={S.select} value={dForm.unit} onChange={e => setD("unit", e.target.value)}>
                     {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div>
                   <label style={S.label}>Customer / Party (CRM)</label>
-                  <select style={S.select} value={dForm.partyId}
-                    onChange={e => { const p = parties.find(x => x.id === e.target.value); setD("partyId", e.target.value); if (p) setD("partyName", p.name); }}>
+                  <select style={S.select} value={dForm.partyId} onChange={e => { const p = parties.find(x => x.id === e.target.value); setD("partyId", e.target.value); if (p) setD("partyName", p.name); }}>
                     <option value="">— Select Party —</option>
                     {parties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -346,16 +332,16 @@ export default function SalesPage() {
                   <input style={S.input} placeholder="Customer name (free text)" value={dForm.partyName} onChange={e => { setD("partyName", e.target.value); setD("partyId", ""); }} />
                 </div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Vehicle Number</label><input style={S.input} placeholder="e.g. GJ05AB1234" value={dForm.vehicleNumber} onChange={e => setD("vehicleNumber", e.target.value)} /></div>
                 <div><label style={S.label}>Dispatched By</label><input style={S.input} placeholder="Staff name" value={dForm.personName} onChange={e => setD("personName", e.target.value)} /></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Reference # (SO / Challan)</label><input style={S.input} placeholder="SO-0023 / Challan No." value={dForm.referenceNo} onChange={e => setD("referenceNo", e.target.value)} /></div>
-                <div><label style={S.label}>Remarks / Description</label><input style={S.input} placeholder="Additional notes..." value={dForm.remarks} onChange={e => setD("remarks", e.target.value)} /></div>
+                <div><label style={S.label}>Remarks</label><input style={S.input} placeholder="Additional notes..." value={dForm.remarks} onChange={e => setD("remarks", e.target.value)} /></div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 22, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 22, justifyContent: "flex-end", flexWrap: "wrap" }}>
               <button onClick={() => setShowDispatchModal(false)} style={S.btnSecondary}>Cancel</button>
               <button onClick={saveDispatch} style={S.btnPrimary} disabled={saving}>{saving ? "Saving..." : <><Truck size={14} /> Record Dispatch</>}</button>
             </div>
@@ -366,14 +352,14 @@ export default function SalesPage() {
       {/* Sales Order Modal */}
       {showSOModal && (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowSOModal(false)}>
-          <div style={S.modalBox}>
+          <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Sales Order</h3>
               <button onClick={() => setShowSOModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "9px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Customer</label>
                   <select style={S.select} value={soForm.partyId} onChange={e => setSOForm({ ...soForm, partyId: e.target.value })}>
                     <option value="">— Select Customer —</option>
@@ -388,36 +374,39 @@ export default function SalesPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {soItems.map((it, i) => (
                     <div key={i} style={{ background: "#131327", borderRadius: 8, padding: 12 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8 }}>
-                        <div>
-                          <select style={{ ...S.select, marginBottom: 4 }} value={it.productId} onChange={e => setSOItemProduct(i, e.target.value)}>
-                            <option value="">— Product —</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <input style={S.input} value={it.description} onChange={e => setSOItem(i, "description", e.target.value)} placeholder="Description" />
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <select style={S.select} value={it.productId} onChange={e => setSOItemProduct(i, e.target.value)}>
+                          <option value="">— Product —</option>
+                          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                        <input style={S.input} value={it.description} onChange={e => setSOItem(i, "description", e.target.value)} placeholder="Description" />
+                        <div className="grid-r2">
+                          <div><label style={{ ...S.label, marginBottom: 4 }}>Qty</label><input type="number" style={S.input} value={it.quantity} onChange={e => setSOItem(i, "quantity", e.target.value)} /></div>
+                          <div><label style={{ ...S.label, marginBottom: 4 }}>Rate ₹</label><input type="number" style={S.input} value={it.unitPrice} onChange={e => setSOItem(i, "unitPrice", e.target.value)} /></div>
                         </div>
-                        <div><label style={{ ...S.label, marginBottom: 4 }}>Qty</label><input type="number" style={S.input} value={it.quantity} onChange={e => setSOItem(i, "quantity", e.target.value)} /></div>
-                        <div><label style={{ ...S.label, marginBottom: 4 }}>Rate ₹</label><input type="number" style={S.input} value={it.unitPrice} onChange={e => setSOItem(i, "unitPrice", e.target.value)} /></div>
-                        <div><label style={{ ...S.label, marginBottom: 4 }}>GST%</label>
-                          <select style={S.select} value={it.taxRate} onChange={e => setSOItem(i, "taxRate", e.target.value)}>
-                            {["0","5","12","18","28"].map(t => <option key={t} value={t}>{t}%</option>)}
-                          </select>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ ...S.label, marginBottom: 4 }}>GST%</label>
+                            <select style={S.select} value={it.taxRate} onChange={e => setSOItem(i, "taxRate", e.target.value)}>
+                              {["0","5","12","18","28"].map(t => <option key={t} value={t}>{t}%</option>)}
+                            </select>
+                          </div>
+                          <button onClick={() => setSOItems(p => p.filter((_, j) => j !== i))} style={{ background: "#ef444420", border: "none", color: "#ef4444", borderRadius: 6, padding: "9px 10px", cursor: "pointer" }}><X size={12} /></button>
                         </div>
-                        <button onClick={() => setSOItems(p => p.filter((_, j) => j !== i))} style={{ background: "#ef444420", border: "none", color: "#ef4444", borderRadius: 6, padding: "6px 8px", cursor: "pointer", alignSelf: "end" }}><X size={12} /></button>
                       </div>
                     </div>
                   ))}
                   <button onClick={() => setSOItems(p => [...p, { ...emptySOItem }])} style={{ background: "#1C1C35", border: "1px dashed #2a2a4a", color: "#818CF8", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}><Plus size={12} /> Add Item</button>
                 </div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Shipping Charge ₹</label><input type="number" style={S.input} value={soForm.shippingCharge} onChange={e => setSOForm({ ...soForm, shippingCharge: e.target.value })} /></div>
                 <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
                   <div><span style={{ color: "#505070", fontSize: 12 }}>Total: </span><span style={{ color: "#EEEEF5", fontWeight: 700, fontSize: 18 }}>₹{soTotal.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span></div>
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end", flexWrap: "wrap" }}>
               <button onClick={() => setShowSOModal(false)} style={S.btnSecondary}>Cancel</button>
               <button onClick={saveSO} style={S.btnIndig} disabled={saving}>{saving ? "Saving..." : "Create Order"}</button>
             </div>
@@ -428,7 +417,7 @@ export default function SalesPage() {
       {/* Shipment Modal */}
       {showShipModal && (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowShipModal(false)}>
-          <div style={{ ...S.modalBox, width: 440 }}>
+          <div className="modal-inner" style={{ maxWidth: 460 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Shipment</h3>
               <button onClick={() => setShowShipModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
@@ -441,13 +430,13 @@ export default function SalesPage() {
                   {orders.filter(o => ["CONFIRMED","PROCESSING"].includes(o.status)).map(o => <option key={o.id} value={o.id}>{o.soNumber} – {o.party?.name || "?"}</option>)}
                 </select>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Carrier</label><input style={S.input} value={shipForm.carrier} onChange={e => setShipForm({ ...shipForm, carrier: e.target.value })} placeholder="e.g. DTDC, Blue Dart" /></div>
                 <div><label style={S.label}>Tracking Number</label><input style={S.input} value={shipForm.trackingNumber} onChange={e => setShipForm({ ...shipForm, trackingNumber: e.target.value })} /></div>
               </div>
               <div><label style={S.label}>Ship Date</label><input type="date" style={S.input} value={shipForm.shipDate} onChange={e => setShipForm({ ...shipForm, shipDate: e.target.value })} /></div>
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end", flexWrap: "wrap" }}>
               <button onClick={() => setShowShipModal(false)} style={S.btnSecondary}>Cancel</button>
               <button onClick={saveShipment} style={S.btnIndig} disabled={saving}>{saving ? "Saving..." : "Create Shipment"}</button>
             </div>

@@ -100,8 +100,8 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div style={S.page}>
-      <div style={S.header}>
+    <div className="page-pad">
+      <div className="page-hdr">
         <div>
           <h1 style={S.title}>Reports & Analytics</h1>
           <p style={S.subtitle}>Business overview, financial summaries and performance metrics</p>

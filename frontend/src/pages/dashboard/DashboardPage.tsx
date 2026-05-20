@@ -103,7 +103,7 @@ export default function DashboardPage() {
   const canSee = (key: string) => isOrgAdmin || moduleAccess.includes(key);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 1400 }}>
+    <div className="page-pad" style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 1400 }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Bottom section — Activity + Quick links */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
+          <div className="dash-bottom">
 
             {/* Activity Feed */}
             <div style={card}>

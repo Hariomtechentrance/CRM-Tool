@@ -1,4 +1,4 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
@@ -22,7 +22,9 @@ const SEV_ICON = {
 };
 const SEV_DOT = { critical: "#ef4444", warning: "#f59e0b", info: "#6366f1" };
 
-export default function Header() {
+interface HeaderProps { onMenuToggle?: () => void; }
+
+export default function Header({ onMenuToggle }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout, activeOrg } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -75,6 +77,14 @@ export default function Header() {
       className="h-14 flex items-center justify-between px-6 flex-shrink-0">
       {/* Left */}
       <div className="flex items-center gap-2.5">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="mobile-menu-btn w-9 h-9 rounded-lg items-center justify-center text-[#7070A0] hover:text-[#EEEEF5] hover:bg-[#131327] transition-colors cursor-pointer"
+          style={{ display: "none" }}
+        >
+          <Menu style={{ width: 20, height: 20 }} />
+        </button>
         <span className="text-[#7070A0] text-sm font-medium truncate max-w-[200px]">{activeOrg?.name}</span>
         {activeOrg && (
           <span className="text-[11px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
