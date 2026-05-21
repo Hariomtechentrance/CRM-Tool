@@ -6,7 +6,7 @@ import { z } from "zod";
 import {
   ArrowLeft, Edit2, Phone, Mail, Globe, MapPin, Hash, Building,
   Plus, Trash2, Star, MessageSquare, PhoneCall, AtSign, Users,
-  CalendarDays, RefreshCw, CreditCard, Clock,
+  CalendarDays, RefreshCw, Clock, Tag, X as XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
@@ -16,9 +16,10 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { PartyForm } from "@/components/crm/PartyForm";
+import DocumentsPanel from "@/components/DocumentsPanel";
 import api from "@/lib/api";
 import { getInitials, getApiError, formatDate } from "@/lib/utils";
-import type { Party, Contact, Communication, CommunicationType } from "@/types";
+import type { Party, Contact, CommunicationType } from "@/types";
 
 // ── Comm type meta ────────────────────────────────────────────
 const COMM_META: Record<CommunicationType, { icon: React.ReactNode; label: string; color: string }> = {
@@ -139,8 +140,53 @@ function CommModal({ open, onClose, onSaved, partyId }: {
   );
 }
 
+// ── Inline Tag Editor ─────────────────────────────────────────
+const TAG_PALETTE = ["#818cf8","#10b981","#f59e0b","#60a5fa","#a78bfa","#fb923c","#34d399","#ef4444","#c084fc","#38bdf8"];
+function tagColor(tag: string) { let h = 0; for (const c of tag) h = (h * 31 + c.charCodeAt(0)) % TAG_PALETTE.length; return TAG_PALETTE[Math.abs(h)]; }
+
+function PartyTagEditor({ partyId, initialTags, onUpdated }: { partyId: string; initialTags: string[]; onUpdated: () => void }) {
+  const [tags, setTags] = useState<string[]>(initialTags);
+  const [input, setInput] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const save = async (newTags: string[]) => {
+    setSaving(true);
+    try { await api.patch(`/parties/${partyId}`, { tags: newTags }); onUpdated(); } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const add = () => {
+    const val = input.trim().toLowerCase();
+    if (!val || tags.includes(val)) { setInput(""); return; }
+    const next = [...tags, val];
+    setTags(next); setInput(""); save(next);
+  };
+
+  const remove = (t: string) => { const next = tags.filter(x => x !== t); setTags(next); save(next); };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+      {tags.map(t => (
+        <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: tagColor(t) + "20", color: tagColor(t) }}>
+          {t}
+          <button onClick={() => remove(t)} className="cursor-pointer" style={{ background: "none", border: "none", color: tagColor(t), padding: 0, lineHeight: 1 }}><XIcon size={10} /></button>
+        </span>
+      ))}
+      {saving && <span className="text-xs text-slate-400">saving…</span>}
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(); } }}
+        placeholder="+ tag"
+        className="text-xs border border-dashed border-slate-300 rounded-full px-2 py-0.5 text-slate-500 focus:outline-none focus:border-blue-400 w-16"
+      />
+    </div>
+  );
+}
+
 // ── Main Detail Page ──────────────────────────────────────────
-type DetailTab = "overview" | "contacts" | "communications";
+type DetailTab = "overview" | "contacts" | "communications" | "documents";
 
 export default function PartyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -242,6 +288,9 @@ export default function PartyDetailPage() {
         )}
       </div>
 
+      {/* Tags */}
+      <PartyTagEditor partyId={party.id} initialTags={party.tags || []} onUpdated={fetchParty} />
+
       {/* Tabs */}
       <div className="border-b border-slate-200 flex gap-1">
         <button className={tabClass("overview")} onClick={() => setTab("overview")}>Overview</button>
@@ -251,6 +300,7 @@ export default function PartyDetailPage() {
         <button className={tabClass("communications")} onClick={() => setTab("communications")}>
           Activity Log {(party.communications?.length ?? 0) > 0 && <span className="ml-1.5 text-xs bg-slate-200 text-slate-600 rounded-full px-1.5">{party.communications?.length}</span>}
         </button>
+        <button className={tabClass("documents")} onClick={() => setTab("documents")}>Documents</button>
       </div>
 
       {/* ── Overview ── */}
@@ -348,11 +398,11 @@ export default function PartyDetailPage() {
             </Card>
 
             {/* Follow-ups */}
-            {party.communications?.filter((c) => c.followUpDate && new Date(c.followUpDate) >= new Date()).length > 0 && (
+            {(party.communications?.filter((c) => c.followUpDate && new Date(c.followUpDate) >= new Date()) ?? []).length > 0 && (
               <Card>
                 <CardHeader><h3 className="font-semibold text-slate-700 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-orange-500" /> Upcoming Follow-ups</h3></CardHeader>
                 <CardBody className="space-y-2">
-                  {party.communications.filter((c) => c.followUpDate && new Date(c.followUpDate) >= new Date()).slice(0, 3).map((c) => (
+                  {(party.communications ?? []).filter((c) => c.followUpDate && new Date(c.followUpDate) >= new Date()).slice(0, 3).map((c) => (
                     <div key={c.id} className="flex items-start gap-2 text-sm">
                       <Clock className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
                       <div>
@@ -483,6 +533,16 @@ export default function PartyDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Documents ── */}
+      {tab === "documents" && (
+        <Card>
+          <CardHeader><h3 className="font-semibold text-slate-700">Documents &amp; Attachments</h3></CardHeader>
+          <CardBody>
+            <DocumentsPanel entityType="PARTY" entityId={party.id} />
+          </CardBody>
+        </Card>
       )}
 
       {/* Modals */}

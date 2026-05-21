@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Users, Plus, Search, X, Calendar, DollarSign, UserCheck, Check, XCircle, Clock } from "lucide-react";
+import DocumentsPanel from "@/components/DocumentsPanel";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const now = new Date();
@@ -250,8 +251,8 @@ export default function HRPage() {
             </div>
           </div>
           {loading ? <div style={S.empty}>Loading...</div> : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["Emp Code","Name","Designation","Department","Type","Salary","Joined","Status"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>{["Emp Code","Name","Designation","Department","Type","Salary","Joined","Status"].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr></thead>
               <tbody>
                 {employees.length === 0
                   ? <tr><td colSpan={8} style={S.empty}>No employees yet. Add your first employee.</td></tr>
@@ -269,7 +270,7 @@ export default function HRPage() {
                   ))
                 }
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       )}
@@ -288,9 +289,9 @@ export default function HRPage() {
             <span style={{ marginLeft:"auto", fontSize:12, color:"#505070" }}>{attRecords.length} records</span>
           </div>
           {attLoading ? <div style={S.empty}>Loading...</div> : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr>{["Employee","Code","Date","Status","Check-In","Check-Out","Notes"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+                <tr>{["Employee","Code","Date","Status","Check-In","Check-Out","Notes"].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {attRecords.length === 0
@@ -308,7 +309,7 @@ export default function HRPage() {
                   ))
                 }
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       )}
@@ -329,9 +330,9 @@ export default function HRPage() {
             </span>
           </div>
           {payLoading ? <div style={S.empty}>Loading...</div> : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr>{["Employee","Month","Days Present","Basic Earned","HRA+Allowances","Deductions","Gross","Net Salary"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+                <tr>{["Employee","Month","Days Present","Basic Earned","HRA+Allowances","Deductions","Gross","Net Salary"].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {payrolls.length === 0
@@ -353,7 +354,7 @@ export default function HRPage() {
                   ))
                 }
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       )}
@@ -371,9 +372,9 @@ export default function HRPage() {
             <span style={{ marginLeft:"auto", fontSize:12, color:"#505070" }}>{leaves.length} requests</span>
           </div>
           {leaveLoading ? <div style={S.empty}>Loading...</div> : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr>{["Employee","Leave Type","From","To","Days","Reason","Status","Actions"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+                <tr>{["Employee","Leave Type","From","To","Days","Reason","Status","Actions"].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {leaves.length === 0
@@ -407,7 +408,7 @@ export default function HRPage() {
                   ))
                 }
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       )}
@@ -422,19 +423,19 @@ export default function HRPage() {
             </div>
             {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
             <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Employee Code *</label><input style={S.input} value={empForm.employeeCode} onChange={e=>ef("employeeCode",e.target.value)} placeholder="EMP-001"/></div>
                 <div><label style={S.label}>Full Name *</label><input style={S.input} value={empForm.name} onChange={e=>ef("name",e.target.value)}/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Email</label><input type="email" style={S.input} value={empForm.email} onChange={e=>ef("email",e.target.value)}/></div>
                 <div><label style={S.label}>Phone</label><input style={S.input} value={empForm.phone} onChange={e=>ef("phone",e.target.value)}/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Designation</label><input style={S.input} value={empForm.designation} onChange={e=>ef("designation",e.target.value)}/></div>
                 <div><label style={S.label}>Department</label><input style={S.input} value={empForm.department} onChange={e=>ef("department",e.target.value)}/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Employment Type</label>
                   <select style={S.select} value={empForm.employmentType} onChange={e=>ef("employmentType",e.target.value)}>
                     {["FULL_TIME","PART_TIME","CONTRACT","INTERN"].map(t=><option key={t} value={t}>{t.replace("_"," ")}</option>)}
@@ -442,15 +443,20 @@ export default function HRPage() {
                 </div>
                 <div><label style={S.label}>Joining Date *</label><input type="date" style={S.input} value={empForm.joiningDate} onChange={e=>ef("joiningDate",e.target.value)}/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Basic Salary (₹/month)</label><input type="number" style={S.input} value={empForm.basicSalary} onChange={e=>ef("basicSalary",e.target.value)}/></div>
                 <div><label style={S.label}>PAN Number</label><input style={S.input} value={empForm.panNumber} onChange={e=>ef("panNumber",e.target.value)} placeholder="ABCDE1234F"/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Bank Account</label><input style={S.input} value={empForm.bankAccount} onChange={e=>ef("bankAccount",e.target.value)}/></div>
                 <div><label style={S.label}>IFSC Code</label><input style={S.input} value={empForm.bankIfsc} onChange={e=>ef("bankIfsc",e.target.value)}/></div>
               </div>
             </div>
+            {editId && (
+              <div style={{ marginTop:20, paddingTop:16, borderTop:"1px solid #1C1C35" }}>
+                <DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact />
+              </div>
+            )}
             <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
               <button onClick={() => setShowEmpModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"#CCCCEE" }}>Cancel</button>
               <button onClick={saveEmployee} style={S.btn} disabled={saving}>{saving?"Saving...":editId?"Update":"Add Employee"}</button>
@@ -462,7 +468,7 @@ export default function HRPage() {
       {/* ── Mark Attendance Modal ── */}
       {showAttModal && (
         <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowAttModal(false)}>
-          <div style={{ ...S.modalBox, width:460 }}>
+          <div className="modal-inner" style={{ maxWidth:460 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>Mark Attendance</h3>
               <button onClick={() => setShowAttModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
@@ -475,7 +481,7 @@ export default function HRPage() {
                   {employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}
                 </select>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Date *</label><input type="date" style={S.input} value={attForm.date} onChange={e=>af("date",e.target.value)}/></div>
                 <div><label style={S.label}>Status *</label>
                   <select style={S.select} value={attForm.status} onChange={e=>af("status",e.target.value)}>
@@ -484,7 +490,7 @@ export default function HRPage() {
                 </div>
               </div>
               {(attForm.status==="PRESENT"||attForm.status==="HALF_DAY") && (
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Check-In Time</label><input type="time" style={S.input} value={attForm.checkIn} onChange={e=>af("checkIn",e.target.value)}/></div>
                   <div><label style={S.label}>Check-Out Time</label><input type="time" style={S.input} value={attForm.checkOut} onChange={e=>af("checkOut",e.target.value)}/></div>
                 </div>
@@ -502,7 +508,7 @@ export default function HRPage() {
       {/* ── Generate Payroll Modal ── */}
       {showPayModal && (
         <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowPayModal(false)}>
-          <div style={{ ...S.modalBox, width:500 }}>
+          <div className="modal-inner" style={{ maxWidth:500 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>Generate Payroll</h3>
               <button onClick={() => setShowPayModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
@@ -518,7 +524,7 @@ export default function HRPage() {
                   {employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode}) — ₹{e.basicSalary.toLocaleString("en-IN")}/mo</option>)}
                 </select>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Month *</label>
                   <select style={S.select} value={payForm.month} onChange={e=>pf("month",e.target.value)}>
                     {MONTHS.map((m,i)=><option key={i} value={String(i+1)}>{m}</option>)}
@@ -530,11 +536,11 @@ export default function HRPage() {
                   </select>
                 </div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={payForm.workingDays} onChange={e=>pf("workingDays",e.target.value)} min="1" max="31"/></div>
                 <div><label style={S.label}>Days Present *</label><input type="number" style={S.input} value={payForm.presentDays} onChange={e=>pf("presentDays",e.target.value)} min="0" max="31"/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>HRA (₹)</label><input type="number" style={S.input} value={payForm.hra} onChange={e=>pf("hra",e.target.value)} min="0"/></div>
                 <div><label style={S.label}>Other Allowances (₹)</label><input type="number" style={S.input} value={payForm.allowances} onChange={e=>pf("allowances",e.target.value)} min="0"/></div>
               </div>
@@ -551,7 +557,7 @@ export default function HRPage() {
       {/* ── Apply Leave Modal ── */}
       {showLeaveModal && (
         <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowLeaveModal(false)}>
-          <div style={{ ...S.modalBox, width:460 }}>
+          <div className="modal-inner" style={{ maxWidth:460 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>Apply for Leave</h3>
               <button onClick={() => setShowLeaveModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
@@ -569,7 +575,7 @@ export default function HRPage() {
                   {["Annual","Sick","Casual","Maternity","Paternity","Unpaid","Other"].map(t=><option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>From Date *</label><input type="date" style={S.input} value={leaveForm.fromDate} onChange={e=>lf("fromDate",e.target.value)}/></div>
                 <div><label style={S.label}>To Date *</label><input type="date" style={S.input} value={leaveForm.toDate} onChange={e=>lf("toDate",e.target.value)}/></div>
               </div>

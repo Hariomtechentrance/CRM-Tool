@@ -37,6 +37,11 @@ import SuperAdminOrgsPage from "@/pages/superAdmin/SuperAdminOrgsPage";
 import SuperAdminUsersPage from "@/pages/superAdmin/SuperAdminUsersPage";
 import SuperAdminLoginPage from "@/pages/superAdmin/SuperAdminLoginPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
+import EmailPage from "@/pages/email/EmailPage";
+import ActivitiesPage from "@/pages/activities/ActivitiesPage";
+import DealsPage from "@/pages/deals/DealsPage";
+import QuotationsPage from "@/pages/quotations/QuotationsPage";
+import DocumentsPage from "@/pages/documents/DocumentsPage";
 
 // Wrap a page with module-level access gate
 const G = (moduleKey: string, Page: React.ComponentType) => (
@@ -104,8 +109,16 @@ export default function App() {
           <Route path="/import-export" element={G("IMPORT_EXPORT_SUITE", TradePage)} />
           <Route path="/retail"        element={G("RETAIL_FASHION", RetailPage)} />
 
+          {/* ── Sales ── */}
+          <Route path="/deals"        element={<DealsPage />} />
+          <Route path="/quotations"   element={<QuotationsPage />} />
+
+          {/* ── Communication ── */}
+          <Route path="/email"        element={<EmailPage />} />
+          <Route path="/activities"   element={<ActivitiesPage />} />
+
           {/* ── Utility (no gate needed) ── */}
-          <Route path="/documents"    element={<ComingSoonPage title="Documents" description="Central library for all your trade documents and attachments." />} />
+          <Route path="/documents"    element={<DocumentsPage />} />
           <Route path="/settings"     element={<SettingsPage />} />
         </Route>
 

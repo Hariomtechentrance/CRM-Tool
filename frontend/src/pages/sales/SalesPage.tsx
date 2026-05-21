@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import DocumentsButton from "@/components/DocumentsButton";
 import api from "@/lib/api";
 import { Truck, Plus, Search, X, Check, Clock, Package, ClipboardList } from "lucide-react";
 
@@ -232,6 +233,7 @@ export default function SalesPage() {
                           <td style={{ ...S.td, whiteSpace: "nowrap" }}>
                             <div style={{ display: "flex", gap: 4 }}>
                               {e.status === "PENDING" && <button onClick={() => markDone(e.id)} title="Mark Completed" style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 5, padding: "4px 7px", cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}><Check size={11} /> Done</button>}
+                              <DocumentsButton entityType="GOODS_ENTRY" entityId={e.id} entityLabel={e.entryNumber} />
                               <button onClick={() => deleteDispatch(e.id)} style={{ background: "#ef444420", color: "#ef4444", border: "none", borderRadius: 5, padding: "4px 7px", cursor: "pointer" }}><X size={11} /></button>
                             </div>
                           </td>

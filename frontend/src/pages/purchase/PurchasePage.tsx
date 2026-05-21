@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
+import DocumentsButton from "@/components/DocumentsButton";
 import { ShoppingBag, Plus, Search, X, ChevronDown } from "lucide-react";
 
 const S = {
@@ -156,15 +157,16 @@ export default function PurchasePage() {
                   <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5" }}>₹{po.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                   <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (STATUS_COLORS[po.status] || "#818cf8") + "20", color: STATUS_COLORS[po.status] || "#818cf8" }}>{po.status}</span></td>
                   <td style={S.td}>
-                    {po.status === "DRAFT" && (
-                      <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                      {po.status === "DRAFT" && (<>
                         <button onClick={() => updateStatus(po.id, "SENT")} style={{ background: "#60a5fa20", color: "#60a5fa", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Send</button>
                         <button onClick={() => updateStatus(po.id, "RECEIVED")} style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Receive</button>
-                      </div>
-                    )}
-                    {po.status === "SENT" && (
-                      <button onClick={() => updateStatus(po.id, "RECEIVED")} style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Mark Received</button>
-                    )}
+                      </>)}
+                      {po.status === "SENT" && (
+                        <button onClick={() => updateStatus(po.id, "RECEIVED")} style={{ background: "#10b98120", color: "#10b981", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Mark Received</button>
+                      )}
+                      <DocumentsButton entityType="PURCHASE_ORDER" entityId={po.id} entityLabel={po.poNumber} />
+                    </div>
                   </td>
                 </tr>
               ))}

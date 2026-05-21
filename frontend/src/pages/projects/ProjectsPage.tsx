@@ -118,8 +118,8 @@ export default function ProjectsPage() {
             </div>
           </div>
           {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["Project", "Status", "Start", "End", "Budget", "Tasks"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>{["Project", "Status", "Start", "End", "Budget", "Tasks"].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr></thead>
               <tbody>
                 {projects.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No projects yet.</td></tr> : projects.map(p => (
                   <tr key={p.id}>
@@ -132,7 +132,7 @@ export default function ProjectsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       )}
@@ -179,7 +179,7 @@ export default function ProjectsPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><label style={S.label}>Project Name *</label><input style={S.input} value={projForm.name} onChange={(e) => setProjForm({ ...projForm, name: e.target.value })} /></div>
               <div><label style={S.label}>Description</label><textarea style={{ ...S.input, minHeight: 72, resize: "vertical" as const }} value={projForm.description} onChange={(e) => setProjForm({ ...projForm, description: e.target.value })} /></div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Status</label>
                   <select style={S.select} value={projForm.status} onChange={(e) => setProjForm({ ...projForm, status: e.target.value })}>
                     {Object.keys(PROJ_COLORS).map(s => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
@@ -187,7 +187,7 @@ export default function ProjectsPage() {
                 </div>
                 <div><label style={S.label}>Budget ₹</label><input type="number" style={S.input} value={projForm.budget} onChange={(e) => setProjForm({ ...projForm, budget: e.target.value })} /></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Start Date</label><input type="date" style={S.input} value={projForm.startDate} onChange={(e) => setProjForm({ ...projForm, startDate: e.target.value })} /></div>
                 <div><label style={S.label}>End Date</label><input type="date" style={S.input} value={projForm.endDate} onChange={(e) => setProjForm({ ...projForm, endDate: e.target.value })} /></div>
               </div>
@@ -202,7 +202,7 @@ export default function ProjectsPage() {
 
       {showTaskModal && (
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowTaskModal(false)}>
-          <div style={{ ...S.modalBox, width: 440 }}>
+          <div className="modal-inner" style={{ maxWidth: 440 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Task</h3>
               <button onClick={() => setShowTaskModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
@@ -216,7 +216,7 @@ export default function ProjectsPage() {
                   {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Priority</label>
                   <select style={S.select} value={taskForm.priority} onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}>
                     {["LOW","MEDIUM","HIGH","URGENT"].map(p => <option key={p} value={p}>{p}</option>)}

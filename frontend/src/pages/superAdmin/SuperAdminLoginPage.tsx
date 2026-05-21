@@ -87,7 +87,7 @@ export default function SuperAdminLoginPage() {
             Platform Administration
           </h1>
           <p style={{ fontSize: 13, color: "#505070", marginTop: 6 }}>
-            BL-CRM · Super Admin Portal
+            FlowCRM · Super Admin Portal
           </p>
         </div>
 

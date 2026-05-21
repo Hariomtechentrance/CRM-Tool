@@ -68,7 +68,7 @@ export default function AcceptInvitePage() {
       <div style={S.card}>
         {/* Logo */}
         <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 20, boxShadow: "0 8px 28px rgba(99,102,241,0.4)" }}>
-          <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>BL</span>
+          <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>FC</span>
         </div>
 
         {status === "loading" && (
@@ -93,7 +93,7 @@ export default function AcceptInvitePage() {
                 <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>
                   {ROLE_LABELS[invite.role] || invite.role}
                 </span>
-                <span style={{ fontSize: 12, color: "#505070" }}>on BL-CRM</span>
+                <span style={{ fontSize: 12, color: "#505070" }}>on FlowCRM</span>
               </div>
             </div>
             {!isAuthenticated && (

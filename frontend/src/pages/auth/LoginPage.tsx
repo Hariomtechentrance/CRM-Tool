@@ -17,9 +17,9 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const FEATURES = [
-  { icon: TrendingUp, text: "Sales & purchase tracking" },
-  { icon: Users,      text: "Customer & supplier management" },
-  { icon: Globe,      text: "Built for import-export companies" },
+  { icon: TrendingUp, text: "Sales, finance & operations in one place" },
+  { icon: Users,      text: "CRM, HR, inventory & more — all connected" },
+  { icon: Globe,      text: "Works for any business type or industry" },
 ];
 
 export default function LoginPage() {
@@ -52,10 +52,10 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", marginBottom: 16, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
-            <span style={{ color: "white", fontWeight: 800, fontSize: 16 }}>BL</span>
+            <span style={{ color: "white", fontWeight: 800, fontSize: 16 }}>FC</span>
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Welcome back</h1>
-          <p style={{ fontSize: 14, color: "#7070A0", marginTop: 6 }}>Sign in to your BL-CRM account</p>
+          <p style={{ fontSize: 14, color: "#7070A0", marginTop: 6 }}>Sign in to your FlowCRM account</p>
         </div>
 
         {/* Card */}

@@ -24,11 +24,24 @@ import superAdminRoutes from "./routes/superAdmin.routes";
 import orgAdminRoutes from "./routes/orgAdmin.routes";
 import accessControlRoutes from "./routes/accessControl.routes";
 import goodsEntryRoutes from "./routes/goodsEntry.routes";
+import emailRoutes from "./routes/email.routes";
+import dealRoutes from "./routes/deal.routes";
+import quotationRoutes from "./routes/quotation.routes";
+import searchRoutes from "./routes/search.routes";
+import documentRoutes from "./routes/document.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 const isProd = process.env.NODE_ENV === "production";
+
+// ── Startup env validation ────────────────────────────────────
+const REQUIRED_ENV = ["DATABASE_URL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"];
+const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error(`Missing required environment variables: ${missing.join(", ")}`);
+  process.exit(1);
+}
 
 // ── Security headers ─────────────────────────────────────────
 app.use(helmet({
@@ -84,7 +97,7 @@ app.use("/api", apiLimiter);
 app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: "ok", db: "connected", timestamp: new Date().toISOString(), app: "BL-CRM API" });
+    res.json({ status: "ok", db: "connected", timestamp: new Date().toISOString(), app: "FlowCRM API" });
   } catch {
     res.status(503).json({ status: "error", db: "disconnected", timestamp: new Date().toISOString() });
   }
@@ -109,6 +122,11 @@ app.use("/api/super-admin",    superAdminRoutes);
 app.use("/api/org-admin",      orgAdminRoutes);
 app.use("/api/access",         accessControlRoutes);
 app.use("/api/goods-entries",  goodsEntryRoutes);
+app.use("/api/email",          emailRoutes);
+app.use("/api/deals",          dealRoutes);
+app.use("/api/quotations",     quotationRoutes);
+app.use("/api/search",         searchRoutes);
+app.use("/api/documents",      documentRoutes);
 
 // ── Serve React frontend in production ───────────────────────
 if (isProd) {
@@ -129,9 +147,9 @@ app.use(errorHandler);
 
 // ── Start server ─────────────────────────────────────────────
 const server = app.listen(PORT, () => {
-  console.log(`\n🚀  BL-CRM API  →  http://localhost:${PORT}`);
-  console.log(`📋  Health      →  http://localhost:${PORT}/api/health`);
-  console.log(`🌍  Env         →  ${process.env.NODE_ENV || "development"}\n`);
+  console.log(`\n  FlowCRM API  ->  http://localhost:${PORT}`);
+  console.log(`  Health       ->  http://localhost:${PORT}/api/health`);
+  console.log(`  Env          ->  ${process.env.NODE_ENV || "development"}\n`);
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────

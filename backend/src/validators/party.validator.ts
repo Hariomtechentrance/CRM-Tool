@@ -25,6 +25,7 @@ export const createPartySchema = z.object({
   bankIfsc:         z.string().optional(),
   bankBranch:       z.string().optional(),
   notes:            z.string().optional(),
+  tags:             z.array(z.string()).optional(),
 });
 
 export const updatePartySchema = createPartySchema.partial();

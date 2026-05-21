@@ -119,6 +119,7 @@ export interface Party {
   bankIfsc?: string | null;
   bankBranch?: string | null;
   notes?: string | null;
+  tags?: string[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

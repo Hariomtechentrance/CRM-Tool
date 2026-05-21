@@ -184,12 +184,12 @@ export default function WarehousePage() {
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Name *</label><input style={S.input} value={whForm.name} onChange={e => setWhForm(p => ({ ...p, name: e.target.value }))} placeholder="Main Warehouse" /></div>
                 <div><label style={S.label}>Code *</label><input style={S.input} value={whForm.code} onChange={e => setWhForm(p => ({ ...p, code: e.target.value }))} placeholder="WH-001" /></div>
               </div>
               <div><label style={S.label}>Address</label><input style={S.input} value={whForm.address} onChange={e => setWhForm(p => ({ ...p, address: e.target.value }))} /></div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>City</label><input style={S.input} value={whForm.city} onChange={e => setWhForm(p => ({ ...p, city: e.target.value }))} /></div>
                 <div><label style={S.label}>State</label><input style={S.input} value={whForm.state} onChange={e => setWhForm(p => ({ ...p, state: e.target.value }))} /></div>
               </div>
@@ -209,14 +209,14 @@ export default function WarehousePage() {
       {/* New Transfer Modal */}
       {showTrModal && (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowTrModal(false)}>
-          <div style={{ ...S.modalBox, width: 540 }}>
+          <div className="modal-inner" style={{ maxWidth: 540 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Stock Transfer</h3>
               <button onClick={() => setShowTrModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>From Warehouse *</label>
                   <select style={S.select} value={trForm.fromWarehouseId} onChange={e => setTrForm(p => ({ ...p, fromWarehouseId: e.target.value }))}>
                     <option value="">— Select —</option>

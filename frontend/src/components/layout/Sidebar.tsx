@@ -4,7 +4,7 @@ import {
   Users, Package, ShoppingCart, Truck, Receipt,
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
-  LayoutGrid, PackageOpen,
+  LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -100,9 +100,9 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm shadow-lg flex-shrink-0"
             style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-            BL
+            FC
           </div>
-          <span className="font-bold text-base tracking-tight" style={{ color: "#EEEEF5" }}>BL-CRM</span>
+          <span className="font-bold text-base tracking-tight" style={{ color: "#EEEEF5" }}>FlowCRM</span>
         </div>
       </div>
 
@@ -171,6 +171,64 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Sales tools — always visible */}
+      <div className="mt-4" style={{ padding: "0 10px" }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1.5" style={{ color: "#404060", letterSpacing: "0.1em" }}>
+          Sales
+        </p>
+        <ul className="space-y-0.5">
+          {[
+            { href: "/deals", label: "Deals", Icon: Briefcase },
+            { href: "/quotations", label: "Quotations", Icon: FileText },
+          ].map(({ href, label, Icon }) => (
+            <li key={href}>
+              <NavLink
+                to={href}
+                onClick={onClose}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
+                  isActive
+                    ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
+                    : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
+                )}
+              >
+                <Icon style={{ width: 17, height: 17, flexShrink: 0 }} />
+                <span className="truncate">{label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Communication tools — always visible */}
+      <div className="mt-4" style={{ padding: "0 10px" }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1.5" style={{ color: "#404060", letterSpacing: "0.1em" }}>
+          Communication
+        </p>
+        <ul className="space-y-0.5">
+          {[
+            { href: "/email", label: "Email", Icon: Mail },
+            { href: "/activities", label: "Activities", Icon: Calendar },
+          ].map(({ href, label, Icon }) => (
+            <li key={href}>
+              <NavLink
+                to={href}
+                onClick={onClose}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
+                  isActive
+                    ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
+                    : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
+                )}
+              >
+                <Icon style={{ width: 17, height: 17, flexShrink: 0 }} />
+                <span className="truncate">{label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {/* Bottom links */}
       <div className="flex-shrink-0 px-2.5 pb-4" style={{ borderTop: "1px solid #151528", paddingTop: 10 }}>

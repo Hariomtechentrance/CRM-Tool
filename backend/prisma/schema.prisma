@@ -100,6 +100,11 @@ model Organization {
   userModuleAccess  UserModuleAccess[]
   accessRequests    AccessRequest[]
   goodsEntries      GoodsEntry[]
+  emailLogs         EmailLog[]
+  emailTemplates    EmailTemplate[]
+  deals             Deal[]
+  quotations        Quotation[]
+  documents         Document[]
 
   @@index([slug])
 }
@@ -289,6 +294,7 @@ model Party {
   bankBranch     String?
 
   notes          String?
+  tags           String[]  @default([])
   isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -306,6 +312,9 @@ model Party {
   posSales       POSSale[]
   tradeDocuments TradeDocument[]
   projects       Project[]
+  emailLogs      EmailLog[]
+  deals          Deal[]
+  quotations     Quotation[]
 
   @@index([organizationId])
   @@index([organizationId, type])
@@ -422,11 +431,12 @@ model Product {
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   category       ProductCategory? @relation(fields: [categoryId], references: [id])
   warehouse      Warehouse?       @relation(fields: [warehouseId], references: [id])
-  stockMovements StockMovement[]
-  purchaseItems  PurchaseOrderItem[]
-  salesItems     SalesOrderItem[]
-  variants       ProductVariant[]
-  posSaleItems   POSSaleItem[]
+  stockMovements  StockMovement[]
+  purchaseItems   PurchaseOrderItem[]
+  salesItems      SalesOrderItem[]
+  variants        ProductVariant[]
+  posSaleItems    POSSaleItem[]
+  quotationItems  QuotationItem[]
 
   @@unique([organizationId, sku])
   @@index([organizationId])
@@ -1091,6 +1101,8 @@ model Lead {
   assignedToId   String?
   campaignId     String?
   notes          String?
+  tags           String[]   @default([])
+  score          Int        @default(0)
   convertedAt    DateTime?
   partyId        String?
   createdAt      DateTime   @default(now())
@@ -1313,6 +1325,152 @@ model GoodsEntry {
   @@index([organizationId, entryDate])
 }
 
+// ─────────────────────────────────────────────────────────────
+//  DEALS / OPPORTUNITIES (Salesforce / HubSpot style)
+// ─────────────────────────────────────────────────────────────
+
+enum DealStage {
+  PROSPECTING
+  QUALIFICATION
+  NEEDS_ANALYSIS
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  organizationId    String
+  title             String
+  partyId           String?
+  leadId            String?
+  stage             DealStage @default(PROSPECTING)
+  value             Float?
+  probability       Int       @default(20)
+  expectedCloseDate DateTime?
+  assignedToId      String?
+  description       String?
+  notes             String?
+  closedAt          DateTime?
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party        Party?       @relation(fields: [partyId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, stage])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  QUOTATIONS / PROPOSALS (SAP / Odoo / Zoho style)
+// ─────────────────────────────────────────────────────────────
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  organizationId  String
+  quotationNumber String
+  partyId         String?
+  status          QuotationStatus @default(DRAFT)
+  subject         String?
+  validUntil      DateTime?
+  subtotal        Float           @default(0)
+  taxAmount       Float           @default(0)
+  discount        Float           @default(0)
+  total           Float           @default(0)
+  notes           String?
+  terms           String?
+  createdById     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party        Party?          @relation(fields: [partyId], references: [id])
+  items        QuotationItem[]
+
+  @@unique([organizationId, quotationNumber])
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model QuotationItem {
+  id           String    @id @default(cuid())
+  quotationId  String
+  description  String
+  quantity     Float     @default(1)
+  unitPrice    Float
+  taxRate      Float     @default(0)
+  taxAmount    Float     @default(0)
+  discount     Float     @default(0)
+  total        Float
+  productId    String?
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product   Product?  @relation(fields: [productId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  EMAIL MODULE
+// ─────────────────────────────────────────────────────────────
+
+enum EmailStatus {
+  DRAFT
+  SENT
+  FAILED
+}
+
+model EmailTemplate {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  subject        String
+  body           String   @db.Text
+  category       String   @default("GENERAL")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  emails       EmailLog[]
+
+  @@index([organizationId])
+}
+
+model EmailLog {
+  id             String      @id @default(cuid())
+  organizationId String
+  fromEmail      String
+  toEmail        String
+  ccEmail        String?
+  subject        String
+  body           String      @db.Text
+  templateId     String?
+  partyId        String?
+  leadId         String?
+  status         EmailStatus @default(SENT)
+  errorMessage   String?
+  sentAt         DateTime?
+  sentById       String?
+  createdAt      DateTime    @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party        Party?         @relation(fields: [partyId], references: [id])
+  template     EmailTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, partyId])
+}
+
 model ProductVariant {
   id           String   @id @default(cuid())
   productId    String
@@ -1338,4 +1496,30 @@ model ProductVariant {
 
   @@unique([productId, sku])
   @@index([productId])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DOCUMENT ATTACHMENTS
+// ─────────────────────────────────────────────────────────────
+
+model Document {
+  id             String   @id @default(cuid())
+  organizationId String
+  fileName       String
+  originalName   String
+  mimeType       String
+  fileSize       Int
+  filePath       String
+
+  entityType     String
+  entityId       String
+  description    String?
+
+  uploadedById   String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, entityType, entityId])
 }

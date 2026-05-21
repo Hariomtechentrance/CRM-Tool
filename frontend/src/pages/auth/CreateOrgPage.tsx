@@ -153,13 +153,13 @@ export default function CreateOrgPage() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 13, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 28px rgba(99,102,241,0.4)" }}>
-            <span style={{ color: "white", fontWeight: 800, fontSize: 15 }}>BL</span>
+            <span style={{ color: "white", fontWeight: 800, fontSize: 15 }}>FC</span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>
             {step === 1 ? "Create your organization" : step === 2 ? "Contact & tax details" : "Choose your modules"}
           </h1>
           <p style={{ fontSize: 13, color: "#7070A0", marginTop: 5 }}>
-            {step === 1 ? "Set up your company workspace on BL-CRM."
+            {step === 1 ? "Set up your company workspace on FlowCRM."
              : step === 2 ? "Optional — fill these anytime in Settings."
              : `${selectedModules.length} module${selectedModules.length !== 1 ? "s" : ""} selected · You can change this later in Settings.`}
           </p>

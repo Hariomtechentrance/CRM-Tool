@@ -1,5 +1,5 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
@@ -22,6 +22,27 @@ const SEV_ICON = {
 };
 const SEV_DOT = { critical: "#ef4444", warning: "#f59e0b", info: "#6366f1" };
 
+interface SearchResults { parties?: any[]; leads?: any[]; deals?: any[]; invoices?: any[]; products?: any[]; }
+
+const RESULT_ICONS: Record<string, React.ReactNode> = {
+  parties: <Users size={12} />, leads: <TrendingUp size={12} />, deals: <Briefcase size={12} />,
+  invoices: <Receipt size={12} />, products: <Package size={12} />,
+};
+const RESULT_COLORS: Record<string, string> = {
+  parties: "#818CF8", leads: "#f59e0b", deals: "#10b981", invoices: "#F87171", products: "#60a5fa",
+};
+
+function getItemDisplay(category: string, item: any): { label: string; sub?: string; href: string } {
+  switch (category) {
+    case "parties":  return { label: item.name, sub: [item.type, item.email].filter(Boolean).join(" · "), href: `/crm/${item.id}` };
+    case "leads":    return { label: item.name, sub: item.company || item.status, href: "/marketing" };
+    case "deals":    return { label: item.title, sub: item.party?.name || item.stage, href: "/deals" };
+    case "invoices": return { label: item.invoiceNumber, sub: item.party?.name, href: "/accounts" };
+    case "products": return { label: item.name, sub: item.sku ? `SKU: ${item.sku}` : undefined, href: "/inventory" };
+    default:         return { label: item.name || item.id, href: "/dashboard" };
+  }
+}
+
 interface HeaderProps { onMenuToggle?: () => void; }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
@@ -32,6 +53,39 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertLoading, setAlertLoading] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const doSearch = useCallback(async (q: string) => {
+    if (q.length < 2) { setSearchResults(null); return; }
+    setSearchLoading(true);
+    try {
+      const r = await api.get("/search", { params: { q } });
+      setSearchResults(r.data.data);
+    } catch { setSearchResults(null); }
+    setSearchLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!searchQuery) { setSearchResults(null); setSearchLoading(false); return; }
+    searchTimer.current = setTimeout(() => doSearch(searchQuery), 300);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery, doSearch]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const loadAlerts = async () => {
     if (!activeOrg) return;
@@ -72,6 +126,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const criticalCount = alerts.filter(a => a.severity === "critical").length;
   const totalCount = alerts.length;
 
+  const hasResults = searchResults && Object.values(searchResults).some(arr => arr && arr.length > 0);
+
   return (
     <header style={{ background: "#0D0D1F", borderBottom: "1px solid #1C1C35" }}
       className="h-14 flex items-center justify-between px-6 flex-shrink-0">
@@ -90,6 +146,75 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           <span className="text-[11px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
             {activeOrg.currency}
           </span>
+        )}
+      </div>
+
+      {/* Global Search */}
+      <div ref={searchRef} style={{ position: "relative", flex: 1, maxWidth: 380, margin: "0 16px" }}>
+        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070", pointerEvents: "none" }} />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+          onFocus={() => setSearchOpen(true)}
+          placeholder="Search parties, deals, products..."
+          style={{
+            width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8,
+            padding: "7px 12px 7px 32px", color: "#EEEEF5", fontSize: 13, outline: "none",
+            boxSizing: "border-box", transition: "border-color 0.15s",
+          }}
+        />
+        {searchQuery && (
+          <button onClick={() => { setSearchQuery(""); setSearchResults(null); }} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 2 }}>
+            <X size={13} />
+          </button>
+        )}
+
+        {/* Dropdown */}
+        {searchOpen && searchQuery.length >= 2 && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
+            background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6)", zIndex: 200, overflow: "hidden", maxHeight: 420, overflowY: "auto",
+          }}>
+            {searchLoading ? (
+              <div style={{ padding: "20px 16px", textAlign: "center", color: "#505070", fontSize: 13 }}>Searching...</div>
+            ) : !hasResults ? (
+              <div style={{ padding: "20px 16px", textAlign: "center", color: "#505070", fontSize: 13 }}>No results for "{searchQuery}"</div>
+            ) : (
+              Object.entries(searchResults || {}).map(([category, items]) => {
+                if (!items || items.length === 0) return null;
+                const color = RESULT_COLORS[category] || "#818CF8";
+                const icon = RESULT_ICONS[category];
+                return (
+                  <div key={category}>
+                    <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ color }}>{icon}</span>
+                      {category}
+                    </div>
+                    {items.map((item: any) => {
+                      const display = getItemDisplay(category, item);
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => { navigate(display.href); setSearchOpen(false); setSearchQuery(""); }}
+                          style={{ padding: "9px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "#131327")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                        >
+                          <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, color: "#EEEEF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{display.label}</div>
+                            {display.sub && <div style={{ fontSize: 11, color: "#505070" }}>{display.sub}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            )}
+          </div>
         )}
       </div>
 

@@ -75,12 +75,12 @@ export default function AdminSettingsPage() {
         <div style={S.cardTitle}><Building2 size={15} color="#6366f1" /> Basic Information</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <F k="name" label="Organisation Name *" />
-          <div style={S.g2}>
+          <div className="grid-r2">
             <F k="email" label="Email" type="email" />
             <F k="phone" label="Phone" />
           </div>
           <F k="website" label="Website" placeholder="https://yourcompany.com" />
-          <div style={S.g2}>
+          <div className="grid-r2">
             <div>
               <label style={S.label}>Currency</label>
               <select style={S.select} value={form.currency} onChange={(e) => set("currency", e.target.value)}>
@@ -102,11 +102,11 @@ export default function AdminSettingsPage() {
         <div style={S.cardTitle}><Building2 size={15} color="#f59e0b" /> Address</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <F k="address" label="Street Address" />
-          <div style={S.g2}>
+          <div className="grid-r2">
             <F k="city" label="City" />
             <F k="state" label="State" />
           </div>
-          <div style={S.g2}>
+          <div className="grid-r2">
             <F k="pincode" label="PIN Code" />
             <F k="country" label="Country Code" placeholder="IN" />
           </div>
@@ -117,7 +117,7 @@ export default function AdminSettingsPage() {
       <div style={S.card}>
         <div style={S.cardTitle}><Building2 size={15} color="#10b981" /> Tax & Legal</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={S.g2}>
+          <div className="grid-r2">
             <F k="taxId" label="GSTIN" placeholder="22AAAAA0000A1Z5" />
             <F k="panNumber" label="PAN Number" placeholder="ABCDE1234F" />
           </div>
@@ -130,7 +130,7 @@ export default function AdminSettingsPage() {
         <div style={S.cardTitle}><Building2 size={15} color="#818cf8" /> Banking Details</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <F k="bankName" label="Bank Name" />
-          <div style={S.g2}>
+          <div className="grid-r2">
             <F k="bankAccount" label="Account Number" />
             <F k="bankIfsc" label="IFSC Code" />
           </div>

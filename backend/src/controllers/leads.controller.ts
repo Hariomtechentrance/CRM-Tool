@@ -14,6 +14,8 @@ const leadSchema = z.object({
   value: z.number().optional(),
   campaignId: z.string().optional(),
   notes: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  score: z.number().int().min(0).max(100).optional(),
 });
 
 const activitySchema = z.object({

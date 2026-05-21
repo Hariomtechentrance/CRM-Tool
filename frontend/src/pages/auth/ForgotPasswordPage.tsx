@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
     <div style={S.page}>
       <div style={S.card}>
         <div style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom:24, boxShadow:"0 8px 28px rgba(99,102,241,0.4)" }}>
-          <span style={{ color:"white", fontWeight:800, fontSize:14 }}>BL</span>
+          <span style={{ color:"white", fontWeight:800, fontSize:14 }}>FC</span>
         </div>
         <h2 style={{ fontSize:22, fontWeight:700, color:"#EEEEF5", margin:"0 0 6px" }}>Forgot Password?</h2>
         <p style={{ fontSize:14, color:"#505070", marginBottom:28 }}>Enter your email and we'll send you a reset link.</p>

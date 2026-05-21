@@ -1,20 +1,71 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
-import { BarChart3, TrendingUp, Package, Users, ShoppingCart, DollarSign, Download } from "lucide-react";
+import { BarChart3, TrendingUp, Package, Users, ShoppingCart, DollarSign, Download, PieChart, Activity } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
-  header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 } as React.CSSProperties,
   title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
   subtitle: { fontSize: 13, color: "#505070", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
-  grid4: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 } as React.CSSProperties,
-  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 } as React.CSSProperties,
   kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
   card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
   cardTitle: { fontSize: 14, fontWeight: 700, color: "#EEEEF5", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #131327" } as React.CSSProperties,
 };
+
+function BarChart({ data, color = "#6366f1" }: { data: { label: string; value: number; raw?: number }[]; color?: string }) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {data.map((d, i) => (
+        <div key={i}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+            <span style={{ fontSize: 12, color: "#CCCCEE" }}>{d.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color }}>{d.raw !== undefined ? d.raw : d.value}</span>
+          </div>
+          <div style={{ height: 8, background: "#131327", borderRadius: 4, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${(d.value / max) * 100}%`, background: color, borderRadius: 4, transition: "width 0.6s ease" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DonutChart({ segments }: { segments: { label: string; value: number; color: string }[] }) {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  let cumulative = 0;
+  const size = 120, cx = 60, cy = 60, r = 44, strokeWidth = 14;
+  const circumference = 2 * Math.PI * r;
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      <svg width={size} height={size} style={{ flexShrink: 0 }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#131327" strokeWidth={strokeWidth} />
+        {segments.map((seg, i) => {
+          const pct = seg.value / total;
+          const dash = pct * circumference;
+          const offset = circumference - cumulative * circumference;
+          cumulative += pct;
+          return (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={seg.color}
+              strokeWidth={strokeWidth} strokeDasharray={`${dash} ${circumference - dash}`}
+              strokeDashoffset={offset} transform={`rotate(-90 ${cx} ${cy})`} strokeLinecap="round" />
+          );
+        })}
+        <text x={cx} y={cy + 4} textAnchor="middle" fill="#EEEEF5" fontSize={14} fontWeight={700}>{total}</text>
+      </svg>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+        {segments.map((seg, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: "#CCCCEE", flex: 1 }}>{seg.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: seg.color }}>{seg.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function downloadCsv(filename: string, rows: string[][], headers: string[]) {
   const lines = [headers, ...rows].map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -29,26 +80,29 @@ export default function ReportsPage() {
   const { activeOrg } = useAuthStore();
   const activeOrgId = activeOrg?.id;
 
-  const [stats, setStats] = useState<{ parties:number; orders:number; products:number; tasks:number } | null>(null);
-  const [invStats, setInvStats] = useState<{ totalProducts:number; lowStock:number; totalValue:number } | null>(null);
-  const [finStats, setFinStats] = useState<{ totalReceivable:number; totalPayable:number; paidInvoices:number; overdueInvoices:number } | null>(null);
-  const [leadStats, setLeadStats] = useState<{ total:number; won:number; pipeline:number } | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [invStats, setInvStats] = useState<any>(null);
+  const [finStats, setFinStats] = useState<any>(null);
+  const [leadStats, setLeadStats] = useState<any>(null);
+  const [hrStats, setHrStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState<string|null>(null);
+  const [exporting, setExporting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [dRes, iRes, fRes, lRes] = await Promise.all([
+      const [dRes, iRes, fRes, lRes, hRes] = await Promise.all([
         api.get("/org-admin/stats").catch(() => ({ data: { data: {} } })),
         api.get("/inventory/summary").catch(() => ({ data: { data: {} } })),
         api.get("/finance/summary").catch(() => ({ data: { data: {} } })),
         api.get("/leads/stats").catch(() => ({ data: { data: {} } })),
+        api.get("/hr/stats").catch(() => ({ data: { data: {} } })),
       ]);
       setStats(dRes.data.data);
       setInvStats(iRes.data.data);
       setFinStats(fRes.data.data);
       setLeadStats(lRes.data.data);
+      setHrStats(hRes.data.data);
     } catch { /* ignore */ }
     setLoading(false);
   }, [activeOrgId]);
@@ -56,6 +110,35 @@ export default function ReportsPage() {
   useEffect(() => { load(); }, [load]);
 
   const fmt = (n?: number) => n ? `₹${(n / 100000).toFixed(1)}L` : "₹0";
+  const fmtK = (n?: number) => n ? (n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : `₹${n.toLocaleString("en-IN")}`) : "₹0";
+
+  const handleExport = async (type: string) => {
+    setExporting(type);
+    try {
+      if (type === "parties") {
+        const r = await api.get("/parties?limit=1000");
+        const parties = r.data.data?.parties || r.data.data || [];
+        downloadCsv("contacts.csv", parties.map((p: any) => [p.name, p.type, p.email || "", p.phone || "", p.city || "", p.country || "", p.gstin || "", p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN") : ""]),
+          ["Name", "Type", "Email", "Phone", "City", "Country", "GSTIN", "Created"]);
+      } else if (type === "inventory") {
+        const r = await api.get("/inventory?limit=1000");
+        const items = r.data.data?.products || r.data.data || [];
+        downloadCsv("inventory.csv", items.map((p: any) => [p.name, p.sku || "", p.unit || "", p.currentStock || p.quantity || 0, p.reorderLevel || 0, p.costPrice || 0, p.sellingPrice || 0]),
+          ["Name", "SKU", "Unit", "Qty", "Reorder Level", "Cost Price", "Selling Price"]);
+      } else if (type === "invoices") {
+        const r = await api.get("/finance?limit=1000");
+        const invoices = r.data.data?.invoices || r.data.data || [];
+        downloadCsv("invoices.csv", invoices.map((inv: any) => [inv.invoiceNumber || "", inv.party?.name || "", inv.status || "", inv.total || 0, inv.paidAmount || 0, (inv.total || 0) - (inv.paidAmount || 0), inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("en-IN") : "", inv.createdAt ? new Date(inv.createdAt).toLocaleDateString("en-IN") : ""]),
+          ["Invoice #", "Party", "Status", "Total", "Paid", "Outstanding", "Due Date", "Created"]);
+      } else if (type === "leads") {
+        const r = await api.get("/leads?limit=1000");
+        const leads = r.data.data?.leads || r.data.data || [];
+        downloadCsv("leads.csv", leads.map((l: any) => [l.name || "", l.status || "", l.source || "", l.value || 0, l.company || "", l.email || "", l.phone || "", l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-IN") : ""]),
+          ["Lead", "Status", "Source", "Value", "Company", "Email", "Phone", "Created"]);
+      }
+    } catch { /* ignore */ }
+    setExporting(null);
+  };
 
   const kpis = [
     { icon: Users, label: "Total Contacts", value: stats?.parties ?? "—", color: "#6366f1" },
@@ -64,39 +147,32 @@ export default function ReportsPage() {
     { icon: TrendingUp, label: "Lead Pipeline", value: leadStats ? fmt(leadStats.pipeline) : "—", color: "#a78bfa" },
   ];
 
-  const handleExport = async (type: string) => {
-    setExporting(type);
-    try {
-      if (type === "parties") {
-        const r = await api.get("/parties?limit=1000");
-        const parties = r.data.data?.parties || r.data.data || [];
-        downloadCsv("contacts.csv", parties.map((p: any) => [p.name, p.type, p.email||"", p.phone||"", p.city||"", p.country||"", p.gstin||"", p.balance||0, p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN") : ""]),
-          ["Name","Type","Email","Phone","City","Country","GSTIN","Balance","Created"]);
-      } else if (type === "inventory") {
-        const r = await api.get("/inventory?limit=1000");
-        const items = r.data.data?.products || r.data.data || [];
-        downloadCsv("inventory.csv", items.map((p: any) => [p.name, p.sku||"", p.category||"", p.unit||"", p.quantity||0, p.reorderLevel||0, p.costPrice||0, p.sellingPrice||0]),
-          ["Name","SKU","Category","Unit","Qty","Reorder Level","Cost Price","Selling Price"]);
-      } else if (type === "invoices") {
-        const r = await api.get("/finance?limit=1000");
-        const invoices = r.data.data?.invoices || r.data.data || [];
-        downloadCsv("invoices.csv", invoices.map((inv: any) => [inv.invoiceNumber||"", inv.party?.name||"", inv.status||"", inv.total||0, inv.paidAmount||0, (inv.total||0)-(inv.paidAmount||0), inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("en-IN") : "", inv.createdAt ? new Date(inv.createdAt).toLocaleDateString("en-IN") : ""]),
-          ["Invoice #","Party","Status","Total","Paid","Outstanding","Due Date","Created"]);
-      } else if (type === "leads") {
-        const r = await api.get("/leads?limit=1000");
-        const leads = r.data.data?.leads || r.data.data || [];
-        downloadCsv("leads.csv", leads.map((l: any) => [l.title||l.name||"", l.status||"", l.source||"", l.value||0, l.contactName||"", l.contactEmail||"", l.contactPhone||"", l.assignedTo?.name||"", l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-IN") : ""]),
-          ["Lead","Status","Source","Value","Contact","Email","Phone","Assigned To","Created"]);
-      }
-    } catch { /* ignore */ }
-    setExporting(null);
-  };
+  const leadStatusData = leadStats?.byStatus
+    ? Object.entries(leadStats.byStatus as Record<string, number>).map(([label, value]) => ({ label, value, raw: value }))
+    : [];
+
+  const financeChartData = [
+    { label: "Receivable", value: finStats?.totalReceivable || 0 },
+    { label: "Payable", value: finStats?.totalPayable || 0 },
+  ];
+
+  const inventoryChartData = [
+    { label: "Total Products", value: invStats?.totalProducts || 0, raw: invStats?.totalProducts || 0 },
+    { label: "Low Stock", value: invStats?.lowStock || 0, raw: invStats?.lowStock || 0 },
+    { label: "Out of Stock", value: invStats?.outOfStock || 0, raw: invStats?.outOfStock || 0 },
+  ];
+
+  const leadDonut = [
+    { label: "Won", value: leadStats?.won || 0, color: "#10b981" },
+    { label: "Lost", value: leadStats?.lost || 0, color: "#ef4444" },
+    { label: "Pipeline", value: (leadStats?.total || 0) - (leadStats?.won || 0) - (leadStats?.lost || 0), color: "#818cf8" },
+  ].filter(d => d.value > 0);
 
   const exports = [
-    { key:"parties", label:"Party / Customer List", note:"All CRM contacts", icon:"👥" },
-    { key:"inventory", label:"Inventory Stock Report", note:"All products with quantities", icon:"📦" },
-    { key:"invoices", label:"Outstanding Invoices", note:"All invoices with balance due", icon:"🧾" },
-    { key:"leads", label:"Lead Pipeline Report", note:"All leads with status & value", icon:"📈" },
+    { key: "parties", label: "Party / Customer List", note: "All CRM contacts with details", icon: "👥" },
+    { key: "inventory", label: "Inventory Stock Report", note: "Products, quantities & prices", icon: "📦" },
+    { key: "invoices", label: "Outstanding Invoices", note: "All invoices with balance due", icon: "🧾" },
+    { key: "leads", label: "Lead Pipeline Report", note: "All leads with status & value", icon: "📈" },
   ];
 
   return (
@@ -104,87 +180,113 @@ export default function ReportsPage() {
       <div className="page-hdr">
         <div>
           <h1 style={S.title}>Reports & Analytics</h1>
-          <p style={S.subtitle}>Business overview, financial summaries and performance metrics</p>
+          <p style={S.subtitle}>Business overview, charts, financial summaries and performance metrics</p>
         </div>
       </div>
 
-      {loading ? <div style={{ padding:40, textAlign:"center", color:"#505070" }}>Loading analytics...</div> : (
+      {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading analytics...</div> : (
         <>
           {/* KPI Row */}
-          <div style={S.grid4}>
+          <div className="kpi-grid">
             {kpis.map(k => (
               <div key={k.label} style={S.kpi}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:12, color:"#505070", fontWeight:500 }}>{k.label}</span>
-                  <k.icon size={16} color={k.color}/>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "#505070", fontWeight: 500 }}>{k.label}</span>
+                  <k.icon size={16} color={k.color} />
                 </div>
-                <div style={{ fontSize:26, fontWeight:700, color:k.color, marginTop:6 }}>{k.value}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: k.color, marginTop: 6 }}>{k.value}</div>
               </div>
             ))}
           </div>
 
-          <div style={S.grid2}>
-            {/* Finance Summary */}
+          {/* Charts Row 1 */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 20 }}>
+            {/* Finance Bar Chart */}
             <div style={S.card}>
-              <div style={S.cardTitle}><DollarSign size={16} color="#10b981"/> Finance Summary</div>
-              {[
-                { label:"Total Receivable", value:fmt(finStats?.totalReceivable), color:"#10b981" },
-                { label:"Total Payable", value:fmt(finStats?.totalPayable), color:"#ef4444" },
-                { label:"Paid Invoices", value:finStats?.paidInvoices ?? 0, color:"#6366f1" },
-              ].map(r => (
-                <div key={r.label} style={S.row}>
-                  <span style={{ fontSize:13, color:"#CCCCEE" }}>{r.label}</span>
-                  <span style={{ fontSize:14, fontWeight:700, color:r.color }}>{r.value}</span>
-                </div>
-              ))}
+              <div style={S.cardTitle}><DollarSign size={16} color="#10b981" /> Finance Overview</div>
+              <BarChart data={financeChartData} color="#10b981" />
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #131327" }}>
+                {[
+                  { label: "Paid Invoices", value: finStats?.paidInvoices ?? 0, color: "#6366f1" },
+                  { label: "Overdue", value: finStats?.overdueInvoices ?? 0, color: "#ef4444" },
+                ].map(r => (
+                  <div key={r.label} style={S.row}>
+                    <span style={{ fontSize: 13, color: "#CCCCEE" }}>{r.label}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: r.color }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Inventory Summary */}
+            {/* Lead Donut */}
             <div style={S.card}>
-              <div style={S.cardTitle}><Package size={16} color="#f59e0b"/> Inventory Summary</div>
-              {[
-                { label:"Total Products", value:invStats?.totalProducts ?? 0, color:"#EEEEF5" },
-                { label:"Low Stock Alerts", value:invStats?.lowStock ?? 0, color:invStats?.lowStock ? "#ef4444" : "#EEEEF5" },
-                { label:"Inventory Value", value:fmt(invStats?.totalValue), color:"#10b981" },
-              ].map(r => (
-                <div key={r.label} style={S.row}>
-                  <span style={{ fontSize:13, color:"#CCCCEE" }}>{r.label}</span>
-                  <span style={{ fontSize:14, fontWeight:700, color:r.color }}>{r.value}</span>
+              <div style={S.cardTitle}><PieChart size={16} color="#a78bfa" /> Lead Conversion</div>
+              {leadDonut.length > 0 ? <DonutChart segments={leadDonut} /> : <div style={{ color: "#505070", fontSize: 13, textAlign: "center", padding: "20px 0" }}>No lead data yet</div>}
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #131327" }}>
+                <div style={S.row}>
+                  <span style={{ fontSize: 13, color: "#CCCCEE" }}>Pipeline Value</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b" }}>{fmt(leadStats?.pipeline)}</span>
                 </div>
-              ))}
+              </div>
             </div>
 
-            {/* Leads Summary */}
+            {/* Inventory Bar Chart */}
             <div style={S.card}>
-              <div style={S.cardTitle}><TrendingUp size={16} color="#a78bfa"/> Sales Pipeline</div>
-              {[
-                { label:"Total Leads", value:leadStats?.total ?? 0, color:"#EEEEF5" },
-                { label:"Won Deals", value:leadStats?.won ?? 0, color:"#10b981" },
-                { label:"Pipeline Value", value:fmt(leadStats?.pipeline), color:"#f59e0b" },
-              ].map(r => (
-                <div key={r.label} style={S.row}>
-                  <span style={{ fontSize:13, color:"#CCCCEE" }}>{r.label}</span>
-                  <span style={{ fontSize:14, fontWeight:700, color:r.color }}>{r.value}</span>
+              <div style={S.cardTitle}><Package size={16} color="#f59e0b" /> Inventory Status</div>
+              <BarChart data={inventoryChartData} color="#f59e0b" />
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #131327" }}>
+                <div style={S.row}>
+                  <span style={{ fontSize: 13, color: "#CCCCEE" }}>Inventory Value</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981" }}>{fmt(invStats?.totalValue)}</span>
                 </div>
-              ))}
+              </div>
             </div>
+          </div>
+
+          {/* Charts Row 2 */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 20 }}>
+            {/* Lead Pipeline by status */}
+            {leadStatusData.length > 0 && (
+              <div style={S.card}>
+                <div style={S.cardTitle}><Activity size={16} color="#818cf8" /> Pipeline by Stage</div>
+                <BarChart data={leadStatusData.slice(0, 7).map(d => ({ ...d, value: d.value }))} color="#818cf8" />
+              </div>
+            )}
+
+            {/* HR Summary */}
+            {hrStats && (
+              <div style={S.card}>
+                <div style={S.cardTitle}><Users size={16} color="#60a5fa" /> HR Overview</div>
+                {[
+                  { label: "Total Employees", value: hrStats?.totalEmployees ?? 0, color: "#60a5fa" },
+                  { label: "Active", value: hrStats?.activeEmployees ?? 0, color: "#10b981" },
+                  { label: "On Leave Today", value: hrStats?.onLeave ?? 0, color: "#f59e0b" },
+                  { label: "Pending Leaves", value: hrStats?.pendingLeaves ?? 0, color: "#a78bfa" },
+                ].map(r => (
+                  <div key={r.label} style={S.row}>
+                    <span style={{ fontSize: 13, color: "#CCCCEE" }}>{r.label}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: r.color }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* CSV Exports */}
             <div style={S.card}>
-              <div style={S.cardTitle}><BarChart3 size={16} color="#818cf8"/> Quick Exports</div>
+              <div style={S.cardTitle}><BarChart3 size={16} color="#818cf8" /> Quick Exports</div>
               {exports.map(e => (
-                <div key={e.key} style={{ ...S.row, cursor:"pointer" }} onClick={() => handleExport(e.key)}>
+                <div key={e.key} style={{ ...S.row, cursor: "pointer" }} onClick={() => handleExport(e.key)}>
                   <div>
-                    <div style={{ fontSize:13, color:"#CCCCEE", display:"flex", alignItems:"center", gap:6 }}>
+                    <div style={{ fontSize: 13, color: "#CCCCEE", display: "flex", alignItems: "center", gap: 6 }}>
                       <span>{e.icon}</span>{e.label}
                     </div>
-                    <div style={{ fontSize:11, color:"#505070", marginTop:2 }}>{e.note}</div>
+                    <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{e.note}</div>
                   </div>
                   <button
-                    disabled={exporting===e.key}
-                    style={{ padding:"5px 10px", borderRadius:6, border:"1px solid #1C1C35", cursor:"pointer", background:exporting===e.key?"#6366f120":"#131327", color:exporting===e.key?"#818CF8":"#6366f1", fontSize:11, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}
+                    disabled={exporting === e.key}
+                    style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #1C1C35", cursor: "pointer", background: exporting === e.key ? "#6366f120" : "#131327", color: exporting === e.key ? "#818CF8" : "#6366f1", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}
                   >
-                    <Download size={12}/>{exporting===e.key?"Exporting...":"Export CSV"}
+                    <Download size={12} />{exporting === e.key ? "Exporting..." : "CSV"}
                   </button>
                 </div>
               ))}

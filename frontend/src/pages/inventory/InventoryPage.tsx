@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Package, Plus, Search, AlertTriangle, TrendingDown, Tag, RefreshCw, X } from "lucide-react";
+import DocumentsPanel from "@/components/DocumentsPanel";
 
 const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -228,6 +229,13 @@ export default function InventoryPage() {
                 <div><label style={S.label}>Barcode</label><input style={S.input} value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="Optional" /></div>
               </div>
             </div>
+            {/* Attachments — only when editing an existing product */}
+            {editId && (
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #1C1C35" }}>
+                <DocumentsPanel entityType="PRODUCT" entityId={editId} compact />
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
               <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
               <button onClick={saveProduct} style={S.btn} disabled={saving}>{saving ? "Saving..." : editId ? "Update" : "Add Product"}</button>

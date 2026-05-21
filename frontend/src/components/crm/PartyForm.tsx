@@ -55,7 +55,8 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
   const [apiError, setApiError] = useState("");
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
     defaultValues: { type: defaultType, currency: "INR", country: "IN" },
   });
 

@@ -35,7 +35,7 @@ export default function SuperAdminDashboard() {
   return (
     <div style={S.page}>
       <h1 style={S.title}>Platform Dashboard</h1>
-      <p style={S.subtitle}>Overview of all organizations and users on BL-CRM</p>
+      <p style={S.subtitle}>Overview of all organizations and users on FlowCRM</p>
 
       <div style={S.grid4}>
         {[

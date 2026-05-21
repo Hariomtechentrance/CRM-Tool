@@ -265,7 +265,7 @@ export default function TradePage() {
             </div>
             {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
             <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Document Type</label>
                   <select style={S.select} value={form.type} onChange={e => f("type", e.target.value)}>
                     {DOC_TYPES.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
@@ -273,7 +273,7 @@ export default function TradePage() {
                 </div>
                 <div><label style={S.label}>Document Number *</label><input style={S.input} value={form.documentNumber} onChange={e => f("documentNumber", e.target.value)} placeholder="e.g. BL-2024-001"/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Party / Counterpart</label>
                   <select style={S.select} value={form.partyId} onChange={e => f("partyId", e.target.value)}>
                     <option value="">— Select —</option>
@@ -288,15 +288,15 @@ export default function TradePage() {
                   </div>
                 )}
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Document Date</label><input type="date" style={S.input} value={form.documentDate} onChange={e => f("documentDate", e.target.value)}/></div>
                 <div><label style={S.label}>Expiry Date</label><input type="date" style={S.input} value={form.expiryDate} onChange={e => f("expiryDate", e.target.value)}/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Port of Loading</label><input style={S.input} value={form.portOfLoading} onChange={e => f("portOfLoading", e.target.value)} placeholder="e.g. INNHAVA (JNPT)"/></div>
                 <div><label style={S.label}>Port of Discharge</label><input style={S.input} value={form.portOfDischarge} onChange={e => f("portOfDischarge", e.target.value)} placeholder="e.g. USNYLC"/></div>
               </div>
-              <div style={S.g3}>
+              <div className="grid-r3">
                 <div><label style={S.label}>Vessel / Flight</label><input style={S.input} value={form.vessel} onChange={e => f("vessel", e.target.value)} placeholder="MV Neptune"/></div>
                 <div><label style={S.label}>Incoterm</label>
                   <select style={S.select} value={form.incoterm} onChange={e => f("incoterm", e.target.value)}>
@@ -306,7 +306,7 @@ export default function TradePage() {
                 </div>
                 <div><label style={S.label}>Country</label><input style={S.input} value={form.country} onChange={e => f("country", e.target.value)} placeholder="Origin country"/></div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Amount</label><input type="number" style={S.input} value={form.amount} onChange={e => f("amount", e.target.value)} min="0"/></div>
                 <div><label style={S.label}>Currency</label>
                   <select style={S.select} value={form.currency} onChange={e => f("currency", e.target.value)}>

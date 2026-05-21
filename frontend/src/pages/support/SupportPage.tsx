@@ -121,8 +121,8 @@ export default function SupportPage() {
         </div>
 
         {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr>{["Ticket#", "Subject", "Customer", "Priority", "Replies", "Status", "Created", "Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+          <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr>{["Ticket#", "Subject", "Customer", "Priority", "Replies", "Status", "Created", "Action"].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr></thead>
             <tbody>
               {tickets.length === 0 ? <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No tickets yet.</td></tr> : tickets.map(t => (
                 <tr key={t.id}>
@@ -140,7 +140,7 @@ export default function SupportPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 
@@ -155,7 +155,7 @@ export default function SupportPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><label style={S.label}>Subject *</label><input style={S.input} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></div>
               <div><label style={S.label}>Description *</label><textarea style={{ ...S.input, minHeight: 80, resize: "vertical" as const }} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Priority</label>
                   <select style={S.select} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
                     {Object.keys(PRIORITY_COLORS).map(p => <option key={p} value={p}>{p}</option>)}

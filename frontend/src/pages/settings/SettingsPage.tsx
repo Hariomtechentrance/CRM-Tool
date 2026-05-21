@@ -135,7 +135,7 @@ export default function SettingsPage() {
   ] as const;
 
   return (
-    <div style={S.page}>
+    <div className="page-pad">
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
         <Settings size={20} color="#6366f1" />
         <h1 style={S.title}>Settings</h1>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
       {tab === "organization" && (
         <div style={S.card}>
           <div style={S.section}>Organization Profile</div>
-          <div style={S.g2}>
+          <div className="grid-r2">
             <div><label style={S.label}>Organization Name *</label>
               <input style={S.input} value={form.name} onChange={e => f("name", e.target.value)} />
             </div>
@@ -184,7 +184,7 @@ export default function SettingsPage() {
               <input style={S.input} value={form.taxId} onChange={e => f("taxId", e.target.value)} placeholder="22AAAAA0000A1Z5" />
             </div>
           </div>
-          <div style={S.g2}>
+          <div className="grid-r2">
             <div><label style={S.label}>Email</label>
               <input type="email" style={S.input} value={form.email} onChange={e => f("email", e.target.value)} />
             </div>
@@ -195,7 +195,7 @@ export default function SettingsPage() {
           <div style={{ marginBottom: 16 }}><label style={S.label}>Address</label>
             <input style={S.input} value={form.address} onChange={e => f("address", e.target.value)} />
           </div>
-          <div style={S.g2}>
+          <div className="grid-r2">
             <div><label style={S.label}>City</label>
               <input style={S.input} value={form.city} onChange={e => f("city", e.target.value)} />
             </div>
@@ -203,7 +203,7 @@ export default function SettingsPage() {
               <input style={S.input} value={form.state} onChange={e => f("state", e.target.value)} />
             </div>
           </div>
-          <div style={S.g2}>
+          <div className="grid-r2">
             <div>
               <label style={S.label}>Country</label>
               <select style={S.select} value={form.country} onChange={e => f("country", e.target.value)}>
@@ -290,7 +290,7 @@ export default function SettingsPage() {
       {/* ── INVITE MODAL ── */}
       {showInvite && (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowInvite(false)}>
-          <div style={S.modalBox}>
+          <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>Invite Team Member</h3>
               <button onClick={() => setShowInvite(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>

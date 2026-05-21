@@ -156,6 +156,7 @@ export default function CrmPage() {
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">Contact</th>
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">Location</th>
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">GSTIN</th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">Tags</th>
                   <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">Logs</th>
                 </tr>
               </thead>
@@ -214,6 +215,19 @@ export default function CrmPage() {
                         {party.gstin
                           ? <span className="text-xs font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{party.gstin}</span>
                           : <span className="text-slate-300 text-sm">—</span>}
+                      </td>
+                      {/* Tags */}
+                      <td className="px-6 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(party.tags || []).length === 0
+                            ? <span className="text-slate-300 text-xs">—</span>
+                            : (party.tags || []).map(tag => {
+                                const COLORS = ["#818cf8","#10b981","#f59e0b","#60a5fa","#a78bfa","#fb923c"];
+                                let h = 0; for (const c of tag) h = (h * 31 + c.charCodeAt(0)) % COLORS.length;
+                                const col = COLORS[Math.abs(h)];
+                                return <span key={tag} style={{ padding: "1px 6px", borderRadius: 99, fontSize: 10, fontWeight: 600, background: col + "20", color: col }}>{tag}</span>;
+                              })}
+                        </div>
                       </td>
                       {/* Comm count */}
                       <td className="px-6 py-3 text-right">

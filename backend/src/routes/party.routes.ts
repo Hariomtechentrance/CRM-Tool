@@ -5,7 +5,7 @@ import {
   listParties, getParty, createParty, updateParty, deleteParty,
   listContacts, createContact, updateContact, deleteContact,
   listCommunications, createCommunication, deleteCommunication,
-  getCrmStats,
+  listAllCommunications, getCrmStats,
 } from "../controllers/party.controller";
 
 const router = Router();
@@ -27,6 +27,9 @@ router.get("/:id/contacts",                  listContacts);
 router.post("/:id/contacts",                 createContact);
 router.patch("/:id/contacts/:contactId",     updateContact);
 router.delete("/:id/contacts/:contactId",    deleteContact);
+
+// Org-wide communications (for Activities page)
+router.get("/communications",                listAllCommunications);
 
 // Communication log
 router.get("/:id/communications",            listCommunications);

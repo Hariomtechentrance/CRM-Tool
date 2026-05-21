@@ -240,6 +240,23 @@ export async function deleteCommunication(req: OrgRequest, res: Response): Promi
   } catch (err) { serverError(res, err); }
 }
 
+export async function listAllCommunications(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const limit = parseInt((req.query.limit as string) || "300");
+    const communications = await prisma.communication.findMany({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: {
+        party: { select: { id: true, name: true } },
+        createdBy: { select: { id: true, name: true, email: true } },
+      },
+    });
+    ok(res, { communications });
+  } catch (err) { serverError(res, err); }
+}
+
 // ── CRM Stats ────────────────────────────────────────────────
 
 export async function getCrmStats(req: OrgRequest, res: Response): Promise<void> {

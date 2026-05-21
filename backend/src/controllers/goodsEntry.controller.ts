@@ -81,7 +81,7 @@ export async function updateGoodsEntry(req: OrgRequest, res: Response): Promise<
     const { id } = req.params;
     const { status, remarks, personName } = req.body;
     const entry = await prisma.goodsEntry.update({
-      where: { id, organizationId: orgId },
+      where: { id: id as string },
       data: { status, remarks, personName },
     });
     ok(res, entry);
@@ -92,7 +92,7 @@ export async function deleteGoodsEntry(req: OrgRequest, res: Response): Promise<
   try {
     const orgId = req.organizationId!;
     const { id } = req.params;
-    await prisma.goodsEntry.delete({ where: { id, organizationId: orgId } });
+    await prisma.goodsEntry.delete({ where: { id: id as string } });
     ok(res, null, "Deleted");
   } catch (e) { serverError(res, e); }
 }

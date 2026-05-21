@@ -265,7 +265,7 @@ export default function RetailPage() {
 
       {showColModal && (
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowColModal(false)}>
-          <div style={{ ...S.modalBox, width: 400 }}>
+          <div className="modal-inner" style={{ maxWidth: 400 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Collection</h3>
               <button onClick={() => setShowColModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
@@ -273,7 +273,7 @@ export default function RetailPage() {
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><label style={S.label}>Collection Name *</label><input style={S.input} value={colForm.name} onChange={(e) => setColForm({ ...colForm, name: e.target.value })} placeholder="e.g. Summer 2025" /></div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Season</label>
                   <select style={S.select} value={colForm.season} onChange={(e) => setColForm({ ...colForm, season: e.target.value })}>
                     <option value="">— Optional —</option>
@@ -312,7 +312,7 @@ export default function RetailPage() {
                   {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Variant SKU *</label><input style={S.input} value={varForm.sku} onChange={(e) => setVarForm({ ...varForm, sku: e.target.value })} placeholder="e.g. SHIRT-RED-L" /></div>
                 <div><label style={S.label}>Size</label>
                   <select style={S.select} value={varForm.size} onChange={(e) => setVarForm({ ...varForm, size: e.target.value })}>
@@ -321,11 +321,11 @@ export default function RetailPage() {
                   </select>
                 </div>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Color</label><input style={S.input} value={varForm.color} onChange={(e) => setVarForm({ ...varForm, color: e.target.value })} placeholder="e.g. Red, Navy Blue" /></div>
                 <div><label style={S.label}>Material</label><input style={S.input} value={varForm.material} onChange={(e) => setVarForm({ ...varForm, material: e.target.value })} placeholder="e.g. Cotton, Silk" /></div>
               </div>
-              <div style={S.g3}>
+              <div className="grid-r3">
                 <div><label style={S.label}>Cost ₹</label><input type="number" style={S.input} value={varForm.costPrice} onChange={(e) => setVarForm({ ...varForm, costPrice: e.target.value })} /></div>
                 <div><label style={S.label}>Sell ₹</label><input type="number" style={S.input} value={varForm.sellingPrice} onChange={(e) => setVarForm({ ...varForm, sellingPrice: e.target.value })} /></div>
                 <div><label style={S.label}>MRP ₹</label><input type="number" style={S.input} value={varForm.mrp} onChange={(e) => setVarForm({ ...varForm, mrp: e.target.value })} /></div>
