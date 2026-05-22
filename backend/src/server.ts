@@ -1,5 +1,4 @@
 import "dotenv/config";
-import path from "path";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -128,19 +127,10 @@ app.use("/api/quotations",     quotationRoutes);
 app.use("/api/search",         searchRoutes);
 app.use("/api/documents",      documentRoutes);
 
-// ── Serve React frontend in production ───────────────────────
-if (isProd) {
-  const frontendDist = path.join(__dirname, "../../frontend/dist");
-  app.use(express.static(frontendDist));
-  app.get("/{*path}", (_req, res) => {
-    res.sendFile(path.join(frontendDist, "index.html"));
-  });
-} else {
-  // ── 404 (dev only — in prod React handles unknown routes) ──
-  app.use((_req, res) => {
-    res.status(404).json({ success: false, message: "Route not found" });
-  });
-}
+// ── 404 ──────────────────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
 
 // ── Error handler ─────────────────────────────────────────────
 app.use(errorHandler);
