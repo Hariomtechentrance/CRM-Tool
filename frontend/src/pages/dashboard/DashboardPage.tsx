@@ -4,6 +4,10 @@ import {
   TrendingUp, Package, Truck, Receipt, Users, AlertCircle,
   Clock, ArrowUpRight, DollarSign, ShoppingCart, Headphones, FileText,
 } from "lucide-react";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
+  LineChart, Line, CartesianGrid,
+} from "recharts";
 import { useAuthStore } from "@/stores/authStore";
 import { formatCurrency } from "@/lib/utils";
 import api from "@/lib/api";
@@ -12,6 +16,8 @@ interface Stats {
   members: number; parties: number; invoices: number; orders: number;
   leads: number; tickets: number; products: number; tasks: number;
 }
+interface ChartPoint { month: string; revenue: number; orders: number; }
+interface LeadStage  { status: string; count: number; value: number; }
 interface ModuleStats {
   invoiceStats: Array<{ status: string; _count: { _all: number }; _sum: { total: number | null } }>;
   orderStats: Array<{ status: string; _count: { _all: number } }>;
@@ -63,20 +69,25 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [moduleStats, setModuleStats] = useState<ModuleStats | null>(null);
   const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [chartData, setChartData] = useState<ChartPoint[]>([]);
+  const [leadStages, setLeadStages] = useState<LeadStage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [statsRes, activityRes, modStatsRes] = await Promise.all([
+        const [statsRes, activityRes, modStatsRes, chartRes] = await Promise.all([
           api.get("/org-admin/stats"),
           api.get("/org-admin/activity?limit=20"),
           api.get("/org-admin/module-stats"),
+          api.get("/org-admin/charts"),
         ]);
         setStats(statsRes.data.data);
         setFeed(activityRes.data.data.feed || []);
         setModuleStats(modStatsRes.data.data);
+        setChartData(chartRes.data.data?.chartData || []);
+        setLeadStages(chartRes.data.data?.leadsByStage || []);
       } catch { /* ignore */ }
       setLoading(false);
     };
@@ -197,6 +208,64 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          {/* Charts row */}
+          {(chartData.length > 0 || leadStages.length > 0) && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+              {/* Revenue trend */}
+              <div style={card}>
+                <div style={cardHeader}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#EEEEF5", margin: 0 }}>Revenue Trend</p>
+                    <p style={{ fontSize: 11, color: "#505070", margin: "3px 0 0" }}>Paid invoices — last 6 months</p>
+                  </div>
+                </div>
+                <div style={{ padding: "16px 8px 12px" }}>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <LineChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1C1C35" />
+                      <XAxis dataKey="month" tick={{ fill: "#505070", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#505070", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} width={42} />
+                      <Tooltip
+                        contentStyle={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 8, fontSize: 12 }}
+                        labelStyle={{ color: "#EEEEF5", fontWeight: 600 }}
+                        itemStyle={{ color: "#34D399" }}
+                        formatter={(v: number) => [formatCurrency(v, currency), "Revenue"]}
+                      />
+                      <Line type="monotone" dataKey="revenue" stroke="#34D399" strokeWidth={2} dot={{ fill: "#34D399", r: 3 }} activeDot={{ r: 5 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Lead pipeline */}
+              <div style={card}>
+                <div style={cardHeader}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#EEEEF5", margin: 0 }}>Lead Pipeline</p>
+                    <p style={{ fontSize: 11, color: "#505070", margin: "3px 0 0" }}>Leads by current stage</p>
+                  </div>
+                </div>
+                <div style={{ padding: "16px 8px 12px" }}>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={leadStages} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1C1C35" />
+                      <XAxis dataKey="status" tick={{ fill: "#505070", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#505070", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
+                      <Tooltip
+                        contentStyle={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 8, fontSize: 12 }}
+                        labelStyle={{ color: "#EEEEF5", fontWeight: 600 }}
+                        itemStyle={{ color: "#FBBF24" }}
+                        formatter={(v: number) => [v, "Leads"]}
+                      />
+                      <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bottom section — Activity + Quick links */}
           <div className="dash-bottom">

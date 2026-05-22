@@ -171,3 +171,71 @@ export async function getModuleStats(req: OrgRequest, res: Response): Promise<vo
     ok(res, { invoiceStats, orderStats, purchaseStats, leadStats, ticketStats, projectStats });
   } catch (e) { serverError(res, e); }
 }
+
+export async function getChartData(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    // Build the 6-month label array in JS to guarantee all months appear
+    const months: { key: string; label: string }[] = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 5 + i);
+      d.setDate(1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleString("en-IN", { month: "short", year: "2-digit" });
+      months.push({ key, label });
+    }
+
+    type RevenueRow = { month_key: string; revenue: bigint };
+    type OrderRow   = { month_key: string; count: bigint };
+
+    const [revenueRows, orderRows, leadsByStage] = await Promise.all([
+      prisma.$queryRaw<RevenueRow[]>`
+        SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month_key,
+               COALESCE(SUM(total), 0) AS revenue
+        FROM "Invoice"
+        WHERE "organizationId" = ${orgId}
+          AND status IN ('PAID', 'DELIVERED')
+          AND "createdAt" >= ${sixMonthsAgo}
+        GROUP BY DATE_TRUNC('month', "createdAt")
+      `,
+      prisma.$queryRaw<OrderRow[]>`
+        SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month_key,
+               COUNT(*) AS count
+        FROM "SalesOrder"
+        WHERE "organizationId" = ${orgId}
+          AND "createdAt" >= ${sixMonthsAgo}
+        GROUP BY DATE_TRUNC('month', "createdAt")
+      `,
+      prisma.lead.groupBy({
+        by: ["status"],
+        where: { organizationId: orgId },
+        _count: { _all: true },
+        _sum: { value: true },
+      }),
+    ]);
+
+    const revenueMap = new Map(revenueRows.map(r => [r.month_key, Number(r.revenue)]));
+    const orderMap   = new Map(orderRows.map(r => [r.month_key, Number(r.count)]));
+
+    const chartData = months.map(m => ({
+      month:   m.label,
+      revenue: revenueMap.get(m.key) || 0,
+      orders:  orderMap.get(m.key)   || 0,
+    }));
+
+    ok(res, {
+      chartData,
+      leadsByStage: leadsByStage.map(l => ({
+        status: l.status,
+        count:  l._count._all,
+        value:  Number(l._sum.value || 0),
+      })),
+    });
+  } catch (e) { serverError(res, e); }
+}

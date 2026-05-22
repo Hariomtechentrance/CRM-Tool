@@ -43,28 +43,36 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const isDev = process.env.NODE_ENV === "development";
-    const emailVerifyToken = isDev ? null : uuidv4();
+    const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+    const emailVerifyToken = smtpConfigured ? uuidv4() : null;
 
     const user = await prisma.user.create({
       data: {
         name, email, password: hashedPassword,
         emailVerifyToken,
-        isEmailVerified: isDev, // auto-verify in dev so no email step needed
+        isEmailVerified: !smtpConfigured, // auto-verify if SMTP not configured
       },
     });
 
-    if (!isDev) {
-      await sendEmail({
-        to: email,
-        subject: "Verify your BL-CRM account",
-        html: verifyEmailTemplate(name, emailVerifyToken!),
-      });
+    if (smtpConfigured) {
+      try {
+        await sendEmail({
+          to: email,
+          subject: "Verify your BL-CRM account",
+          html: verifyEmailTemplate(name, emailVerifyToken!),
+        });
+      } catch (emailErr) {
+        console.error("[Register] Email failed, auto-verifying user:", emailErr);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { isEmailVerified: true, emailVerifyToken: null },
+        });
+      }
     }
 
-    const message = isDev
-      ? "Account created. You can log in immediately (dev mode)."
-      : "Account created. Please verify your email.";
+    const message = smtpConfigured
+      ? "Account created. Please verify your email."
+      : "Account created. You can log in immediately.";
 
     created(res, { id: user.id, name: user.name, email: user.email }, message);
   } catch (err) {

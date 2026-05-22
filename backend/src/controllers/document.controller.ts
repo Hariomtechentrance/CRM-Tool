@@ -1,8 +1,8 @@
 import { Response } from "express";
-import { Request } from "express";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
@@ -24,35 +24,61 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
-// ── Multer disk storage ─────────────────────────────────────
-const storage = multer.diskStorage({
-  destination: (req, _file, cb) => {
-    const orgReq = req as OrgRequest;
-    const orgId = orgReq.organizationId || "unknown";
-    const entityType = (req.body?.entityType || "misc").toLowerCase();
-    const dir = path.join(process.cwd(), "uploads", orgId, entityType);
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${uuidv4()}${ext}`);
-  },
-});
+const useCloudinary = !!(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
 
+if (useCloudinary) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+// Always use memory storage — we decide where to persist in the controller
 const fileFilter: multer.Options["fileFilter"] = (_req, file, cb) => {
-  if (ALLOWED_TYPES[file.mimetype]) {
-    cb(null, true);
-  } else {
-    cb(new Error(`File type not allowed: ${file.mimetype}`));
-  }
+  if (ALLOWED_TYPES[file.mimetype]) cb(null, true);
+  else cb(new Error(`File type not allowed: ${file.mimetype}`));
 };
 
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter,
 });
+
+// ── Helper: upload buffer to Cloudinary ─────────────────────
+function uploadToCloudinary(
+  buffer: Buffer,
+  folder: string,
+  publicId: string,
+  resourceType: "image" | "video" | "raw" | "auto" = "auto"
+): Promise<{ secure_url: string; public_id: string }> {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, public_id: publicId, resource_type: resourceType, use_filename: false },
+      (error: Error | null | undefined, result: { secure_url: string; public_id: string } | null | undefined) => {
+        if (error || !result) reject(error || new Error("Cloudinary upload failed"));
+        else resolve({ secure_url: result.secure_url, public_id: result.public_id });
+      }
+    );
+    stream.end(buffer);
+  });
+}
+
+// ── Helper: save buffer to local disk (fallback) ────────────
+function saveLocally(buffer: Buffer, orgId: string, entityType: string, originalname: string): string {
+  const ext = path.extname(originalname).toLowerCase();
+  const filename = `${uuidv4()}${ext}`;
+  const dir = path.join(process.cwd(), "uploads", orgId, entityType.toLowerCase());
+  fs.mkdirSync(dir, { recursive: true });
+  const fullPath = path.join(dir, filename);
+  fs.writeFileSync(fullPath, buffer);
+  return path.relative(process.cwd(), fullPath).replace(/\\/g, "/");
+}
 
 // ── Upload one or more files ────────────────────────────────
 export async function uploadDocuments(req: OrgRequest, res: Response): Promise<void> {
@@ -70,22 +96,36 @@ export async function uploadDocuments(req: OrgRequest, res: Response): Promise<v
       return;
     }
 
-    const documents = await Promise.all(files.map(file =>
-      prisma.document.create({
+    const documents = await Promise.all(files.map(async (file) => {
+      let filePath: string;
+      let fileName: string;
+
+      if (useCloudinary) {
+        const folder = `blcrm/${orgId}/${entityType.toLowerCase()}`;
+        const publicId = uuidv4();
+        const { secure_url, public_id } = await uploadToCloudinary(file.buffer, folder, publicId);
+        filePath = secure_url;
+        fileName = public_id;
+      } else {
+        filePath = saveLocally(file.buffer, orgId, entityType, file.originalname);
+        fileName = path.basename(filePath);
+      }
+
+      return prisma.document.create({
         data: {
           organizationId: orgId,
-          fileName: file.filename,
+          fileName,
           originalName: file.originalname,
           mimeType: file.mimetype,
           fileSize: file.size,
-          filePath: path.relative(process.cwd(), file.path).replace(/\\/g, "/"),
+          filePath,
           entityType: entityType.toUpperCase(),
           entityId,
           description: description || null,
           uploadedById: (req as any).userId || null,
         },
-      })
-    ));
+      });
+    }));
 
     ok(res, { documents }, `${documents.length} file(s) uploaded`);
   } catch (e) { serverError(res, e); }
@@ -96,25 +136,20 @@ export async function listDocuments(req: OrgRequest, res: Response): Promise<voi
   try {
     const orgId = req.organizationId!;
     const entityType = typeof req.query.entityType === "string" ? req.query.entityType.toUpperCase() : undefined;
-    const entityId = typeof req.query.entityId === "string" ? req.query.entityId : undefined;
-    const search = typeof req.query.search === "string" ? req.query.search : undefined;
+    const entityId   = typeof req.query.entityId   === "string" ? req.query.entityId   : undefined;
+    const search     = typeof req.query.search     === "string" ? req.query.search     : undefined;
 
     const where: any = { organizationId: orgId };
     if (entityType) where.entityType = entityType;
-    if (entityId) where.entityId = entityId;
+    if (entityId)   where.entityId   = entityId;
     if (search) {
       where.OR = [
         { originalName: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
+        { description:  { contains: search, mode: "insensitive" } },
       ];
     }
 
-    const documents = await prisma.document.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
-
+    const documents = await prisma.document.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 });
     ok(res, { documents });
   } catch (e) { serverError(res, e); }
 }
@@ -123,18 +158,11 @@ export async function listDocuments(req: OrgRequest, res: Response): Promise<voi
 export async function getDocumentStats(req: OrgRequest, res: Response): Promise<void> {
   try {
     const orgId = req.organizationId!;
-    const [total, byType] = await Promise.all([
+    const [total, byType, totalSize] = await Promise.all([
       prisma.document.count({ where: { organizationId: orgId } }),
-      prisma.document.groupBy({
-        by: ["entityType"],
-        where: { organizationId: orgId },
-        _count: true,
-      }),
+      prisma.document.groupBy({ by: ["entityType"], where: { organizationId: orgId }, _count: true }),
+      prisma.document.aggregate({ where: { organizationId: orgId }, _sum: { fileSize: true } }),
     ]);
-    const totalSize = await prisma.document.aggregate({
-      where: { organizationId: orgId },
-      _sum: { fileSize: true },
-    });
     ok(res, { total, totalSize: totalSize._sum.fileSize || 0, byType });
   } catch (e) { serverError(res, e); }
 }
@@ -142,17 +170,23 @@ export async function getDocumentStats(req: OrgRequest, res: Response): Promise<
 // ── Download / serve a file ─────────────────────────────────
 export async function downloadDocument(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const id = req.params.id as string;
+    const id    = req.params.id as string;
     const orgId = req.organizationId!;
-    const doc = await prisma.document.findFirst({ where: { id, organizationId: orgId } });
+    const doc   = await prisma.document.findFirst({ where: { id, organizationId: orgId } });
     if (!doc) { res.status(404).json({ success: false, message: "File not found" }); return; }
 
+    // Cloudinary (or any remote) URL — redirect directly
+    if (doc.filePath.startsWith("http://") || doc.filePath.startsWith("https://")) {
+      res.redirect(doc.filePath);
+      return;
+    }
+
+    // Local disk fallback
     const absolutePath = path.join(process.cwd(), doc.filePath);
     if (!fs.existsSync(absolutePath)) {
       res.status(404).json({ success: false, message: "File not found on disk" });
       return;
     }
-
     res.setHeader("Content-Type", doc.mimeType);
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(doc.originalName)}"`);
     res.setHeader("Content-Length", doc.fileSize);
@@ -163,14 +197,18 @@ export async function downloadDocument(req: OrgRequest, res: Response): Promise<
 // ── Delete a document ───────────────────────────────────────
 export async function deleteDocument(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const id = req.params.id as string;
+    const id    = req.params.id as string;
     const orgId = req.organizationId!;
-    const doc = await prisma.document.findFirst({ where: { id, organizationId: orgId } });
+    const doc   = await prisma.document.findFirst({ where: { id, organizationId: orgId } });
     if (!doc) { res.status(404).json({ success: false, message: "Not found" }); return; }
 
-    // Delete from disk (best effort)
-    const absolutePath = path.join(process.cwd(), doc.filePath);
-    try { fs.unlinkSync(absolutePath); } catch { /* already gone */ }
+    if (useCloudinary && (doc.filePath.startsWith("http://") || doc.filePath.startsWith("https://"))) {
+      // fileName stores the Cloudinary public_id
+      try { await cloudinary.uploader.destroy(doc.fileName, { resource_type: "raw" }); } catch { /* best effort */ }
+    } else {
+      const absolutePath = path.join(process.cwd(), doc.filePath);
+      try { fs.unlinkSync(absolutePath); } catch { /* already gone */ }
+    }
 
     await prisma.document.delete({ where: { id } });
     ok(res, null, "Deleted");

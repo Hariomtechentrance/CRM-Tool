@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { FileText, Plus, Search, X, Eye, Trash2, CheckCircle, Send, Clock, XCircle, ChevronDown } from "lucide-react";
+import { FileText, Plus, Search, X, Eye, Trash2, CheckCircle, Send, Clock, XCircle, Printer } from "lucide-react";
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
@@ -172,6 +172,58 @@ export default function QuotationsPage() {
 
   const fmt = (n: number) => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const openQuotationPrint = (q: Quotation) => {
+    const win = window.open("", "_blank", "width=900,height=700");
+    if (!win) return;
+    const rows = (q.items || []).map((item, i) => {
+      const qty   = parseFloat(String(item.quantity))  || 0;
+      const price = parseFloat(String(item.unitPrice)) || 0;
+      const tax   = parseFloat(String(item.taxRate))   || 0;
+      const disc  = parseFloat(String(item.discount))  || 0;
+      const total = qty * price - disc + (qty * price - disc) * (tax / 100);
+      return `<tr>
+        <td>${i + 1}</td><td>${item.description}</td><td>${qty}</td>
+        <td>₹${fmt(price)}</td><td>${tax}%</td><td>₹${fmt(disc)}</td>
+        <td><strong>₹${fmt(total)}</strong></td>
+      </tr>`;
+    }).join("");
+    win.document.write(`<!DOCTYPE html><html><head><title>Quotation ${q.quotationNumber}</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
+      h2 { margin: 0 0 4px; } .meta { color: #555; font-size: 13px; margin-bottom: 24px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+      th { background: #f4f4f4; padding: 8px 10px; text-align: left; font-size: 12px; border-bottom: 2px solid #ddd; }
+      td { padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #eee; }
+      .totals { float: right; width: 280px; }
+      .totals tr td { border: none; padding: 5px 8px; }
+      .totals tr:last-child td { font-weight: bold; font-size: 15px; border-top: 2px solid #111; }
+      .notes { margin-top: 24px; font-size: 13px; color: #444; }
+      @media print { body { padding: 20px; } }
+    </style></head><body>
+    <h2>QUOTATION</h2>
+    <div class="meta">
+      <strong>${q.quotationNumber}</strong> &nbsp;·&nbsp; Status: ${q.status}
+      ${q.party?.name ? `&nbsp;·&nbsp; Party: ${q.party.name}` : ""}
+      ${q.subject ? `<br/>Subject: ${q.subject}` : ""}
+      ${q.validUntil ? `<br/>Valid Until: ${new Date(q.validUntil).toLocaleDateString("en-IN")}` : ""}
+    </div>
+    <table><thead><tr>
+      <th>#</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Tax</th><th>Discount</th><th>Total</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <table class="totals"><tbody>
+      <tr><td>Subtotal</td><td>₹${fmt(Number(q.subtotal))}</td></tr>
+      <tr><td>Discount</td><td>-₹${fmt(Number(q.discount))}</td></tr>
+      <tr><td>Tax</td><td>₹${fmt(Number(q.taxAmount))}</td></tr>
+      <tr><td>Grand Total</td><td>₹${fmt(Number(q.total))}</td></tr>
+    </tbody></table>
+    <div style="clear:both"></div>
+    ${q.notes  ? `<div class="notes"><strong>Notes:</strong><br/>${q.notes}</div>` : ""}
+    ${q.terms  ? `<div class="notes"><strong>Terms & Conditions:</strong><br/>${q.terms}</div>` : ""}
+    <script>window.onload=()=>{window.print();}<\/script>
+    </body></html>`);
+    win.document.close();
+  };
+
   return (
     <div className="page-pad" style={{ minHeight: "100vh", background: "#070714" }}>
       {/* Header */}
@@ -300,6 +352,13 @@ export default function QuotationsPage() {
                           style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", color: "#818CF8", padding: "5px 8px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
                         >
                           <Eye size={13} /> View
+                        </button>
+                        <button
+                          onClick={() => openQuotationPrint(q)}
+                          style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", color: "#34D399", padding: "5px 8px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
+                          title="Print / PDF"
+                        >
+                          <Printer size={13} />
                         </button>
                         <button
                           onClick={() => handleDelete(q.id)}
@@ -454,7 +513,15 @@ export default function QuotationsPage() {
                 <span style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: "#818CF8" }}>{viewQt.quotationNumber}</span>
                 <StatusBadge status={viewQt.status} />
               </div>
-              <button onClick={() => setViewQt(null)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={20} /></button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  onClick={() => openQuotationPrint(viewQt)}
+                  style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", color: "#34D399", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  <Printer size={14} /> Print / PDF
+                </button>
+                <button onClick={() => setViewQt(null)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={20} /></button>
+              </div>
             </div>
 
             <div style={{ padding: 24 }}>
