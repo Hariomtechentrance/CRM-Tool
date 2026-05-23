@@ -315,8 +315,9 @@ model Party {
   tradeDocuments TradeDocument[]
   projects       Project[]
   emailLogs      EmailLog[]
-  deals          Deal[]
-  quotations     Quotation[]
+  deals              Deal[]
+  quotations         Quotation[]
+  recurringInvoices  RecurringInvoice[]
 
   @@index([organizationId])
   @@index([organizationId, type])
@@ -1564,6 +1565,7 @@ model RecurringInvoice {
   updatedAt      DateTime           @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party        Party?       @relation(fields: [partyId], references: [id])
 
   @@index([organizationId])
   @@index([nextRunDate, isActive])
