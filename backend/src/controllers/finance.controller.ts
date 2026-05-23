@@ -207,3 +207,85 @@ export async function getFinanceSummary(req: OrgRequest, res: Response): Promise
   } catch (e) { serverError(res, e); }
 }
 
+// ── Recurring Invoices ───────────────────────────────────────
+
+const recurringSchema = z.object({
+  partyId: z.string().optional(),
+  frequency: z.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]).default("MONTHLY"),
+  dayOfMonth: z.number().int().min(1).max(28).default(1),
+  nextRunDate: z.string(),
+  subject: z.string().optional(),
+  items: z.array(itemSchema),
+  subtotal: z.number().min(0).default(0),
+  taxAmount: z.number().min(0).default(0),
+  total: z.number().min(0).default(0),
+  notes: z.string().optional(),
+  autoSend: z.boolean().default(false),
+});
+
+export async function listRecurringInvoices(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const list = await prisma.recurringInvoice.findMany({
+      where: { organizationId: req.organizationId! },
+      include: { party: { select: { id: true, name: true } } },
+      orderBy: { nextRunDate: "asc" },
+    });
+    ok(res, { items: list });
+  } catch (e) { serverError(res, e); }
+}
+
+export async function createRecurringInvoice(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const parsed = recurringSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Invalid data", parsed.error.flatten()); return; }
+    const d = parsed.data;
+    const item = await prisma.recurringInvoice.create({
+      data: {
+        organizationId: req.organizationId!,
+        partyId: d.partyId || null,
+        frequency: d.frequency,
+        dayOfMonth: d.dayOfMonth,
+        nextRunDate: new Date(d.nextRunDate),
+        subject: d.subject || null,
+        items: d.items,
+        subtotal: d.subtotal,
+        taxAmount: d.taxAmount,
+        total: d.total,
+        notes: d.notes || null,
+        autoSend: d.autoSend,
+      },
+      include: { party: { select: { id: true, name: true } } },
+    });
+    created(res, item);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function updateRecurringInvoice(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.recurringInvoice.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Recurring invoice not found"); return; }
+    const updated = await prisma.recurringInvoice.update({
+      where: { id },
+      data: {
+        isActive: req.body.isActive !== undefined ? req.body.isActive : existing.isActive,
+        ...(req.body.nextRunDate && { nextRunDate: new Date(req.body.nextRunDate) }),
+        ...(req.body.frequency && { frequency: req.body.frequency }),
+        ...(req.body.autoSend !== undefined && { autoSend: req.body.autoSend }),
+      },
+      include: { party: { select: { id: true, name: true } } },
+    });
+    ok(res, updated);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deleteRecurringInvoice(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.recurringInvoice.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Recurring invoice not found"); return; }
+    await prisma.recurringInvoice.delete({ where: { id } });
+    ok(res, { deleted: true });
+  } catch (e) { serverError(res, e); }
+}
+

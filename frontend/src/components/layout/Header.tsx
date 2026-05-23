@@ -1,7 +1,8 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore";
 import api from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 
@@ -13,6 +14,16 @@ interface Alert {
   subtitle: string;
   link: string;
   createdAt: string | null;
+}
+
+interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 const SEV_ICON = {
@@ -48,10 +59,13 @@ interface HeaderProps { onMenuToggle?: () => void; }
 export default function Header({ onMenuToggle }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout, activeOrg } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [alertLoading, setAlertLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const bellRef = useRef<HTMLDivElement>(null);
 
   // Search state
@@ -91,8 +105,15 @@ export default function Header({ onMenuToggle }: HeaderProps) {
     if (!activeOrg) return;
     setAlertLoading(true);
     try {
-      const r = await api.get("/org-admin/alerts");
-      setAlerts(r.data.data?.alerts || []);
+      const [alertRes, notifRes] = await Promise.allSettled([
+        api.get("/org-admin/alerts"),
+        api.get("/notifications"),
+      ]);
+      const fetchedAlerts = alertRes.status === "fulfilled" ? (alertRes.value.data.data?.alerts || []) : [];
+      const fetchedNotifs: AppNotification[] = notifRes.status === "fulfilled" ? (notifRes.value.data.data?.notifications || []) : [];
+      setAlerts(fetchedAlerts);
+      setNotifications(fetchedNotifs);
+      setUnreadCount(fetchedNotifs.filter(n => !n.isRead).length);
     } catch { setAlerts([]); }
     setAlertLoading(false);
   };
@@ -124,12 +145,12 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   };
 
   const criticalCount = alerts.filter(a => a.severity === "critical").length;
-  const totalCount = alerts.length;
+  const totalCount = alerts.length + unreadCount;
 
   const hasResults = searchResults && Object.values(searchResults).some(arr => arr && arr.length > 0);
 
   return (
-    <header style={{ background: "#0D0D1F", borderBottom: "1px solid #1C1C35" }}
+    <header style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}
       className="h-14 flex items-center justify-between px-6 flex-shrink-0">
       {/* Left */}
       <div className="flex items-center gap-2.5">
@@ -159,8 +180,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           onFocus={() => setSearchOpen(true)}
           placeholder="Search parties, deals, products..."
           style={{
-            width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8,
-            padding: "7px 12px 7px 32px", color: "#EEEEF5", fontSize: 13, outline: "none",
+            width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-input)", borderRadius: 8,
+            padding: "7px 12px 7px 32px", color: "var(--text-primary)", fontSize: 13, outline: "none",
             boxSizing: "border-box", transition: "border-color 0.15s",
           }}
         />
@@ -174,8 +195,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         {searchOpen && searchQuery.length >= 2 && (
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
-            background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12,
-            boxShadow: "0 20px 60px rgba(0,0,0,0.6)", zIndex: 200, overflow: "hidden", maxHeight: 420, overflowY: "auto",
+            background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12,
+            boxShadow: "0 20px 60px var(--shadow)", zIndex: 200, overflow: "hidden", maxHeight: 420, overflowY: "auto",
           }}>
             {searchLoading ? (
               <div style={{ padding: "20px 16px", textAlign: "center", color: "#505070", fontSize: 13 }}>Searching...</div>
@@ -220,6 +241,18 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Right */}
       <div className="flex items-center gap-1.5">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+          style={{ color: "var(--text-ghost)", background: "transparent" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-ghost)"; }}
+        >
+          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+        </button>
+
         {/* Bell */}
         <div ref={bellRef} style={{ position: "relative" }}>
           <button
@@ -246,13 +279,13 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           {bellOpen && (
             <div style={{
               position: "absolute", right: 0, top: "calc(100% + 8px)", width: 360,
-              background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 14,
-              boxShadow: "0 24px 80px rgba(0,0,0,0.6)", zIndex: 100, overflow: "hidden",
+              background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14,
+              boxShadow: "0 24px 80px var(--shadow)", zIndex: 100, overflow: "hidden",
             }}>
               {/* Header */}
               <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #1C1C35", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#EEEEF5" }}>Alerts</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#EEEEF5" }}>Notifications</span>
                   {totalCount > 0 && (
                     <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: "#6366f120", color: "#818CF8", padding: "1px 7px", borderRadius: 99 }}>
                       {totalCount}
@@ -264,51 +297,95 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 </button>
               </div>
 
-              {/* Alert List */}
-              <div style={{ maxHeight: 380, overflowY: "auto" }}>
+              {/* Alert + Notification List */}
+              <div style={{ maxHeight: 400, overflowY: "auto" }}>
                 {alertLoading ? (
                   <div style={{ padding: "32px 16px", textAlign: "center", color: "#505070", fontSize: 13 }}>Loading...</div>
-                ) : alerts.length === 0 ? (
+                ) : alerts.length === 0 && notifications.length === 0 ? (
                   <div style={{ padding: "40px 16px", textAlign: "center" }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#CCCCEE", margin: 0 }}>All clear!</p>
-                    <p style={{ fontSize: 12, color: "#505070", marginTop: 4 }}>No pending alerts or issues.</p>
+                    <p style={{ fontSize: 12, color: "#505070", marginTop: 4 }}>No pending alerts or notifications.</p>
                   </div>
                 ) : (
-                  alerts.map((a, i) => (
-                    <div
-                      key={a.id + i}
-                      onClick={() => { navigate(a.link); setBellOpen(false); }}
-                      style={{
-                        display: "flex", alignItems: "flex-start", gap: 10,
-                        padding: "12px 16px", cursor: "pointer",
-                        borderBottom: i < alerts.length - 1 ? "1px solid #131327" : "none",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#131327")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <div style={{ marginTop: 2, flexShrink: 0 }}>{SEV_ICON[a.severity]}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, color: "#EEEEF5", fontWeight: 500, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {a.title}
+                  <>
+                    {alerts.map((a, i) => (
+                      <div
+                        key={a.id + i}
+                        onClick={() => { navigate(a.link); setBellOpen(false); }}
+                        style={{
+                          display: "flex", alignItems: "flex-start", gap: 10,
+                          padding: "12px 16px", cursor: "pointer",
+                          borderBottom: "1px solid #131327", transition: "background 0.15s",
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "#131327")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <div style={{ marginTop: 2, flexShrink: 0 }}>{SEV_ICON[a.severity]}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, color: "#EEEEF5", fontWeight: 500, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {a.title}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{a.subtitle}</div>
                         </div>
-                        <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{a.subtitle}</div>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: SEV_DOT[a.severity], flexShrink: 0, marginTop: 5 }} />
                       </div>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: SEV_DOT[a.severity], flexShrink: 0, marginTop: 5 }} />
-                    </div>
-                  ))
+                    ))}
+                    {notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={async () => {
+                          if (!n.isRead) {
+                            await api.patch("/notifications/mark-read", { ids: [n.id] }).catch(() => {});
+                            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x));
+                            setUnreadCount(c => Math.max(0, c - 1));
+                          }
+                          if (n.link) navigate(n.link);
+                          setBellOpen(false);
+                        }}
+                        style={{
+                          display: "flex", alignItems: "flex-start", gap: 10,
+                          padding: "12px 16px", cursor: "pointer",
+                          borderBottom: "1px solid #131327", transition: "background 0.15s",
+                          background: n.isRead ? "transparent" : "#6366f108",
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "#131327")}
+                        onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? "transparent" : "#6366f108")}
+                      >
+                        <div style={{ marginTop: 2, flexShrink: 0 }}><Info size={14} color="#6366f1" /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, color: "#EEEEF5", fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {n.title}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{n.message}</div>
+                        </div>
+                        {!n.isRead && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", flexShrink: 0, marginTop: 5 }} />}
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
 
               {/* Footer */}
-              {alerts.length > 0 && (
-                <div style={{ padding: "10px 16px", borderTop: "1px solid #1C1C35" }}>
+              {(alerts.length > 0 || notifications.length > 0) && (
+                <div style={{ padding: "10px 16px", borderTop: "1px solid #1C1C35", display: "flex", gap: 8 }}>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={async () => {
+                        await api.patch("/notifications/mark-read", { ids: notifications.filter(n => !n.isRead).map(n => n.id) }).catch(() => {});
+                        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                        setUnreadCount(0);
+                      }}
+                      style={{ flex: 1, background: "#131327", border: "1px solid #1C1C35", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                    >
+                      Mark all read
+                    </button>
+                  )}
                   <button
                     onClick={() => { navigate("/admin/dashboard"); setBellOpen(false); }}
-                    style={{ width: "100%", background: "#131327", border: "1px solid #1C1C35", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                    style={{ flex: 1, background: "#131327", border: "1px solid #1C1C35", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                   >
-                    View Admin Panel →
+                    View Admin →
                   </button>
                 </div>
               )}

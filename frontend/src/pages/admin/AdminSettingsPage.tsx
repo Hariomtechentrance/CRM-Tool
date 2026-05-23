@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import type React from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { Building2, Save } from "lucide-react";
+import { kDigits, kAlphaNum, kPhone, kName, kAlpha } from "@/lib/fieldRules";
 
 const S = {
   page: { padding: "28px 32px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
@@ -58,10 +60,26 @@ export default function AdminSettingsPage() {
     setSaving(false);
   };
 
-  const F = ({ k, label, type = "text", placeholder = "" }: { k: keyof typeof form; label: string; type?: string; placeholder?: string }) => (
+  const F = ({
+    k, label, type = "text", placeholder = "",
+    onKeyDown, maxLength, autoUpper,
+  }: {
+    k: keyof typeof form; label: string; type?: string; placeholder?: string;
+    onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    maxLength?: number;
+    autoUpper?: boolean;
+  }) => (
     <div>
       <label style={S.label}>{label}</label>
-      <input style={S.input} type={type} value={form[k]} onChange={(e) => set(k, e.target.value)} placeholder={placeholder} />
+      <input
+        style={S.input}
+        type={type}
+        value={form[k]}
+        onChange={(e) => set(k, autoUpper ? e.target.value.toUpperCase() : e.target.value)}
+        placeholder={placeholder}
+        onKeyDown={onKeyDown}
+        maxLength={maxLength}
+      />
     </div>
   );
 
@@ -74,10 +92,10 @@ export default function AdminSettingsPage() {
       <div style={S.card}>
         <div style={S.cardTitle}><Building2 size={15} color="#6366f1" /> Basic Information</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <F k="name" label="Organisation Name *" />
+          <F k="name" label="Organisation Name *" maxLength={200} onKeyDown={kName} />
           <div className="grid-r2">
             <F k="email" label="Email" type="email" />
-            <F k="phone" label="Phone" />
+            <F k="phone" label="Phone" maxLength={15} onKeyDown={kPhone} />
           </div>
           <F k="website" label="Website" placeholder="https://yourcompany.com" />
           <div className="grid-r2">
@@ -103,11 +121,11 @@ export default function AdminSettingsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <F k="address" label="Street Address" />
           <div className="grid-r2">
-            <F k="city" label="City" />
-            <F k="state" label="State" />
+            <F k="city" label="City" maxLength={100} onKeyDown={kAlpha} />
+            <F k="state" label="State" maxLength={100} onKeyDown={kAlpha} />
           </div>
           <div className="grid-r2">
-            <F k="pincode" label="PIN Code" />
+            <F k="pincode" label="PIN Code" maxLength={6} onKeyDown={kDigits} />
             <F k="country" label="Country Code" placeholder="IN" />
           </div>
         </div>
@@ -118,10 +136,10 @@ export default function AdminSettingsPage() {
         <div style={S.cardTitle}><Building2 size={15} color="#10b981" /> Tax & Legal</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="grid-r2">
-            <F k="taxId" label="GSTIN" placeholder="22AAAAA0000A1Z5" />
-            <F k="panNumber" label="PAN Number" placeholder="ABCDE1234F" />
+            <F k="taxId" label="GSTIN" placeholder="22AAAAA0000A1Z5" maxLength={15} onKeyDown={kAlphaNum} autoUpper />
+            <F k="panNumber" label="PAN Number" placeholder="ABCDE1234F" maxLength={10} onKeyDown={kAlphaNum} autoUpper />
           </div>
-          <F k="iecCode" label="IEC Code (Import-Export)" placeholder="AABCD1234E" />
+          <F k="iecCode" label="IEC Code (Import-Export)" placeholder="AABCD1234E" maxLength={10} onKeyDown={kAlphaNum} autoUpper />
         </div>
       </div>
 
@@ -129,10 +147,10 @@ export default function AdminSettingsPage() {
       <div style={S.card}>
         <div style={S.cardTitle}><Building2 size={15} color="#818cf8" /> Banking Details</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <F k="bankName" label="Bank Name" />
+          <F k="bankName" label="Bank Name" maxLength={100} onKeyDown={kName} />
           <div className="grid-r2">
-            <F k="bankAccount" label="Account Number" />
-            <F k="bankIfsc" label="IFSC Code" />
+            <F k="bankAccount" label="Account Number" maxLength={18} onKeyDown={kDigits} />
+            <F k="bankIfsc" label="IFSC Code" maxLength={11} onKeyDown={kAlphaNum} autoUpper />
           </div>
         </div>
       </div>

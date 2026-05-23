@@ -262,3 +262,48 @@ export async function getInventorySummary(req: OrgRequest, res: Response): Promi
   } catch (e) { serverError(res, e); }
 }
 
+export async function bulkImportProducts(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const rows: Record<string, string>[] = req.body?.rows;
+    if (!Array.isArray(rows) || rows.length === 0) { badRequest(res, "No rows provided"); return; }
+
+    const errors: string[] = [];
+    let importedCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const name = (r["Name"] || r["name"] || "").trim();
+      if (!name) { errors.push(`Row ${i + 2}: Name is required`); continue; }
+
+      const costPrice = parseFloat(r["Cost Price"] || r["costPrice"] || "0") || 0;
+      const sellingPrice = parseFloat(r["Selling Price"] || r["sellingPrice"] || "0") || 0;
+      const taxRate = parseFloat(r["Tax Rate"] || r["taxRate"] || "0") || 0;
+      const reorderLevel = parseFloat(r["Reorder Level"] || r["reorderLevel"] || "0") || 0;
+
+      try {
+        await prisma.product.create({
+          data: {
+            organizationId: req.organizationId!,
+            name,
+            sku: r["SKU"] || r["sku"] || `SKU-${Date.now()}-${i}`,
+            description: r["Description"] || r["description"] || null,
+            unit: r["Unit"] || r["unit"] || "PCS",
+            costPrice,
+            sellingPrice,
+            mrp: parseFloat(r["MRP"] || r["mrp"] || "0") || sellingPrice,
+            taxRate,
+            hsnCode: r["HSN Code"] || r["hsnCode"] || null,
+            reorderLevel,
+            barcode: r["Barcode"] || r["barcode"] || null,
+          },
+        });
+        importedCount++;
+      } catch {
+        errors.push(`Row ${i + 2}: Failed (SKU may already exist)`);
+      }
+    }
+
+    ok(res, { created: importedCount, errors });
+  } catch (e) { serverError(res, e); }
+}
+

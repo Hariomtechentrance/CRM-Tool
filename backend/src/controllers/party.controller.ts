@@ -276,3 +276,46 @@ export async function getCrmStats(req: OrgRequest, res: Response): Promise<void>
     ok(res, { customers, suppliers, both, total: customers + suppliers + both, followUpsThisWeek: followUps });
   } catch (err) { serverError(res, err); }
 }
+
+export async function bulkImportParties(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const rows: Record<string, string>[] = req.body?.rows;
+    if (!Array.isArray(rows) || rows.length === 0) { badRequest(res, "No rows provided"); return; }
+
+    const errors: string[] = [];
+    let created = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const name = (r["Name"] || r["name"] || "").trim();
+      if (!name) { errors.push(`Row ${i + 2}: Name is required`); continue; }
+
+      const rawType = (r["Type"] || r["type"] || "CUSTOMER").trim().toUpperCase();
+      const type = ["CUSTOMER", "SUPPLIER", "BOTH"].includes(rawType) ? rawType as any : "CUSTOMER";
+
+      try {
+        await prisma.party.create({
+          data: {
+            organizationId: req.organizationId!,
+            name,
+            displayName: r["Display Name"] || r["displayName"] || name,
+            type,
+            email: r["Email"] || r["email"] || null,
+            phone: r["Phone"] || r["phone"] || null,
+            mobile: r["Mobile"] || r["mobile"] || null,
+            gstin: r["GSTIN"] || r["gstin"] || null,
+            city: r["City"] || r["city"] || null,
+            state: r["State"] || r["state"] || null,
+            country: r["Country"] || r["country"] || null,
+            notes: r["Notes"] || r["notes"] || null,
+          },
+        });
+        created++;
+      } catch {
+        errors.push(`Row ${i + 2}: Failed to create (duplicate or invalid data)`);
+      }
+    }
+
+    ok(res, { created, errors });
+  } catch (err) { serverError(res, err); }
+}

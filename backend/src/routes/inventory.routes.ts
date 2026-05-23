@@ -4,13 +4,14 @@ import { requireOrgContext } from "../middleware/orgContext";
 import {
   listCategories, createCategory, updateCategory, deleteCategory,
   listProducts, getProduct, createProduct, updateProduct, deleteProduct,
-  addStockMovement, listMovements, getInventorySummary,
+  addStockMovement, listMovements, getInventorySummary, bulkImportProducts,
 } from "../controllers/inventory.controller";
 
 const router = Router();
 router.use(authenticate, requireOrgContext);
 
 router.get("/summary", getInventorySummary);
+router.post("/bulk-import", bulkImportProducts);
 
 router.get("/categories", listCategories);
 router.post("/categories", createCategory);

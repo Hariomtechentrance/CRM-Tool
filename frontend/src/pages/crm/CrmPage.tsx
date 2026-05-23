@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Users, TruckIcon, RefreshCw, Calendar, Phone, Mail, Building2 } from "lucide-react";
+import { Search, Plus, Users, TruckIcon, RefreshCw, Calendar, Phone, Mail, Building2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import BulkImportModal from "@/components/ui/BulkImportModal";
 import { Badge } from "@/components/ui/Badge";
 import { PartyForm } from "@/components/crm/PartyForm";
 import api from "@/lib/api";
@@ -32,6 +33,7 @@ export default function CrmPage() {
   const [total, setTotal]           = useState(0);
   const [page, setPage]             = useState(1);
   const [showForm, setShowForm]     = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [defaultType, setDefaultType] = useState<PartyType>("CUSTOMER");
 
   const fetchStats = useCallback(async () => {
@@ -73,6 +75,9 @@ export default function CrmPage() {
           <p className="text-slate-500 text-sm mt-0.5">Manage customers, suppliers and contacts</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" icon={<Upload className="w-4 h-4" />} onClick={() => setShowImport(true)}>
+            Import CSV
+          </Button>
           <Button variant="outline" icon={<Plus className="w-4 h-4" />} onClick={() => { setDefaultType("SUPPLIER"); setShowForm(true); }}>
             Add Supplier
           </Button>
@@ -254,6 +259,28 @@ export default function CrmPage() {
       </Card>
 
       <PartyForm open={showForm} onClose={() => setShowForm(false)} onSaved={handleSaved} defaultType={defaultType} />
+
+      {showImport && (
+        <BulkImportModal
+          title="Import Parties (Customers / Suppliers)"
+          endpoint="/parties/bulk-import"
+          onClose={() => setShowImport(false)}
+          onSuccess={() => { fetchParties(); fetchStats(); }}
+          columns={[
+            { key: "Name", label: "Name", required: true },
+            { key: "Type", label: "Type" },
+            { key: "Email", label: "Email" },
+            { key: "Phone", label: "Phone" },
+            { key: "GSTIN", label: "GSTIN" },
+            { key: "City", label: "City" },
+            { key: "State", label: "State" },
+          ]}
+          sampleRows={[
+            { Name: "Acme Corp", Type: "CUSTOMER", Email: "acme@example.com", Phone: "9876543210", GSTIN: "27AAPFU0939F1ZV", City: "Mumbai", State: "Maharashtra" },
+            { Name: "Global Supplies", Type: "SUPPLIER", Email: "gs@example.com", Phone: "9123456789", GSTIN: "", City: "Delhi", State: "Delhi" },
+          ]}
+        />
+      )}
     </div>
   );
 }

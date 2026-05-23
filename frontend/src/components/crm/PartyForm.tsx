@@ -10,29 +10,33 @@ import { Button } from "@/components/ui/Button";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import type { Party, PartyType } from "@/types";
+import {
+  kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, upperReg,
+  isOptGSTIN, isOptPAN, isOptIFSC, isOptIEC, isOptPhone, isOptPIN, isOptBankAC,
+} from "@/lib/fieldRules";
 
 const schema = z.object({
   type:             z.enum(["CUSTOMER", "SUPPLIER", "BOTH"]),
-  name:             z.string().min(2, "Name required"),
-  displayName:      z.string().optional(),
+  name:             z.string().min(2, "Name required").max(200),
+  displayName:      z.string().max(200).optional(),
   email:            z.string().email("Invalid email").optional().or(z.literal("")),
-  phone:            z.string().optional(),
-  mobile:           z.string().optional(),
+  phone:            z.string().refine(isOptPhone, "Invalid phone number").optional(),
+  mobile:           z.string().refine(isOptPhone, "Invalid mobile number").optional(),
   address:          z.string().optional(),
-  city:             z.string().optional(),
-  state:            z.string().optional(),
+  city:             z.string().max(100).optional(),
+  state:            z.string().max(100).optional(),
   country:          z.string().optional(),
-  pincode:          z.string().optional(),
-  gstin:            z.string().optional(),
-  pan:              z.string().optional(),
-  iecCode:          z.string().optional(),
+  pincode:          z.string().refine(isOptPIN, "Pincode must be 6 digits").optional(),
+  gstin:            z.string().refine(isOptGSTIN, "Invalid GSTIN. Format: 22AAAAA0000A1Z5").optional(),
+  pan:              z.string().refine(isOptPAN, "Invalid PAN. Format: AAAAA0000A").optional(),
+  iecCode:          z.string().refine(isOptIEC, "Invalid IEC. Must be 10 alphanumeric characters").optional(),
   currency:         z.string().optional(),
   creditLimit:      z.coerce.number().nonnegative().optional(),
   paymentTermsDays: z.coerce.number().int().nonnegative().optional(),
-  bankName:         z.string().optional(),
-  bankAccount:      z.string().optional(),
-  bankIfsc:         z.string().optional(),
-  bankBranch:       z.string().optional(),
+  bankName:         z.string().max(100).optional(),
+  bankAccount:      z.string().refine(isOptBankAC, "Bank account must be 9–18 digits").optional(),
+  bankIfsc:         z.string().refine(isOptIFSC, "Invalid IFSC. Format: ABCD0123456").optional(),
+  bankBranch:       z.string().max(100).optional(),
   notes:            z.string().optional(),
 });
 
@@ -145,13 +149,13 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
               onChange={(e) => setValue("type", e.target.value as PartyType)}
               error={errors.type?.message}
             />
-            <Input label="Company / Party Name *" placeholder="ABC Traders Pvt Ltd" error={errors.name?.message} {...register("name")} />
-            <Input label="Display Name" placeholder="Short name shown in lists" {...register("displayName")} />
+            <Input label="Company / Party Name *" placeholder="ABC Traders Pvt Ltd" error={errors.name?.message} maxLength={200} onKeyDown={kName} {...register("name")} />
+            <Input label="Display Name" placeholder="Short name shown in lists" maxLength={200} onKeyDown={kName} {...register("displayName")} />
             <div className="grid grid-cols-2 gap-4">
               <Input label="Email" type="email" placeholder="info@abc.com" error={errors.email?.message} {...register("email")} />
-              <Input label="Phone" placeholder="+91 9876543210" {...register("phone")} />
+              <Input label="Phone" placeholder="+91 9876543210" error={errors.phone?.message} maxLength={15} onKeyDown={kPhone} {...register("phone")} />
             </div>
-            <Input label="Mobile" placeholder="+91 9876543210" {...register("mobile")} />
+            <Input label="Mobile" placeholder="+91 9876543210" error={errors.mobile?.message} maxLength={15} onKeyDown={kPhone} {...register("mobile")} />
             <Textarea label="Internal Notes" placeholder="Any notes about this party..." {...register("notes")} />
           </>
         )}
@@ -161,8 +165,8 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
           <>
             <Textarea label="Street Address" placeholder="123, Main Street, Industrial Area" rows={2} {...register("address")} />
             <div className="grid grid-cols-2 gap-4">
-              <Input label="City" placeholder="Mumbai" {...register("city")} />
-              <Input label="State" placeholder="Maharashtra" {...register("state")} />
+              <Input label="City" placeholder="Mumbai" maxLength={100} onKeyDown={kAlpha} {...register("city")} />
+              <Input label="State" placeholder="Maharashtra" maxLength={100} onKeyDown={kAlpha} {...register("state")} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Select
@@ -171,7 +175,7 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
                 value={watch("country") || "IN"}
                 onChange={(e) => setValue("country", e.target.value)}
               />
-              <Input label="Pincode" placeholder="400001" {...register("pincode")} />
+              <Input label="Pincode" placeholder="400001" error={errors.pincode?.message} maxLength={6} onKeyDown={kDigits} {...register("pincode")} />
             </div>
           </>
         )}
@@ -180,10 +184,10 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
         {tab === "Business" && (
           <>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="GSTIN" placeholder="22AAAAA0000A1Z5" {...register("gstin")} />
-              <Input label="PAN" placeholder="AAAAA0000A" {...register("pan")} />
+              {(() => { const f = register("gstin"); return <Input label="GSTIN" placeholder="22AAAAA0000A1Z5" error={errors.gstin?.message} maxLength={15} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
+              {(() => { const f = register("pan"); return <Input label="PAN" placeholder="AAAAA0000A" error={errors.pan?.message} maxLength={10} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
             </div>
-            <Input label="IEC Code" placeholder="Import Export Code" {...register("iecCode")} />
+            {(() => { const f = register("iecCode"); return <Input label="IEC Code" placeholder="AABCD1234E" error={errors.iecCode?.message} maxLength={10} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
             <div className="grid grid-cols-2 gap-4">
               <Select
                 label="Currency"
@@ -191,20 +195,20 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
                 value={watch("currency") || "INR"}
                 onChange={(e) => setValue("currency", e.target.value)}
               />
-              <Input label="Payment Terms (days)" type="number" placeholder="30" {...register("paymentTermsDays")} />
+              <Input label="Payment Terms (days)" type="number" placeholder="30" onKeyDown={kDigits} {...register("paymentTermsDays")} />
             </div>
-            <Input label="Credit Limit" type="number" placeholder="100000" {...register("creditLimit")} />
+            <Input label="Credit Limit" type="number" placeholder="100000" onKeyDown={kDecimal} {...register("creditLimit")} />
           </>
         )}
 
         {/* ── Banking ── */}
         {tab === "Banking" && (
           <>
-            <Input label="Bank Name" placeholder="HDFC Bank" {...register("bankName")} />
-            <Input label="Account Number" placeholder="0012345678901234" {...register("bankAccount")} />
+            <Input label="Bank Name" placeholder="HDFC Bank" maxLength={100} onKeyDown={kName} {...register("bankName")} />
+            <Input label="Account Number" placeholder="0012345678901234" error={errors.bankAccount?.message} maxLength={18} onKeyDown={kDigits} {...register("bankAccount")} />
             <div className="grid grid-cols-2 gap-4">
-              <Input label="IFSC Code" placeholder="HDFC0001234" {...register("bankIfsc")} />
-              <Input label="Branch" placeholder="Andheri West, Mumbai" {...register("bankBranch")} />
+              {(() => { const f = register("bankIfsc"); return <Input label="IFSC Code" placeholder="HDFC0001234" error={errors.bankIfsc?.message} maxLength={11} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
+              <Input label="Branch" placeholder="Andheri West, Mumbai" maxLength={100} onKeyDown={kAlpha} {...register("bankBranch")} />
             </div>
           </>
         )}

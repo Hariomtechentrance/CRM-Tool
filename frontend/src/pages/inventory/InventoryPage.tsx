@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { Package, Plus, Search, AlertTriangle, TrendingDown, Tag, RefreshCw, X } from "lucide-react";
+import { Package, Plus, Search, AlertTriangle, TrendingDown, Tag, RefreshCw, X, Upload } from "lucide-react";
 import DocumentsPanel from "@/components/DocumentsPanel";
+import { kDigits, kDecimal, kAlphaNum, kName } from "@/lib/fieldRules";
+import BulkImportModal from "@/components/ui/BulkImportModal";
 
 const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -31,6 +33,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -108,6 +111,9 @@ export default function InventoryPage() {
           <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>Manage products, categories, and stock levels</p>
         </div>
         <div className="hdr-actions">
+          <button style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }} onClick={() => setShowImport(true)}>
+            <Upload size={14} /> Import CSV
+          </button>
           <button style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }} onClick={() => setShowMovement(true)}>
             <RefreshCw size={14} /> Adjust Stock
           </button>
@@ -195,14 +201,14 @@ export default function InventoryPage() {
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div className="grid-r2">
-                <div><label style={S.label}>SKU *</label><input style={S.input} value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="e.g. SKU-001" /></div>
+                <div><label style={S.label}>SKU *</label><input style={S.input} value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="e.g. SKU-001" onKeyDown={kAlphaNum} maxLength={50} /></div>
                 <div><label style={S.label}>Unit</label>
                   <select style={{ ...S.input, colorScheme: "dark" }} value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
                     {["PCS", "KG", "MTR", "LTR", "BOX", "PAIR", "SET", "DOZEN"].map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
               </div>
-              <div><label style={S.label}>Product Name *</label><input style={S.input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Product name" /></div>
+              <div><label style={S.label}>Product Name *</label><input style={S.input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Product name" onKeyDown={kName} maxLength={200} /></div>
               <div><label style={S.label}>Category</label>
                 <select style={{ ...S.input, colorScheme: "dark" }} value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
                   <option value="">— Select Category —</option>
@@ -210,11 +216,11 @@ export default function InventoryPage() {
                 </select>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Cost Price (₹)</label><input type="number" style={S.input} value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} placeholder="0" /></div>
-                <div><label style={S.label}>Selling Price (₹)</label><input type="number" style={S.input} value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} placeholder="0" /></div>
+                <div><label style={S.label}>Cost Price (₹)</label><input type="number" style={S.input} value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} placeholder="0" onKeyDown={kDecimal} /></div>
+                <div><label style={S.label}>Selling Price (₹)</label><input type="number" style={S.input} value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} placeholder="0" onKeyDown={kDecimal} /></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>MRP (₹)</label><input type="number" style={S.input} value={form.mrp} onChange={(e) => setForm({ ...form, mrp: e.target.value })} placeholder="Optional" /></div>
+                <div><label style={S.label}>MRP (₹)</label><input type="number" style={S.input} value={form.mrp} onChange={(e) => setForm({ ...form, mrp: e.target.value })} placeholder="Optional" onKeyDown={kDecimal} /></div>
                 <div><label style={S.label}>Tax Rate (%)</label>
                   <select style={{ ...S.input, colorScheme: "dark" }} value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: e.target.value })}>
                     {["0", "5", "12", "18", "28"].map(t => <option key={t} value={t}>{t}% GST</option>)}
@@ -222,11 +228,11 @@ export default function InventoryPage() {
                 </div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>HSN Code</label><input style={S.input} value={form.hsnCode} onChange={(e) => setForm({ ...form, hsnCode: e.target.value })} placeholder="e.g. 6201" /></div>
-                <div><label style={S.label}>Reorder Level</label><input type="number" style={S.input} value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: e.target.value })} placeholder="0" /></div>
+                <div><label style={S.label}>HSN Code</label><input style={S.input} value={form.hsnCode} onChange={(e) => setForm({ ...form, hsnCode: e.target.value })} placeholder="e.g. 6201" onKeyDown={kDigits} maxLength={8} /></div>
+                <div><label style={S.label}>Reorder Level</label><input type="number" style={S.input} value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: e.target.value })} placeholder="0" onKeyDown={kDecimal} /></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Barcode</label><input style={S.input} value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="Optional" /></div>
+                <div><label style={S.label}>Barcode</label><input style={S.input} value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="Optional" onKeyDown={kAlphaNum} maxLength={50} /></div>
               </div>
             </div>
             {/* Attachments — only when editing an existing product */}
@@ -267,7 +273,7 @@ export default function InventoryPage() {
                   <option value="OPENING_STOCK">Opening Stock</option>
                 </select>
               </div>
-              <div><label style={S.label}>Quantity</label><input type="number" style={S.input} value={mvForm.quantity} onChange={(e) => setMvForm({ ...mvForm, quantity: e.target.value })} placeholder="0" /></div>
+              <div><label style={S.label}>Quantity</label><input type="number" style={S.input} value={mvForm.quantity} onChange={(e) => setMvForm({ ...mvForm, quantity: e.target.value })} placeholder="0" onKeyDown={kDecimal} /></div>
               <div><label style={S.label}>Notes</label><input style={S.input} value={mvForm.notes} onChange={(e) => setMvForm({ ...mvForm, notes: e.target.value })} placeholder="Reason for adjustment" /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
@@ -276,6 +282,29 @@ export default function InventoryPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showImport && (
+        <BulkImportModal
+          title="Import Products"
+          endpoint="/inventory/bulk-import"
+          onClose={() => setShowImport(false)}
+          onSuccess={() => load()}
+          columns={[
+            { key: "Name", label: "Name", required: true },
+            { key: "SKU", label: "SKU" },
+            { key: "Unit", label: "Unit" },
+            { key: "Cost Price", label: "Cost Price" },
+            { key: "Selling Price", label: "Selling Price" },
+            { key: "Tax Rate", label: "Tax Rate" },
+            { key: "Reorder Level", label: "Reorder Level" },
+            { key: "HSN Code", label: "HSN Code" },
+          ]}
+          sampleRows={[
+            { Name: "Cotton T-Shirt", SKU: "TSH-001", Unit: "PCS", "Cost Price": "250", "Selling Price": "499", "Tax Rate": "5", "Reorder Level": "10", "HSN Code": "6109" },
+            { Name: "Laptop Bag", SKU: "BAG-002", Unit: "PCS", "Cost Price": "800", "Selling Price": "1499", "Tax Rate": "18", "Reorder Level": "5", "HSN Code": "4202" },
+          ]}
+        />
       )}
     </div>
   );

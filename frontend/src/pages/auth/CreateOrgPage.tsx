@@ -95,8 +95,18 @@ const STEPS = ["Basic Info", "Contact & Tax", "Select Modules"];
 
 export default function CreateOrgPage() {
   const navigate = useNavigate();
-  const addOrganization = useAuthStore((s) => s.addOrganization);
+  const { addOrganization, isAuthenticated, organizations } = useAuthStore();
   const [apiError, setApiError] = useState("");
+
+  // If user already has an org, skip this page entirely
+  if (!isAuthenticated) {
+    navigate("/login", { replace: true });
+    return null;
+  }
+  if (organizations.length > 0) {
+    navigate("/dashboard", { replace: true });
+    return null;
+  }
   const [step, setStep] = useState(1);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -126,7 +136,7 @@ export default function CreateOrgPage() {
     try {
       const payload = { ...data, enabledModules: selectedModules };
       const res = await api.post<{ data: OrganizationSummary }>("/organizations", payload);
-      addOrganization({ ...res.data.data, role: "OWNER", enabledModules: selectedModules });
+      addOrganization({ ...res.data.data, role: "OWNER" as const, enabledModules: selectedModules });
       navigate("/dashboard");
     } catch (err) {
       setApiError(getApiError(err));

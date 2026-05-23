@@ -27,6 +27,27 @@ import {
 import { sendEmail, verifyEmailTemplate, resetPasswordTemplate } from "../utils/email";
 import { AuthRequest } from "../middleware/auth";
 
+// ── In-memory login lockout ──────────────────────────────────
+// Resets on process restart — acceptable for a single-process deployment.
+const _failMap = new Map<string, { count: number; lockUntil: number }>();
+const MAX_FAIL   = 5;
+const LOCK_MS    = 15 * 60 * 1000; // 15 minutes
+
+function isLocked(email: string): boolean {
+  const e = _failMap.get(email);
+  if (!e) return false;
+  if (e.lockUntil && Date.now() < e.lockUntil) return true;
+  _failMap.delete(email); // lock expired
+  return false;
+}
+function recordFail(email: string): void {
+  const e = _failMap.get(email) ?? { count: 0, lockUntil: 0 };
+  e.count++;
+  if (e.count >= MAX_FAIL) { e.lockUntil = Date.now() + LOCK_MS; e.count = 0; }
+  _failMap.set(email, e);
+}
+function clearFail(email: string): void { _failMap.delete(email); }
+
 export async function register(req: Request, res: Response): Promise<void> {
   try {
     const parsed = registerSchema.safeParse(req.body);
@@ -108,17 +129,27 @@ export async function login(req: Request, res: Response): Promise<void> {
     }
     const { email, password } = parsed.data;
 
+    // Lockout check — must happen before DB lookup to avoid timing leaks
+    if (isLocked(email)) {
+      unauthorized(res, "Too many failed attempts. Account locked for 15 minutes.");
+      return;
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.isActive) {
+      recordFail(email);
       unauthorized(res, "Invalid email or password");
       return;
     }
 
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid) {
+      recordFail(email);
       unauthorized(res, "Invalid email or password");
       return;
     }
+
+    clearFail(email); // successful auth — reset counter
 
     if (!user.isEmailVerified) {
       unauthorized(res, "Please verify your email before logging in");

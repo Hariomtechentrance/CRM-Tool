@@ -175,9 +175,16 @@ export async function downloadDocument(req: OrgRequest, res: Response): Promise<
     const doc   = await prisma.document.findFirst({ where: { id, organizationId: orgId } });
     if (!doc) { res.status(404).json({ success: false, message: "File not found" }); return; }
 
-    // Cloudinary (or any remote) URL — redirect directly
-    if (doc.filePath.startsWith("http://") || doc.filePath.startsWith("https://")) {
+    // Only redirect to trusted Cloudinary CDN — prevents open-redirect abuse
+    if (
+      doc.filePath.startsWith("https://res.cloudinary.com/") ||
+      doc.filePath.startsWith("https://cloudinary.com/")
+    ) {
       res.redirect(doc.filePath);
+      return;
+    }
+    if (doc.filePath.startsWith("http://") || doc.filePath.startsWith("https://")) {
+      res.status(400).json({ success: false, message: "Invalid file reference" });
       return;
     }
 

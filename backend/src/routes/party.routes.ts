@@ -5,7 +5,7 @@ import {
   listParties, getParty, createParty, updateParty, deleteParty,
   listContacts, createContact, updateContact, deleteContact,
   listCommunications, createCommunication, deleteCommunication,
-  listAllCommunications, getCrmStats,
+  listAllCommunications, getCrmStats, bulkImportParties,
 } from "../controllers/party.controller";
 
 const router = Router();
@@ -14,6 +14,9 @@ router.use(authenticate, requireOrgContext);
 
 // Stats
 router.get("/stats", getCrmStats);
+
+// Bulk import
+router.post("/bulk-import", bulkImportParties);
 
 // Party CRUD
 router.get("/",          listParties);

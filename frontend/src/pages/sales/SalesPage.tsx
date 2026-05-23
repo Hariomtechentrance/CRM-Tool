@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import DocumentsButton from "@/components/DocumentsButton";
 import api from "@/lib/api";
 import { Truck, Plus, Search, X, Check, Clock, Package, ClipboardList } from "lucide-react";
+import { kDecimal } from "@/lib/fieldRules";
 
 const S = {
   btnPrimary: { background: "linear-gradient(135deg,#f59e0b,#d97706)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -314,7 +315,7 @@ export default function SalesPage() {
                 <input style={S.input} placeholder="e.g. Cotton Shirts, Steel Rods..." value={dForm.materialName} onChange={e => setD("materialName", e.target.value)} />
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Quantity *</label><input type="number" style={S.input} placeholder="0" min="0" step="any" value={dForm.quantity} onChange={e => setD("quantity", e.target.value)} /></div>
+                <div><label style={S.label}>Quantity *</label><input type="number" style={S.input} placeholder="0" min="0" step="any" value={dForm.quantity} onChange={e => setD("quantity", e.target.value)} onKeyDown={kDecimal} /></div>
                 <div><label style={S.label}>Unit</label>
                   <select style={S.select} value={dForm.unit} onChange={e => setD("unit", e.target.value)}>
                     {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
@@ -383,8 +384,8 @@ export default function SalesPage() {
                         </select>
                         <input style={S.input} value={it.description} onChange={e => setSOItem(i, "description", e.target.value)} placeholder="Description" />
                         <div className="grid-r2">
-                          <div><label style={{ ...S.label, marginBottom: 4 }}>Qty</label><input type="number" style={S.input} value={it.quantity} onChange={e => setSOItem(i, "quantity", e.target.value)} /></div>
-                          <div><label style={{ ...S.label, marginBottom: 4 }}>Rate ₹</label><input type="number" style={S.input} value={it.unitPrice} onChange={e => setSOItem(i, "unitPrice", e.target.value)} /></div>
+                          <div><label style={{ ...S.label, marginBottom: 4 }}>Qty</label><input type="number" style={S.input} value={it.quantity} onChange={e => setSOItem(i, "quantity", e.target.value)} onKeyDown={kDecimal} /></div>
+                          <div><label style={{ ...S.label, marginBottom: 4 }}>Rate ₹</label><input type="number" style={S.input} value={it.unitPrice} onChange={e => setSOItem(i, "unitPrice", e.target.value)} onKeyDown={kDecimal} /></div>
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                           <div style={{ flex: 1 }}>
@@ -402,7 +403,7 @@ export default function SalesPage() {
                 </div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Shipping Charge ₹</label><input type="number" style={S.input} value={soForm.shippingCharge} onChange={e => setSOForm({ ...soForm, shippingCharge: e.target.value })} /></div>
+                <div><label style={S.label}>Shipping Charge ₹</label><input type="number" style={S.input} value={soForm.shippingCharge} onChange={e => setSOForm({ ...soForm, shippingCharge: e.target.value })} onKeyDown={kDecimal} /></div>
                 <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
                   <div><span style={{ color: "#505070", fontSize: 12 }}>Total: </span><span style={{ color: "#EEEEF5", fontWeight: 700, fontSize: 18 }}>₹{soTotal.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span></div>
                 </div>

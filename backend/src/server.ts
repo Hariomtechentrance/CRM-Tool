@@ -28,7 +28,9 @@ import dealRoutes from "./routes/deal.routes";
 import quotationRoutes from "./routes/quotation.routes";
 import searchRoutes from "./routes/search.routes";
 import documentRoutes from "./routes/document.routes";
+import notificationRoutes from "./routes/notifications.routes";
 import { errorHandler } from "./middleware/errorHandler";
+import { startCronJobs } from "./cron/jobs";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -88,9 +90,11 @@ const apiLimiter = rateLimit({
   skip: (req) => req.path === "/api/health",
 });
 
-app.use("/api/auth/login",    authLimiter);
-app.use("/api/auth/register", authLimiter);
-app.use("/api/auth/forgot-password", authLimiter);
+app.use("/api/auth/login",          authLimiter);
+app.use("/api/auth/register",       authLimiter);
+app.use("/api/auth/forgot-password",authLimiter);
+app.use("/api/auth/refresh",        authLimiter); // prevent refresh token brute-force
+app.use("/api/auth/reset-password", authLimiter);
 app.use("/api", apiLimiter);
 
 // ── Health check ─────────────────────────────────────────────
@@ -127,6 +131,7 @@ app.use("/api/deals",          dealRoutes);
 app.use("/api/quotations",     quotationRoutes);
 app.use("/api/search",         searchRoutes);
 app.use("/api/documents",      documentRoutes);
+app.use("/api/notifications",  notificationRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {
@@ -141,6 +146,7 @@ const server = app.listen(PORT, () => {
   console.log(`\n  FlowCRM API  ->  http://localhost:${PORT}`);
   console.log(`  Health       ->  http://localhost:${PORT}/api/health`);
   console.log(`  Env          ->  ${process.env.NODE_ENV || "development"}\n`);
+  startCronJobs();
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────

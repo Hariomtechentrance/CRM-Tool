@@ -41,15 +41,28 @@ import EmailPage from "@/pages/email/EmailPage";
 import ActivitiesPage from "@/pages/activities/ActivitiesPage";
 import DealsPage from "@/pages/deals/DealsPage";
 import QuotationsPage from "@/pages/quotations/QuotationsPage";
+import RecurringInvoicesPage from "@/pages/recurring/RecurringInvoicesPage";
 import DocumentsPage from "@/pages/documents/DocumentsPage";
+import AuditPage from "@/pages/audit/AuditPage";
+import LandingPage from "@/pages/landing/LandingPage";
+import { useAuthStore } from "@/stores/authStore";
+import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
 
 // Wrap a page with module-level access gate
 const G = (moduleKey: string, Page: React.ComponentType) => (
   <AccessGate moduleKey={moduleKey}><Page /></AccessGate>
 );
 
+// Shows landing page for guests, redirects authenticated users to dashboard
+function PublicHome() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <LandingPage />;
+}
+
 export default function App() {
   return (
+    <ShortcutsProvider>
     <BrowserRouter>
       <Routes>
         {/* Public */}
@@ -112,6 +125,7 @@ export default function App() {
           {/* ── Sales ── */}
           <Route path="/deals"        element={<DealsPage />} />
           <Route path="/quotations"   element={<QuotationsPage />} />
+          <Route path="/recurring"    element={<RecurringInvoicesPage />} />
 
           {/* ── Communication ── */}
           <Route path="/email"        element={<EmailPage />} />
@@ -120,11 +134,13 @@ export default function App() {
           {/* ── Utility (no gate needed) ── */}
           <Route path="/documents"    element={<DocumentsPage />} />
           <Route path="/settings"     element={<SettingsPage />} />
+          <Route path="/audit"        element={<AuditPage />} />
         </Route>
 
-        <Route path="/"  element={<Navigate to="/dashboard" replace />} />
-        <Route path="*"  element={<Navigate to="/dashboard" replace />} />
+        <Route path="/"  element={<PublicHome />} />
+        <Route path="*"  element={<PublicHome />} />
       </Routes>
     </BrowserRouter>
+    </ShortcutsProvider>
   );
 }

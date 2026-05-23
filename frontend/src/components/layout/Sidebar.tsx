@@ -4,7 +4,7 @@ import {
   Users, Package, ShoppingCart, Truck, Receipt,
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
-  LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText,
+  LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -30,7 +30,7 @@ function OrgSwitcherDropdown() {
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
-        style={{ background: open ? "#131327" : "#0F0F22", border: "1px solid #1E1E38" }}
+        style={{ background: "var(--bg-hover)", border: "1px solid var(--border-input)" }}
       >
         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
           style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
@@ -45,7 +45,7 @@ function OrgSwitcherDropdown() {
 
       {open && (
         <div className="absolute left-3 right-3 top-full mt-1.5 rounded-xl py-1.5 z-50"
-          style={{ background: "#0D0D1F", border: "1px solid #1C1C35", boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}>
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "0 20px 60px var(--shadow)" }}>
           {organizations.map((org: OrganizationSummary) => (
             <button
               key={org.id}
@@ -83,7 +83,7 @@ function OrgSwitcherDropdown() {
 interface SidebarProps { open?: boolean; onClose?: () => void; }
 
 export default function Sidebar({ open = false, onClose }: SidebarProps) {
-  const { activeOrg, user, moduleAccess, isOrgAdmin } = useAuthStore();
+  const { activeOrg, moduleAccess, isOrgAdmin } = useAuthStore();
 
   // Show only modules the user has been granted access to (admins see all enabled)
   const orgEnabled = Array.isArray(activeOrg?.enabledModules) ? activeOrg!.enabledModules : [];
@@ -93,10 +93,10 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   return (
     <aside
       className={`app-sidebar h-screen flex flex-col flex-shrink-0${open ? " sidebar-open" : ""}`}
-      style={{ width: 232, background: "#0A0A1A", borderRight: "1px solid #151528" }}>
+      style={{ width: 232, background: "var(--bg-card)", borderRight: "1px solid var(--border)" }}>
 
       {/* Logo */}
-      <div className="h-14 flex items-center px-5 flex-shrink-0" style={{ borderBottom: "1px solid #151528" }}>
+      <div className="h-14 flex items-center px-5 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm shadow-lg flex-shrink-0"
             style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
@@ -181,6 +181,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           {[
             { href: "/deals", label: "Deals", Icon: Briefcase },
             { href: "/quotations", label: "Quotations", Icon: FileText },
+            { href: "/recurring", label: "Recurring Invoices", Icon: RefreshCw },
           ].map(({ href, label, Icon }) => (
             <li key={href}>
               <NavLink
@@ -231,7 +232,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
       </div>
 
       {/* Bottom links */}
-      <div className="flex-shrink-0 px-2.5 pb-4" style={{ borderTop: "1px solid #151528", paddingTop: 10 }}>
+      <div className="flex-shrink-0 px-2.5 pb-4" style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
         <NavLink
           to="/admin/dashboard"
           onClick={onClose}
@@ -242,6 +243,17 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         >
           <LayoutGrid style={{ width: 17, height: 17 }} />
           Admin Panel
+        </NavLink>
+        <NavLink
+          to="/audit"
+          onClick={onClose}
+          className={({ isActive }) => cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-0.5",
+            isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
+          )}
+        >
+          <ShieldCheck style={{ width: 17, height: 17 }} />
+          Audit Trail
         </NavLink>
         <NavLink
           to="/settings"

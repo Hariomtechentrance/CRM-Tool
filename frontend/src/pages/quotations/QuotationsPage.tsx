@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { FileText, Plus, Search, X, Eye, Trash2, CheckCircle, Send, Clock, XCircle, Printer } from "lucide-react";
+import { kDecimal } from "@/lib/fieldRules";
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
@@ -172,6 +173,9 @@ export default function QuotationsPage() {
 
   const fmt = (n: number) => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const esc = (s: string | null | undefined) =>
+    String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
   const openQuotationPrint = (q: Quotation) => {
     const win = window.open("", "_blank", "width=900,height=700");
     if (!win) return;
@@ -182,12 +186,12 @@ export default function QuotationsPage() {
       const disc  = parseFloat(String(item.discount))  || 0;
       const total = qty * price - disc + (qty * price - disc) * (tax / 100);
       return `<tr>
-        <td>${i + 1}</td><td>${item.description}</td><td>${qty}</td>
+        <td>${i + 1}</td><td>${esc(item.description)}</td><td>${qty}</td>
         <td>₹${fmt(price)}</td><td>${tax}%</td><td>₹${fmt(disc)}</td>
         <td><strong>₹${fmt(total)}</strong></td>
       </tr>`;
     }).join("");
-    win.document.write(`<!DOCTYPE html><html><head><title>Quotation ${q.quotationNumber}</title>
+    const html = `<!DOCTYPE html><html><head><title>Quotation ${esc(q.quotationNumber)}</title>
     <style>
       body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
       h2 { margin: 0 0 4px; } .meta { color: #555; font-size: 13px; margin-bottom: 24px; }
@@ -197,14 +201,14 @@ export default function QuotationsPage() {
       .totals { float: right; width: 280px; }
       .totals tr td { border: none; padding: 5px 8px; }
       .totals tr:last-child td { font-weight: bold; font-size: 15px; border-top: 2px solid #111; }
-      .notes { margin-top: 24px; font-size: 13px; color: #444; }
+      .notes { margin-top: 24px; font-size: 13px; color: #444; white-space: pre-wrap; }
       @media print { body { padding: 20px; } }
     </style></head><body>
     <h2>QUOTATION</h2>
     <div class="meta">
-      <strong>${q.quotationNumber}</strong> &nbsp;·&nbsp; Status: ${q.status}
-      ${q.party?.name ? `&nbsp;·&nbsp; Party: ${q.party.name}` : ""}
-      ${q.subject ? `<br/>Subject: ${q.subject}` : ""}
+      <strong>${esc(q.quotationNumber)}</strong> &nbsp;·&nbsp; Status: ${esc(q.status)}
+      ${q.party?.name ? `&nbsp;·&nbsp; Party: ${esc(q.party.name)}` : ""}
+      ${q.subject ? `<br/>Subject: ${esc(q.subject)}` : ""}
       ${q.validUntil ? `<br/>Valid Until: ${new Date(q.validUntil).toLocaleDateString("en-IN")}` : ""}
     </div>
     <table><thead><tr>
@@ -217,10 +221,11 @@ export default function QuotationsPage() {
       <tr><td>Grand Total</td><td>₹${fmt(Number(q.total))}</td></tr>
     </tbody></table>
     <div style="clear:both"></div>
-    ${q.notes  ? `<div class="notes"><strong>Notes:</strong><br/>${q.notes}</div>` : ""}
-    ${q.terms  ? `<div class="notes"><strong>Terms & Conditions:</strong><br/>${q.terms}</div>` : ""}
-    <script>window.onload=()=>{window.print();}<\/script>
-    </body></html>`);
+    ${q.notes  ? `<div class="notes"><strong>Notes:</strong><br/>${esc(q.notes)}</div>` : ""}
+    ${q.terms  ? `<div class="notes"><strong>Terms &amp; Conditions:</strong><br/>${esc(q.terms)}</div>` : ""}
+    <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`;
+    win.document.write(html);
     win.document.close();
   };
 
@@ -445,10 +450,10 @@ export default function QuotationsPage() {
                         <option value="">— none —</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name} {p.sku ? `(${p.sku})` : ""}</option>)}
                       </select>
-                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" step="0.01" value={item.quantity} onChange={e => updateItem(idx, "quantity", e.target.value)} />
-                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" step="0.01" value={item.unitPrice} onChange={e => updateItem(idx, "unitPrice", e.target.value)} />
-                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" max="100" step="0.01" value={item.taxRate} onChange={e => updateItem(idx, "taxRate", e.target.value)} placeholder="%" />
-                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" step="0.01" value={item.discount} onChange={e => updateItem(idx, "discount", e.target.value)} />
+                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" step="0.01" value={item.quantity} onChange={e => updateItem(idx, "quantity", e.target.value)} onKeyDown={kDecimal} />
+                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" step="0.01" value={item.unitPrice} onChange={e => updateItem(idx, "unitPrice", e.target.value)} onKeyDown={kDecimal} />
+                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" max="100" step="0.01" value={item.taxRate} onChange={e => updateItem(idx, "taxRate", e.target.value)} placeholder="%" onKeyDown={kDecimal} />
+                      <input style={{ ...S.input, padding: "7px 10px" }} type="number" min="0" step="0.01" value={item.discount} onChange={e => updateItem(idx, "discount", e.target.value)} onKeyDown={kDecimal} />
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 4 }}>
                         <span style={{ fontSize: 12, color: "#818CF8", fontWeight: 600 }}>₹{calcItem(item).toFixed(2)}</span>
                         {items.length > 1 && (

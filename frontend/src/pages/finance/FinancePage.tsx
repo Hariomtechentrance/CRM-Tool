@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Receipt, Plus, Search, X, TrendingUp, TrendingDown, Clock, CheckCircle, Printer } from "lucide-react";
 import DocumentsButton from "@/components/DocumentsButton";
+import { kDecimal } from "@/lib/fieldRules";
 
 const S = {
   page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
@@ -448,8 +449,8 @@ export default function FinancePage() {
                     <div key={i} style={{ background: "#131327", borderRadius: 8, padding: 10 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8 }}>
                         <div><input style={S.input} value={it.description} onChange={(e) => setItem(i, "description", e.target.value)} placeholder="Description" /></div>
-                        <div><input type="number" style={S.input} value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} placeholder="Qty" /></div>
-                        <div><input type="number" style={S.input} value={it.unitPrice} onChange={(e) => setItem(i, "unitPrice", e.target.value)} placeholder="Rate ₹" /></div>
+                        <div><input type="number" style={S.input} value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} placeholder="Qty" onKeyDown={kDecimal} /></div>
+                        <div><input type="number" style={S.input} value={it.unitPrice} onChange={(e) => setItem(i, "unitPrice", e.target.value)} placeholder="Rate ₹" onKeyDown={kDecimal} /></div>
                         <div>
                           <select style={S.select} value={it.taxRate} onChange={(e) => setItem(i, "taxRate", e.target.value)}>
                             {["0","5","12","18","28"].map(t => <option key={t} value={t}>{t}%</option>)}

@@ -105,6 +105,8 @@ model Organization {
   deals             Deal[]
   quotations        Quotation[]
   documents         Document[]
+  notifications     Notification[]
+  recurringInvoices RecurringInvoice[]
 
   @@index([slug])
 }
@@ -878,6 +880,11 @@ enum LeaveStatus {
   CANCELLED
 }
 
+enum SalaryType {
+  MONTHLY
+  DAILY
+}
+
 model Employee {
   id             String         @id @default(cuid())
   organizationId String
@@ -891,7 +898,11 @@ model Employee {
   status         EmployeeStatus @default(ACTIVE)
   joiningDate    DateTime
   leavingDate    DateTime?
-  basicSalary    Float          @default(0)
+  salaryType     SalaryType     @default(MONTHLY)
+  basicSalary    Float          @default(0)  // monthly CTC when salaryType=MONTHLY
+  dailyRate      Float?                      // per-day rate when salaryType=DAILY
+  hra            Float          @default(0)  // fixed monthly HRA component
+  allowances     Float          @default(0)  // fixed monthly allowances
   bankAccount    String?
   bankIfsc       String?
   panNumber      String?
@@ -1501,6 +1512,62 @@ model ProductVariant {
 // ─────────────────────────────────────────────────────────────
 //  DOCUMENT ATTACHMENTS
 // ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+//  NOTIFICATIONS
+// ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  type           String
+  title          String
+  message        String
+  link           String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId])
+  @@index([organizationId, isRead])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RECURRING INVOICES
+// ─────────────────────────────────────────────────────────────
+
+enum RecurringFrequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model RecurringInvoice {
+  id             String             @id @default(cuid())
+  organizationId String
+  partyId        String?
+  frequency      RecurringFrequency @default(MONTHLY)
+  nextRunDate    DateTime
+  dayOfMonth     Int                @default(1)
+  subject        String?
+  items          Json
+  subtotal       Float              @default(0)
+  taxAmount      Float              @default(0)
+  total          Float              @default(0)
+  notes          String?
+  isActive       Boolean            @default(true)
+  autoSend       Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([nextRunDate, isActive])
+}
 
 model Document {
   id             String   @id @default(cuid())
