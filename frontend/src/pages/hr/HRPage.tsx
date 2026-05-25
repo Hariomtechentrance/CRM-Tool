@@ -1,64 +1,90 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { Users, Plus, Search, X, Calendar, DollarSign, UserCheck, Check, XCircle, Clock } from "lucide-react";
+import { Users, Plus, Search, X, Calendar, DollarSign, UserCheck, Check, XCircle, Clock, Target, TrendingUp, Receipt, Briefcase, ChevronRight, Download, Star } from "lucide-react";
 import DocumentsPanel from "@/components/DocumentsPanel";
 import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone } from "@/lib/fieldRules";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const now = new Date();
+const years = Array.from({ length: 4 }, (_, i) => now.getFullYear() - i);
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
-  header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
+  page:  {} as React.CSSProperties,
   title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
   subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
-  btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  btnSm: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
-  kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiValue: { fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  tabs: { display: "flex", gap: 4, marginBottom: 24 } as React.CSSProperties,
-  tab: (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "#505070" }) as React.CSSProperties,
+  btn:   { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
+  btnSm: { background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.2)", color: "#818CF8", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
+  btnDanger: { background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
+  btnGreen: { background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
+  kpi:   { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpiV:  { fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
+  kpiL:  { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
+  card:  { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  tabs:  { display: "flex", gap: 4, marginBottom: 24, flexWrap: "wrap" as const } as React.CSSProperties,
+  tab:   (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "#505070" }) as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" as const },
-  searchWrap: { position: "relative" as const, flex: 1, maxWidth: 280 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
-  table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  sw:    { position: "relative" as const, flex: 1, maxWidth: 280 },
+  si:    { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  sIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  th:    { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
+  td:    { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 520, maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
-  g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
-  filterSel: { background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "7px 10px", color: "#EEEEF5", fontSize: 12, outline: "none", colorScheme: "dark" as const },
+  select:{ width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  fSel:  { background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "7px 10px", color: "#EEEEF5", fontSize: 12, outline: "none", colorScheme: "dark" as const },
   empty: { padding: "48px 20px", textAlign: "center" as const, color: "#505070", fontSize: 13 },
+  err:   { background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 },
 };
 
+type Tab = "overview"|"employees"|"attendance"|"payroll"|"leaves"|"performance"|"expenses";
+
 interface Summary { total: number; active: number; onLeave: number; departments: Array<{ department: string | null; _count: number }>; monthSalaryTotal?: number; }
-interface Employee { id: string; employeeCode: string; name: string; designation?: string; department?: string; employmentType: string; status: string; basicSalary: number; dailyRate?: number; hra: number; allowances: number; salaryType: string; joiningDate: string; }
+interface Employee { id: string; employeeCode: string; name: string; email?: string; phone?: string; designation?: string; department?: string; employmentType: string; status: string; basicSalary: number; dailyRate?: number; hra: number; allowances: number; salaryType: string; joiningDate: string; shiftId?: string; }
 interface AttRecord { id: string; employeeId: string; date: string; status: string; checkIn?: string; checkOut?: string; notes?: string; employee: { id: string; name: string; employeeCode: string }; }
 interface Payroll { id: string; employeeId: string; month: number; year: number; basicSalary: number; hra: number; allowances: number; grossSalary: number; pfDeduction: number; esiDeduction: number; deductions: number; netSalary: number; presentDays: number; workingDays: number; isPaid: boolean; paidAt?: string; employee: { id: string; name: string; employeeCode: string; designation?: string; salaryType?: string }; }
 interface LeaveReq { id: string; employeeId: string; leaveType: string; fromDate: string; toDate: string; days: number; reason?: string; status: string; employee: { id: string; name: string; employeeCode: string }; }
+interface LeaveBalance { id: string; employeeId: string; year: number; leaveType: string; allocated: number; used: number; pending: number; carried: number; employee: { id: string; name: string; employeeCode: string }; }
+interface Shift { id: string; name: string; startTime: string; endTime: string; workingHours: number; graceMins: number; isActive: boolean; _count?: { employees: number }; }
+interface Goal { id: string; employeeId: string; title: string; description?: string; category: string; targetDate?: string; progress: number; status: string; year: number; quarter?: number; employee: { id: string; name: string; employeeCode: string; designation?: string }; }
+interface Review { id: string; employeeId: string; reviewType: string; reviewPeriod: string; rating?: number; selfRating?: number; status: string; strengths?: string; improvements?: string; comments?: string; reviewDate: string; employee: { id: string; name: string; employeeCode: string; designation?: string; department?: string }; }
+interface Expense { id: string; employeeId: string; expenseDate: string; category: string; title: string; amount: number; currency: string; receiptUrl?: string; status: string; notes?: string; approvedById?: string; approvedAt?: string; paidAt?: string; employee: { id: string; name: string; employeeCode: string; department?: string }; }
 
-const ATT_STATUSES = ["PRESENT","ABSENT","HALF_DAY","LEAVE","HOLIDAY"];
 const ATT_COLORS: Record<string,string> = { PRESENT:"#10b981", ABSENT:"#ef4444", HALF_DAY:"#f59e0b", LEAVE:"#6366f1", HOLIDAY:"#8b5cf6" };
-const LEAVE_STATUS_COLORS: Record<string,string> = { PENDING:"#f59e0b", APPROVED:"#10b981", REJECTED:"#ef4444" };
-
-const empEmpty = { employeeCode:"", name:"", email:"", phone:"", designation:"", department:"", employmentType:"FULL_TIME", joiningDate:"", salaryType:"MONTHLY", basicSalary:"", dailyRate:"", hra:"0", allowances:"0", bankAccount:"", bankIfsc:"", panNumber:"" };
-const attEmpty = { employeeId:"", date: now.toISOString().slice(0,10), status:"PRESENT", checkIn:"", checkOut:"", notes:"" };
-const payEmpty = { employeeId:"", month: String(now.getMonth()+1), year: String(now.getFullYear()), workingDays:"26", presentDays:"", hra:"0", allowances:"0", deductions:"0" };
-const leaveEmpty = { employeeId:"", leaveType:"Annual", fromDate:"", toDate:"", reason:"" };
+const LEAVE_STATUS_C: Record<string,string> = { PENDING:"#f59e0b", APPROVED:"#10b981", REJECTED:"#ef4444", CANCELLED:"#505070" };
+const GOAL_STATUS_C: Record<string,string> = { IN_PROGRESS:"#6366f1", COMPLETED:"#10b981", ON_HOLD:"#f59e0b", CANCELLED:"#ef4444" };
+const EXP_STATUS_C: Record<string,string> = { PENDING:"#f59e0b", APPROVED:"#10b981", REJECTED:"#ef4444", PAID:"#8b5cf6" };
+const LEAVE_TYPES = ["Annual","Sick","Casual","Maternity","Paternity","Compensatory","Unpaid","Other"];
+const EXP_CATS = ["Travel","Food","Accommodation","Office Supplies","Client Entertainment","Medical","Training","Fuel","Other"];
 
 function Badge({ text, color }: { text: string; color: string }) {
-  return <span style={{ padding:"2px 8px", borderRadius:5, fontSize:11, fontWeight:600, background: color+"20", color }}>{text.replace("_"," ")}</span>;
+  return <span style={{ padding:"2px 8px", borderRadius:5, fontSize:11, fontWeight:600, background:color+"22", color }}>{text.replace(/_/g," ")}</span>;
 }
+function Stars({ value }: { value?: number }) {
+  if (!value) return <span style={{ color:"#505070" }}>—</span>;
+  return <span style={{ color:"#f59e0b" }}>{Array.from({length:5},(_,i)=><Star key={i} size={12} fill={i<Math.round(value)?"#f59e0b":"none"} color="#f59e0b"/>)}</span>;
+}
+function ProgBar({ pct, color="#6366f1" }: { pct: number; color?: string }) {
+  return <div style={{ height:6, background:"#1C1C35", borderRadius:3, overflow:"hidden" }}>
+    <div style={{ height:"100%", width:`${Math.min(pct,100)}%`, background:color, borderRadius:3, transition:"width 0.3s" }}/>
+  </div>;
+}
+const fmt = (n: number) => `₹${n.toLocaleString("en-IN",{maximumFractionDigits:0})}`;
+const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+const errMsg = (e: unknown) => (e as {response?:{data?:{message?:string}}})?.response?.data?.message || "Failed";
+
+const empEmpty = { employeeCode:"", name:"", email:"", phone:"", designation:"", department:"", employmentType:"FULL_TIME", joiningDate:"", salaryType:"MONTHLY", basicSalary:"", dailyRate:"", hra:"0", allowances:"0", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" };
+const attEmpty = { employeeId:"", date:now.toISOString().slice(0,10), status:"PRESENT", checkIn:"", checkOut:"", notes:"" };
+const payEmpty = { employeeId:"", month:String(now.getMonth()+1), year:String(now.getFullYear()), workingDays:"26", presentDays:"", hra:"0", allowances:"0", deductions:"0" };
+const leaveEmpty = { employeeId:"", leaveType:"Annual", fromDate:"", toDate:"", reason:"" };
+const shiftEmpty = { name:"", startTime:"09:00", endTime:"18:00", workingHours:"8", graceMins:"0" };
+const balanceEmpty = { employeeId:"", year:String(now.getFullYear()), leaveType:"Annual", allocated:"12", carried:"0" };
+const goalEmpty = { employeeId:"", title:"", description:"", category:"Individual", targetDate:"", progress:"0", status:"IN_PROGRESS", year:String(now.getFullYear()), quarter:"" };
+const reviewEmpty = { employeeId:"", reviewType:"ANNUAL", reviewPeriod:"", rating:"", selfRating:"", status:"DRAFT", strengths:"", improvements:"", comments:"" };
+const expenseEmpty = { employeeId:"", expenseDate:now.toISOString().slice(0,10), category:"Travel", title:"", amount:"", receiptUrl:"", notes:"" };
 
 export default function HRPage() {
-  const [tab, setTab] = useState<"employees"|"attendance"|"payroll"|"leaves">("employees");
+  const [tab, setTab] = useState<Tab>("overview");
   const [summary, setSummary] = useState<Summary|null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,10 +92,13 @@ export default function HRPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Employee modal
+  // Employee
   const [showEmpModal, setShowEmpModal] = useState(false);
   const [editId, setEditId] = useState<string|null>(null);
-  const [empForm, setEmpForm] = useState({ ...empEmpty });
+  const [empForm, setEmpForm] = useState({...empEmpty});
+  const [showEmpDetail, setShowEmpDetail] = useState(false);
+  const [detailEmp, setDetailEmp] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Attendance
   const [attRecords, setAttRecords] = useState<AttRecord[]>([]);
@@ -77,7 +106,7 @@ export default function HRPage() {
   const [attYear, setAttYear] = useState(now.getFullYear());
   const [attLoading, setAttLoading] = useState(false);
   const [showAttModal, setShowAttModal] = useState(false);
-  const [attForm, setAttForm] = useState({ ...attEmpty });
+  const [attForm, setAttForm] = useState({...attEmpty});
 
   // Payroll
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
@@ -85,34 +114,62 @@ export default function HRPage() {
   const [payYear, setPayYear] = useState(now.getFullYear());
   const [payLoading, setPayLoading] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
-  const [payForm, setPayForm] = useState({ ...payEmpty });
+  const [payForm, setPayForm] = useState({...payEmpty});
+  const [showAutoPayModal, setShowAutoPayModal] = useState(false);
+  const [autoPayForm, setAutoPayForm] = useState({ month:String(now.getMonth()+1), year:String(now.getFullYear()), workingDays:"26" });
+  const [autoPayResult, setAutoPayResult] = useState<any>(null);
+  const [payslip, setPayslip] = useState<any>(null);
+  const [showPayslip, setShowPayslip] = useState(false);
 
   // Leaves
   const [leaves, setLeaves] = useState<LeaveReq[]>([]);
   const [leaveFilter, setLeaveFilter] = useState("");
   const [leaveLoading, setLeaveLoading] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [leaveForm, setLeaveForm] = useState({ ...leaveEmpty });
+  const [leaveForm, setLeaveForm] = useState({...leaveEmpty});
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
+  const [lbLoading, setLbLoading] = useState(false);
+  const [showLbModal, setShowLbModal] = useState(false);
+  const [lbForm, setLbForm] = useState({...balanceEmpty});
+  const [leaveSubTab, setLeaveSubTab] = useState<"requests"|"balances">("requests");
 
-  // Employee detail dashboard
-  const [showEmpDetail, setShowEmpDetail] = useState(false);
-  const [detailEmp, setDetailEmp] = useState<any>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  // Shifts
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [showShiftModal, setShowShiftModal] = useState(false);
+  const [shiftForm, setShiftForm] = useState({...shiftEmpty});
+  const [editShiftId, setEditShiftId] = useState<string|null>(null);
 
-  // Auto-generate payroll
-  const [showAutoPayModal, setShowAutoPayModal] = useState(false);
-  const [autoPayForm, setAutoPayForm] = useState({ month: String(now.getMonth()+1), year: String(now.getFullYear()), workingDays:"26" });
-  const [autoPayResult, setAutoPayResult] = useState<any>(null);
+  // Performance
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [perfSubTab, setPerfSubTab] = useState<"goals"|"reviews">("goals");
+  const [perfLoading, setPerfLoading] = useState(false);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalForm, setGoalForm] = useState({...goalEmpty});
+  const [editGoalId, setEditGoalId] = useState<string|null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({...reviewEmpty});
+  const [editReviewId, setEditReviewId] = useState<string|null>(null);
 
+  // Expenses
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expFilter, setExpFilter] = useState("");
+  const [expLoading, setExpLoading] = useState(false);
+  const [showExpModal, setShowExpModal] = useState(false);
+  const [expForm, setExpForm] = useState({...expenseEmpty});
+
+  // ── Loaders ──
   const loadBase = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, empRes] = await Promise.all([
+      const [sumRes, empRes, shiftRes] = await Promise.all([
         api.get("/hr/summary"),
-        api.get(`/hr?search=${search}&limit=100`),
+        api.get(`/hr?search=${search}&limit=200`),
+        api.get("/hr/shifts"),
       ]);
       setSummary(sumRes.data.data);
       setEmployees(empRes.data.data.employees || []);
+      setShifts(shiftRes.data.data || []);
     } catch { /* ignore */ }
     setLoading(false);
   }, [search]);
@@ -138,197 +195,401 @@ export default function HRPage() {
   const loadLeaves = useCallback(async () => {
     setLeaveLoading(true);
     try {
-      const r = await api.get(`/hr/leaves${leaveFilter ? `?status=${leaveFilter}` : ""}`);
+      const r = await api.get(`/hr/leaves${leaveFilter?`?status=${leaveFilter}`:""}`);
       setLeaves(r.data.data || []);
     } catch { /* ignore */ }
     setLeaveLoading(false);
   }, [leaveFilter]);
 
-  useEffect(() => { loadBase(); }, [loadBase]);
-  useEffect(() => { if (tab === "attendance") loadAttendance(); }, [tab, loadAttendance]);
-  useEffect(() => { if (tab === "payroll") loadPayroll(); }, [tab, loadPayroll]);
-  useEffect(() => { if (tab === "leaves") loadLeaves(); }, [tab, loadLeaves]);
-
-  // Employee CRUD
-  const openAdd = () => { setEditId(null); setEmpForm({ ...empEmpty }); setError(""); setShowEmpModal(true); };
-  const openDetail = async (emp: Employee) => {
-    setShowEmpDetail(true); setDetailEmp(null); setDetailLoading(true);
+  const loadLeaveBalances = useCallback(async () => {
+    setLbLoading(true);
     try {
-      const r = await api.get(`/hr/${emp.id}`);
-      setDetailEmp(r.data.data);
-    } catch { setDetailEmp(emp); }
-    setDetailLoading(false);
-  };
+      const r = await api.get(`/hr/leave-balances?year=${now.getFullYear()}`);
+      setLeaveBalances(r.data.data || []);
+    } catch { /* ignore */ }
+    setLbLoading(false);
+  }, []);
+
+  const loadPerformance = useCallback(async () => {
+    setPerfLoading(true);
+    try {
+      const [gR, rR] = await Promise.all([
+        api.get(`/hr/goals?year=${now.getFullYear()}`),
+        api.get("/hr/reviews"),
+      ]);
+      setGoals(gR.data.data || []);
+      setReviews(rR.data.data || []);
+    } catch { /* ignore */ }
+    setPerfLoading(false);
+  }, []);
+
+  const loadExpenses = useCallback(async () => {
+    setExpLoading(true);
+    try {
+      const r = await api.get(`/hr/expenses${expFilter?`?status=${expFilter}`:""}`);
+      setExpenses(r.data.data || []);
+    } catch { /* ignore */ }
+    setExpLoading(false);
+  }, [expFilter]);
+
+  useEffect(() => { loadBase(); }, [loadBase]);
+  useEffect(() => { if (tab==="attendance") loadAttendance(); }, [tab, loadAttendance]);
+  useEffect(() => { if (tab==="payroll") loadPayroll(); }, [tab, loadPayroll]);
+  useEffect(() => { if (tab==="leaves") { loadLeaves(); loadLeaveBalances(); } }, [tab, loadLeaves, loadLeaveBalances]);
+  useEffect(() => { if (tab==="performance") loadPerformance(); }, [tab, loadPerformance]);
+  useEffect(() => { if (tab==="expenses") loadExpenses(); }, [tab, loadExpenses]);
+
+  // ── Employee CRUD ──
+  const openAdd = () => { setEditId(null); setEmpForm({...empEmpty}); setError(""); setShowEmpModal(true); };
   const openEdit = (e: Employee) => {
     setEditId(e.id);
-    setEmpForm({
-      employeeCode:e.employeeCode, name:e.name, email:"", phone:"",
-      designation:e.designation||"", department:e.department||"",
-      employmentType:e.employmentType,
-      joiningDate:new Date(e.joiningDate).toISOString().slice(0,10),
-      salaryType:e.salaryType||"MONTHLY",
-      basicSalary:String(e.basicSalary), dailyRate:String(e.dailyRate||""),
-      hra:String(e.hra||0), allowances:String(e.allowances||0),
-      bankAccount:"", bankIfsc:"", panNumber:"",
-    });
+    setEmpForm({ employeeCode:e.employeeCode, name:e.name, email:"", phone:"", designation:e.designation||"", department:e.department||"", employmentType:e.employmentType, joiningDate:new Date(e.joiningDate).toISOString().slice(0,10), salaryType:e.salaryType||"MONTHLY", basicSalary:String(e.basicSalary), dailyRate:String(e.dailyRate||""), hra:String(e.hra||0), allowances:String(e.allowances||0), bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" });
     setError(""); setShowEmpModal(true);
+  };
+  const openDetail = async (emp: Employee) => {
+    setShowEmpDetail(true); setDetailEmp(null); setDetailLoading(true);
+    try { const r = await api.get(`/hr/${emp.id}`); setDetailEmp(r.data.data); }
+    catch { setDetailEmp(emp); }
+    setDetailLoading(false);
   };
   const saveEmployee = async () => {
     setSaving(true); setError("");
     try {
-      const payload = {
-        ...empForm,
-        basicSalary: parseFloat(empForm.basicSalary) || 0,
-        dailyRate:   empForm.salaryType === "DAILY" ? (parseFloat(empForm.dailyRate) || 0) : undefined,
-        hra:         parseFloat(empForm.hra) || 0,
-        allowances:  parseFloat(empForm.allowances) || 0,
-        email:       empForm.email || undefined,
-        phone:       empForm.phone || undefined,
-      };
+      const payload = { ...empForm, basicSalary:parseFloat(empForm.basicSalary)||0, dailyRate:empForm.salaryType==="DAILY"?(parseFloat(empForm.dailyRate)||0):undefined, hra:parseFloat(empForm.hra)||0, allowances:parseFloat(empForm.allowances)||0, email:empForm.email||undefined, phone:empForm.phone||undefined };
       if (editId) await api.patch(`/hr/${editId}`, payload);
       else await api.post("/hr", payload);
       setShowEmpModal(false); loadBase();
-    } catch (e: unknown) { setError((e as {response?:{data?:{message?:string}}})?.response?.data?.message || "Failed to save"); }
+    } catch (e) { setError(errMsg(e)); }
     setSaving(false);
   };
 
-  const autoGeneratePayroll = async () => {
-    setSaving(true); setError(""); setAutoPayResult(null);
-    try {
-      const r = await api.post("/hr/payroll/auto-generate", {
-        month: parseInt(autoPayForm.month),
-        year:  parseInt(autoPayForm.year),
-        workingDays: parseInt(autoPayForm.workingDays) || 26,
-      });
-      setAutoPayResult(r.data.data);
-      loadPayroll();
-    } catch (e: unknown) { setError((e as {response?:{data?:{message?:string}}})?.response?.data?.message || "Failed"); }
-    setSaving(false);
-  };
-
-  const markPaid = async (payrollId: string) => {
-    try {
-      await api.patch(`/hr/payroll/${payrollId}/paid`, {});
-      loadPayroll();
-    } catch { /* ignore */ }
-  };
-
-  // Attendance save
+  // ── Attendance ──
   const saveAttendance = async () => {
     setSaving(true); setError("");
     try {
       await api.post("/hr/attendance", { ...attForm, checkIn:attForm.checkIn||undefined, checkOut:attForm.checkOut||undefined, notes:attForm.notes||undefined });
       setShowAttModal(false); loadAttendance();
-    } catch (e: unknown) { setError((e as {response?:{data?:{message?:string}}})?.response?.data?.message || "Failed"); }
+    } catch (e) { setError(errMsg(e)); }
     setSaving(false);
   };
 
-  // Payroll save
+  // ── Payroll ──
   const savePayroll = async () => {
     setSaving(true); setError("");
     try {
       await api.post("/hr/payroll", { employeeId:payForm.employeeId, month:parseInt(payForm.month), year:parseInt(payForm.year), workingDays:parseInt(payForm.workingDays)||26, presentDays:parseFloat(payForm.presentDays)||0, hra:parseFloat(payForm.hra)||0, allowances:parseFloat(payForm.allowances)||0, deductions:parseFloat(payForm.deductions)||0 });
       setShowPayModal(false); loadPayroll();
-    } catch (e: unknown) { setError((e as {response?:{data?:{message?:string}}})?.response?.data?.message || "Failed"); }
+    } catch (e) { setError(errMsg(e)); }
     setSaving(false);
   };
+  const autoGeneratePayroll = async () => {
+    setSaving(true); setError(""); setAutoPayResult(null);
+    try {
+      const r = await api.post("/hr/payroll/auto-generate", { month:parseInt(autoPayForm.month), year:parseInt(autoPayForm.year), workingDays:parseInt(autoPayForm.workingDays)||26 });
+      setAutoPayResult(r.data.data); loadPayroll();
+    } catch (e) { setError(errMsg(e)); }
+    setSaving(false);
+  };
+  const markPaid = async (id: string) => { try { await api.patch(`/hr/payroll/${id}/paid`,{}); loadPayroll(); } catch{} };
+  const viewPayslip = async (p: Payroll) => {
+    try {
+      const r = await api.get(`/hr/payslip?employeeId=${p.employeeId}&month=${p.month}&year=${p.year}`);
+      setPayslip(r.data.data); setShowPayslip(true);
+    } catch { alert("Payslip not available"); }
+  };
 
-  // Leave save
+  // ── Leaves ──
   const saveLeave = async () => {
     setSaving(true); setError("");
     try {
       await api.post("/hr/leaves", { ...leaveForm, reason:leaveForm.reason||undefined });
       setShowLeaveModal(false); loadLeaves(); loadBase();
-    } catch (e: unknown) { setError((e as {response?:{data?:{message?:string}}})?.response?.data?.message || "Failed"); }
+    } catch (e) { setError(errMsg(e)); }
+    setSaving(false);
+  };
+  const updateLeaveStatus = async (id: string, status: string) => {
+    try { await api.patch(`/hr/leaves/${id}/status`, { status }); loadLeaves(); loadBase(); } catch {}
+  };
+  const saveLeaveBalance = async () => {
+    setSaving(true); setError("");
+    try {
+      await api.post("/hr/leave-balances", { employeeId:lbForm.employeeId, year:parseInt(lbForm.year), leaveType:lbForm.leaveType, allocated:parseFloat(lbForm.allocated)||0, carried:parseFloat(lbForm.carried)||0 });
+      setShowLbModal(false); loadLeaveBalances();
+    } catch (e) { setError(errMsg(e)); }
     setSaving(false);
   };
 
-  const updateLeaveStatus = async (id: string, status: "APPROVED"|"REJECTED") => {
+  // ── Shifts ──
+  const saveShift = async () => {
+    setSaving(true); setError("");
     try {
-      await api.patch(`/hr/leaves/${id}/status`, { status });
-      loadLeaves(); loadBase();
-    } catch { /* ignore */ }
+      const payload = { name:shiftForm.name, startTime:shiftForm.startTime, endTime:shiftForm.endTime, workingHours:parseFloat(shiftForm.workingHours)||8, graceMins:parseInt(shiftForm.graceMins)||0 };
+      if (editShiftId) await api.patch(`/hr/shifts/${editShiftId}`, payload);
+      else await api.post("/hr/shifts", payload);
+      setShowShiftModal(false); loadBase();
+    } catch (e) { setError(errMsg(e)); }
+    setSaving(false);
+  };
+  const deleteShift = async (id: string) => {
+    if (!confirm("Delete this shift?")) return;
+    try { await api.delete(`/hr/shifts/${id}`); loadBase(); } catch {}
   };
 
-  const ef = (k: keyof typeof empEmpty, v: string) => setEmpForm(p => ({ ...p, [k]:v }));
-  const af = (k: keyof typeof attEmpty, v: string) => setAttForm(p => ({ ...p, [k]:v }));
-  const pf = (k: keyof typeof payEmpty, v: string) => setPayForm(p => ({ ...p, [k]:v }));
-  const lf = (k: keyof typeof leaveEmpty, v: string) => setLeaveForm(p => ({ ...p, [k]:v }));
+  // ── Performance ──
+  const saveGoal = async () => {
+    setSaving(true); setError("");
+    try {
+      const payload = { employeeId:goalForm.employeeId, title:goalForm.title, description:goalForm.description||undefined, category:goalForm.category, targetDate:goalForm.targetDate||undefined, progress:parseInt(goalForm.progress)||0, status:goalForm.status, year:parseInt(goalForm.year), quarter:goalForm.quarter?parseInt(goalForm.quarter):undefined };
+      if (editGoalId) await api.patch(`/hr/goals/${editGoalId}`, payload);
+      else await api.post("/hr/goals", payload);
+      setShowGoalModal(false); loadPerformance();
+    } catch (e) { setError(errMsg(e)); }
+    setSaving(false);
+  };
+  const deleteGoal = async (id: string) => {
+    if (!confirm("Delete this goal?")) return;
+    try { await api.delete(`/hr/goals/${id}`); loadPerformance(); } catch {}
+  };
+  const saveReview = async () => {
+    setSaving(true); setError("");
+    try {
+      const payload = { employeeId:reviewForm.employeeId, reviewType:reviewForm.reviewType, reviewPeriod:reviewForm.reviewPeriod, rating:reviewForm.rating?parseFloat(reviewForm.rating):undefined, selfRating:reviewForm.selfRating?parseFloat(reviewForm.selfRating):undefined, status:reviewForm.status, strengths:reviewForm.strengths||undefined, improvements:reviewForm.improvements||undefined, comments:reviewForm.comments||undefined };
+      if (editReviewId) await api.patch(`/hr/reviews/${editReviewId}`, payload);
+      else await api.post("/hr/reviews", payload);
+      setShowReviewModal(false); loadPerformance();
+    } catch (e) { setError(errMsg(e)); }
+    setSaving(false);
+  };
 
-  const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits:0 })}`;
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+  // ── Expenses ──
+  const saveExpense = async () => {
+    setSaving(true); setError("");
+    try {
+      await api.post("/hr/expenses", { employeeId:expForm.employeeId, expenseDate:expForm.expenseDate, category:expForm.category, title:expForm.title, amount:parseFloat(expForm.amount)||0, receiptUrl:expForm.receiptUrl||undefined, notes:expForm.notes||undefined });
+      setShowExpModal(false); loadExpenses();
+    } catch (e) { setError(errMsg(e)); }
+    setSaving(false);
+  };
+  const expAction = async (id: string, action: "approve"|"reject"|"paid") => {
+    try { await api.patch(`/hr/expenses/${id}/${action}`,{}); loadExpenses(); } catch {}
+  };
 
-  const years = Array.from({ length:4 }, (_,i) => now.getFullYear()-i);
+  const ef = (k: keyof typeof empEmpty, v: string) => setEmpForm(p=>({...p,[k]:v}));
+  const af = (k: keyof typeof attEmpty, v: string) => setAttForm(p=>({...p,[k]:v}));
+  const pf = (k: keyof typeof payEmpty, v: string) => setPayForm(p=>({...p,[k]:v}));
+  const lf = (k: keyof typeof leaveEmpty, v: string) => setLeaveForm(p=>({...p,[k]:v}));
+
+  const TABS: Array<{id:Tab;label:string;icon:React.ReactNode}> = [
+    {id:"overview",label:"Overview",icon:<TrendingUp size={14}/>},
+    {id:"employees",label:"Employees",icon:<Users size={14}/>},
+    {id:"attendance",label:"Attendance",icon:<Calendar size={14}/>},
+    {id:"payroll",label:"Payroll",icon:<DollarSign size={14}/>},
+    {id:"leaves",label:"Leaves",icon:<Clock size={14}/>},
+    {id:"performance",label:"Performance",icon:<Target size={14}/>},
+    {id:"expenses",label:"Expenses",icon:<Receipt size={14}/>},
+  ];
 
   return (
     <div className="page-pad">
-      <div className="page-hdr">
+      {/* Header */}
+      <div className="page-hdr" style={{marginBottom:20}}>
         <div>
-          <h1 style={S.title}>HR & Payroll</h1>
-          <p style={S.subtitle}>Employees, attendance, salary and leave management</p>
+          <h1 style={S.title}>HR & People</h1>
+          <p style={S.subtitle}>Employees, attendance, payroll, leaves, performance and expenses</p>
         </div>
-        {tab === "employees" && <button style={S.btn} onClick={openAdd}><Plus size={15}/> Add Employee</button>}
-        {tab === "attendance" && <button style={S.btn} onClick={() => { setAttForm({ ...attEmpty }); setError(""); setShowAttModal(true); }}><Plus size={15}/> Mark Attendance</button>}
-        {tab === "payroll" && <button style={S.btn} onClick={() => { setPayForm({ ...payEmpty }); setError(""); setShowPayModal(true); }}><Plus size={15}/> Generate Payroll</button>}
-        {tab === "leaves" && <button style={S.btn} onClick={() => { setLeaveForm({ ...leaveEmpty }); setError(""); setShowLeaveModal(true); }}><Plus size={15}/> Apply Leave</button>}
-      </div>
-
-      {/* KPIs */}
-      <div className="kpi-grid">
-        {[
-          { label:"Total Employees", value:summary?.total ?? "—", icon:<Users size={18} color="#6366f1"/>, color:"#6366f1" },
-          { label:"Active", value:summary?.active ?? "—", icon:<UserCheck size={18} color="#10b981"/>, color:"#10b981" },
-          { label:"On Leave Today", value:summary?.onLeave ?? "—", icon:<Calendar size={18} color="#f59e0b"/>, color:"#f59e0b" },
-          { label:"Departments", value:summary?.departments.length ?? "—", icon:<DollarSign size={18} color="#8b5cf6"/>, color:"#8b5cf6" },
-        ].map(k => (
-          <div key={k.label} style={S.kpi}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={S.kpiLabel}>{k.label}</span>
-              <div style={{ padding:6, borderRadius:8, background:k.color+"20" }}>{k.icon}</div>
-            </div>
-            <div style={S.kpiValue}>{k.value}</div>
-          </div>
-        ))}
+        <div style={{display:"flex",gap:8}}>
+          {tab==="employees" && <button style={S.btn} onClick={openAdd}><Plus size={15}/> Add Employee</button>}
+          {tab==="attendance" && <button style={S.btn} onClick={()=>{setAttForm({...attEmpty});setError("");setShowAttModal(true);}}><Plus size={15}/> Mark Attendance</button>}
+          {tab==="payroll" && <button style={S.btn} onClick={()=>{setPayForm({...payEmpty});setError("");setShowPayModal(true);}}><Plus size={15}/> Generate Payroll</button>}
+          {tab==="leaves" && leaveSubTab==="requests" && <button style={S.btn} onClick={()=>{setLeaveForm({...leaveEmpty});setError("");setShowLeaveModal(true);}}><Plus size={15}/> Apply Leave</button>}
+          {tab==="leaves" && leaveSubTab==="balances" && <button style={S.btn} onClick={()=>{setLbForm({...balanceEmpty});setError("");setShowLbModal(true);}}><Plus size={15}/> Allocate Balance</button>}
+          {tab==="performance" && perfSubTab==="goals" && <button style={S.btn} onClick={()=>{setEditGoalId(null);setGoalForm({...goalEmpty});setError("");setShowGoalModal(true);}}><Plus size={15}/> Add Goal</button>}
+          {tab==="performance" && perfSubTab==="reviews" && <button style={S.btn} onClick={()=>{setEditReviewId(null);setReviewForm({...reviewEmpty});setError("");setShowReviewModal(true);}}><Plus size={15}/> Add Review</button>}
+          {tab==="expenses" && <button style={S.btn} onClick={()=>{setExpForm({...expenseEmpty});setError("");setShowExpModal(true);}}><Plus size={15}/> Add Expense</button>}
+        </div>
       </div>
 
       {/* Tabs */}
       <div style={S.tabs}>
-        {(["employees","attendance","payroll","leaves"] as const).map(t => (
-          <button key={t} style={S.tab(tab===t)} onClick={() => setTab(t)}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>
+        {TABS.map(t=>(
+          <button key={t.id} style={{...S.tab(tab===t.id),display:"flex",alignItems:"center",gap:6}} onClick={()=>setTab(t.id)}>
+            {t.icon}{t.label}
+          </button>
         ))}
       </div>
 
-      {/* ── Employees Tab ── */}
-      {tab === "employees" && (
-        <div style={S.card}>
-          <div style={S.toolbar}>
-            <div style={S.searchWrap}>
-              <Search size={14} style={S.searchIcon}/>
-              <input style={S.searchInput} placeholder="Search employees..." value={search} onChange={e => setSearch(e.target.value)}/>
+      {/* ════════════════ OVERVIEW ════════════════ */}
+      {tab==="overview" && (
+        <div>
+          {/* KPI row */}
+          <div className="kpi-grid" style={{marginBottom:20}}>
+            {[
+              {label:"Total Employees",value:summary?.total??0,icon:<Users size={18}/>,color:"#6366f1"},
+              {label:"Active",value:summary?.active??0,icon:<UserCheck size={18}/>,color:"#10b981"},
+              {label:"On Leave Today",value:summary?.onLeave??0,icon:<Calendar size={18}/>,color:"#f59e0b"},
+              {label:"Departments",value:summary?.departments?.length??0,icon:<Briefcase size={18}/>,color:"#8b5cf6"},
+            ].map(k=>(
+              <div key={k.label} style={S.kpi}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={S.kpiL}>{k.label}</span>
+                  <div style={{padding:6,borderRadius:8,background:k.color+"20",color:k.color}}>{k.icon}</div>
+                </div>
+                <div style={S.kpiV}>{k.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            {/* Dept breakdown */}
+            <div style={S.card}>
+              <div style={{fontSize:14,fontWeight:700,color:"#EEEEF5",marginBottom:14}}>Department Headcount</div>
+              {loading ? <div style={S.empty}>Loading...</div> : (
+                (summary?.departments||[]).length===0
+                  ? <div style={S.empty}>No departments yet</div>
+                  : <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {(summary?.departments||[]).sort((a,b)=>b._count-a._count).map(d=>{
+                      const pct = summary?.active ? Math.round((d._count/summary.active)*100) : 0;
+                      return (
+                        <div key={d.department||"none"}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                            <span style={{fontSize:13,color:"#CCCCEE"}}>{d.department||"Unassigned"}</span>
+                            <span style={{fontSize:12,color:"#818CF8",fontWeight:600}}>{d._count}</span>
+                          </div>
+                          <ProgBar pct={pct}/>
+                        </div>
+                      );
+                    })}
+                  </div>
+              )}
+            </div>
+
+            {/* Shifts overview */}
+            <div style={S.card}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <div style={{fontSize:14,fontWeight:700,color:"#EEEEF5"}}>Shifts</div>
+                <button style={S.btnSm} onClick={()=>{setEditShiftId(null);setShiftForm({...shiftEmpty});setError("");setShowShiftModal(true);}}>
+                  <Plus size={12}/> Add Shift
+                </button>
+              </div>
+              {shifts.length===0
+                ? <div style={S.empty}>No shifts defined</div>
+                : <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {shifts.map(s=>(
+                    <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#131327",borderRadius:8,padding:"10px 14px"}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:"#EEEEF5"}}>{s.name}</div>
+                        <div style={{fontSize:11,color:"#505070"}}>{s.startTime} – {s.endTime} · {s.workingHours}h · Grace {s.graceMins}m</div>
+                      </div>
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        <span style={{fontSize:11,color:"#818CF8"}}>{s._count?.employees||0} emp</span>
+                        <button style={{...S.btnSm,padding:"3px 8px"}} onClick={()=>{setEditShiftId(s.id);setShiftForm({name:s.name,startTime:s.startTime,endTime:s.endTime,workingHours:String(s.workingHours),graceMins:String(s.graceMins)});setShowShiftModal(true);}}>Edit</button>
+                        <button style={{...S.btnDanger,padding:"3px 8px"}} onClick={()=>deleteShift(s.id)}>Del</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              }
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ════════════════ EMPLOYEES ════════════════ */}
+      {tab==="employees" && (
+        <div style={S.card}>
+          <div style={S.toolbar}>
+            <div style={S.sw}><Search size={14} style={S.sIcon}/><input style={S.si} placeholder="Search employees..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+          </div>
           {loading ? <div style={S.empty}>Loading...</div> : (
-            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["Emp Code","Name","Designation","Department","Type","Salary","Joined","Status"].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr></thead>
+            <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Code","Name","Designation / Dept","Type","Salary","Shift","Joined","Status",""].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
               <tbody>
-                {employees.length === 0
-                  ? <tr><td colSpan={8} style={S.empty}>No employees yet. Add your first employee.</td></tr>
-                  : employees.map(e => (
-                    <tr key={e.id} onClick={() => openDetail(e)} style={{ cursor:"pointer" }}>
-                      <td style={{ ...S.td, color:"#818CF8", fontWeight:600 }}>{e.employeeCode}</td>
-                      <td style={{ ...S.td, color:"#EEEEF5", fontWeight:500 }}>{e.name}</td>
-                      <td style={S.td}>{e.designation || "—"}</td>
-                      <td style={S.td}>{e.department || "—"}</td>
+                {employees.length===0
+                  ? <tr><td colSpan={9} style={S.empty}>No employees yet.</td></tr>
+                  : employees.map(e=>(
+                    <tr key={e.id} onClick={()=>openDetail(e)} style={{cursor:"pointer"}}>
+                      <td style={{...S.td,color:"#818CF8",fontWeight:600}}>{e.employeeCode}</td>
+                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}>{e.name}</td>
+                      <td style={S.td}><div style={{fontSize:13}}>{e.designation||"—"}</div><div style={{fontSize:11,color:"#505070"}}>{e.department||""}</div></td>
                       <td style={S.td}><Badge text={e.employmentType} color="#6366f1"/></td>
-                      <td style={S.td}>
-                        <div style={{ fontSize:13, color:"#EEEEF5" }}>{e.salaryType==="DAILY" ? `₹${(e.dailyRate||0).toLocaleString("en-IN")}/day` : `${fmt(e.basicSalary)}/mo`}</div>
-                        {(e.hra>0||e.allowances>0) && <div style={{ fontSize:11, color:"#505070" }}>+HRA/Allow: {fmt(e.hra+e.allowances)}</div>}
-                      </td>
+                      <td style={S.td}><div>{e.salaryType==="DAILY"?`₹${(e.dailyRate||0).toLocaleString("en-IN")}/day`:`${fmt(e.basicSalary)}/mo`}</div>{(e.hra>0||e.allowances>0)&&<div style={{fontSize:11,color:"#505070"}}>+HRA/Allow: {fmt(e.hra+e.allowances)}</div>}</td>
+                      <td style={{...S.td,fontSize:12,color:"#505070"}}>{shifts.find(s=>s.id===e.shiftId)?.name||"—"}</td>
                       <td style={S.td}>{fmtDate(e.joiningDate)}</td>
+                      <td style={S.td}><Badge text={e.status} color={e.status==="ACTIVE"?"#10b981":"#ef4444"}/></td>
+                      <td style={S.td}><button onClick={ev=>{ev.stopPropagation();openEdit(e);}} style={{...S.btnSm,padding:"3px 8px"}}>Edit</button></td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table></div>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════ ATTENDANCE ════════════════ */}
+      {tab==="attendance" && (
+        <div style={S.card}>
+          <div style={S.toolbar}>
+            <span style={{fontSize:13,color:"#CCCCEE",fontWeight:600}}>Filter:</span>
+            <select style={S.fSel} value={attMonth} onChange={e=>setAttMonth(parseInt(e.target.value))}>{MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
+            <select style={S.fSel} value={attYear} onChange={e=>setAttYear(parseInt(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>
+            <span style={{marginLeft:"auto",fontSize:12,color:"#505070"}}>{attRecords.length} records</span>
+          </div>
+          {attLoading ? <div style={S.empty}>Loading...</div> : (
+            <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Employee","Code","Date","Status","Check-In","Check-Out","Notes"].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
+              <tbody>
+                {attRecords.length===0
+                  ? <tr><td colSpan={7} style={S.empty}>No attendance records for {MONTHS[attMonth-1]} {attYear}.</td></tr>
+                  : attRecords.map(r=>(
+                    <tr key={r.id}>
+                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}>{r.employee.name}</td>
+                      <td style={{...S.td,color:"#818CF8",fontSize:12}}>{r.employee.employeeCode}</td>
+                      <td style={S.td}>{fmtDate(r.date)}</td>
+                      <td style={S.td}><Badge text={r.status} color={ATT_COLORS[r.status]||"#CCCCEE"}/></td>
+                      <td style={S.td}>{r.checkIn?new Date(r.checkIn).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"—"}</td>
+                      <td style={S.td}>{r.checkOut?new Date(r.checkOut).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"—"}</td>
+                      <td style={{...S.td,fontSize:12,color:"#505070"}}>{r.notes||"—"}</td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table></div>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════ PAYROLL ════════════════ */}
+      {tab==="payroll" && (
+        <div style={S.card}>
+          <div style={S.toolbar}>
+            <span style={{fontSize:13,color:"#CCCCEE",fontWeight:600}}>Filter:</span>
+            <select style={S.fSel} value={payMonth} onChange={e=>setPayMonth(parseInt(e.target.value))}>{MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
+            <select style={S.fSel} value={payYear} onChange={e=>setPayYear(parseInt(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>
+            <span style={{fontSize:12,color:"#505070"}}>{payrolls.length} payslips · Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))}</span>
+            <button onClick={()=>{setAutoPayForm({month:String(payMonth),year:String(payYear),workingDays:"26"});setAutoPayResult(null);setShowAutoPayModal(true);}} style={{...S.btn,marginLeft:"auto",background:"linear-gradient(135deg,#10b981,#059669)",fontSize:12,padding:"6px 14px"}}>
+              ⚡ Auto-Generate All
+            </button>
+          </div>
+          {payLoading ? <div style={S.empty}>Loading...</div> : (
+            <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Employee","Days","Basic","HRA+Allow","PF+ESI","Net Salary","Status",""].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
+              <tbody>
+                {payrolls.length===0
+                  ? <tr><td colSpan={8} style={S.empty}>No payrolls. Click "Auto-Generate All" to compute from attendance.</td></tr>
+                  : payrolls.map(p=>(
+                    <tr key={p.id}>
+                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{p.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{p.employee.employeeCode}{p.employee.designation?` · ${p.employee.designation}`:""}</div></td>
+                      <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
+                      <td style={S.td}>{fmt(p.basicSalary)}</td>
+                      <td style={{...S.td,color:"#10b981"}}>{fmt(p.hra+p.allowances)}</td>
+                      <td style={{...S.td,color:"#ef4444"}}>{fmt(p.pfDeduction+p.esiDeduction)}</td>
+                      <td style={{...S.td,color:"#EEEEF5",fontWeight:700}}>{fmt(p.netSalary)}</td>
+                      <td style={S.td}>{p.isPaid?<Badge text="PAID" color="#10b981"/>:<Badge text="PENDING" color="#f59e0b"/>}</td>
                       <td style={S.td}>
-                        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                          <Badge text={e.status} color={e.status==="ACTIVE"?"#10b981":"#ef4444"}/>
-                          <button onClick={ev=>{ev.stopPropagation();openEdit(e);}} style={{ padding:"2px 8px", borderRadius:5, border:"1px solid #1E1E38", background:"#131327", color:"#818CF8", fontSize:11, cursor:"pointer" }}>Edit</button>
+                        <div style={{display:"flex",gap:6}}>
+                          {!p.isPaid && <button onClick={()=>markPaid(p.id)} style={{...S.btnGreen,padding:"3px 8px",fontSize:11}}>Mark Paid</button>}
+                          <button onClick={()=>viewPayslip(p)} style={{...S.btnSm,padding:"3px 8px",fontSize:11,display:"flex",alignItems:"center",gap:3}}><Download size={10}/> Payslip</button>
                         </div>
                       </td>
                     </tr>
@@ -340,153 +601,195 @@ export default function HRPage() {
         </div>
       )}
 
-      {/* ── Attendance Tab ── */}
-      {tab === "attendance" && (
-        <div style={S.card}>
-          <div style={S.toolbar}>
-            <span style={{ fontSize:13, color:"#CCCCEE", fontWeight:600 }}>Filter:</span>
-            <select style={S.filterSel} value={attMonth} onChange={e => setAttMonth(parseInt(e.target.value))}>
-              {MONTHS.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
-            </select>
-            <select style={S.filterSel} value={attYear} onChange={e => setAttYear(parseInt(e.target.value))}>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <span style={{ marginLeft:"auto", fontSize:12, color:"#505070" }}>{attRecords.length} records</span>
+      {/* ════════════════ LEAVES ════════════════ */}
+      {tab==="leaves" && (
+        <div>
+          <div style={{display:"flex",gap:4,marginBottom:16}}>
+            {(["requests","balances"] as const).map(st=>(
+              <button key={st} style={{...S.tab(leaveSubTab===st),fontSize:12}} onClick={()=>setLeaveSubTab(st)}>
+                {st==="requests"?"Leave Requests":"Leave Balances"}
+              </button>
+            ))}
           </div>
-          {attLoading ? <div style={S.empty}>Loading...</div> : (
-            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>{["Employee","Code","Date","Status","Check-In","Check-Out","Notes"].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr>
-              </thead>
-              <tbody>
-                {attRecords.length === 0
-                  ? <tr><td colSpan={7} style={S.empty}>No attendance records for {MONTHS[attMonth-1]} {attYear}.</td></tr>
-                  : attRecords.map(r => (
-                    <tr key={r.id}>
-                      <td style={{ ...S.td, color:"#EEEEF5", fontWeight:500 }}>{r.employee.name}</td>
-                      <td style={{ ...S.td, color:"#818CF8", fontSize:12 }}>{r.employee.employeeCode}</td>
-                      <td style={S.td}>{fmtDate(r.date)}</td>
-                      <td style={S.td}><Badge text={r.status} color={ATT_COLORS[r.status]||"#CCCCEE"}/></td>
-                      <td style={S.td}>{r.checkIn ? new Date(r.checkIn).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}) : "—"}</td>
-                      <td style={S.td}>{r.checkOut ? new Date(r.checkOut).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}) : "—"}</td>
-                      <td style={{ ...S.td, fontSize:12, color:"#505070" }}>{r.notes || "—"}</td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table></div>
+
+          {leaveSubTab==="requests" && (
+            <div style={S.card}>
+              <div style={S.toolbar}>
+                {["","PENDING","APPROVED","REJECTED"].map(s=>(
+                  <button key={s||"ALL"} onClick={()=>setLeaveFilter(s)} style={{...S.btnSm,background:leaveFilter===s?"rgba(99,102,241,0.2)":"transparent",color:leaveFilter===s?"#818CF8":"#505070",border:"1px solid "+(leaveFilter===s?"#6366f130":"transparent")}}>
+                    {s||"All"}
+                  </button>
+                ))}
+                <span style={{marginLeft:"auto",fontSize:12,color:"#505070"}}>{leaves.length} requests</span>
+              </div>
+              {leaveLoading ? <div style={S.empty}>Loading...</div> : (
+                <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <thead><tr>{["Employee","Type","From","To","Days","Reason","Status","Actions"].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {leaves.length===0
+                      ? <tr><td colSpan={8} style={S.empty}>No leave requests{leaveFilter?` with status ${leaveFilter}`:""}</td></tr>
+                      : leaves.map(l=>(
+                        <tr key={l.id}>
+                          <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{l.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{l.employee.employeeCode}</div></td>
+                          <td style={S.td}>{l.leaveType}</td>
+                          <td style={S.td}>{fmtDate(l.fromDate)}</td>
+                          <td style={S.td}>{fmtDate(l.toDate)}</td>
+                          <td style={{...S.td,color:"#EEEEF5",fontWeight:600}}>{l.days}</td>
+                          <td style={{...S.td,fontSize:12,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{l.reason||"—"}</td>
+                          <td style={S.td}><Badge text={l.status} color={LEAVE_STATUS_C[l.status]||"#CCCCEE"}/></td>
+                          <td style={S.td}>
+                            {l.status==="PENDING"&&(
+                              <div style={{display:"flex",gap:6}}>
+                                <button onClick={()=>updateLeaveStatus(l.id,"APPROVED")} style={{...S.btnGreen,padding:"3px 8px",fontSize:11,display:"flex",alignItems:"center",gap:3}}><Check size={10}/> Approve</button>
+                                <button onClick={()=>updateLeaveStatus(l.id,"REJECTED")} style={{...S.btnDanger,padding:"3px 8px",fontSize:11,display:"flex",alignItems:"center",gap:3}}><XCircle size={10}/> Reject</button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table></div>
+              )}
+            </div>
+          )}
+
+          {leaveSubTab==="balances" && (
+            <div style={S.card}>
+              {lbLoading ? <div style={S.empty}>Loading...</div> : (
+                <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <thead><tr>{["Employee","Leave Type","Year","Allocated","Carried","Used","Pending","Available"].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {leaveBalances.length===0
+                      ? <tr><td colSpan={8} style={S.empty}>No leave balances. Click "Allocate Balance" to add.</td></tr>
+                      : leaveBalances.map(b=>{
+                        const avail = b.allocated + b.carried - b.used - b.pending;
+                        return (
+                          <tr key={b.id}>
+                            <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}>{b.employee.name}<div style={{fontSize:11,color:"#505070"}}>{b.employee.employeeCode}</div></td>
+                            <td style={S.td}>{b.leaveType}</td>
+                            <td style={S.td}>{b.year}</td>
+                            <td style={{...S.td,color:"#818CF8",fontWeight:600}}>{b.allocated}</td>
+                            <td style={S.td}>{b.carried}</td>
+                            <td style={{...S.td,color:"#ef4444"}}>{b.used}</td>
+                            <td style={{...S.td,color:"#f59e0b"}}>{b.pending}</td>
+                            <td style={{...S.td,color:"#10b981",fontWeight:700}}>{avail.toFixed(1)}</td>
+                          </tr>
+                        );
+                      })
+                    }
+                  </tbody>
+                </table></div>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {/* ── Payroll Tab ── */}
-      {tab === "payroll" && (
-        <div style={S.card}>
-          <div style={S.toolbar}>
-            <span style={{ fontSize:13, color:"#CCCCEE", fontWeight:600 }}>Filter:</span>
-            <select style={S.filterSel} value={payMonth} onChange={e => setPayMonth(parseInt(e.target.value))}>
-              {MONTHS.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
-            </select>
-            <select style={S.filterSel} value={payYear} onChange={e => setPayYear(parseInt(e.target.value))}>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <span style={{ fontSize:12, color:"#505070" }}>
-              {payrolls.length} payslips &nbsp;|&nbsp; Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))}
-            </span>
-            <button
-              onClick={() => { setAutoPayForm({ month:String(payMonth), year:String(payYear), workingDays:"26" }); setAutoPayResult(null); setShowAutoPayModal(true); }}
-              style={{ ...S.btn, marginLeft:"auto", background:"linear-gradient(135deg,#10b981,#059669)", fontSize:12, padding:"6px 14px" }}
-            >
-              ⚡ Auto-Generate All
-            </button>
+      {/* ════════════════ PERFORMANCE ════════════════ */}
+      {tab==="performance" && (
+        <div>
+          <div style={{display:"flex",gap:4,marginBottom:16}}>
+            {(["goals","reviews"] as const).map(st=>(
+              <button key={st} style={{...S.tab(perfSubTab===st),fontSize:12}} onClick={()=>setPerfSubTab(st)}>
+                {st==="goals"?"Goals & OKRs":"Performance Reviews"}
+              </button>
+            ))}
           </div>
-          {payLoading ? <div style={S.empty}>Loading...</div> : (
-            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>{["Employee","Type","Days Present","Basic Earned","HRA+Allow","Deductions","Net Salary","Status",""].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr>
-              </thead>
-              <tbody>
-                {payrolls.length === 0
-                  ? <tr><td colSpan={9} style={S.empty}>No payrolls for {MONTHS[payMonth-1]} {payYear}. Click "Auto-Generate All" to compute from attendance.</td></tr>
-                  : payrolls.map(p => (
-                    <tr key={p.id}>
-                      <td style={{ ...S.td, color:"#EEEEF5", fontWeight:500 }}>
-                        <div>{p.employee.name}</div>
-                        <div style={{ fontSize:11, color:"#505070" }}>{p.employee.employeeCode} {p.employee.designation ? `· ${p.employee.designation}` : ""}</div>
-                      </td>
-                      <td style={S.td}><Badge text={p.employee.salaryType||"MONTHLY"} color="#6366f1"/></td>
-                      <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
-                      <td style={S.td}>{fmt(p.basicSalary)}</td>
-                      <td style={{ ...S.td, color:"#10b981" }}>{fmt(p.hra + p.allowances)}</td>
-                      <td style={{ ...S.td, color:"#ef4444" }}>{fmt(p.pfDeduction + p.esiDeduction + p.deductions)}</td>
-                      <td style={{ ...S.td, color:"#EEEEF5", fontWeight:700 }}>{fmt(p.netSalary)}</td>
-                      <td style={S.td}>
-                        {p.isPaid
-                          ? <Badge text="PAID" color="#10b981"/>
-                          : <Badge text="PENDING" color="#f59e0b"/>
-                        }
-                      </td>
-                      <td style={S.td}>
-                        {!p.isPaid && (
-                          <button onClick={() => markPaid(p.id)} style={{ padding:"3px 8px", borderRadius:5, border:"none", background:"#10b98120", color:"#10b981", fontSize:11, cursor:"pointer", fontWeight:600 }}>
-                            Mark Paid
-                          </button>
-                        )}
-                        {p.isPaid && p.paidAt && <span style={{ fontSize:10, color:"#505070" }}>{fmtDate(p.paidAt)}</span>}
-                      </td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table></div>
+
+          {perfSubTab==="goals" && (
+            <div style={S.card}>
+              {perfLoading ? <div style={S.empty}>Loading...</div> : (
+                goals.length===0
+                  ? <div style={S.empty}>No goals yet. Add performance goals for employees.</div>
+                  : <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    {goals.map(g=>(
+                      <div key={g.id} style={{background:"#131327",borderRadius:10,padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start"}}>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+                            <span style={{fontSize:14,fontWeight:600,color:"#EEEEF5"}}>{g.title}</span>
+                            <Badge text={g.status} color={GOAL_STATUS_C[g.status]||"#818CF8"}/>
+                            <span style={{fontSize:11,color:"#505070"}}>{g.category}</span>
+                            {g.quarter&&<span style={{fontSize:11,color:"#505070"}}>Q{g.quarter} {g.year}</span>}
+                          </div>
+                          {g.description&&<div style={{fontSize:12,color:"#505070",marginBottom:8}}>{g.description}</div>}
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <div style={{flex:1,maxWidth:200}}><ProgBar pct={g.progress} color={g.status==="COMPLETED"?"#10b981":"#6366f1"}/></div>
+                            <span style={{fontSize:12,color:"#818CF8",fontWeight:600}}>{g.progress}%</span>
+                          </div>
+                          <div style={{fontSize:11,color:"#505070",marginTop:6}}>{g.employee.name} · {g.employee.designation||"—"}{g.targetDate&&` · Due ${fmtDate(g.targetDate)}`}</div>
+                        </div>
+                        <div style={{display:"flex",gap:6}}>
+                          <button style={{...S.btnSm,padding:"4px 8px",fontSize:11}} onClick={()=>{setEditGoalId(g.id);setGoalForm({employeeId:g.employeeId,title:g.title,description:g.description||"",category:g.category,targetDate:g.targetDate?g.targetDate.slice(0,10):"",progress:String(g.progress),status:g.status,year:String(g.year),quarter:String(g.quarter||"")});setShowGoalModal(true);}}>Edit</button>
+                          <button style={{...S.btnDanger,padding:"4px 8px",fontSize:11}} onClick={()=>deleteGoal(g.id)}>Del</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+              )}
+            </div>
+          )}
+
+          {perfSubTab==="reviews" && (
+            <div style={S.card}>
+              {perfLoading ? <div style={S.empty}>Loading...</div> : (
+                <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <thead><tr>{["Employee","Review Type","Period","Self Rating","Manager Rating","Status","Strengths","Actions"].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {reviews.length===0
+                      ? <tr><td colSpan={8} style={S.empty}>No performance reviews yet.</td></tr>
+                      : reviews.map(r=>(
+                        <tr key={r.id}>
+                          <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{r.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{r.employee.department||""}</div></td>
+                          <td style={S.td}><Badge text={r.reviewType} color="#6366f1"/></td>
+                          <td style={S.td}>{r.reviewPeriod}</td>
+                          <td style={S.td}><Stars value={r.selfRating}/></td>
+                          <td style={S.td}><Stars value={r.rating}/></td>
+                          <td style={S.td}><Badge text={r.status} color={r.status==="COMPLETED"?"#10b981":r.status==="IN_REVIEW"?"#f59e0b":"#505070"}/></td>
+                          <td style={{...S.td,fontSize:12,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.strengths||"—"}</td>
+                          <td style={S.td}><button style={{...S.btnSm,padding:"3px 8px",fontSize:11}} onClick={()=>{setEditReviewId(r.id);setReviewForm({employeeId:r.employeeId,reviewType:r.reviewType,reviewPeriod:r.reviewPeriod,rating:r.rating?String(r.rating):"",selfRating:r.selfRating?String(r.selfRating):"",status:r.status,strengths:r.strengths||"",improvements:r.improvements||"",comments:r.comments||""});setShowReviewModal(true);}}>Edit</button></td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table></div>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {/* ── Leaves Tab ── */}
-      {tab === "leaves" && (
+      {/* ════════════════ EXPENSES ════════════════ */}
+      {tab==="expenses" && (
         <div style={S.card}>
           <div style={S.toolbar}>
-            <span style={{ fontSize:13, color:"#CCCCEE", fontWeight:600 }}>Status:</span>
-            {["","PENDING","APPROVED","REJECTED"].map(s => (
-              <button key={s||"ALL"} onClick={() => setLeaveFilter(s)} style={{ ...S.btnSm, background:leaveFilter===s?"rgba(99,102,241,0.2)":"transparent", color:leaveFilter===s?"#818CF8":"#505070", border:"1px solid "+(leaveFilter===s?"#6366f130":"transparent") }}>
+            {["","PENDING","APPROVED","REJECTED","PAID"].map(s=>(
+              <button key={s||"ALL"} onClick={()=>setExpFilter(s)} style={{...S.btnSm,background:expFilter===s?"rgba(99,102,241,0.2)":"transparent",color:expFilter===s?"#818CF8":"#505070",border:"1px solid "+(expFilter===s?"#6366f130":"transparent")}}>
                 {s||"All"}
               </button>
             ))}
-            <span style={{ marginLeft:"auto", fontSize:12, color:"#505070" }}>{leaves.length} requests</span>
+            <span style={{marginLeft:"auto",fontSize:12,color:"#505070"}}>{expenses.length} expenses · Total: {fmt(expenses.reduce((s,e)=>s+e.amount,0))}</span>
           </div>
-          {leaveLoading ? <div style={S.empty}>Loading...</div> : (
-            <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>{["Employee","Leave Type","From","To","Days","Reason","Status","Actions"].map(h => <th key={h} style={{ ...S.th, whiteSpace:"nowrap" as const }}>{h}</th>)}</tr>
-              </thead>
+          {expLoading ? <div style={S.empty}>Loading...</div> : (
+            <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>{["Employee","Date","Category","Title","Amount","Status","Actions"].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
               <tbody>
-                {leaves.length === 0
-                  ? <tr><td colSpan={8} style={S.empty}>No leave requests{leaveFilter ? ` with status ${leaveFilter}` : ""}.</td></tr>
-                  : leaves.map(l => (
-                    <tr key={l.id}>
-                      <td style={{ ...S.td, color:"#EEEEF5", fontWeight:500 }}>
-                        <div>{l.employee.name}</div>
-                        <div style={{ fontSize:11, color:"#505070" }}>{l.employee.employeeCode}</div>
-                      </td>
-                      <td style={S.td}>{l.leaveType}</td>
-                      <td style={S.td}>{fmtDate(l.fromDate)}</td>
-                      <td style={S.td}>{fmtDate(l.toDate)}</td>
-                      <td style={{ ...S.td, color:"#EEEEF5", fontWeight:600 }}>{l.days}</td>
-                      <td style={{ ...S.td, fontSize:12, maxWidth:160, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{l.reason || "—"}</td>
-                      <td style={S.td}><Badge text={l.status} color={LEAVE_STATUS_COLORS[l.status]||"#CCCCEE"}/></td>
+                {expenses.length===0
+                  ? <tr><td colSpan={7} style={S.empty}>No expenses{expFilter?` with status ${expFilter}`:""}</td></tr>
+                  : expenses.map(e=>(
+                    <tr key={e.id}>
+                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{e.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{e.employee.department||""}</div></td>
+                      <td style={S.td}>{fmtDate(e.expenseDate)}</td>
+                      <td style={S.td}><Badge text={e.category} color="#6366f1"/></td>
+                      <td style={S.td}>{e.title}</td>
+                      <td style={{...S.td,color:"#EEEEF5",fontWeight:600}}>{fmt(e.amount)}</td>
+                      <td style={S.td}><Badge text={e.status} color={EXP_STATUS_C[e.status]||"#CCCCEE"}/></td>
                       <td style={S.td}>
-                        {l.status === "PENDING" && (
-                          <div style={{ display:"flex", gap:6 }}>
-                            <button onClick={() => updateLeaveStatus(l.id,"APPROVED")} style={{ padding:"3px 8px", borderRadius:5, border:"none", cursor:"pointer", background:"#10b98120", color:"#10b981", fontSize:11, display:"flex", alignItems:"center", gap:3 }}>
-                              <Check size={11}/> Approve
-                            </button>
-                            <button onClick={() => updateLeaveStatus(l.id,"REJECTED")} style={{ padding:"3px 8px", borderRadius:5, border:"none", cursor:"pointer", background:"#ef444420", color:"#ef4444", fontSize:11, display:"flex", alignItems:"center", gap:3 }}>
-                              <XCircle size={11}/> Reject
-                            </button>
-                          </div>
-                        )}
-                        {l.status !== "PENDING" && <span style={{ fontSize:11, color:"#505070" }}><Clock size={10}/> Resolved</span>}
+                        <div style={{display:"flex",gap:5}}>
+                          {e.status==="PENDING"&&<><button style={{...S.btnGreen,padding:"3px 8px",fontSize:11}} onClick={()=>expAction(e.id,"approve")}>Approve</button><button style={{...S.btnDanger,padding:"3px 8px",fontSize:11}} onClick={()=>expAction(e.id,"reject")}>Reject</button></>}
+                          {e.status==="APPROVED"&&<button style={{...S.btnSm,padding:"3px 8px",fontSize:11}} onClick={()=>expAction(e.id,"paid")}>Mark Paid</button>}
+                          {e.receiptUrl&&<a href={e.receiptUrl} target="_blank" rel="noopener noreferrer" style={{...S.btnSm,padding:"3px 8px",fontSize:11,textDecoration:"none"}}>Receipt</a>}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -497,16 +800,18 @@ export default function HRPage() {
         </div>
       )}
 
-      {/* ── Employee Modal ── */}
+      {/* ════════ MODALS ════════ */}
+
+      {/* Employee Modal */}
       {showEmpModal && (
-        <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowEmpModal(false)}>
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowEmpModal(false)}>
           <div className="modal-inner">
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>{editId?"Edit Employee":"Add Employee"}</h3>
-              <button onClick={() => setShowEmpModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editId?"Edit Employee":"Add Employee"}</h3>
+              <button onClick={()=>setShowEmpModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
             </div>
-            {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
-            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div className="grid-r2">
                 <div><label style={S.label}>Employee Code *</label><input style={S.input} value={empForm.employeeCode} onChange={e=>ef("employeeCode",e.target.value)} placeholder="EMP-001" onKeyDown={kAlphaNum} maxLength={20}/></div>
                 <div><label style={S.label}>Full Name *</label><input style={S.input} value={empForm.name} onChange={e=>ef("name",e.target.value)} onKeyDown={kName} maxLength={100}/></div>
@@ -516,332 +821,145 @@ export default function HRPage() {
                 <div><label style={S.label}>Phone</label><input style={S.input} value={empForm.phone} onChange={e=>ef("phone",e.target.value)} onKeyDown={kPhone} maxLength={15}/></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Designation</label><input style={S.input} value={empForm.designation} onChange={e=>ef("designation",e.target.value)} onKeyDown={kAlpha} maxLength={100}/></div>
-                <div><label style={S.label}>Department</label><input style={S.input} value={empForm.department} onChange={e=>ef("department",e.target.value)} onKeyDown={kAlpha} maxLength={100}/></div>
+                <div><label style={S.label}>Designation</label><input style={S.input} value={empForm.designation} onChange={e=>ef("designation",e.target.value)} maxLength={100}/></div>
+                <div><label style={S.label}>Department</label><input style={S.input} value={empForm.department} onChange={e=>ef("department",e.target.value)} maxLength={100}/></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Employment Type</label>
-                  <select style={S.select} value={empForm.employmentType} onChange={e=>ef("employmentType",e.target.value)}>
-                    {["FULL_TIME","PART_TIME","CONTRACT","INTERN"].map(t=><option key={t} value={t}>{t.replace("_"," ")}</option>)}
-                  </select>
-                </div>
+                <div><label style={S.label}>Employment Type</label><select style={S.select} value={empForm.employmentType} onChange={e=>ef("employmentType",e.target.value)}>{["FULL_TIME","PART_TIME","CONTRACT","INTERN"].map(t=><option key={t} value={t}>{t.replace("_"," ")}</option>)}</select></div>
                 <div><label style={S.label}>Joining Date *</label><input type="date" style={S.input} value={empForm.joiningDate} onChange={e=>ef("joiningDate",e.target.value)}/></div>
               </div>
-              {/* ── Salary ── */}
-              <div style={{ background:"#131327", borderRadius:8, padding:"12px 14px" }}>
-                <div style={{ fontSize:11, fontWeight:700, color:"#505070", textTransform:"uppercase" as const, letterSpacing:"0.05em", marginBottom:10 }}>Salary Structure</div>
-                <div className="grid-r2" style={{ marginBottom:10 }}>
-                  <div><label style={S.label}>Salary Type</label>
-                    <select style={S.select} value={empForm.salaryType} onChange={e=>ef("salaryType",e.target.value)}>
-                      <option value="MONTHLY">Monthly (Fixed)</option>
-                      <option value="DAILY">Daily Rate</option>
-                    </select>
-                  </div>
+              <div style={{background:"#131327",borderRadius:8,padding:"12px 14px"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#505070",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:10}}>Salary Structure</div>
+                <div className="grid-r2" style={{marginBottom:10}}>
+                  <div><label style={S.label}>Salary Type</label><select style={S.select} value={empForm.salaryType} onChange={e=>ef("salaryType",e.target.value)}><option value="MONTHLY">Monthly (Fixed)</option><option value="DAILY">Daily Rate</option></select></div>
                   {empForm.salaryType==="MONTHLY"
                     ? <div><label style={S.label}>Monthly CTC (₹)</label><input type="number" style={S.input} value={empForm.basicSalary} onChange={e=>ef("basicSalary",e.target.value)} onKeyDown={kDecimal} placeholder="e.g. 25000"/></div>
-                    : <div><label style={S.label}>Daily Rate (₹/day)</label><input type="number" style={S.input} value={empForm.dailyRate} onChange={e=>ef("dailyRate",e.target.value)} onKeyDown={kDecimal} placeholder="e.g. 1000"/></div>
+                    : <div><label style={S.label}>Daily Rate (₹/day)</label><input type="number" style={S.input} value={empForm.dailyRate} onChange={e=>ef("dailyRate",e.target.value)} onKeyDown={kDecimal}/></div>
                   }
                 </div>
                 <div className="grid-r2">
                   <div><label style={S.label}>HRA (₹/month)</label><input type="number" style={S.input} value={empForm.hra} onChange={e=>ef("hra",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
                   <div><label style={S.label}>Other Allowances (₹/month)</label><input type="number" style={S.input} value={empForm.allowances} onChange={e=>ef("allowances",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
                 </div>
-                <div style={{ marginTop:8, fontSize:11, color:"#505070" }}>PF (12% of basic) and ESI (0.75% if gross ≤ ₹21,000) are auto-deducted during payroll.</div>
+                <div style={{marginTop:8,fontSize:11,color:"#505070"}}>PF (12% basic) and ESI (0.75% if gross ≤ ₹21,000) are auto-deducted during payroll.</div>
               </div>
               <div className="grid-r2">
-                <div style={{ gridColumn:"1 / -1" }}><label style={S.label}>PAN Number</label><input style={S.input} value={empForm.panNumber} onChange={e=>ef("panNumber",e.target.value.toUpperCase())} placeholder="ABCDE1234F" onKeyDown={kAlphaNum} maxLength={10}/></div>
+                <div><label style={S.label}>PAN Number</label><input style={S.input} value={empForm.panNumber} onChange={e=>ef("panNumber",e.target.value.toUpperCase())} placeholder="ABCDE1234F" onKeyDown={kAlphaNum} maxLength={10}/></div>
+                <div><label style={S.label}>PF Number</label><input style={S.input} value={empForm.pfNumber} onChange={e=>ef("pfNumber",e.target.value.toUpperCase())} maxLength={22}/></div>
               </div>
               <div className="grid-r2">
                 <div><label style={S.label}>Bank Account</label><input style={S.input} value={empForm.bankAccount} onChange={e=>ef("bankAccount",e.target.value)} onKeyDown={kDigits} maxLength={18}/></div>
                 <div><label style={S.label}>IFSC Code</label><input style={S.input} value={empForm.bankIfsc} onChange={e=>ef("bankIfsc",e.target.value.toUpperCase())} onKeyDown={kAlphaNum} maxLength={11}/></div>
               </div>
             </div>
-            {editId && (
-              <div style={{ marginTop:20, paddingTop:16, borderTop:"1px solid #1C1C35" }}>
-                <DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact />
-              </div>
-            )}
-            <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-              <button onClick={() => setShowEmpModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"#CCCCEE" }}>Cancel</button>
+            {editId&&<div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1C1C35"}}><DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact/></div>}
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowEmpModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
               <button onClick={saveEmployee} style={S.btn} disabled={saving}>{saving?"Saving...":editId?"Update":"Add Employee"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Mark Attendance Modal ── */}
+      {/* Attendance Modal */}
       {showAttModal && (
-        <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowAttModal(false)}>
-          <div className="modal-inner" style={{ maxWidth:460 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>Mark Attendance</h3>
-              <button onClick={() => setShowAttModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowAttModal(false)}>
+          <div className="modal-inner" style={{maxWidth:460}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Mark Attendance</h3>
+              <button onClick={()=>setShowAttModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
             </div>
-            {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
-            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              <div><label style={S.label}>Employee *</label>
-                <select style={S.select} value={attForm.employeeId} onChange={e=>af("employeeId",e.target.value)}>
-                  <option value="">Select employee...</option>
-                  {employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}
-                </select>
-              </div>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Employee *</label><select style={S.select} value={attForm.employeeId} onChange={e=>af("employeeId",e.target.value)}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}</select></div>
               <div className="grid-r2">
                 <div><label style={S.label}>Date *</label><input type="date" style={S.input} value={attForm.date} onChange={e=>af("date",e.target.value)}/></div>
-                <div><label style={S.label}>Status *</label>
-                  <select style={S.select} value={attForm.status} onChange={e=>af("status",e.target.value)}>
-                    {ATT_STATUSES.map(s=><option key={s} value={s}>{s.replace("_"," ")}</option>)}
-                  </select>
-                </div>
+                <div><label style={S.label}>Status *</label><select style={S.select} value={attForm.status} onChange={e=>af("status",e.target.value)}>{["PRESENT","ABSENT","HALF_DAY","LEAVE","HOLIDAY"].map(s=><option key={s} value={s}>{s.replace("_"," ")}</option>)}</select></div>
               </div>
-              {(attForm.status==="PRESENT"||attForm.status==="HALF_DAY") && (
+              {(attForm.status==="PRESENT"||attForm.status==="HALF_DAY")&&(
                 <div className="grid-r2">
-                  <div><label style={S.label}>Check-In Time</label><input type="time" style={S.input} value={attForm.checkIn} onChange={e=>af("checkIn",e.target.value)}/></div>
-                  <div><label style={S.label}>Check-Out Time</label><input type="time" style={S.input} value={attForm.checkOut} onChange={e=>af("checkOut",e.target.value)}/></div>
+                  <div><label style={S.label}>Check-In</label><input type="time" style={S.input} value={attForm.checkIn} onChange={e=>af("checkIn",e.target.value)}/></div>
+                  <div><label style={S.label}>Check-Out</label><input type="time" style={S.input} value={attForm.checkOut} onChange={e=>af("checkOut",e.target.value)}/></div>
                 </div>
               )}
-              <div><label style={S.label}>Notes</label><input style={S.input} value={attForm.notes} onChange={e=>af("notes",e.target.value)} placeholder="Optional notes..."/></div>
+              <div><label style={S.label}>Notes</label><input style={S.input} value={attForm.notes} onChange={e=>af("notes",e.target.value)}/></div>
             </div>
-            <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-              <button onClick={() => setShowAttModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"#CCCCEE" }}>Cancel</button>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowAttModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
               <button onClick={saveAttendance} style={S.btn} disabled={saving||!attForm.employeeId}>{saving?"Saving...":"Mark Attendance"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Generate Payroll Modal ── */}
+      {/* Generate Payroll Modal */}
       {showPayModal && (
-        <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowPayModal(false)}>
-          <div className="modal-inner" style={{ maxWidth:500 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>Generate Payroll</h3>
-              <button onClick={() => setShowPayModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowPayModal(false)}>
+          <div className="modal-inner" style={{maxWidth:500}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Generate Payroll</h3>
+              <button onClick={()=>setShowPayModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
             </div>
-            {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
-            <div style={{ background:"#131327", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:12, color:"#505070" }}>
-              PF (12% of basic) and ESI (0.75% if gross ≤ ₹21,000) are auto-calculated.
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              <div><label style={S.label}>Employee *</label>
-                <select style={S.select} value={payForm.employeeId} onChange={e=>pf("employeeId",e.target.value)}>
-                  <option value="">Select employee...</option>
-                  {employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode}) — ₹{e.basicSalary.toLocaleString("en-IN")}/mo</option>)}
-                </select>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Employee *</label><select style={S.select} value={payForm.employeeId} onChange={e=>pf("employeeId",e.target.value)}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}</select></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Month *</label><select style={S.select} value={payForm.month} onChange={e=>pf("month",e.target.value)}>{MONTHS.map((m,i)=><option key={i} value={String(i+1)}>{m}</option>)}</select></div>
+                <div><label style={S.label}>Year *</label><select style={S.select} value={payForm.year} onChange={e=>pf("year",e.target.value)}>{years.map(y=><option key={y} value={String(y)}>{y}</option>)}</select></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Month *</label>
-                  <select style={S.select} value={payForm.month} onChange={e=>pf("month",e.target.value)}>
-                    {MONTHS.map((m,i)=><option key={i} value={String(i+1)}>{m}</option>)}
-                  </select>
-                </div>
-                <div><label style={S.label}>Year *</label>
-                  <select style={S.select} value={payForm.year} onChange={e=>pf("year",e.target.value)}>
-                    {years.map(y=><option key={y} value={String(y)}>{y}</option>)}
-                  </select>
-                </div>
+                <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={payForm.workingDays} onChange={e=>pf("workingDays",e.target.value)}/></div>
+                <div><label style={S.label}>Days Present *</label><input type="number" style={S.input} value={payForm.presentDays} onChange={e=>pf("presentDays",e.target.value)}/></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={payForm.workingDays} onChange={e=>pf("workingDays",e.target.value)} min="1" max="31"/></div>
-                <div><label style={S.label}>Days Present *</label><input type="number" style={S.input} value={payForm.presentDays} onChange={e=>pf("presentDays",e.target.value)} min="0" max="31"/></div>
+                <div><label style={S.label}>HRA (₹)</label><input type="number" style={S.input} value={payForm.hra} onChange={e=>pf("hra",e.target.value)}/></div>
+                <div><label style={S.label}>Allowances (₹)</label><input type="number" style={S.input} value={payForm.allowances} onChange={e=>pf("allowances",e.target.value)}/></div>
               </div>
-              <div className="grid-r2">
-                <div><label style={S.label}>HRA (₹)</label><input type="number" style={S.input} value={payForm.hra} onChange={e=>pf("hra",e.target.value)} min="0"/></div>
-                <div><label style={S.label}>Other Allowances (₹)</label><input type="number" style={S.input} value={payForm.allowances} onChange={e=>pf("allowances",e.target.value)} min="0"/></div>
-              </div>
-              <div><label style={S.label}>Other Deductions (₹)</label><input type="number" style={S.input} value={payForm.deductions} onChange={e=>pf("deductions",e.target.value)} min="0"/></div>
+              <div><label style={S.label}>Other Deductions (₹)</label><input type="number" style={S.input} value={payForm.deductions} onChange={e=>pf("deductions",e.target.value)}/></div>
             </div>
-            <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-              <button onClick={() => setShowPayModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"#CCCCEE" }}>Cancel</button>
-              <button onClick={savePayroll} style={S.btn} disabled={saving||!payForm.employeeId||!payForm.presentDays}>{saving?"Generating...":"Generate Payroll"}</button>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={savePayroll} style={S.btn} disabled={saving||!payForm.employeeId}>{saving?"Generating...":"Generate Payroll"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Employee Detail Dashboard ── */}
-      {showEmpDetail && (
-        <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowEmpDetail(false)}>
-          <div style={{ background:"#0D0D1F", border:"1px solid #1C1C35", borderRadius:16, padding:28, width:"min(760px,96vw)", maxHeight:"90vh", overflowY:"auto" as const }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>Employee Dashboard</h3>
-              <div style={{ display:"flex", gap:8 }}>
-                {detailEmp && <button onClick={() => { setShowEmpDetail(false); openEdit(detailEmp as Employee); }} style={{ ...S.btnSm }}>Edit Employee</button>}
-                <button onClick={() => setShowEmpDetail(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
-              </div>
-            </div>
-
-            {detailLoading && <div style={{ padding:40, textAlign:"center" as const, color:"#505070" }}>Loading employee data...</div>}
-
-            {!detailLoading && detailEmp && (() => {
-              const emp = detailEmp;
-              const atts: AttRecord[] = emp.attendances || [];
-              const pays: Payroll[]   = emp.payrolls    || [];
-              const lvs: LeaveReq[]   = emp.leaveRequests || [];
-              const presentCount = atts.filter((a: AttRecord) => a.status==="PRESENT").length + atts.filter((a: AttRecord) => a.status==="HALF_DAY").length * 0.5;
-              const absentCount  = atts.filter((a: AttRecord) => a.status==="ABSENT").length;
-              return (
-                <>
-                  {/* Profile */}
-                  <div style={{ display:"flex", gap:16, marginBottom:20, flexWrap:"wrap" as const }}>
-                    <div style={{ width:56, height:56, borderRadius:"50%", background:"linear-gradient(135deg,#6366f1,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:700, color:"white", flexShrink:0 }}>
-                      {emp.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:18, fontWeight:700, color:"#EEEEF5" }}>{emp.name}</div>
-                      <div style={{ fontSize:13, color:"#818CF8" }}>{emp.employeeCode} · {emp.designation||"—"} · {emp.department||"—"}</div>
-                      <div style={{ fontSize:12, color:"#505070", marginTop:2 }}>Joined {fmtDate(emp.joiningDate)} · <Badge text={emp.status} color={emp.status==="ACTIVE"?"#10b981":"#ef4444"}/></div>
-                    </div>
-                    <div style={{ textAlign:"right" as const }}>
-                      <div style={{ fontSize:20, fontWeight:700, color:"#EEEEF5" }}>
-                        {emp.salaryType==="DAILY" ? `₹${(emp.dailyRate||0).toLocaleString("en-IN")}/day` : fmt(emp.basicSalary)+"/mo"}
-                      </div>
-                      <div style={{ fontSize:11, color:"#505070" }}>
-                        {emp.salaryType==="MONTHLY" ? "Monthly CTC" : "Daily Rate"}
-                        {(emp.hra>0||emp.allowances>0) && ` + ₹${(emp.hra+emp.allowances).toLocaleString("en-IN")} HRA/Allow`}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* This month stats */}
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:20 }}>
-                    {[
-                      { label:"Present (this month)", value: emp.thisMonthPresent ?? presentCount, color:"#10b981" },
-                      { label:"Absent (recent)", value: absentCount, color:"#ef4444" },
-                      { label:"Payrolls generated", value: pays.length, color:"#6366f1" },
-                      { label:"Leave requests", value: lvs.length, color:"#f59e0b" },
-                    ].map(k => (
-                      <div key={k.label} style={{ background:"#131327", borderRadius:8, padding:"12px 14px" }}>
-                        <div style={{ fontSize:11, color:"#505070" }}>{k.label}</div>
-                        <div style={{ fontSize:22, fontWeight:700, color:k.color, marginTop:2 }}>{k.value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Recent Attendance */}
-                  <div style={{ marginBottom:20 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:"#EEEEF5", marginBottom:10 }}>Recent Attendance (last 30 days)</div>
-                    <div style={{ display:"flex", flexWrap:"wrap" as const, gap:4 }}>
-                      {atts.slice(0,30).map((a: AttRecord) => (
-                        <div key={a.id} title={`${fmtDate(a.date)} — ${a.status}`}
-                          style={{ width:32, height:32, borderRadius:6, background:ATT_COLORS[a.status]+"30", border:`1px solid ${ATT_COLORS[a.status]}50`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:600, color:ATT_COLORS[a.status], cursor:"default" }}>
-                          {new Date(a.date).getDate()}
-                        </div>
-                      ))}
-                      {atts.length===0 && <span style={{ fontSize:12, color:"#505070" }}>No attendance records yet.</span>}
-                    </div>
-                  </div>
-
-                  {/* Payroll History */}
-                  <div style={{ marginBottom:20 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:"#EEEEF5", marginBottom:10 }}>Payroll History</div>
-                    {pays.length===0
-                      ? <div style={{ fontSize:12, color:"#505070" }}>No payrolls yet. Use Auto-Generate in the Payroll tab.</div>
-                      : <div style={{ overflowX:"auto" as const }}><table style={{ width:"100%", borderCollapse:"collapse" as const, fontSize:12 }}>
-                          <thead><tr>{["Month","Days","Basic","HRA+Allow","PF+ESI","Net","Status"].map(h=><th key={h} style={{ ...S.th, fontSize:10 }}>{h}</th>)}</tr></thead>
-                          <tbody>
-                            {pays.slice(0,12).map((p: Payroll) => (
-                              <tr key={p.id}>
-                                <td style={S.td}>{MONTHS[p.month-1]} {p.year}</td>
-                                <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
-                                <td style={S.td}>{fmt(p.basicSalary)}</td>
-                                <td style={{ ...S.td, color:"#10b981" }}>{fmt(p.hra+p.allowances)}</td>
-                                <td style={{ ...S.td, color:"#ef4444" }}>{fmt(p.pfDeduction+p.esiDeduction)}</td>
-                                <td style={{ ...S.td, fontWeight:700, color:"#EEEEF5" }}>{fmt(p.netSalary)}</td>
-                                <td style={S.td}>{p.isPaid ? <Badge text="PAID" color="#10b981"/> : <Badge text="PENDING" color="#f59e0b"/>}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table></div>
-                    }
-                  </div>
-
-                  {/* Leave Requests */}
-                  {lvs.length>0 && (
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:"#EEEEF5", marginBottom:10 }}>Recent Leave Requests</div>
-                      <div style={{ display:"flex", flexDirection:"column" as const, gap:6 }}>
-                        {lvs.slice(0,5).map((l: LeaveReq) => (
-                          <div key={l.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"#131327", borderRadius:8, padding:"8px 12px" }}>
-                            <div>
-                              <span style={{ fontSize:12, color:"#CCCCEE", fontWeight:500 }}>{l.leaveType}</span>
-                              <span style={{ fontSize:11, color:"#505070", marginLeft:8 }}>{fmtDate(l.fromDate)} → {fmtDate(l.toDate)} ({l.days} day{l.days!==1?"s":""})</span>
-                            </div>
-                            <Badge text={l.status} color={LEAVE_STATUS_COLORS[l.status]||"#CCCCEE"}/>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* ── Auto-Generate Payroll Modal ── */}
+      {/* Auto-Generate Modal */}
       {showAutoPayModal && (
-        <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowAutoPayModal(false)}>
-          <div className="modal-inner" style={{ maxWidth:480 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>⚡ Auto-Generate Payroll</h3>
-              <button onClick={() => setShowAutoPayModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowAutoPayModal(false)}>
+          <div className="modal-inner" style={{maxWidth:480}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>⚡ Auto-Generate Payroll</h3>
+              <button onClick={()=>setShowAutoPayModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
             </div>
-
             {!autoPayResult ? (
               <>
-                <div style={{ background:"#131327", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:12, color:"#818CF8" }}>
-                  This will automatically calculate salary for <strong style={{ color:"#EEEEF5" }}>all active employees</strong> based on their recorded attendance for the selected month. PF, ESI, and prorated HRA/allowances are computed automatically.
+                <div style={{background:"#131327",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#818CF8"}}>
+                  Calculates salary for <strong style={{color:"#EEEEF5"}}>all active employees</strong> based on attendance. PF, ESI, and prorated components are computed automatically.
                 </div>
-                {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
-                <div style={{ display:"flex", flexDirection:"column" as const, gap:14 }}>
+                {error&&<div style={S.err}>{error}</div>}
+                <div style={{display:"flex",flexDirection:"column",gap:14}}>
                   <div className="grid-r2">
-                    <div><label style={S.label}>Month *</label>
-                      <select style={S.select} value={autoPayForm.month} onChange={e=>setAutoPayForm(p=>({...p,month:e.target.value}))}>
-                        {MONTHS.map((m,i)=><option key={i} value={String(i+1)}>{m}</option>)}
-                      </select>
-                    </div>
-                    <div><label style={S.label}>Year *</label>
-                      <select style={S.select} value={autoPayForm.year} onChange={e=>setAutoPayForm(p=>({...p,year:e.target.value}))}>
-                        {years.map(y=><option key={y} value={String(y)}>{y}</option>)}
-                      </select>
-                    </div>
+                    <div><label style={S.label}>Month *</label><select style={S.select} value={autoPayForm.month} onChange={e=>setAutoPayForm(p=>({...p,month:e.target.value}))}>{MONTHS.map((m,i)=><option key={i} value={String(i+1)}>{m}</option>)}</select></div>
+                    <div><label style={S.label}>Year *</label><select style={S.select} value={autoPayForm.year} onChange={e=>setAutoPayForm(p=>({...p,year:e.target.value}))}>{years.map(y=><option key={y} value={String(y)}>{y}</option>)}</select></div>
                   </div>
-                  <div><label style={S.label}>Working Days in Month</label>
-                    <input type="number" style={S.input} value={autoPayForm.workingDays} onChange={e=>setAutoPayForm(p=>({...p,workingDays:e.target.value}))} min="1" max="31"/>
-                    <div style={{ fontSize:11, color:"#505070", marginTop:4 }}>Standard = 26. Attendance not marked = treated as absent (0 pay).</div>
-                  </div>
+                  <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={autoPayForm.workingDays} onChange={e=>setAutoPayForm(p=>({...p,workingDays:e.target.value}))}/></div>
                 </div>
-                <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-                  <button onClick={() => setShowAutoPayModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"#CCCCEE" }}>Cancel</button>
-                  <button onClick={autoGeneratePayroll} style={{ ...S.btn, background:"linear-gradient(135deg,#10b981,#059669)" }} disabled={saving}>
-                    {saving ? "Generating..." : `Generate for ${MONTHS[parseInt(autoPayForm.month)-1]} ${autoPayForm.year}`}
-                  </button>
+                <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+                  <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+                  <button onClick={autoGeneratePayroll} style={{...S.btn,background:"linear-gradient(135deg,#10b981,#059669)"}} disabled={saving}>{saving?"Generating...":"Generate"}</button>
                 </div>
               </>
             ) : (
               <>
-                <div style={{ background:"#10b98120", border:"1px solid #10b98140", borderRadius:8, padding:"14px 16px", marginBottom:16 }}>
-                  <div style={{ fontSize:15, fontWeight:700, color:"#10b981", marginBottom:4 }}>✓ Payroll Generated Successfully</div>
-                  <div style={{ fontSize:13, color:"#CCCCEE" }}>{autoPayResult.generated} employees processed for {MONTHS[autoPayResult.month-1]} {autoPayResult.year}</div>
-                  <div style={{ fontSize:20, fontWeight:700, color:"#EEEEF5", marginTop:8 }}>Total Payout: {fmt(autoPayResult.totalNetSalary)}</div>
+                <div style={{background:"#10b98120",border:"1px solid #10b98140",borderRadius:8,padding:"14px 16px",marginBottom:16}}>
+                  <div style={{fontSize:15,fontWeight:700,color:"#10b981",marginBottom:4}}>✓ Payroll Generated</div>
+                  <div style={{fontSize:13,color:"#CCCCEE"}}>{autoPayResult.generated} employees · {MONTHS[autoPayResult.month-1]} {autoPayResult.year}</div>
+                  <div style={{fontSize:20,fontWeight:700,color:"#EEEEF5",marginTop:8}}>Total Payout: {fmt(autoPayResult.totalNetSalary)}</div>
                 </div>
-                <div style={{ maxHeight:220, overflowY:"auto" as const }}>
-                  <table style={{ width:"100%", borderCollapse:"collapse" as const, fontSize:12 }}>
-                    <thead><tr>{["Employee","Days","Net Salary"].map(h=><th key={h} style={{ ...S.th, fontSize:10 }}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {(autoPayResult.payrolls||[]).map((p: Payroll & { employee?: { name: string; employeeCode: string } }) => (
-                        <tr key={p.id}>
-                          <td style={{ ...S.td, color:"#EEEEF5" }}>{p.employee?.name || p.employeeId}</td>
-                          <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
-                          <td style={{ ...S.td, fontWeight:700, color:"#10b981" }}>{fmt(p.netSalary)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div style={{ display:"flex", gap:10, marginTop:16, justifyContent:"flex-end" }}>
-                  <button onClick={() => setShowAutoPayModal(false)} style={S.btn}>Done</button>
+                <div style={{display:"flex",justifyContent:"flex-end"}}>
+                  <button onClick={()=>setShowAutoPayModal(false)} style={S.btn}>Done</button>
                 </div>
               </>
             )}
@@ -849,37 +967,343 @@ export default function HRPage() {
         </div>
       )}
 
-      {/* ── Apply Leave Modal ── */}
+      {/* Apply Leave Modal */}
       {showLeaveModal && (
-        <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowLeaveModal(false)}>
-          <div className="modal-inner" style={{ maxWidth:460 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>Apply for Leave</h3>
-              <button onClick={() => setShowLeaveModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowLeaveModal(false)}>
+          <div className="modal-inner" style={{maxWidth:460}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Apply for Leave</h3>
+              <button onClick={()=>setShowLeaveModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
             </div>
-            {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
-            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              <div><label style={S.label}>Employee *</label>
-                <select style={S.select} value={leaveForm.employeeId} onChange={e=>lf("employeeId",e.target.value)}>
-                  <option value="">Select employee...</option>
-                  {employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}
-                </select>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Employee *</label><select style={S.select} value={leaveForm.employeeId} onChange={e=>lf("employeeId",e.target.value)}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}</select></div>
+              <div><label style={S.label}>Leave Type</label><select style={S.select} value={leaveForm.leaveType} onChange={e=>lf("leaveType",e.target.value)}>{LEAVE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>From *</label><input type="date" style={S.input} value={leaveForm.fromDate} onChange={e=>lf("fromDate",e.target.value)}/></div>
+                <div><label style={S.label}>To *</label><input type="date" style={S.input} value={leaveForm.toDate} onChange={e=>lf("toDate",e.target.value)}/></div>
               </div>
-              <div><label style={S.label}>Leave Type</label>
-                <select style={S.select} value={leaveForm.leaveType} onChange={e=>lf("leaveType",e.target.value)}>
-                  {["Annual","Sick","Casual","Maternity","Paternity","Unpaid","Other"].map(t=><option key={t} value={t}>{t}</option>)}
-                </select>
+              <div><label style={S.label}>Reason</label><textarea style={{...S.input,height:70,resize:"none" as const}} value={leaveForm.reason} onChange={e=>lf("reason",e.target.value)}/></div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowLeaveModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={saveLeave} style={S.btn} disabled={saving||!leaveForm.employeeId||!leaveForm.fromDate}>{saving?"Submitting...":"Submit"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Balance Modal */}
+      {showLbModal && (
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowLbModal(false)}>
+          <div className="modal-inner" style={{maxWidth:420}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Allocate Leave Balance</h3>
+              <button onClick={()=>setShowLbModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+            </div>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Employee *</label><select style={S.select} value={lbForm.employeeId} onChange={e=>setLbForm(p=>({...p,employeeId:e.target.value}))}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}</select></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Leave Type</label><select style={S.select} value={lbForm.leaveType} onChange={e=>setLbForm(p=>({...p,leaveType:e.target.value}))}>{LEAVE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+                <div><label style={S.label}>Year</label><select style={S.select} value={lbForm.year} onChange={e=>setLbForm(p=>({...p,year:e.target.value}))}>{years.map(y=><option key={y} value={String(y)}>{y}</option>)}</select></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>From Date *</label><input type="date" style={S.input} value={leaveForm.fromDate} onChange={e=>lf("fromDate",e.target.value)}/></div>
-                <div><label style={S.label}>To Date *</label><input type="date" style={S.input} value={leaveForm.toDate} onChange={e=>lf("toDate",e.target.value)}/></div>
+                <div><label style={S.label}>Allocated Days</label><input type="number" style={S.input} value={lbForm.allocated} onChange={e=>setLbForm(p=>({...p,allocated:e.target.value}))} min="0"/></div>
+                <div><label style={S.label}>Carried Forward</label><input type="number" style={S.input} value={lbForm.carried} onChange={e=>setLbForm(p=>({...p,carried:e.target.value}))} min="0"/></div>
               </div>
-              <div><label style={S.label}>Reason</label><textarea style={{ ...S.input, height:70, resize:"none" as const }} value={leaveForm.reason} onChange={e=>lf("reason",e.target.value)} placeholder="Reason for leave..."/></div>
             </div>
-            <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-              <button onClick={() => setShowLeaveModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"#CCCCEE" }}>Cancel</button>
-              <button onClick={saveLeave} style={S.btn} disabled={saving||!leaveForm.employeeId||!leaveForm.fromDate||!leaveForm.toDate}>{saving?"Submitting...":"Submit Request"}</button>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowLbModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={saveLeaveBalance} style={S.btn} disabled={saving||!lbForm.employeeId}>{saving?"Saving...":"Allocate"}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shift Modal */}
+      {showShiftModal && (
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowShiftModal(false)}>
+          <div className="modal-inner" style={{maxWidth:420}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editShiftId?"Edit Shift":"Add Shift"}</h3>
+              <button onClick={()=>setShowShiftModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+            </div>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Shift Name *</label><input style={S.input} value={shiftForm.name} onChange={e=>setShiftForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Morning Shift"/></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Start Time *</label><input type="time" style={S.input} value={shiftForm.startTime} onChange={e=>setShiftForm(p=>({...p,startTime:e.target.value}))}/></div>
+                <div><label style={S.label}>End Time *</label><input type="time" style={S.input} value={shiftForm.endTime} onChange={e=>setShiftForm(p=>({...p,endTime:e.target.value}))}/></div>
+              </div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Working Hours</label><input type="number" style={S.input} value={shiftForm.workingHours} onChange={e=>setShiftForm(p=>({...p,workingHours:e.target.value}))} min="0" max="24" step="0.5"/></div>
+                <div><label style={S.label}>Grace Minutes</label><input type="number" style={S.input} value={shiftForm.graceMins} onChange={e=>setShiftForm(p=>({...p,graceMins:e.target.value}))} min="0" max="60"/></div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowShiftModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={saveShift} style={S.btn} disabled={saving||!shiftForm.name}>{saving?"Saving...":editShiftId?"Update Shift":"Add Shift"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Goal Modal */}
+      {showGoalModal && (
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowGoalModal(false)}>
+          <div className="modal-inner" style={{maxWidth:520}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editGoalId?"Edit Goal":"Add Performance Goal"}</h3>
+              <button onClick={()=>setShowGoalModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+            </div>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Employee *</label><select style={S.select} value={goalForm.employeeId} onChange={e=>setGoalForm(p=>({...p,employeeId:e.target.value}))}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.designation||e.department||e.employeeCode})</option>)}</select></div>
+              <div><label style={S.label}>Goal Title *</label><input style={S.input} value={goalForm.title} onChange={e=>setGoalForm(p=>({...p,title:e.target.value}))} placeholder="e.g. Increase sales by 20%"/></div>
+              <div><label style={S.label}>Description</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={goalForm.description} onChange={e=>setGoalForm(p=>({...p,description:e.target.value}))}/></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Category</label><select style={S.select} value={goalForm.category} onChange={e=>setGoalForm(p=>({...p,category:e.target.value}))}>{["Individual","Team","Department","Company"].map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label style={S.label}>Status</label><select style={S.select} value={goalForm.status} onChange={e=>setGoalForm(p=>({...p,status:e.target.value}))}>{["IN_PROGRESS","COMPLETED","ON_HOLD","CANCELLED"].map(s=><option key={s} value={s}>{s.replace("_"," ")}</option>)}</select></div>
+              </div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Year</label><select style={S.select} value={goalForm.year} onChange={e=>setGoalForm(p=>({...p,year:e.target.value}))}>{years.map(y=><option key={y} value={String(y)}>{y}</option>)}</select></div>
+                <div><label style={S.label}>Quarter (optional)</label><select style={S.select} value={goalForm.quarter} onChange={e=>setGoalForm(p=>({...p,quarter:e.target.value}))}><option value="">Full Year</option>{[1,2,3,4].map(q=><option key={q} value={String(q)}>Q{q}</option>)}</select></div>
+              </div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Progress ({goalForm.progress}%)</label><input type="range" min="0" max="100" style={{width:"100%",accentColor:"#6366f1"}} value={goalForm.progress} onChange={e=>setGoalForm(p=>({...p,progress:e.target.value}))}/></div>
+                <div><label style={S.label}>Target Date</label><input type="date" style={S.input} value={goalForm.targetDate} onChange={e=>setGoalForm(p=>({...p,targetDate:e.target.value}))}/></div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowGoalModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={saveGoal} style={S.btn} disabled={saving||!goalForm.employeeId||!goalForm.title}>{saving?"Saving...":editGoalId?"Update":"Add Goal"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowReviewModal(false)}>
+          <div className="modal-inner" style={{maxWidth:540}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editReviewId?"Edit Review":"Add Performance Review"}</h3>
+              <button onClick={()=>setShowReviewModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+            </div>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Employee *</label><select style={S.select} value={reviewForm.employeeId} onChange={e=>setReviewForm(p=>({...p,employeeId:e.target.value}))}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.department||e.employeeCode})</option>)}</select></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Review Type</label><select style={S.select} value={reviewForm.reviewType} onChange={e=>setReviewForm(p=>({...p,reviewType:e.target.value}))}>{["ANNUAL","QUARTERLY","PROBATION","MID_YEAR"].map(t=><option key={t} value={t}>{t.replace("_"," ")}</option>)}</select></div>
+                <div><label style={S.label}>Review Period *</label><input style={S.input} value={reviewForm.reviewPeriod} onChange={e=>setReviewForm(p=>({...p,reviewPeriod:e.target.value}))} placeholder="e.g. Jan–Jun 2026"/></div>
+              </div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Self Rating (0–5)</label><input type="number" style={S.input} value={reviewForm.selfRating} onChange={e=>setReviewForm(p=>({...p,selfRating:e.target.value}))} min="0" max="5" step="0.5"/></div>
+                <div><label style={S.label}>Manager Rating (0–5)</label><input type="number" style={S.input} value={reviewForm.rating} onChange={e=>setReviewForm(p=>({...p,rating:e.target.value}))} min="0" max="5" step="0.5"/></div>
+              </div>
+              <div><label style={S.label}>Status</label><select style={S.select} value={reviewForm.status} onChange={e=>setReviewForm(p=>({...p,status:e.target.value}))}>{["DRAFT","IN_REVIEW","COMPLETED"].map(s=><option key={s} value={s}>{s.replace("_"," ")}</option>)}</select></div>
+              <div><label style={S.label}>Strengths</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={reviewForm.strengths} onChange={e=>setReviewForm(p=>({...p,strengths:e.target.value}))}/></div>
+              <div><label style={S.label}>Areas for Improvement</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={reviewForm.improvements} onChange={e=>setReviewForm(p=>({...p,improvements:e.target.value}))}/></div>
+              <div><label style={S.label}>Comments</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={reviewForm.comments} onChange={e=>setReviewForm(p=>({...p,comments:e.target.value}))}/></div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowReviewModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={saveReview} style={S.btn} disabled={saving||!reviewForm.employeeId||!reviewForm.reviewPeriod}>{saving?"Saving...":editReviewId?"Update":"Add Review"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expense Modal */}
+      {showExpModal && (
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowExpModal(false)}>
+          <div className="modal-inner" style={{maxWidth:460}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Add Expense Claim</h3>
+              <button onClick={()=>setShowExpModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+            </div>
+            {error&&<div style={S.err}>{error}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div><label style={S.label}>Employee *</label><select style={S.select} value={expForm.employeeId} onChange={e=>setExpForm(p=>({...p,employeeId:e.target.value}))}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.department||e.employeeCode})</option>)}</select></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Category</label><select style={S.select} value={expForm.category} onChange={e=>setExpForm(p=>({...p,category:e.target.value}))}>{EXP_CATS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label style={S.label}>Expense Date *</label><input type="date" style={S.input} value={expForm.expenseDate} onChange={e=>setExpForm(p=>({...p,expenseDate:e.target.value}))}/></div>
+              </div>
+              <div><label style={S.label}>Title / Description *</label><input style={S.input} value={expForm.title} onChange={e=>setExpForm(p=>({...p,title:e.target.value}))} placeholder="e.g. Flight to Mumbai for client meeting"/></div>
+              <div className="grid-r2">
+                <div><label style={S.label}>Amount (₹) *</label><input type="number" style={S.input} value={expForm.amount} onChange={e=>setExpForm(p=>({...p,amount:e.target.value}))} min="0" step="0.01"/></div>
+                <div><label style={S.label}>Receipt URL</label><input style={S.input} value={expForm.receiptUrl} onChange={e=>setExpForm(p=>({...p,receiptUrl:e.target.value}))} placeholder="https://..."/></div>
+              </div>
+              <div><label style={S.label}>Notes</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={expForm.notes} onChange={e=>setExpForm(p=>({...p,notes:e.target.value}))}/></div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowExpModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={saveExpense} style={S.btn} disabled={saving||!expForm.employeeId||!expForm.title||!expForm.amount}>{saving?"Submitting...":"Submit Claim"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payslip Modal */}
+      {showPayslip && payslip && (
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowPayslip(false)}>
+          <div style={{background:"#0D0D1F",border:"1px solid #1C1C35",borderRadius:16,padding:28,width:"min(640px,96vw)",maxHeight:"92vh",overflowY:"auto" as const}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Payslip — {payslip.period.label}</h3>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>window.print()} style={{...S.btnSm,display:"flex",alignItems:"center",gap:4}}><Download size={13}/> Print</button>
+                <button onClick={()=>setShowPayslip(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              </div>
+            </div>
+            {/* Company Header */}
+            <div style={{background:"linear-gradient(135deg,#1a1a3e,#1C1C35)",borderRadius:10,padding:"16px 20px",marginBottom:16}}>
+              <div style={{fontSize:16,fontWeight:700,color:"#EEEEF5"}}>{payslip.org.name}</div>
+              <div style={{fontSize:12,color:"#818CF8",marginTop:2}}>{payslip.org.address}{payslip.org.city?`, ${payslip.org.city}`:""}{payslip.org.pan?` · PAN: ${payslip.org.pan}`:""}</div>
+            </div>
+            {/* Employee Info */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+              {[
+                {label:"Employee Name",value:payslip.employee.name},
+                {label:"Employee Code",value:payslip.employee.code},
+                {label:"Designation",value:payslip.employee.designation||"—"},
+                {label:"Department",value:payslip.employee.department||"—"},
+                {label:"PAN",value:payslip.employee.pan||"—"},
+                {label:"PF Number",value:payslip.employee.pf||"—"},
+                {label:"Bank Account",value:payslip.employee.bankAccount||"—"},
+                {label:"IFSC Code",value:payslip.employee.bankIfsc||"—"},
+              ].map(row=>(
+                <div key={row.label} style={{background:"#131327",borderRadius:6,padding:"8px 10px"}}>
+                  <div style={{fontSize:10,color:"#505070",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{row.label}</div>
+                  <div style={{fontSize:13,color:"#EEEEF5",marginTop:2}}>{row.value}</div>
+                </div>
+              ))}
+            </div>
+            {/* Attendance */}
+            <div style={{display:"flex",gap:10,marginBottom:16}}>
+              {[{label:"Working Days",value:payslip.attendance.workingDays},{label:"Days Present",value:payslip.attendance.presentDays}].map(r=>(
+                <div key={r.label} style={{flex:1,background:"#131327",borderRadius:6,padding:"8px 10px",textAlign:"center" as const}}>
+                  <div style={{fontSize:10,color:"#505070",fontWeight:700,textTransform:"uppercase" as const}}>{r.label}</div>
+                  <div style={{fontSize:18,fontWeight:700,color:"#EEEEF5",marginTop:2}}>{r.value}</div>
+                </div>
+              ))}
+            </div>
+            {/* Earnings + Deductions */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#10b981",marginBottom:8}}>EARNINGS</div>
+                {[{l:"Basic Salary",v:payslip.earnings.basic},{l:"HRA",v:payslip.earnings.hra},{l:"Allowances",v:payslip.earnings.allowances}].map(r=>(
+                  <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131327",fontSize:13}}>
+                    <span style={{color:"#CCCCEE"}}>{r.l}</span><span style={{color:"#EEEEF5",fontWeight:500}}>{fmt(r.v)}</span>
+                  </div>
+                ))}
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",fontSize:13,fontWeight:700}}>
+                  <span style={{color:"#10b981"}}>Gross Salary</span><span style={{color:"#10b981"}}>{fmt(payslip.earnings.gross)}</span>
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:8}}>DEDUCTIONS</div>
+                {[{l:"PF (Employee 12%)",v:payslip.deductions.pf},{l:"ESI (0.75%)",v:payslip.deductions.esi},{l:"Prof. Tax",v:payslip.deductions.pt},{l:"TDS",v:payslip.deductions.tds},{l:"Other",v:payslip.deductions.other}].filter(r=>r.v>0).map(r=>(
+                  <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131327",fontSize:13}}>
+                    <span style={{color:"#CCCCEE"}}>{r.l}</span><span style={{color:"#ef4444",fontWeight:500}}>− {fmt(r.v)}</span>
+                  </div>
+                ))}
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",fontSize:13,fontWeight:700}}>
+                  <span style={{color:"#ef4444"}}>Total Deductions</span><span style={{color:"#ef4444"}}>− {fmt(payslip.deductions.total)}</span>
+                </div>
+              </div>
+            </div>
+            {/* Net Salary */}
+            <div style={{background:"linear-gradient(135deg,#6366f120,#8b5cf620)",border:"1px solid #6366f130",borderRadius:10,padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:12,color:"#818CF8",fontWeight:700,textTransform:"uppercase" as const}}>Net Take-Home Salary</div>
+                <div style={{fontSize:11,color:"#505070",marginTop:2}}>{payslip.period.label} · {payslip.isPaid?`Paid on ${payslip.paidAt?fmtDate(payslip.paidAt):"—"}`:"Pending Payment"}</div>
+              </div>
+              <div style={{fontSize:28,fontWeight:700,color:"#EEEEF5"}}>{fmt(payslip.netSalary)}</div>
+            </div>
+            <div style={{marginTop:16,display:"flex",alignItems:"center",gap:6}}>
+              <ChevronRight size={12} color="#505070"/>
+              <span style={{fontSize:11,color:"#505070"}}>This is a computer-generated payslip and does not require a signature.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Detail Modal */}
+      {showEmpDetail && (
+        <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowEmpDetail(false)}>
+          <div style={{background:"#0D0D1F",border:"1px solid #1C1C35",borderRadius:16,padding:28,width:"min(760px,96vw)",maxHeight:"90vh",overflowY:"auto" as const}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Employee Profile</h3>
+              <div style={{display:"flex",gap:8}}>
+                {detailEmp&&<button onClick={()=>{setShowEmpDetail(false);openEdit(detailEmp as Employee);}} style={S.btnSm}>Edit</button>}
+                <button onClick={()=>setShowEmpDetail(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              </div>
+            </div>
+            {detailLoading&&<div style={{padding:40,textAlign:"center" as const,color:"#505070"}}>Loading...</div>}
+            {!detailLoading&&detailEmp&&(()=>{
+              const emp=detailEmp;
+              const atts:AttRecord[]=emp.attendances||[];
+              const pays:Payroll[]=emp.payrolls||[];
+              const lvs:LeaveReq[]=emp.leaveRequests||[];
+              return (
+                <>
+                  <div style={{display:"flex",gap:16,marginBottom:20,flexWrap:"wrap" as const}}>
+                    <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:700,color:"white",flexShrink:0}}>
+                      {emp.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:18,fontWeight:700,color:"#EEEEF5"}}>{emp.name}</div>
+                      <div style={{fontSize:13,color:"#818CF8"}}>{emp.employeeCode} · {emp.designation||"—"} · {emp.department||"—"}</div>
+                      <div style={{fontSize:12,color:"#505070",marginTop:2}}>Joined {fmtDate(emp.joiningDate)} · <Badge text={emp.status} color={emp.status==="ACTIVE"?"#10b981":"#ef4444"}/></div>
+                    </div>
+                    <div style={{textAlign:"right" as const}}>
+                      <div style={{fontSize:20,fontWeight:700,color:"#EEEEF5"}}>{emp.salaryType==="DAILY"?`₹${(emp.dailyRate||0).toLocaleString("en-IN")}/day`:`${fmt(emp.basicSalary)}/mo`}</div>
+                      <div style={{fontSize:11,color:"#505070"}}>{emp.salaryType==="MONTHLY"?"Monthly CTC":"Daily Rate"}{(emp.hra>0||emp.allowances>0)?` + ₹${(emp.hra+emp.allowances).toLocaleString("en-IN")} HRA/Allow`:""}</div>
+                    </div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+                    {[{label:"Present (this month)",value:emp.thisMonthPresent??0,color:"#10b981"},{label:"Absences",value:atts.filter((a:AttRecord)=>a.status==="ABSENT").length,color:"#ef4444"},{label:"Payrolls",value:pays.length,color:"#6366f1"},{label:"Leave Requests",value:lvs.length,color:"#f59e0b"}].map(k=>(
+                      <div key={k.label} style={{background:"#131327",borderRadius:8,padding:"12px 14px"}}>
+                        <div style={{fontSize:11,color:"#505070"}}>{k.label}</div>
+                        <div style={{fontSize:22,fontWeight:700,color:k.color,marginTop:2}}>{k.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#EEEEF5",marginBottom:8}}>Recent Attendance</div>
+                    <div style={{display:"flex",flexWrap:"wrap" as const,gap:4}}>
+                      {atts.slice(0,30).map((a:AttRecord)=>(
+                        <div key={a.id} title={`${fmtDate(a.date)} — ${a.status}`} style={{width:30,height:30,borderRadius:5,background:ATT_COLORS[a.status]+"30",border:`1px solid ${ATT_COLORS[a.status]}50`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:600,color:ATT_COLORS[a.status]}}>
+                          {new Date(a.date).getDate()}
+                        </div>
+                      ))}
+                      {atts.length===0&&<span style={{fontSize:12,color:"#505070"}}>No records yet.</span>}
+                    </div>
+                  </div>
+                  {pays.length>0&&(
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#EEEEF5",marginBottom:8}}>Payroll History</div>
+                      <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12}}>
+                        <thead><tr>{["Month","Days","Gross","Deductions","Net","Status"].map(h=><th key={h} style={{...S.th,fontSize:10}}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {pays.slice(0,6).map((p:Payroll)=>(
+                            <tr key={p.id}>
+                              <td style={S.td}>{MONTHS[p.month-1]} {p.year}</td>
+                              <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
+                              <td style={S.td}>{fmt(p.grossSalary)}</td>
+                              <td style={{...S.td,color:"#ef4444"}}>{fmt(p.pfDeduction+p.esiDeduction+p.deductions)}</td>
+                              <td style={{...S.td,fontWeight:700,color:"#EEEEF5"}}>{fmt(p.netSalary)}</td>
+                              <td style={S.td}>{p.isPaid?<Badge text="PAID" color="#10b981"/>:<Badge text="PENDING" color="#f59e0b"/>}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

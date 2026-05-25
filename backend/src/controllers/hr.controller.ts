@@ -422,3 +422,405 @@ export async function getHRSummary(req: OrgRequest, res: Response): Promise<void
     ok(res, { total, active, onLeave, departments: depts, monthSalaryTotal: monthPayrollTotal._sum.netSalary || 0 });
   } catch (e) { serverError(res, e); }
 }
+
+// ─────────────────────────────────────────────────────────────
+//  SHIFTS
+// ─────────────────────────────────────────────────────────────
+
+const shiftSchema = z.object({
+  name:         z.string().min(1),
+  startTime:    z.string(),
+  endTime:      z.string(),
+  workingHours: z.number().min(0).max(24).default(8),
+  graceMins:    z.number().int().min(0).default(0),
+  isActive:     z.boolean().default(true),
+});
+
+export async function listShifts(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const shifts = await prisma.shift.findMany({
+      where: { organizationId: req.organizationId! },
+      include: { _count: { select: { employees: true } } },
+      orderBy: { name: "asc" },
+    });
+    ok(res, shifts);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function createShift(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = shiftSchema.safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const shift = await prisma.shift.create({ data: { ...data.data, organizationId: req.organizationId! } });
+    created(res, shift);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function updateShift(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = shiftSchema.partial().safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const existing = await prisma.shift.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Shift not found"); return; }
+    const shift = await prisma.shift.update({ where: { id: req.params.id as string }, data: data.data });
+    ok(res, shift);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deleteShift(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const existing = await prisma.shift.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Shift not found"); return; }
+    await prisma.shift.delete({ where: { id: req.params.id as string } });
+    ok(res, null, "Shift deleted");
+  } catch (e) { serverError(res, e); }
+}
+
+export async function assignShift(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { employeeId, shiftId } = req.body as { employeeId: string; shiftId: string | null };
+    const emp = await prisma.employee.findFirst({ where: { id: employeeId, organizationId: req.organizationId! } });
+    if (!emp) { notFound(res, "Employee not found"); return; }
+    if (shiftId) {
+      const shift = await prisma.shift.findFirst({ where: { id: shiftId, organizationId: req.organizationId! } });
+      if (!shift) { notFound(res, "Shift not found"); return; }
+    }
+    const updated = await prisma.employee.update({ where: { id: employeeId }, data: { shiftId: shiftId ?? null } });
+    ok(res, updated);
+  } catch (e) { serverError(res, e); }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  LEAVE BALANCE
+// ─────────────────────────────────────────────────────────────
+
+const leaveBalanceSchema = z.object({
+  employeeId: z.string(),
+  year:       z.number().int(),
+  leaveType:  z.string().min(1),
+  allocated:  z.number().min(0).default(0),
+  carried:    z.number().min(0).default(0),
+});
+
+export async function listLeaveBalances(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { employeeId, year } = req.query as Record<string, string>;
+    const where: any = { organizationId: req.organizationId! };
+    if (employeeId) where.employeeId = employeeId;
+    if (year) where.year = parseInt(year);
+    const balances = await prisma.leaveBalance.findMany({
+      where,
+      include: { employee: { select: { id: true, name: true, employeeCode: true } } },
+      orderBy: [{ employee: { name: "asc" } }, { leaveType: "asc" }],
+    });
+    ok(res, balances);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function upsertLeaveBalance(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = leaveBalanceSchema.safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const emp = await prisma.employee.findFirst({ where: { id: data.data.employeeId, organizationId: req.organizationId! } });
+    if (!emp) { notFound(res, "Employee not found"); return; }
+    const balance = await prisma.leaveBalance.upsert({
+      where: { employeeId_year_leaveType: { employeeId: data.data.employeeId, year: data.data.year, leaveType: data.data.leaveType } },
+      create: { ...data.data, organizationId: req.organizationId! },
+      update: { allocated: data.data.allocated, carried: data.data.carried },
+    });
+    ok(res, balance);
+  } catch (e) { serverError(res, e); }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PERFORMANCE GOALS
+// ─────────────────────────────────────────────────────────────
+
+const goalSchema = z.object({
+  employeeId:  z.string(),
+  title:       z.string().min(1),
+  description: z.string().optional(),
+  category:    z.string().default("Individual"),
+  targetDate:  z.string().optional(),
+  progress:    z.number().int().min(0).max(100).default(0),
+  status:      z.enum(["IN_PROGRESS","COMPLETED","ON_HOLD","CANCELLED"]).default("IN_PROGRESS"),
+  year:        z.number().int(),
+  quarter:     z.number().int().min(1).max(4).optional(),
+});
+
+export async function listPerformanceGoals(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { employeeId, year, quarter, status } = req.query as Record<string, string>;
+    const where: any = { organizationId: req.organizationId! };
+    if (employeeId) where.employeeId = employeeId;
+    if (year) where.year = parseInt(year);
+    if (quarter) where.quarter = parseInt(quarter);
+    if (status) where.status = status;
+    const goals = await prisma.performanceGoal.findMany({
+      where,
+      include: { employee: { select: { id: true, name: true, employeeCode: true, designation: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    ok(res, goals);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function createPerformanceGoal(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = goalSchema.safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const emp = await prisma.employee.findFirst({ where: { id: data.data.employeeId, organizationId: req.organizationId! } });
+    if (!emp) { notFound(res, "Employee not found"); return; }
+    const goal = await prisma.performanceGoal.create({
+      data: {
+        ...data.data,
+        targetDate: data.data.targetDate ? new Date(data.data.targetDate) : undefined,
+        organizationId: req.organizationId!,
+      },
+    });
+    created(res, goal);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function updatePerformanceGoal(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = goalSchema.partial().safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const existing = await prisma.performanceGoal.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Goal not found"); return; }
+    const goal = await prisma.performanceGoal.update({
+      where: { id: req.params.id as string },
+      data: { ...data.data, ...(data.data.targetDate && { targetDate: new Date(data.data.targetDate) }) },
+    });
+    ok(res, goal);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deletePerformanceGoal(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const existing = await prisma.performanceGoal.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Goal not found"); return; }
+    await prisma.performanceGoal.delete({ where: { id: req.params.id as string } });
+    ok(res, null, "Goal deleted");
+  } catch (e) { serverError(res, e); }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PERFORMANCE REVIEWS
+// ─────────────────────────────────────────────────────────────
+
+const reviewSchema = z.object({
+  employeeId:   z.string(),
+  reviewType:   z.enum(["ANNUAL","QUARTERLY","PROBATION","MID_YEAR"]).default("ANNUAL"),
+  reviewPeriod: z.string(),
+  rating:       z.number().min(0).max(5).optional(),
+  selfRating:   z.number().min(0).max(5).optional(),
+  status:       z.enum(["DRAFT","IN_REVIEW","COMPLETED"]).default("DRAFT"),
+  strengths:    z.string().optional(),
+  improvements: z.string().optional(),
+  comments:     z.string().optional(),
+  reviewDate:   z.string().optional(),
+});
+
+export async function listPerformanceReviews(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { employeeId, status, reviewType } = req.query as Record<string, string>;
+    const where: any = { organizationId: req.organizationId! };
+    if (employeeId) where.employeeId = employeeId;
+    if (status) where.status = status;
+    if (reviewType) where.reviewType = reviewType;
+    const reviews = await prisma.performanceReview.findMany({
+      where,
+      include: { employee: { select: { id: true, name: true, employeeCode: true, designation: true, department: true } } },
+      orderBy: { reviewDate: "desc" },
+    });
+    ok(res, reviews);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function createPerformanceReview(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = reviewSchema.safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const emp = await prisma.employee.findFirst({ where: { id: data.data.employeeId, organizationId: req.organizationId! } });
+    if (!emp) { notFound(res, "Employee not found"); return; }
+    const review = await prisma.performanceReview.create({
+      data: {
+        ...data.data,
+        reviewDate: data.data.reviewDate ? new Date(data.data.reviewDate) : new Date(),
+        organizationId: req.organizationId!,
+      },
+    });
+    created(res, review);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function updatePerformanceReview(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = reviewSchema.partial().safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const existing = await prisma.performanceReview.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Review not found"); return; }
+    const review = await prisma.performanceReview.update({
+      where: { id: req.params.id as string },
+      data: { ...data.data, ...(data.data.reviewDate && { reviewDate: new Date(data.data.reviewDate) }) },
+    });
+    ok(res, review);
+  } catch (e) { serverError(res, e); }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  EXPENSES
+// ─────────────────────────────────────────────────────────────
+
+const expenseSchema = z.object({
+  employeeId:  z.string(),
+  expenseDate: z.string(),
+  category:    z.string().min(1),
+  title:       z.string().min(1),
+  amount:      z.number().min(0),
+  currency:    z.string().default("INR"),
+  receiptUrl:  z.string().optional(),
+  notes:       z.string().optional(),
+});
+
+export async function listExpenses(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { employeeId, status, category } = req.query as Record<string, string>;
+    const where: any = { organizationId: req.organizationId! };
+    if (employeeId) where.employeeId = employeeId;
+    if (status) where.status = status;
+    if (category) where.category = category;
+    const expenses = await prisma.expense.findMany({
+      where,
+      include: { employee: { select: { id: true, name: true, employeeCode: true, department: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    ok(res, expenses);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function createExpense(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = expenseSchema.safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const emp = await prisma.employee.findFirst({ where: { id: data.data.employeeId, organizationId: req.organizationId! } });
+    if (!emp) { notFound(res, "Employee not found"); return; }
+    const expense = await prisma.expense.create({
+      data: { ...data.data, expenseDate: new Date(data.data.expenseDate), organizationId: req.organizationId! },
+    });
+    created(res, expense);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function updateExpense(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const data = expenseSchema.partial().safeParse(req.body);
+    if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    const existing = await prisma.expense.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Expense not found"); return; }
+    if (existing.status !== "PENDING") { badRequest(res, "Only pending expenses can be edited"); return; }
+    const expense = await prisma.expense.update({
+      where: { id: req.params.id as string },
+      data: { ...data.data, ...(data.data.expenseDate && { expenseDate: new Date(data.data.expenseDate) }) },
+    });
+    ok(res, expense);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function approveExpense(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const existing = await prisma.expense.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Expense not found"); return; }
+    const expense = await prisma.expense.update({
+      where: { id: req.params.id as string },
+      data: { status: "APPROVED", approvedById: req.userId!, approvedAt: new Date() },
+    });
+    ok(res, expense, "Expense approved");
+  } catch (e) { serverError(res, e); }
+}
+
+export async function rejectExpense(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const existing = await prisma.expense.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Expense not found"); return; }
+    const expense = await prisma.expense.update({
+      where: { id: req.params.id as string },
+      data: { status: "REJECTED" },
+    });
+    ok(res, expense, "Expense rejected");
+  } catch (e) { serverError(res, e); }
+}
+
+export async function markExpensePaid(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const existing = await prisma.expense.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Expense not found"); return; }
+    if (existing.status !== "APPROVED") { badRequest(res, "Only approved expenses can be marked as paid"); return; }
+    const expense = await prisma.expense.update({
+      where: { id: req.params.id as string },
+      data: { status: "PAID", paidAt: new Date() },
+    });
+    ok(res, expense, "Expense marked as paid");
+  } catch (e) { serverError(res, e); }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PAYSLIP (structured data for frontend PDF rendering)
+// ─────────────────────────────────────────────────────────────
+
+export async function getPayslip(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { employeeId, month, year } = req.query as Record<string, string>;
+    if (!employeeId || !month || !year) { badRequest(res, "employeeId, month and year are required"); return; }
+
+    const [emp, payroll, org] = await Promise.all([
+      prisma.employee.findFirst({
+        where: { id: employeeId, organizationId: req.organizationId! },
+        include: { shift: true },
+      }),
+      prisma.payroll.findUnique({
+        where: { employeeId_month_year: { employeeId, month: parseInt(month), year: parseInt(year) } },
+      }),
+      prisma.organization.findUnique({ where: { id: req.organizationId! } }),
+    ]);
+
+    if (!emp) { notFound(res, "Employee not found"); return; }
+    if (!payroll) { notFound(res, "Payroll record not found for this period"); return; }
+
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const ptDeduction = payroll.grossSalary > 15000 ? 200 : payroll.grossSalary > 10000 ? 150 : 0;
+    const tdsDeduction = 0; // simplified — no TDS calc here
+
+    ok(res, {
+      org: { name: org?.name, address: org?.address, city: org?.city, state: org?.state, pan: org?.panNumber },
+      employee: {
+        id: emp.id, name: emp.name, code: emp.employeeCode,
+        designation: emp.designation, department: emp.department,
+        email: emp.email, phone: emp.phone,
+        pan: emp.panNumber, pf: emp.pfNumber, esi: emp.esiNumber,
+        bankAccount: emp.bankAccount, bankIfsc: emp.bankIfsc,
+        joinDate: emp.joiningDate,
+      },
+      period: { month: parseInt(month), year: parseInt(year), label: `${monthNames[parseInt(month) - 1]} ${year}` },
+      attendance: { workingDays: payroll.workingDays, presentDays: payroll.presentDays },
+      earnings: {
+        basic: payroll.basicSalary,
+        hra: payroll.hra,
+        allowances: payroll.allowances,
+        gross: payroll.grossSalary,
+      },
+      deductions: {
+        pf: payroll.pfDeduction,
+        esi: payroll.esiDeduction,
+        pt: ptDeduction,
+        tds: tdsDeduction,
+        other: payroll.deductions,
+        total: payroll.pfDeduction + payroll.esiDeduction + ptDeduction + tdsDeduction + payroll.deductions,
+      },
+      netSalary: payroll.netSalary - ptDeduction,
+      isPaid: payroll.isPaid,
+      paidAt: payroll.paidAt,
+    });
+  } catch (e) { serverError(res, e); }
+}
