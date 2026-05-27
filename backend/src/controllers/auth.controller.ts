@@ -64,7 +64,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+    // In dev mode never require email verification — sendEmail() is a no-op so the catch never fires
+    const smtpConfigured = process.env.NODE_ENV === "production" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     const emailVerifyToken = smtpConfigured ? uuidv4() : null;
 
     const user = await prisma.user.create({
@@ -151,9 +152,13 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     clearFail(email); // successful auth — reset counter
 
-    if (!user.isEmailVerified) {
+    if (!user.isEmailVerified && process.env.NODE_ENV === "production") {
       unauthorized(res, "Please verify your email before logging in");
       return;
+    }
+    // Auto-verify on first login in dev mode
+    if (!user.isEmailVerified && process.env.NODE_ENV !== "production") {
+      await prisma.user.update({ where: { id: user.id }, data: { isEmailVerified: true, emailVerifyToken: null } });
     }
 
     // Fetch user's organizations

@@ -52,7 +52,8 @@ app.use(helmet({
 }));
 
 // ── CORS ─────────────────────────────────────────────────────
-const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173").split(",").map(s => s.trim());
+const defaultOrigins = isProd ? "" : "http://localhost:5173,http://localhost:5174,http://localhost:5175";
+const allowedOrigins = (process.env.FRONTEND_URL || defaultOrigins).split(",").map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
