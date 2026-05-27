@@ -9,8 +9,8 @@ export default function ComingSoonPage({ title, description }: Props) {
         <Construction style={{ width: 30, height: 30, color: "#818CF8" }} />
       </div>
       <div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#EEEEF5", margin: "0 0 8px" }}>{title}</h2>
-        <p style={{ fontSize: 14, color: "#7070A0", margin: 0, maxWidth: 360, lineHeight: 1.6 }}>{description}</p>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}>{title}</h2>
+        <p style={{ fontSize: 14, color: "var(--text-faint)", margin: 0, maxWidth: 360, lineHeight: 1.6 }}>{description}</p>
       </div>
       <span style={{ fontSize: 12, fontWeight: 600, color: "#818CF8", background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", padding: "6px 14px", borderRadius: 20 }}>
         Coming Soon

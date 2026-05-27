@@ -17,7 +17,7 @@ interface AuditLog {
 
 const ACTION_COLOR: Record<string, string> = {
   CREATE: "#10b981", UPDATE: "#6366f1", DELETE: "#ef4444",
-  LOGIN: "#f59e0b", LOGOUT: "#9090B0", EXPORT: "#60a5fa",
+  LOGIN: "#f59e0b", LOGOUT: "var(--text-muted)", EXPORT: "#60a5fa",
 };
 
 export default function AuditPage() {

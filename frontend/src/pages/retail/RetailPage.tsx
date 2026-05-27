@@ -3,22 +3,22 @@ import api from "@/lib/api";
 import { Shirt, Plus, ShoppingCart, X, Package } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   tabs: { display: "flex", gap: 4, marginBottom: 24 } as React.CSSProperties,
-  tab: (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "#505070" }) as React.CSSProperties,
+  tab: (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "var(--text-ghost)" }) as React.CSSProperties,
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 500, maxHeight: "90vh", overflowY: "auto" as const },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 500, maxHeight: "90vh", overflowY: "auto" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
   g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
   g3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 } as React.CSSProperties,
   posGrid: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 } as React.CSSProperties,
@@ -156,13 +156,13 @@ export default function RetailPage() {
 
       {tab === "collections" && (
         <div style={S.card}>
-          {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+          {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>{["Collection", "Season", "Year", "Variants"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
               <tbody>
-                {collections.length === 0 ? <tr><td colSpan={4} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No collections yet.</td></tr> : collections.map(c => (
+                {collections.length === 0 ? <tr><td colSpan={4} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No collections yet.</td></tr> : collections.map(c => (
                   <tr key={c.id}>
-                    <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 500 }}>{c.name}</td>
+                    <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 500 }}>{c.name}</td>
                     <td style={S.td}>{c.season || "—"}</td>
                     <td style={S.td}>{c.year || "—"}</td>
                     <td style={S.td}>{c._count?.variants || 0}</td>
@@ -176,14 +176,14 @@ export default function RetailPage() {
 
       {tab === "variants" && (
         <div style={S.card}>
-          {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+          {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>{["SKU", "Product", "Size", "Color", "Collection", "Price", "Stock"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
               <tbody>
-                {variants.length === 0 ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No variants yet.</td></tr> : variants.map(v => (
+                {variants.length === 0 ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No variants yet.</td></tr> : variants.map(v => (
                   <tr key={v.id} onClick={() => openSession && addToCart(v)} style={{ cursor: openSession ? "pointer" : "default" }}>
                     <td style={{ ...S.td, fontFamily: "monospace", color: "#818CF8" }}>{v.sku}</td>
-                    <td style={{ ...S.td, color: "#EEEEF5" }}>{v.product?.name || "—"}</td>
+                    <td style={{ ...S.td, color: "var(--text-primary)" }}>{v.product?.name || "—"}</td>
                     <td style={S.td}>{v.size ? <span style={{ padding: "2px 8px", borderRadius: 5, background: "#6366f120", color: "#818CF8", fontSize: 12, fontWeight: 600 }}>{v.size}</span> : "—"}</td>
                     <td style={S.td}>
                       {v.color ? (
@@ -194,7 +194,7 @@ export default function RetailPage() {
                       ) : "—"}
                     </td>
                     <td style={S.td}>{v.collection?.name || "—"}</td>
-                    <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 600 }}>₹{v.sellingPrice.toLocaleString("en-IN")}</td>
+                    <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 600 }}>₹{v.sellingPrice.toLocaleString("en-IN")}</td>
                     <td style={{ ...S.td, color: v.stock > 0 ? "#10b981" : "#ef4444", fontWeight: 600 }}>{v.stock}</td>
                   </tr>
                 ))}
@@ -208,30 +208,30 @@ export default function RetailPage() {
       {tab === "pos" && (
         <div style={S.posGrid}>
           <div style={S.card}>
-            <h3 style={{ color: "#EEEEF5", margin: "0 0 16px", fontSize: 15, fontWeight: 600 }}>Cart</h3>
+            <h3 style={{ color: "var(--text-primary)", margin: "0 0 16px", fontSize: 15, fontWeight: 600 }}>Cart</h3>
             {posItems.length === 0 ? (
-              <div style={{ padding: 32, textAlign: "center", color: "#505070" }}>Cart is empty. Click variants to add items.</div>
+              <div style={{ padding: 32, textAlign: "center", color: "var(--text-ghost)" }}>Cart is empty. Click variants to add items.</div>
             ) : (
               <>
                 {posItems.map((item, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #131327" }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: 13, color: "#EEEEF5" }}>{item.name}</p>
+                      <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)" }}>{item.name}</p>
                       <p style={{ margin: "2px 0 0", fontSize: 12, color: "#818CF8" }}>₹{item.unitPrice.toLocaleString("en-IN")} × {item.quantity}</p>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <button onClick={() => setPosItems(prev => prev.map((it, j) => j === i ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it))} style={{ background: "#1C1C35", border: "none", color: "#CCCCEE", borderRadius: 5, width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>-</button>
-                      <span style={{ color: "#EEEEF5", minWidth: 24, textAlign: "center" }}>{item.quantity}</span>
-                      <button onClick={() => setPosItems(prev => prev.map((it, j) => j === i ? { ...it, quantity: it.quantity + 1 } : it))} style={{ background: "#1C1C35", border: "none", color: "#CCCCEE", borderRadius: 5, width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                      <button onClick={() => setPosItems(prev => prev.map((it, j) => j === i ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it))} style={{ background: "var(--bg-hover)", border: "none", color: "var(--text-sec)", borderRadius: 5, width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>-</button>
+                      <span style={{ color: "var(--text-primary)", minWidth: 24, textAlign: "center" }}>{item.quantity}</span>
+                      <button onClick={() => setPosItems(prev => prev.map((it, j) => j === i ? { ...it, quantity: it.quantity + 1 } : it))} style={{ background: "var(--bg-hover)", border: "none", color: "var(--text-sec)", borderRadius: 5, width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
                     </div>
-                    <span style={{ color: "#EEEEF5", fontWeight: 600, minWidth: 70, textAlign: "right" }}>₹{(item.quantity * item.unitPrice).toLocaleString("en-IN")}</span>
-                    <button onClick={() => setPosItems(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={14} /></button>
+                    <span style={{ color: "var(--text-primary)", fontWeight: 600, minWidth: 70, textAlign: "right" }}>₹{(item.quantity * item.unitPrice).toLocaleString("en-IN")}</span>
+                    <button onClick={() => setPosItems(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={14} /></button>
                   </div>
                 ))}
-                <div style={{ marginTop: 16, padding: "12px 0", borderTop: "1px solid #1C1C35" }}>
+                <div style={{ marginTop: 16, padding: "12px 0", borderTop: "1px solid var(--border)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                    <span style={{ color: "#505070", fontSize: 13 }}>Total</span>
-                    <span style={{ color: "#EEEEF5", fontWeight: 700, fontSize: 20 }}>₹{cartTotal.toLocaleString("en-IN")}</span>
+                    <span style={{ color: "var(--text-ghost)", fontSize: 13 }}>Total</span>
+                    <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 20 }}>₹{cartTotal.toLocaleString("en-IN")}</span>
                   </div>
                   <button onClick={completeSale} disabled={!openSession || saving} style={{ ...S.btn, width: "100%", justifyContent: "center", opacity: !openSession ? 0.5 : 1 }}>
                     {saving ? "Processing..." : "Complete Sale"}
@@ -244,13 +244,13 @@ export default function RetailPage() {
 
           <div>
             <div style={{ ...S.card, marginBottom: 16 }}>
-              <h3 style={{ color: "#EEEEF5", margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>POS Sessions</h3>
+              <h3 style={{ color: "var(--text-primary)", margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>POS Sessions</h3>
               {sessions.slice(0, 5).map(s => (
                 <div key={s.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #131327", alignItems: "center" }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: s.status === "OPEN" ? "#10b981" : "#505070" }} />
-                      <span style={{ fontSize: 12, color: "#CCCCEE" }}>{new Date(s.openedAt).toLocaleDateString("en-IN")}</span>
+                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: s.status === "OPEN" ? "#10b981" : "var(--text-ghost)" }} />
+                      <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{new Date(s.openedAt).toLocaleDateString("en-IN")}</span>
                     </div>
                   </div>
                   <span style={{ color: "#10b981", fontSize: 13, fontWeight: 600 }}>₹{s.totalSales.toLocaleString("en-IN")}</span>
@@ -267,8 +267,8 @@ export default function RetailPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowColModal(false)}>
           <div className="modal-inner" style={{ maxWidth: 400 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Collection</h3>
-              <button onClick={() => setShowColModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Collection</h3>
+              <button onClick={() => setShowColModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -284,7 +284,7 @@ export default function RetailPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowColModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowColModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveCollection} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Create"}</button>
             </div>
           </div>
@@ -295,8 +295,8 @@ export default function RetailPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowVarModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>Add Product Variant</h3>
-              <button onClick={() => setShowVarModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Add Product Variant</h3>
+              <button onClick={() => setShowVarModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -333,7 +333,7 @@ export default function RetailPage() {
               <div><label style={S.label}>Opening Stock</label><input type="number" style={S.input} value={varForm.stock} onChange={(e) => setVarForm({ ...varForm, stock: e.target.value })} /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowVarModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowVarModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveVariant} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Add Variant"}</button>
             </div>
           </div>

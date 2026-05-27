@@ -5,29 +5,29 @@ import DocumentsButton from "@/components/DocumentsButton";
 import { kDecimal } from "@/lib/fieldRules";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiValue: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpiValue: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0" } as React.CSSProperties,
+  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   tabs: { display: "flex", gap: 4, marginBottom: 24 } as React.CSSProperties,
-  tab: (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "#505070" }) as React.CSSProperties,
+  tab: (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "var(--text-ghost)" }) as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16 } as React.CSSProperties,
   searchWrap: { position: "relative" as const, flex: 1, maxWidth: 300 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
 };
 
 const INV_COLORS: Record<string, string> = { DRAFT: "#818cf8", SENT: "#60a5fa", PARTIAL: "#f59e0b", PAID: "#10b981", OVERDUE: "#ef4444", CANCELLED: "#6b7280" };
@@ -312,11 +312,11 @@ export default function FinancePage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Accounts & Finance</h1>
-          <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>Invoices, payments, and financial tracking</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Accounts & Finance</h1>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Invoices, payments, and financial tracking</p>
         </div>
         <div className="hdr-actions">
-          <button style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }} onClick={() => { setPayForm({ invoiceId: "", partyId: "", method: "BANK_TRANSFER", amount: "", referenceNumber: "", paymentDate: "", notes: "" }); setError(""); setShowPayModal(true); }}>
+          <button style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }} onClick={() => { setPayForm({ invoiceId: "", partyId: "", method: "BANK_TRANSFER", amount: "", referenceNumber: "", paymentDate: "", notes: "" }); setError(""); setShowPayModal(true); }}>
             <CheckCircle size={14} /> Record Payment
           </button>
           <button style={S.btn} onClick={() => { setForm({ partyId: "", type: "SALES", invoiceDate: "", dueDate: "", notes: "" }); setItems([{ ...emptyItem }]); setError(""); setShowModal(true); }}>
@@ -354,7 +354,7 @@ export default function FinancePage() {
             <input style={S.searchInput} placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           {tab === "invoices" && (
-            <select style={{ background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" }} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+            <select style={{ background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" }} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
               <option value="SALES">Sales Invoices</option>
               <option value="PURCHASE">Purchase Bills</option>
               <option value="CREDIT_NOTE">Credit Notes</option>
@@ -362,17 +362,17 @@ export default function FinancePage() {
           )}
         </div>
 
-        {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : tab === "invoices" ? (
+        {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : tab === "invoices" ? (
           <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr>{["Invoice#", "Party", "Date", "Due Date", "Total", "Paid", "Balance", "Status", ""].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr></thead>
             <tbody>
-              {invoices.length === 0 ? <tr><td colSpan={9} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No invoices yet.</td></tr> : invoices.map(inv => (
+              {invoices.length === 0 ? <tr><td colSpan={9} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No invoices yet.</td></tr> : invoices.map(inv => (
                 <tr key={inv.id}>
                   <td style={{ ...S.td, color: "#818CF8", fontWeight: 600 }}>{inv.invoiceNumber}</td>
                   <td style={S.td}>{inv.party?.name || "—"}</td>
                   <td style={S.td}>{new Date(inv.invoiceDate).toLocaleDateString("en-IN")}</td>
                   <td style={S.td}>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("en-IN") : "—"}</td>
-                  <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 600 }}>₹{inv.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                  <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 600 }}>₹{inv.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                   <td style={{ ...S.td, color: "#10b981" }}>₹{inv.paidAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                   <td style={{ ...S.td, color: inv.balanceDue > 0 ? "#f59e0b" : "#10b981", fontWeight: 600 }}>₹{inv.balanceDue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                   <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (INV_COLORS[inv.status] || "#818cf8") + "20", color: INV_COLORS[inv.status] || "#818cf8" }}>{inv.status}</span></td>
@@ -383,7 +383,7 @@ export default function FinancePage() {
                         title="Print / Save PDF"
                         onClick={() => handlePrint(inv.id)}
                         disabled={printingId === inv.id}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: printingId === inv.id ? "#2a2a4a" : "#505070", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: printingId === inv.id ? "#2a2a4a" : "var(--text-ghost)", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}
                       >
                         <Printer size={15} />
                       </button>
@@ -397,7 +397,7 @@ export default function FinancePage() {
           <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr>{["Date", "Party", "Invoice", "Method", "Amount", "Ref#"].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr></thead>
             <tbody>
-              {payments.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No payments yet.</td></tr> : payments.map(p => (
+              {payments.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No payments yet.</td></tr> : payments.map(p => (
                 <tr key={p.id}>
                   <td style={S.td}>{new Date(p.paymentDate).toLocaleDateString("en-IN")}</td>
                   <td style={S.td}>{p.party?.name || "—"}</td>
@@ -417,8 +417,8 @@ export default function FinancePage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Invoice</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Invoice</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -446,7 +446,7 @@ export default function FinancePage() {
                 <label style={{ ...S.label, marginBottom: 10 }}>Line Items</label>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {items.map((it, i) => (
-                    <div key={i} style={{ background: "#131327", borderRadius: 8, padding: 10 }}>
+                    <div key={i} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: 10 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8 }}>
                         <div><input style={S.input} value={it.description} onChange={(e) => setItem(i, "description", e.target.value)} placeholder="Description" /></div>
                         <div><input type="number" style={S.input} value={it.quantity} onChange={(e) => setItem(i, "quantity", e.target.value)} placeholder="Qty" onKeyDown={kDecimal} /></div>
@@ -460,16 +460,16 @@ export default function FinancePage() {
                       </div>
                     </div>
                   ))}
-                  <button onClick={() => setItems(prev => [...prev, { ...emptyItem }])} style={{ background: "#1C1C35", border: "1px dashed #2a2a4a", color: "#818CF8", borderRadius: 8, padding: "8px", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}><Plus size={12} /> Add Line</button>
+                  <button onClick={() => setItems(prev => [...prev, { ...emptyItem }])} style={{ background: "var(--bg-hover)", border: "1px dashed #2a2a4a", color: "#818CF8", borderRadius: 8, padding: "8px", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}><Plus size={12} /> Add Line</button>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <span style={{ color: "#505070", fontSize: 12 }}>Total: </span>
-                <span style={{ color: "#EEEEF5", fontWeight: 700, fontSize: 18 }}>₹{total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
+                <span style={{ color: "var(--text-ghost)", fontSize: 12 }}>Total: </span>
+                <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 18 }}>₹{total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveInvoice} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Create Invoice"}</button>
             </div>
           </div>
@@ -481,8 +481,8 @@ export default function FinancePage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowPayModal(false)}>
           <div className="modal-inner" style={{ maxWidth: 420 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>Record Payment</h3>
-              <button onClick={() => setShowPayModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Record Payment</h3>
+              <button onClick={() => setShowPayModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -512,7 +512,7 @@ export default function FinancePage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowPayModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowPayModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={savePayment} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Record Payment"}</button>
             </div>
           </div>

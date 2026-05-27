@@ -147,12 +147,12 @@ export default function CreateOrgPage() {
 
   // Styles
   const S = {
-    page:    { minHeight: "100vh", background: "#07071A", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px" } as React.CSSProperties,
+    page:    { minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px" } as React.CSSProperties,
     glow:    { position: "fixed", top: "15%", left: "50%", transform: "translateX(-50%)", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)", pointerEvents: "none" } as React.CSSProperties,
     wrap:    { width: "100%", maxWidth: step === 3 ? 760 : 500, position: "relative", zIndex: 1 } as React.CSSProperties,
-    card:    { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" } as React.CSSProperties,
+    card:    { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" } as React.CSSProperties,
     btnPri:  { width: "100%", height: 44, borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, boxShadow: "0 4px 20px rgba(99,102,241,0.35)", transition: "opacity 0.15s" } as React.CSSProperties,
-    btnOut:  { flex: 1, height: 44, borderRadius: 10, border: "1px solid #252545", background: "transparent", color: "#CCCCEE", fontSize: 14, fontWeight: 600, cursor: "pointer" } as React.CSSProperties,
+    btnOut:  { flex: 1, height: 44, borderRadius: 10, border: "1px solid #252545", background: "transparent", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" } as React.CSSProperties,
   };
 
   return (
@@ -165,10 +165,10 @@ export default function CreateOrgPage() {
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 13, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 28px rgba(99,102,241,0.4)" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 15 }}>FC</span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
             {step === 1 ? "Create your organization" : step === 2 ? "Contact & tax details" : "Choose your modules"}
           </h1>
-          <p style={{ fontSize: 13, color: "#7070A0", marginTop: 5 }}>
+          <p style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 5 }}>
             {step === 1 ? "Set up your company workspace on FlowCRM."
              : step === 2 ? "Optional — fill these anytime in Settings."
              : `${selectedModules.length} module${selectedModules.length !== 1 ? "s" : ""} selected · You can change this later in Settings.`}
@@ -187,15 +187,15 @@ export default function CreateOrgPage() {
                   <div style={{
                     width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 12, fontWeight: 700,
-                    background: done || active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "#131327",
-                    color: done || active ? "white" : "#505070",
+                    background: done || active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-hover)",
+                    color: done || active ? "white" : "var(--text-ghost)",
                     border: active ? "3px solid rgba(99,102,241,0.3)" : "2px solid #1C1C35",
                     boxShadow: done || active ? "0 4px 12px rgba(99,102,241,0.35)" : "none",
                     flexShrink: 0,
                   }}>
                     {done ? <Check style={{ width: 13, height: 13 }} /> : n}
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: active ? "#CCCCEE" : done ? "#7070A0" : "#404060", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: active ? "var(--text-sec)" : done ? "var(--text-faint)" : "var(--text-ghost)", whiteSpace: "nowrap" }}>
                     {label}
                   </span>
                 </div>
@@ -232,13 +232,13 @@ export default function CreateOrgPage() {
                 <Select label="Country" options={COUNTRIES} value={watch("country")} onChange={(e) => setValue("country", e.target.value)} />
               </div>
               {orgName.length >= 2 && (
-                <div style={{ padding: "13px 15px", background: "#131327", borderRadius: 10, border: "1px solid #1E1E38", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ padding: "13px 15px", background: "var(--bg-hover)", borderRadius: 10, border: "1px solid var(--border-input)", display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 9, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                     {getInitials(orgName)}
                   </div>
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#EEEEF5", margin: 0 }}>{orgName}</p>
-                    <p style={{ fontSize: 11, color: "#505070", margin: "2px 0 0" }}>Workspace preview</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{orgName}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: "2px 0 0" }}>Workspace preview</p>
                   </div>
                 </div>
               )}
@@ -273,7 +273,7 @@ export default function CreateOrgPage() {
                   Continue →
                 </button>
               </div>
-              <button type="button" onClick={() => setStep(3)} style={{ background: "none", border: "none", color: "#505070", fontSize: 12, cursor: "pointer", textAlign: "center", padding: "3px 0" }}>
+              <button type="button" onClick={() => setStep(3)} style={{ background: "none", border: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer", textAlign: "center", padding: "3px 0" }}>
                 Skip and choose modules
               </button>
             </div>
@@ -289,9 +289,9 @@ export default function CreateOrgPage() {
                 <div key={cat.key} style={{ marginBottom: 24 }}>
                   {/* Category header */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: "#7070A0", textTransform: "uppercase", letterSpacing: "0.08em", margin: 0 }}>{cat.label}</p>
-                    <div style={{ flex: 1, height: 1, background: "#1C1C35" }} />
-                    <p style={{ fontSize: 11, color: "#404060", margin: 0 }}>{cat.desc}</p>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em", margin: 0 }}>{cat.label}</p>
+                    <div style={{ flex: 1, height: 1, background: "var(--bg-hover)" }} />
+                    <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: 0 }}>{cat.desc}</p>
                   </div>
 
                   {/* Module cards grid */}
@@ -305,7 +305,7 @@ export default function CreateOrgPage() {
                           type="button"
                           onClick={() => toggleModule(mod.key)}
                           style={{
-                            background: selected ? mod.accentBg : "#0D0D1F",
+                            background: selected ? mod.accentBg : "var(--bg-card)",
                             border: `1px solid ${selected ? mod.accentBorder : "#1C1C35"}`,
                             borderRadius: 12, padding: "14px 14px", textAlign: "left", cursor: "pointer",
                             position: "relative", transition: "all 0.15s",
@@ -322,10 +322,10 @@ export default function CreateOrgPage() {
                           <div style={{ width: 36, height: 36, borderRadius: 9, background: mod.accentBg, border: `1px solid ${mod.accentBorder}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
                             <Icon style={{ width: 18, height: 18, color: mod.accentColor }} />
                           </div>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: selected ? "#EEEEF5" : "#CCCCEE", margin: "0 0 4px", paddingRight: selected ? 20 : 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: selected ? "var(--text-primary)" : "var(--text-sec)", margin: "0 0 4px", paddingRight: selected ? 20 : 0 }}>
                             {mod.label}
                           </p>
-                          <p style={{ fontSize: 11, color: "#505070", margin: 0, lineHeight: 1.5 }}>
+                          <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: 0, lineHeight: 1.5 }}>
                             {mod.description}
                           </p>
                         </button>
@@ -337,10 +337,10 @@ export default function CreateOrgPage() {
             })}
 
             {/* Bottom actions */}
-            <div style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 8 }}>
+            <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <button type="button" onClick={() => setStep(2)} style={{ ...S.btnOut, width: "auto", padding: "0 18px" }}>← Back</button>
-                <p style={{ fontSize: 13, color: "#7070A0", margin: 0 }}>
+                <p style={{ fontSize: 13, color: "var(--text-faint)", margin: 0 }}>
                   <span style={{ color: "#818CF8", fontWeight: 700 }}>{selectedModules.length}</span> module{selectedModules.length !== 1 ? "s" : ""} selected
                 </p>
               </div>

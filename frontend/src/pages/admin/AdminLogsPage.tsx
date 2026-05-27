@@ -4,12 +4,12 @@ import { useAuthStore } from "@/stores/authStore";
 import { ScrollText, Search } from "lucide-react";
 
 const S = {
-  page: { padding: "28px 32px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  sub: { fontSize: 13, color: "#505070", marginTop: 4, marginBottom: 28 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "11px 14px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  page: { padding: "28px 32px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  sub: { fontSize: 13, color: "var(--text-ghost)", marginTop: 4, marginBottom: 28 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  th: { textAlign: "left" as const, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "11px 14px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -56,22 +56,22 @@ export default function AdminLogsPage() {
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, maxWidth: 360 }}>
-          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
           <input
-            style={{ width: "100%", background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 8, padding: "8px 12px 8px 36px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px 8px 36px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" }}
             placeholder="Search by action, resource, user..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <span style={{ fontSize: 12, color: "#505070" }}>{total} total entries</span>
+        <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>{total} total entries</span>
       </div>
 
       <div style={S.card}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : logs.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>
             <ScrollText size={36} style={{ margin: "0 auto 12px", display: "block", color: "#1C1C35" }} />
             No audit logs found.
           </div>
@@ -90,12 +90,12 @@ export default function AdminLogsPage() {
                   const ac = ACTION_COLORS[log.action?.toUpperCase()] || "#818cf8";
                   return (
                     <tr key={log.id}>
-                      <td style={{ ...S.td, fontSize: 11, color: "#505070", whiteSpace: "nowrap" }}>
+                      <td style={{ ...S.td, fontSize: 11, color: "var(--text-ghost)", whiteSpace: "nowrap" }}>
                         {new Date(log.createdAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
                       </td>
                       <td style={S.td}>
-                        <div style={{ fontSize: 13, color: "#EEEEF5", fontWeight: 500 }}>{log.userName || "—"}</div>
-                        <div style={{ fontSize: 10, color: "#505070" }}>{log.userEmail}</div>
+                        <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{log.userName || "—"}</div>
+                        <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{log.userEmail}</div>
                       </td>
                       <td style={S.td}>
                         <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 700, background: ac + "20", color: ac }}>
@@ -104,12 +104,12 @@ export default function AdminLogsPage() {
                       </td>
                       <td style={{ ...S.td, fontSize: 12 }}>
                         <span style={{ color: "#818cf8" }}>{log.resource}</span>
-                        {log.resourceId && <span style={{ fontSize: 10, color: "#505070", display: "block" }}>#{log.resourceId.slice(0, 8)}</span>}
+                        {log.resourceId && <span style={{ fontSize: 10, color: "var(--text-ghost)", display: "block" }}>#{log.resourceId.slice(0, 8)}</span>}
                       </td>
-                      <td style={{ ...S.td, fontSize: 12, color: "#CCCCEE", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <td style={{ ...S.td, fontSize: 12, color: "var(--text-sec)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {log.description || "—"}
                       </td>
-                      <td style={{ ...S.td, fontSize: 11, color: "#505070", fontFamily: "monospace" }}>
+                      <td style={{ ...S.td, fontSize: 11, color: "var(--text-ghost)", fontFamily: "monospace" }}>
                         {log.ipAddress || "—"}
                       </td>
                     </tr>
@@ -121,14 +121,14 @@ export default function AdminLogsPage() {
             {totalPages > 1 && (
               <div style={{ display: "flex", justifyContent: "center", gap: 8, padding: "16px 0 0" }}>
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                  style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #1C1C35", background: "#131327", color: page === 1 ? "#505070" : "#CCCCEE", cursor: page === 1 ? "default" : "pointer", fontSize: 12 }}>
+                  style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid var(--border)", background: "var(--bg-hover)", color: page === 1 ? "var(--text-ghost)" : "var(--text-sec)", cursor: page === 1 ? "default" : "pointer", fontSize: 12 }}>
                   ← Prev
                 </button>
-                <span style={{ padding: "6px 14px", fontSize: 12, color: "#505070" }}>
+                <span style={{ padding: "6px 14px", fontSize: 12, color: "var(--text-ghost)" }}>
                   Page {page} of {totalPages}
                 </span>
                 <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #1C1C35", background: "#131327", color: page === totalPages ? "#505070" : "#CCCCEE", cursor: page === totalPages ? "default" : "pointer", fontSize: 12 }}>
+                  style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid var(--border)", background: "var(--bg-hover)", color: page === totalPages ? "var(--text-ghost)" : "var(--text-sec)", cursor: page === totalPages ? "default" : "pointer", fontSize: 12 }}>
                   Next →
                 </button>
               </div>

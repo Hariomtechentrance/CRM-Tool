@@ -6,19 +6,19 @@ import { ALL_MODULES } from "@/lib/modules";
 import { Settings, Building2, Users, Shield, X, Plus, Check, Zap } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
-  tabs: { display: "flex", gap: 4, marginBottom: 24, borderBottom: "1px solid #1C1C35", paddingBottom: 4 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 24, marginBottom: 20 } as React.CSSProperties,
-  section: { fontSize: 13, fontWeight: 700, color: "#EEEEF5", marginBottom: 16, paddingBottom: 10, borderBottom: "1px solid #1C1C35" } as React.CSSProperties,
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
+  tabs: { display: "flex", gap: 4, marginBottom: 24, borderBottom: "1px solid var(--border)", paddingBottom: 4 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24, marginBottom: 20 } as React.CSSProperties,
+  section: { fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16, paddingBottom: 10, borderBottom: "1px solid var(--border)" } as React.CSSProperties,
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 } as React.CSSProperties,
   g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 } as React.CSSProperties,
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 460 },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 460 },
 };
 
 type Tab = "organization" | "modules" | "team";
@@ -26,13 +26,14 @@ type Tab = "organization" | "modules" | "team";
 interface Member { id: string; name: string; email: string; role: string; joinedAt: string }
 
 export default function SettingsPage() {
-  const { activeOrg, updateActiveOrgModules, user, logout, updateUser } = useAuthStore();
+  const { activeOrg, updateActiveOrgModules, loadModuleAccess, user, logout, updateUser } = useAuthStore();
   const navigate = useNavigate();
   const [claimingAdmin, setClaimingAdmin] = useState(false);
   const [claimMsg, setClaimMsg] = useState("");
   const [tab, setTab] = useState<Tab>("organization");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [form, setForm] = useState({ name: "", taxId: "", phone: "", email: "", address: "", city: "", state: "", country: "India", currency: "INR", website: "" });
   const [enabledModules, setEnabledModules] = useState<string[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -63,7 +64,9 @@ export default function SettingsPage() {
             currency: o.currency || "INR",
             website: o.website || "",
           });
-          setEnabledModules(o.enabledModules || []);
+          // Treat empty enabledModules as "all enabled" — same fallback as the sidebar
+          const mods: string[] = o.enabledModules || [];
+          setEnabledModules(mods.length === 0 ? ALL_MODULES.map((m) => m.key) : mods);
         }
         setMembers(Array.isArray(mRes.data.data) ? mRes.data.data : []);
       } catch { /* ignore */ }
@@ -82,11 +85,15 @@ export default function SettingsPage() {
 
   const saveModules = async () => {
     setSaving(true);
+    setSaveError("");
     try {
       await api.patch("/organizations/current", { enabledModules });
-      updateActiveOrgModules(enabledModules);  // update sidebar immediately
+      updateActiveOrgModules(enabledModules);
+      await loadModuleAccess(); // re-sync isOrgAdmin + moduleAccess so sidebar updates immediately
       setSaved(true); setTimeout(() => setSaved(false), 2000);
-    } catch { /* ignore */ }
+    } catch {
+      setSaveError("Failed to save. Please try again.");
+    }
     setSaving(false);
   };
 
@@ -122,8 +129,8 @@ export default function SettingsPage() {
 
   const tabStyle = (t: Tab) => ({
     padding: "8px 18px", borderRadius: "8px 8px 0 0", border: "none",
-    background: tab === t ? "#0D0D1F" : "transparent",
-    color: tab === t ? "#EEEEF5" : "#505070", cursor: "pointer", fontWeight: 600, fontSize: 13,
+    background: tab === t ? "var(--bg-card)" : "transparent",
+    color: tab === t ? "var(--text-primary)" : "var(--text-ghost)", cursor: "pointer", fontWeight: 600, fontSize: 13,
     borderBottom: tab === t ? "2px solid #6366f1" : "2px solid transparent",
   });
 
@@ -144,13 +151,13 @@ export default function SettingsPage() {
 
       {/* One-time Super Admin claim — only visible if not yet super admin */}
       {!user?.isSuperAdmin && (
-        <div style={{ background: "#0D0D1F", border: "1px solid #2a1a1a", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ background: "var(--bg-card)", border: "1px solid #2a1a1a", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ width: 36, height: 36, borderRadius: 9, background: "#ef444415", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Zap size={17} color="#ef4444" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#EEEEF5", marginBottom: 2 }}>Activate Super Admin (First-time Setup)</div>
-            <div style={{ fontSize: 12, color: "#505070" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>Activate Super Admin (First-time Setup)</div>
+            <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>
               {claimMsg || "Click to make yourself the platform Super Admin. Only works once — no existing super admin must exist."}
             </div>
           </div>
@@ -230,23 +237,23 @@ export default function SettingsPage() {
       {tab === "modules" && (
         <div style={S.card}>
           <div style={S.section}>Enabled Modules</div>
-          <p style={{ fontSize: 13, color: "#505070", marginBottom: 20 }}>
-            Select which modules are active for <strong style={{ color: "#EEEEF5" }}>{activeOrg?.name}</strong>. Changes affect all team members.
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 20 }}>
+            Select which modules are active for <strong style={{ color: "var(--text-primary)" }}>{activeOrg?.name}</strong>. Changes affect all team members.
           </p>
           {CATEGORIES.map(cat => {
             const mods = ALL_MODULES.filter(m => m.category === cat.key);
             return (
               <div key={cat.key} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{cat.label}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{cat.label}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 8 }}>
                   {mods.map(m => {
                     const on = enabledModules.includes(m.key);
                     return (
-                      <label key={m.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: on ? "#6366f115" : "#131327", borderRadius: 8, border: `1px solid ${on ? "#6366f1" : "#1C1C35"}`, cursor: "pointer" }}>
+                      <label key={m.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: on ? "#6366f115" : "var(--bg-hover)", borderRadius: 8, border: `1px solid ${on ? "#6366f1" : "#1C1C35"}`, cursor: "pointer" }}>
                         <input type="checkbox" checked={on} onChange={() => toggleModule(m.key)} style={{ accentColor: "#6366f1" }} />
                         <div>
-                          <div style={{ fontSize: 13, color: on ? "#EEEEF5" : "#CCCCEE", fontWeight: on ? 600 : 400 }}>{m.label}</div>
-                          <div style={{ fontSize: 10, color: "#505070", marginTop: 1 }}>{m.description.slice(0, 50)}…</div>
+                          <div style={{ fontSize: 13, color: on ? "var(--text-primary)" : "var(--text-sec)", fontWeight: on ? 600 : 400 }}>{m.label}</div>
+                          <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 1 }}>{m.description.slice(0, 50)}…</div>
                         </div>
                       </label>
                     );
@@ -255,11 +262,12 @@ export default function SettingsPage() {
               </div>
             );
           })}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
             <button onClick={saveModules} style={S.btn} disabled={saving}>
-              {saved ? "Saved! Reloading..." : saving ? "Saving..." : "Save Module Selection"}
+              {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Module Selection"}
             </button>
-            <span style={{ fontSize: 12, color: "#505070" }}>{enabledModules.length} module{enabledModules.length !== 1 ? "s" : ""} selected</span>
+            <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>{enabledModules.length} module{enabledModules.length !== 1 ? "s" : ""} selected</span>
+            {saveError && <span style={{ fontSize: 12, color: "#f87171", fontWeight: 600 }}>{saveError}</span>}
           </div>
         </div>
       )}
@@ -274,12 +282,12 @@ export default function SettingsPage() {
             </button>
           </div>
           {members.length === 0 ? (
-            <div style={{ textAlign: "center", color: "#505070", padding: 32 }}>No team members yet.</div>
+            <div style={{ textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No team members yet.</div>
           ) : members.map(m => (
             <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #131327" }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#EEEEF5" }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: "#505070" }}>{m.email}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{m.name}</div>
+                <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>{m.email}</div>
               </div>
               <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 5, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>{m.role}</span>
             </div>
@@ -292,8 +300,8 @@ export default function SettingsPage() {
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowInvite(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>Invite Team Member</h3>
-              <button onClick={() => setShowInvite(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Invite Team Member</h3>
+              <button onClick={() => setShowInvite(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {inviteDone ? (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
@@ -313,7 +321,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                  <button onClick={() => setShowInvite(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+                  <button onClick={() => setShowInvite(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
                   <button onClick={sendInvite} style={S.btn} disabled={inviting || !inviteEmail}>
                     {inviting ? "Sending..." : "Send Invite"}
                   </button>

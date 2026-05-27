@@ -3,27 +3,27 @@ import api from "@/lib/api";
 import { Globe, Plus, Search, X, FileText, Package, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "16px 20px" } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px" } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" as const },
   searchWrap: { position: "relative" as const, flex: 1, maxWidth: 280 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 580, maxHeight: "90vh", overflowY: "auto" as const },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
-  filterSel: { background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "7px 10px", color: "#EEEEF5", fontSize: 12, outline: "none", colorScheme: "dark" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 580, maxHeight: "90vh", overflowY: "auto" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  filterSel: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "7px 10px", color: "var(--text-primary)", fontSize: 12, outline: "none", colorScheme: "dark" as const },
   g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
   g3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 } as React.CSSProperties,
 };
@@ -158,17 +158,17 @@ export default function TradePage() {
         ].map(k => (
           <div key={k.label} style={S.kpi}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize:12, color:"#505070", fontWeight:500 }}>{k.label}</span>
+              <span style={{ fontSize:12, color:"var(--text-ghost)", fontWeight:500 }}>{k.label}</span>
               <div style={{ padding:6, borderRadius:8, background:k.color+"20" }}>{k.icon}</div>
             </div>
-            <div style={{ fontSize:26, fontWeight:700, color:"#EEEEF5", marginTop:4 }}>{k.value}</div>
+            <div style={{ fontSize:26, fontWeight:700, color:"var(--text-primary)", marginTop:4 }}>{k.value}</div>
           </div>
         ))}
       </div>
 
       {/* Type Filter Chips */}
       <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" as const }}>
-        <button onClick={() => setTypeFilter("")} style={{ padding:"5px 12px", borderRadius:7, border:`1px solid ${!typeFilter ? "#6366f1" : "#1C1C35"}`, background:!typeFilter ? "#6366f120" : "transparent", color:!typeFilter ? "#818CF8" : "#505070", cursor:"pointer", fontSize:11, fontWeight:600 }}>All Types</button>
+        <button onClick={() => setTypeFilter("")} style={{ padding:"5px 12px", borderRadius:7, border:`1px solid ${!typeFilter ? "#6366f1" : "#1C1C35"}`, background:!typeFilter ? "#6366f120" : "transparent", color:!typeFilter ? "#818CF8" : "var(--text-ghost)", cursor:"pointer", fontSize:11, fontWeight:600 }}>All Types</button>
         {DOC_TYPES.map(t => (
           <button key={t} onClick={() => setTypeFilter(typeFilter===t ? "" : t)} style={{ padding:"5px 12px", borderRadius:7, border:`1px solid ${typeFilter===t ? TYPE_COLORS[t] : TYPE_COLORS[t]+"40"}`, background:typeFilter===t ? TYPE_COLORS[t]+"25" : "transparent", color:typeFilter===t ? TYPE_COLORS[t] : TYPE_COLORS[t]+"cc", cursor:"pointer", fontSize:11, fontWeight:600 }}>
             <FileText size={11} style={{ display:"inline", marginRight:4 }}/>{TYPE_LABELS[t]}
@@ -186,17 +186,17 @@ export default function TradePage() {
             <option value="">All Status</option>
             {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <span style={{ marginLeft:"auto", fontSize:12, color:"#505070" }}>{docs.length} document{docs.length !== 1 ? "s" : ""}</span>
+          <span style={{ marginLeft:"auto", fontSize:12, color:"var(--text-ghost)" }}>{docs.length} document{docs.length !== 1 ? "s" : ""}</span>
         </div>
 
-        {loading ? <div style={{ padding:40, textAlign:"center", color:"#505070" }}>Loading...</div> : (
+        {loading ? <div style={{ padding:40, textAlign:"center", color:"var(--text-ghost)" }}>Loading...</div> : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>{["Doc Number","Type","Party","Date","Expiry","Route","Amount","Status","Actions"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
             <tbody>
               {docs.length === 0
-                ? <tr><td colSpan={9} style={{ ...S.td, textAlign:"center", color:"#505070", padding:40 }}>No documents. Create your first trade document.</td></tr>
+                ? <tr><td colSpan={9} style={{ ...S.td, textAlign:"center", color:"var(--text-ghost)", padding:40 }}>No documents. Create your first trade document.</td></tr>
                 : docs.map(d => {
                   const isExpiringSoon = d.expiryDate && new Date(d.expiryDate) < new Date(Date.now() + 30*86400000) && new Date(d.expiryDate) > new Date();
                   const isExpired = d.expiryDate && new Date(d.expiryDate) < new Date();
@@ -206,7 +206,7 @@ export default function TradePage() {
                       <td style={S.td}><Badge text={TYPE_LABELS[d.type]||d.type} color={TYPE_COLORS[d.type]||"#818cf8"}/></td>
                       <td style={S.td}>{d.party?.name || "—"}</td>
                       <td style={S.td}>{new Date(d.documentDate).toLocaleDateString("en-IN")}</td>
-                      <td style={{ ...S.td, color: isExpired ? "#ef4444" : isExpiringSoon ? "#f59e0b" : "#CCCCEE" }}>
+                      <td style={{ ...S.td, color: isExpired ? "#ef4444" : isExpiringSoon ? "#f59e0b" : "var(--text-sec)" }}>
                         {d.expiryDate ? (
                           <span style={{ display:"flex", alignItems:"center", gap:4 }}>
                             {(isExpired||isExpiringSoon) && <AlertTriangle size={11}/>}
@@ -223,9 +223,9 @@ export default function TradePage() {
                           value={d.status}
                           disabled={updatingStatus}
                           onChange={e => quickStatus(d.id, e.target.value)}
-                          style={{ background:"transparent", border:"none", color:STATUS_COLORS[d.status]||"#CCCCEE", fontSize:11, fontWeight:600, cursor:"pointer", outline:"none", colorScheme:"dark" }}
+                          style={{ background:"transparent", border:"none", color:STATUS_COLORS[d.status]||"var(--text-sec)", fontSize:11, fontWeight:600, cursor:"pointer", outline:"none", colorScheme:"dark" }}
                         >
-                          {STATUSES.map(s => <option key={s} value={s} style={{ background:"#131327", color:STATUS_COLORS[s]||"#CCCCEE" }}>{s}</option>)}
+                          {STATUSES.map(s => <option key={s} value={s} style={{ background:"var(--bg-hover)", color:STATUS_COLORS[s]||"var(--text-sec)" }}>{s}</option>)}
                         </select>
                       </td>
                       <td style={S.td} onClick={e => e.stopPropagation()}>
@@ -244,10 +244,10 @@ export default function TradePage() {
       {summary && summary.byType.length > 0 && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:12, marginTop:20 }}>
           {summary.byType.sort((a,b) => b._count - a._count).map(t => (
-            <div key={t.type} style={{ background:"#0D0D1F", border:"1px solid #1C1C35", borderRadius:10, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div key={t.type} style={{ background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:10, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                 <div style={{ width:8, height:8, borderRadius:"50%", background:TYPE_COLORS[t.type]||"#818cf8", flexShrink:0 }}/>
-                <span style={{ fontSize:12, color:"#CCCCEE" }}>{TYPE_LABELS[t.type]||t.type}</span>
+                <span style={{ fontSize:12, color:"var(--text-sec)" }}>{TYPE_LABELS[t.type]||t.type}</span>
               </div>
               <span style={{ fontSize:14, fontWeight:700, color:TYPE_COLORS[t.type]||"#818cf8" }}>{t._count}</span>
             </div>
@@ -260,8 +260,8 @@ export default function TradePage() {
         <div style={S.modal} onClick={e => e.target===e.currentTarget && setShowModal(false)}>
           <div className="modal-inner">
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ color:"#EEEEF5", margin:0, fontSize:16, fontWeight:700 }}>{editId ? "Edit Document" : "New Trade Document"}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background:"none", border:"none", color:"#505070", cursor:"pointer" }}><X size={18}/></button>
+              <h3 style={{ color:"var(--text-primary)", margin:0, fontSize:16, fontWeight:700 }}>{editId ? "Edit Document" : "New Trade Document"}</h3>
+              <button onClick={() => setShowModal(false)} style={{ background:"none", border:"none", color:"var(--text-ghost)", cursor:"pointer" }}><X size={18}/></button>
             </div>
             {error && <div style={{ background:"#ef444420", border:"1px solid #ef4444", borderRadius:8, padding:"8px 12px", color:"#ef4444", fontSize:12, marginBottom:14 }}>{error}</div>}
             <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -317,7 +317,7 @@ export default function TradePage() {
               <div><label style={S.label}>Description / Notes</label><textarea style={{ ...S.input, minHeight:60, resize:"vertical" as const }} value={form.notes} onChange={e => f("notes", e.target.value)}/></div>
             </div>
             <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background:"#1C1C35", color:"var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>{saving ? "Saving..." : editId ? "Update" : "Create Document"}</button>
             </div>
           </div>

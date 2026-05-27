@@ -4,11 +4,11 @@ import api from "@/lib/api";
 import { BarChart3, TrendingUp, Package, Users, ShoppingCart, DollarSign, Download, PieChart, Activity } from "lucide-react";
 
 const S = {
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  cardTitle: { fontSize: 14, fontWeight: 700, color: "#EEEEF5", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  cardTitle: { fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #131327" } as React.CSSProperties,
 };
 
@@ -19,10 +19,10 @@ function BarChart({ data, color = "#6366f1" }: { data: { label: string; value: n
       {data.map((d, i) => (
         <div key={i}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 12, color: "#CCCCEE" }}>{d.label}</span>
+            <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{d.label}</span>
             <span style={{ fontSize: 12, fontWeight: 700, color }}>{d.raw !== undefined ? d.raw : d.value}</span>
           </div>
-          <div style={{ height: 8, background: "#131327", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ height: 8, background: "var(--bg-hover)", borderRadius: 4, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${(d.value / max) * 100}%`, background: color, borderRadius: 4, transition: "width 0.6s ease" }} />
           </div>
         </div>
@@ -40,7 +40,7 @@ function DonutChart({ segments }: { segments: { label: string; value: number; co
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
       <svg width={size} height={size} style={{ flexShrink: 0 }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#131327" strokeWidth={strokeWidth} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--bg-hover)" strokeWidth={strokeWidth} />
         {segments.map((seg, i) => {
           const pct = seg.value / total;
           const dash = pct * circumference;
@@ -52,13 +52,13 @@ function DonutChart({ segments }: { segments: { label: string; value: number; co
               strokeDashoffset={offset} transform={`rotate(-90 ${cx} ${cy})`} strokeLinecap="round" />
           );
         })}
-        <text x={cx} y={cy + 4} textAnchor="middle" fill="#EEEEF5" fontSize={14} fontWeight={700}>{total}</text>
+        <text x={cx} y={cy + 4} textAnchor="middle" fill="var(--text-primary)" fontSize={14} fontWeight={700}>{total}</text>
       </svg>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
         {segments.map((seg, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: "#CCCCEE", flex: 1 }}>{seg.label}</span>
+            <span style={{ fontSize: 12, color: "var(--text-sec)", flex: 1 }}>{seg.label}</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: seg.color }}>{seg.value}</span>
           </div>
         ))}
@@ -184,14 +184,14 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading analytics...</div> : (
+      {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading analytics...</div> : (
         <>
           {/* KPI Row */}
           <div className="kpi-grid">
             {kpis.map(k => (
               <div key={k.label} style={S.kpi}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "#505070", fontWeight: 500 }}>{k.label}</span>
+                  <span style={{ fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 }}>{k.label}</span>
                   <k.icon size={16} color={k.color} />
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: k.color, marginTop: 6 }}>{k.value}</div>
@@ -211,7 +211,7 @@ export default function ReportsPage() {
                   { label: "Overdue", value: finStats?.overdueInvoices ?? 0, color: "#ef4444" },
                 ].map(r => (
                   <div key={r.label} style={S.row}>
-                    <span style={{ fontSize: 13, color: "#CCCCEE" }}>{r.label}</span>
+                    <span style={{ fontSize: 13, color: "var(--text-sec)" }}>{r.label}</span>
                     <span style={{ fontSize: 14, fontWeight: 700, color: r.color }}>{r.value}</span>
                   </div>
                 ))}
@@ -221,10 +221,10 @@ export default function ReportsPage() {
             {/* Lead Donut */}
             <div style={S.card}>
               <div style={S.cardTitle}><PieChart size={16} color="#a78bfa" /> Lead Conversion</div>
-              {leadDonut.length > 0 ? <DonutChart segments={leadDonut} /> : <div style={{ color: "#505070", fontSize: 13, textAlign: "center", padding: "20px 0" }}>No lead data yet</div>}
+              {leadDonut.length > 0 ? <DonutChart segments={leadDonut} /> : <div style={{ color: "var(--text-ghost)", fontSize: 13, textAlign: "center", padding: "20px 0" }}>No lead data yet</div>}
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #131327" }}>
                 <div style={S.row}>
-                  <span style={{ fontSize: 13, color: "#CCCCEE" }}>Pipeline Value</span>
+                  <span style={{ fontSize: 13, color: "var(--text-sec)" }}>Pipeline Value</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b" }}>{fmt(leadStats?.pipeline)}</span>
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default function ReportsPage() {
               <BarChart data={inventoryChartData} color="#f59e0b" />
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #131327" }}>
                 <div style={S.row}>
-                  <span style={{ fontSize: 13, color: "#CCCCEE" }}>Inventory Value</span>
+                  <span style={{ fontSize: 13, color: "var(--text-sec)" }}>Inventory Value</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981" }}>{fmt(invStats?.totalValue)}</span>
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function ReportsPage() {
                   { label: "Pending Leaves", value: hrStats?.pendingLeaves ?? 0, color: "#a78bfa" },
                 ].map(r => (
                   <div key={r.label} style={S.row}>
-                    <span style={{ fontSize: 13, color: "#CCCCEE" }}>{r.label}</span>
+                    <span style={{ fontSize: 13, color: "var(--text-sec)" }}>{r.label}</span>
                     <span style={{ fontSize: 16, fontWeight: 700, color: r.color }}>{r.value}</span>
                   </div>
                 ))}
@@ -277,14 +277,14 @@ export default function ReportsPage() {
               {exports.map(e => (
                 <div key={e.key} style={{ ...S.row, cursor: "pointer" }} onClick={() => handleExport(e.key)}>
                   <div>
-                    <div style={{ fontSize: 13, color: "#CCCCEE", display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontSize: 13, color: "var(--text-sec)", display: "flex", alignItems: "center", gap: 6 }}>
                       <span>{e.icon}</span>{e.label}
                     </div>
-                    <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{e.note}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{e.note}</div>
                   </div>
                   <button
                     disabled={exporting === e.key}
-                    style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #1C1C35", cursor: "pointer", background: exporting === e.key ? "#6366f120" : "#131327", color: exporting === e.key ? "#818CF8" : "#6366f1", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}
+                    style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid var(--border)", cursor: "pointer", background: exporting === e.key ? "#6366f120" : "var(--bg-hover)", color: exporting === e.key ? "#818CF8" : "#6366f1", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}
                   >
                     <Download size={12} />{exporting === e.key ? "Exporting..." : "CSV"}
                   </button>

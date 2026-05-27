@@ -83,10 +83,10 @@ export default function SuperAdminLoginPage() {
           }}>
             <Shield size={26} color="white" />
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#EEEEF5", margin: 0, letterSpacing: "-0.3px" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.3px" }}>
             Platform Administration
           </h1>
-          <p style={{ fontSize: 13, color: "#505070", marginTop: 6 }}>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 6 }}>
             FlowCRM · Super Admin Portal
           </p>
         </div>
@@ -128,11 +128,11 @@ export default function SuperAdminLoginPage() {
 
               {/* Email */}
               <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
                   Admin Email
                 </label>
                 <div style={{ position: "relative" }}>
-                  <Mail size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+                  <Mail size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
                   <input
                     type="email"
                     autoComplete="username"
@@ -140,9 +140,9 @@ export default function SuperAdminLoginPage() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     style={{
-                      width: "100%", background: "#131320", border: "1px solid #1E1E38",
+                      width: "100%", background: "#131320", border: "1px solid var(--border-input)",
                       borderRadius: 9, padding: "10px 12px 10px 38px",
-                      color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box",
+                      color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box",
                     }}
                     onFocus={e => (e.target.style.borderColor = "#dc2626")}
                     onBlur={e => (e.target.style.borderColor = "#1E1E38")}
@@ -152,11 +152,11 @@ export default function SuperAdminLoginPage() {
 
               {/* Password */}
               <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
                   Password
                 </label>
                 <div style={{ position: "relative" }}>
-                  <Lock size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+                  <Lock size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
                   <input
                     type={showPw ? "text" : "password"}
                     autoComplete="current-password"
@@ -164,9 +164,9 @@ export default function SuperAdminLoginPage() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     style={{
-                      width: "100%", background: "#131320", border: "1px solid #1E1E38",
+                      width: "100%", background: "#131320", border: "1px solid var(--border-input)",
                       borderRadius: 9, padding: "10px 38px 10px 38px",
-                      color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box",
+                      color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box",
                     }}
                     onFocus={e => (e.target.style.borderColor = "#dc2626")}
                     onBlur={e => (e.target.style.borderColor = "#1E1E38")}
@@ -174,7 +174,7 @@ export default function SuperAdminLoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPw(!showPw)}
-                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 0, display: "flex" }}
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 0, display: "flex" }}
                   >
                     {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
@@ -205,7 +205,7 @@ export default function SuperAdminLoginPage() {
         {/* Footer note */}
         <p style={{ textAlign: "center", fontSize: 11, color: "#2a2a40", marginTop: 20, lineHeight: 1.6 }}>
           Looking for your organization login?{" "}
-          <a href="/login" style={{ color: "#404060", textDecoration: "none", fontWeight: 500 }}>Click here</a>
+          <a href="/login" style={{ color: "var(--text-ghost)", textDecoration: "none", fontWeight: 500 }}>Click here</a>
         </p>
       </div>
     </div>

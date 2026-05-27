@@ -4,13 +4,13 @@ import { PackageOpen, Plus, Search, X, Check, Clock, Truck } from "lucide-react"
 
 const S = {
   btn: { background: "linear-gradient(135deg,#10b981,#059669)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20, marginBottom: 20 } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35", whiteSpace: "nowrap" as const },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327", verticalAlign: "top" as const },
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20, marginBottom: 20 } as React.CSSProperties,
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" as const },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327", verticalAlign: "top" as const },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "16px" },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
 };
 
 const UNITS = ["PCS", "KG", "MT", "LTR", "BOX", "BAG", "ROLL", "BUNDLE", "PAIR", "SET", "DOZEN", "TON"];
@@ -95,8 +95,8 @@ export default function StorePage() {
             <PackageOpen size={20} color="#10b981" />
           </div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Store — Inward Register</h1>
-            <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>Record all incoming materials and goods received at store</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Store — Inward Register</h1>
+            <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Record all incoming materials and goods received at store</p>
           </div>
         </div>
         <div className="hdr-actions">
@@ -111,8 +111,8 @@ export default function StorePage() {
           { label: "Total Entries", value: entries.length, color: "#818cf8" },
           { label: "Today's Qty", value: totalQtyToday.toLocaleString("en-IN"), color: "#f59e0b" },
         ].map(k => (
-          <div key={k.label} style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 10, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 12, color: "#505070" }}>{k.label}</span>
+          <div key={k.label} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>{k.label}</span>
             <span style={{ fontSize: 20, fontWeight: 700, color: k.color }}>{k.value}</span>
           </div>
         ))}
@@ -122,7 +122,7 @@ export default function StorePage() {
       <div style={S.card}>
         <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: 360 }}>
-            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
             <input
               style={{ ...S.input, paddingLeft: 34 }}
               placeholder="Search material, party, vehicle, GRN#..."
@@ -133,11 +133,11 @@ export default function StorePage() {
         </div>
 
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : entries.length === 0 ? (
           <div style={{ padding: 60, textAlign: "center" }}>
             <PackageOpen size={40} color="#1C1C35" style={{ margin: "0 auto 12px", display: "block" }} />
-            <p style={{ color: "#505070", margin: 0 }}>No inward entries yet. Click "New Inward Entry" to record material receipt.</p>
+            <p style={{ color: "var(--text-ghost)", margin: 0 }}>No inward entries yet. Click "New Inward Entry" to record material receipt.</p>
           </div>
         ) : (
           <div className="table-wrap">
@@ -159,19 +159,19 @@ export default function StorePage() {
                       <td style={{ ...S.td, color: "#10b981", fontWeight: 700, whiteSpace: "nowrap" }}>{e.entryNumber}</td>
                       <td style={{ ...S.td, whiteSpace: "nowrap" }}>
                         <div>{new Date(e.entryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                        {e.entryTime && <div style={{ fontSize: 11, color: "#505070", display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}><Clock size={10} />{e.entryTime}</div>}
+                        {e.entryTime && <div style={{ fontSize: 11, color: "var(--text-ghost)", display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}><Clock size={10} />{e.entryTime}</div>}
                       </td>
                       <td style={S.td}>
-                        <div style={{ fontWeight: 500, color: "#EEEEF5" }}>{e.materialName}</div>
-                        {e.remarks && <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{e.remarks}</div>}
+                        <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>{e.materialName}</div>
+                        {e.remarks && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{e.remarks}</div>}
                       </td>
-                      <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5", whiteSpace: "nowrap" }}>
-                        {e.quantity.toLocaleString("en-IN")} <span style={{ fontSize: 11, color: "#505070" }}>{e.unit}</span>
+                      <td style={{ ...S.td, fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
+                        {e.quantity.toLocaleString("en-IN")} <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>{e.unit}</span>
                       </td>
-                      <td style={S.td}>{e.partyName || e.party?.name || <span style={{ color: "#505070" }}>—</span>}</td>
-                      <td style={{ ...S.td, fontFamily: "monospace", fontSize: 12 }}>{e.vehicleNumber || <span style={{ color: "#505070" }}>—</span>}</td>
-                      <td style={S.td}>{e.personName || <span style={{ color: "#505070" }}>—</span>}</td>
-                      <td style={{ ...S.td, fontSize: 11, color: "#818cf8" }}>{e.referenceNo || <span style={{ color: "#505070" }}>—</span>}</td>
+                      <td style={S.td}>{e.partyName || e.party?.name || <span style={{ color: "var(--text-ghost)" }}>—</span>}</td>
+                      <td style={{ ...S.td, fontFamily: "monospace", fontSize: 12 }}>{e.vehicleNumber || <span style={{ color: "var(--text-ghost)" }}>—</span>}</td>
+                      <td style={S.td}>{e.personName || <span style={{ color: "var(--text-ghost)" }}>—</span>}</td>
+                      <td style={{ ...S.td, fontSize: 11, color: "#818cf8" }}>{e.referenceNo || <span style={{ color: "var(--text-ghost)" }}>—</span>}</td>
                       <td style={S.td}>
                         <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: sc + "20", color: sc }}>
                           {e.status}
@@ -208,9 +208,9 @@ export default function StorePage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <PackageOpen size={18} color="#10b981" />
-                <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Inward Entry (GRN)</h3>
+                <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Inward Entry (GRN)</h3>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "9px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
 
@@ -293,7 +293,7 @@ export default function StorePage() {
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 22, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>
                 {saving ? "Saving..." : <><PackageOpen size={14} /> Record Receipt</>}
               </button>

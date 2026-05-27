@@ -18,6 +18,7 @@ interface AuthState {
   addOrganization: (org: OrganizationSummary) => void;
   logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
+  syncModulesFromOrg: () => void;
   loadModuleAccess: () => Promise<void>;
   setModuleAccess: (keys: string[], isAdmin: boolean) => void;
   updateActiveOrgModules: (enabledModules: string[]) => void;
@@ -42,6 +43,11 @@ export const useAuthStore = create<AuthState>()(
         const orgs = data.organizations.map((o) => ({ ...o, enabledModules: o.enabledModules ?? [] }));
         const firstOrg = orgs[0] || null;
         if (firstOrg) localStorage.setItem("activeOrgId", firstOrg.id);
+        // Seed moduleAccess immediately so sidebar shows correct modules even before
+        // loadModuleAccess fires — avoids showing stale modules from a previous session.
+        // Empty array falls through to getNavModules([]) = ALL_MODULES (correct fallback).
+        const seedModules = firstOrg?.enabledModules ?? [];
+        const seedAdmin = firstOrg?.role === "OWNER" || firstOrg?.role === "ADMIN";
         set({
           user: data.user,
           accessToken: data.accessToken,
@@ -49,12 +55,20 @@ export const useAuthStore = create<AuthState>()(
           organizations: orgs,
           activeOrg: firstOrg,
           isAuthenticated: true,
+          moduleAccess: seedModules,
+          isOrgAdmin: seedAdmin,
         });
       },
 
       setActiveOrg: (org: OrganizationSummary) => {
         localStorage.setItem("activeOrgId", org.id);
-        set({ activeOrg: org });
+        // Reset moduleAccess to the new org's modules immediately so the sidebar
+        // never shows a previous org's modules while loadModuleAccess is in flight.
+        set({
+          activeOrg: org,
+          moduleAccess: org.enabledModules ?? [],
+          isOrgAdmin: org.role === "OWNER" || org.role === "ADMIN",
+        });
       },
 
       addOrganization: (org: OrganizationSummary) => {
@@ -62,6 +76,9 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           organizations: [...state.organizations, org],
           activeOrg: org,
+          // Immediately reflect the new org's modules — don't wait for loadModuleAccess
+          moduleAccess: org.enabledModules ?? [],
+          isOrgAdmin: org.role === "OWNER" || org.role === "ADMIN",
         }));
       },
 
@@ -91,16 +108,44 @@ export const useAuthStore = create<AuthState>()(
           return {
             activeOrg: updated,
             organizations: state.organizations.map((o) => o.id === updated.id ? updated : o),
+            moduleAccess: enabledModules, // keep moduleAccess in sync so sidebar always reflects new modules
           };
         });
+      },
+
+      syncModulesFromOrg: () => {
+        const { activeOrg, moduleAccess } = get();
+        const orgModules = activeOrg?.enabledModules ?? [];
+        if (orgModules.length > 0 &&
+            JSON.stringify(moduleAccess) !== JSON.stringify(orgModules)) {
+          set({ moduleAccess: orgModules });
+        }
       },
 
       loadModuleAccess: async () => {
         try {
           const { data } = await api.get("/access/my-access");
-          set({ moduleAccess: data.data.moduleKeys ?? [], isOrgAdmin: data.data.isAdmin ?? false });
+          const moduleKeys: string[] = data.data.moduleKeys ?? [];
+          const isAdmin: boolean = data.data.isAdmin ?? false;
+          set((state) => {
+            // For OWNER/ADMIN keep activeOrg.enabledModules in sync so admin pages see fresh data
+            if (isAdmin && state.activeOrg) {
+              const updated = { ...state.activeOrg, enabledModules: moduleKeys };
+              return {
+                moduleAccess: moduleKeys,
+                isOrgAdmin: isAdmin,
+                activeOrg: updated,
+                organizations: state.organizations.map((o) => o.id === updated.id ? updated : o),
+              };
+            }
+            return { moduleAccess: moduleKeys, isOrgAdmin: isAdmin };
+          });
         } catch {
-          set({ moduleAccess: [], isOrgAdmin: false });
+          // On transient failure fall back to activeOrg.enabledModules so sidebar is correct
+          const { activeOrg } = get();
+          if (activeOrg?.enabledModules?.length) {
+            set({ moduleAccess: activeOrg.enabledModules });
+          }
         }
       },
     }),

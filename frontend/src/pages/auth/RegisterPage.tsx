@@ -44,7 +44,7 @@ export default function RegisterPage() {
   };
 
   const pageStyle: React.CSSProperties = {
-    minHeight: "100vh", background: "#07071A",
+    minHeight: "100vh", background: "var(--bg-main)",
     display: "flex", alignItems: "center", justifyContent: "center", padding: "24px",
   };
 
@@ -52,17 +52,17 @@ export default function RegisterPage() {
     return (
       <div style={pageStyle}>
         <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
-          <div style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: "48px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "48px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
             <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
               <CheckCircle style={{ width: 26, height: 26, color: "#10B981" }} />
             </div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#EEEEF5", margin: "0 0 10px" }}>Check your inbox</h2>
-            <p style={{ fontSize: 14, color: "#7070A0", lineHeight: 1.6, marginBottom: 28 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 10px" }}>Check your inbox</h2>
+            <p style={{ fontSize: 14, color: "var(--text-faint)", lineHeight: 1.6, marginBottom: 28 }}>
               We sent a verification link to your email. Click it to activate your account.
             </p>
             <button
               onClick={() => navigate("/login")}
-              style={{ width: "100%", height: 44, borderRadius: 10, border: "1px solid #252545", background: "transparent", color: "#CCCCEE", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              style={{ width: "100%", height: 44, borderRadius: 10, border: "1px solid #252545", background: "transparent", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
             >
               Back to Sign In
             </button>
@@ -82,12 +82,12 @@ export default function RegisterPage() {
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", marginBottom: 16, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 16 }}>FC</span>
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Create your account</h1>
-          <p style={{ fontSize: 14, color: "#7070A0", marginTop: 6 }}>Get started with FlowCRM for free</p>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Create your account</h1>
+          <p style={{ fontSize: 14, color: "var(--text-faint)", marginTop: 6 }}>Get started with FlowCRM for free</p>
         </div>
 
         {/* Card */}
-        <div style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
 
           {apiError && (
             <div style={{ marginBottom: 20, padding: "12px 16px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: 13, color: "#F87171", display: "flex", alignItems: "center", gap: 8 }}>
@@ -147,7 +147,7 @@ export default function RegisterPage() {
             </div>
           </form>
 
-          <p style={{ textAlign: "center", fontSize: 13, color: "#505070", marginTop: 24 }}>
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--text-ghost)", marginTop: 24 }}>
             Already have an account?{" "}
             <Link to="/login" style={{ color: "#818cf8", textDecoration: "none", fontWeight: 600 }}>Sign in</Link>
           </p>

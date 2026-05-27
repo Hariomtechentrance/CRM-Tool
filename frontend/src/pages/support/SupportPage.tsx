@@ -3,28 +3,28 @@ import api from "@/lib/api";
 import { Headphones, Plus, Search, X, MessageSquare } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiValue: { fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpiValue: { fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0" } as React.CSSProperties,
+  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16 } as React.CSSProperties,
   searchWrap: { position: "relative" as const, flex: 1, maxWidth: 300 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 500, maxHeight: "90vh", overflowY: "auto" as const },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 500, maxHeight: "90vh", overflowY: "auto" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
   g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
 };
 
@@ -106,7 +106,7 @@ export default function SupportPage() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" as const }}>
         {["", ...Object.keys(STATUS_COLORS)].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${s && STATUS_COLORS[s] ? STATUS_COLORS[s] + (statusFilter === s ? "" : "40") : "#1C1C35"}`, background: statusFilter === s ? (s ? STATUS_COLORS[s] + "25" : "#1C1C35") : "transparent", color: s && STATUS_COLORS[s] ? STATUS_COLORS[s] : "#505070", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${s && STATUS_COLORS[s] ? STATUS_COLORS[s] + (statusFilter === s ? "" : "40") : "#1C1C35"}`, background: statusFilter === s ? (s ? STATUS_COLORS[s] + "25" : "#1C1C35") : "transparent", color: s && STATUS_COLORS[s] ? STATUS_COLORS[s] : "var(--text-ghost)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
             {s || "All"}
           </button>
         ))}
@@ -120,17 +120,17 @@ export default function SupportPage() {
           </div>
         </div>
 
-        {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+        {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
           <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr>{["Ticket#", "Subject", "Customer", "Priority", "Replies", "Status", "Created", "Action"].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr></thead>
             <tbody>
-              {tickets.length === 0 ? <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No tickets yet.</td></tr> : tickets.map(t => (
+              {tickets.length === 0 ? <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No tickets yet.</td></tr> : tickets.map(t => (
                 <tr key={t.id}>
                   <td style={{ ...S.td, color: "#818CF8", fontWeight: 600 }}>{t.ticketNumber}</td>
-                  <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 500, maxWidth: 200 }}><span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span></td>
+                  <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 500, maxWidth: 200 }}><span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span></td>
                   <td style={S.td}>{t.party?.name || "—"}</td>
                   <td style={S.td}><span style={{ padding: "2px 6px", borderRadius: 5, fontSize: 10, background: (PRIORITY_COLORS[t.priority] || "#818cf8") + "25", color: PRIORITY_COLORS[t.priority] || "#818cf8", fontWeight: 600 }}>{t.priority}</span></td>
-                  <td style={S.td}><MessageSquare size={12} style={{ display: "inline", marginRight: 4, color: "#505070" }} />{t._count?.replies || 0}</td>
+                  <td style={S.td}><MessageSquare size={12} style={{ display: "inline", marginRight: 4, color: "var(--text-ghost)" }} />{t._count?.replies || 0}</td>
                   <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (STATUS_COLORS[t.status] || "#818cf8") + "20", color: STATUS_COLORS[t.status] || "#818cf8" }}>{t.status.replace("_"," ")}</span></td>
                   <td style={S.td}>{new Date(t.createdAt).toLocaleDateString("en-IN")}</td>
                   <td style={S.td}>
@@ -148,8 +148,8 @@ export default function SupportPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Support Ticket</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Support Ticket</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -170,7 +170,7 @@ export default function SupportPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Create Ticket"}</button>
             </div>
           </div>

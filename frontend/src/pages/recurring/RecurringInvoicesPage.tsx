@@ -59,7 +59,7 @@ export default function RecurringInvoicesPage() {
     setLoading(true);
     try {
       const [ri, p] = await Promise.all([
-        api.get("/accounts/recurring/list"),
+        api.get("/finance/recurring/list"),
         api.get("/parties?limit=200"),
       ]);
       setItems(ri.data.data?.items || []);
@@ -83,20 +83,20 @@ export default function RecurringInvoicesPage() {
     setSaving(true);
     try {
       const totals = calcTotals(form.items);
-      await api.post("/accounts/recurring", { ...form, ...totals, partyId: form.partyId || undefined });
+      await api.post("/finance/recurring", { ...form, ...totals, partyId: form.partyId || undefined });
       setShowForm(false); setForm(emptyForm); load();
     } catch { /* ignore */ }
     setSaving(false);
   };
 
   const toggle = async (id: string, isActive: boolean) => {
-    await api.patch(`/accounts/recurring/${id}`, { isActive: !isActive });
+    await api.patch(`/finance/recurring/${id}`, { isActive: !isActive });
     setItems(prev => prev.map(r => r.id === id ? { ...r, isActive: !isActive } : r));
   };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this recurring invoice?")) return;
-    await api.delete(`/accounts/recurring/${id}`);
+    await api.delete(`/finance/recurring/${id}`);
     setItems(prev => prev.filter(r => r.id !== id));
   };
 
@@ -133,7 +133,7 @@ export default function RecurringInvoicesPage() {
                   <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: `${FREQ_COLOR[inv.frequency]}20`, color: FREQ_COLOR[inv.frequency] }}>
                     {FREQ_LABEL[inv.frequency]}
                   </span>
-                  {!inv.isActive && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "#1C1C35", color: "var(--text-ghost)" }}>Paused</span>}
+                  {!inv.isActive && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "var(--bg-hover)", color: "var(--text-ghost)" }}>Paused</span>}
                 </div>
                 <div style={{ display: "flex", gap: 20, fontSize: 12, color: "var(--text-ghost)" }}>
                   <span>{inv.party?.name || "No party"}</span>

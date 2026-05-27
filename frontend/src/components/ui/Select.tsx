@@ -34,9 +34,9 @@ export function Select({ label, error, options, placeholder, className, id, ...p
           style={{ colorScheme: "dark" }}
           {...props}
         >
-          {placeholder && <option value="" style={{ background: "#131327" }}>{placeholder}</option>}
+          {placeholder && <option value="" style={{ background: "var(--bg-hover)" }}>{placeholder}</option>}
           {options.map((opt) => (
-            <option key={opt.value} value={opt.value} style={{ background: "#131327" }}>{opt.label}</option>
+            <option key={opt.value} value={opt.value} style={{ background: "var(--bg-hover)" }}>{opt.label}</option>
           ))}
         </select>
         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#505070] pointer-events-none" />

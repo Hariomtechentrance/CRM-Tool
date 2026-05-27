@@ -18,16 +18,16 @@ export default function SuperAdminLayout() {
   const handleLogout = async () => { await logout(); navigate("/super-admin/login"); };
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#07071A", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", background: "var(--bg-main)", overflow: "hidden" }}>
       {/* Sidebar */}
-      <div style={{ width: 240, background: "#050514", borderRight: "1px solid #1C1C35", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid #1C1C35" }}>
+      <div style={{ width: 240, background: "#050514", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid var(--border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#ef4444,#dc2626)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Shield size={16} color="white" />
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#EEEEF5" }}>Super Admin</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Super Admin</div>
               <div style={{ fontSize: 10, color: "#ef4444", fontWeight: 600 }}>Platform Control</div>
             </div>
           </div>
@@ -38,7 +38,7 @@ export default function SuperAdminLayout() {
             <NavLink key={to} to={to}
               style={({ isActive }) => ({
                 display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, marginBottom: 2,
-                color: isActive ? "#EEEEF5" : "#505070", background: isActive ? "#1C1C35" : "transparent",
+                color: isActive ? "var(--text-primary)" : "var(--text-ghost)", background: isActive ? "#1C1C35" : "transparent",
                 textDecoration: "none", fontSize: 13, fontWeight: isActive ? 600 : 400, transition: "all 0.15s",
               })}>
               <Icon size={15} />
@@ -47,8 +47,8 @@ export default function SuperAdminLayout() {
           ))}
         </nav>
 
-        <div style={{ padding: "12px 8px", borderTop: "1px solid #1C1C35" }}>
-          <NavLink to="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, color: "#505070", textDecoration: "none", fontSize: 12, marginBottom: 4 }}>
+        <div style={{ padding: "12px 8px", borderTop: "1px solid var(--border)" }}>
+          <NavLink to="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, color: "var(--text-ghost)", textDecoration: "none", fontSize: 12, marginBottom: 4 }}>
             <ChevronRight size={14} /> Back to App
           </NavLink>
           <button onClick={handleLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 13, textAlign: "left" }}>

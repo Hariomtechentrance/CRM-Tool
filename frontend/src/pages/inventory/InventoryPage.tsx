@@ -7,17 +7,17 @@ import BulkImportModal from "@/components/ui/BulkImportModal";
 
 const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiValue: { fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 36px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "1px solid #1C1C35", whiteSpace: "nowrap" as const },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpiValue: { fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0" } as React.CSSProperties,
+  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 36px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" } as React.CSSProperties,
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" as const },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   badge: (c: string) => ({ display: "inline-block", padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: c + "20", color: c }),
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
 };
 
 interface Summary { totalProducts: number; lowStock: number; outOfStock: number; inventoryValue: number; }
@@ -107,14 +107,14 @@ export default function InventoryPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Inventory & Stock</h1>
-          <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>Manage products, categories, and stock levels</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Inventory & Stock</h1>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Manage products, categories, and stock levels</p>
         </div>
         <div className="hdr-actions">
-          <button style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }} onClick={() => setShowImport(true)}>
+          <button style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }} onClick={() => setShowImport(true)}>
             <Upload size={14} /> Import CSV
           </button>
-          <button style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }} onClick={() => setShowMovement(true)}>
+          <button style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }} onClick={() => setShowMovement(true)}>
             <RefreshCw size={14} /> Adjust Stock
           </button>
           <button style={S.btn} onClick={() => { setEditId(null); setForm(emptyForm); setShowModal(true); }}>
@@ -145,13 +145,13 @@ export default function InventoryPage() {
       <div style={S.card}>
         <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: 320 }}>
-            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
             <input style={S.searchInput} placeholder="Search products, SKU..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
 
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : (
           <div className="table-wrap">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -164,11 +164,11 @@ export default function InventoryPage() {
               </thead>
               <tbody>
                 {products.length === 0 ? (
-                  <tr><td colSpan={9} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No products yet. Add your first product.</td></tr>
+                  <tr><td colSpan={9} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No products yet. Add your first product.</td></tr>
                 ) : products.map((p) => (
                   <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => openEdit(p)}>
                     <td style={S.td}><span style={{ fontFamily: "monospace", color: "#818CF8" }}>{p.sku}</span></td>
-                    <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 500 }}>{p.name}</td>
+                    <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 500 }}>{p.name}</td>
                     <td style={S.td}>{p.category?.name || "—"}</td>
                     <td style={S.td}>{p.unit}</td>
                     <td style={S.td}>₹{p.costPrice.toLocaleString("en-IN")}</td>
@@ -178,7 +178,7 @@ export default function InventoryPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: stockColor(p) }} />
                         <span style={{ color: stockColor(p), fontWeight: 600 }}>{p.currentStock}</span>
-                        <span style={{ color: "#505070", fontSize: 11 }}>{p.unit}</span>
+                        <span style={{ color: "var(--text-ghost)", fontSize: 11 }}>{p.unit}</span>
                       </div>
                     </td>
                     <td style={S.td}><span style={S.badge(p.status === "ACTIVE" ? "#10b981" : "#ef4444")}>{p.status}</span></td>
@@ -195,8 +195,8 @@ export default function InventoryPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>{editId ? "Edit Product" : "Add Product"}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>{editId ? "Edit Product" : "Add Product"}</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -237,13 +237,13 @@ export default function InventoryPage() {
             </div>
             {/* Attachments — only when editing an existing product */}
             {editId && (
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #1C1C35" }}>
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
                 <DocumentsPanel entityType="PRODUCT" entityId={editId} compact />
               </div>
             )}
 
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveProduct} style={S.btn} disabled={saving}>{saving ? "Saving..." : editId ? "Update" : "Add Product"}</button>
             </div>
           </div>
@@ -255,8 +255,8 @@ export default function InventoryPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowMovement(false)}>
           <div className="modal-inner" style={{ maxWidth: 440 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>Adjust Stock</h3>
-              <button onClick={() => setShowMovement(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Adjust Stock</h3>
+              <button onClick={() => setShowMovement(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -277,7 +277,7 @@ export default function InventoryPage() {
               <div><label style={S.label}>Notes</label><input style={S.input} value={mvForm.notes} onChange={(e) => setMvForm({ ...mvForm, notes: e.target.value })} placeholder="Reason for adjustment" /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowMovement(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowMovement(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveMovement} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Adjust Stock"}</button>
             </div>
           </div>

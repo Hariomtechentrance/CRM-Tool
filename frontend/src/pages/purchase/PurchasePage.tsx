@@ -5,23 +5,23 @@ import { ShoppingBag, Plus, Search, X, ChevronDown } from "lucide-react";
 import { kDecimal } from "@/lib/fieldRules";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16, alignItems: "center" } as React.CSSProperties,
   searchWrap: { position: "relative" as const, flex: 1, maxWidth: 300 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
 };
 
 const STATUS_COLORS: Record<string, string> = { DRAFT: "#818cf8", SENT: "#60a5fa", PARTIAL: "#f59e0b", RECEIVED: "#10b981", CANCELLED: "#ef4444" };
@@ -119,8 +119,8 @@ export default function PurchasePage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Purchase & Procurement</h1>
-          <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>Manage purchase orders, vendor quotes and goods receipt</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Purchase & Procurement</h1>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Manage purchase orders, vendor quotes and goods receipt</p>
         </div>
         <div className="hdr-actions">
           <button style={S.btn} onClick={openModal}><Plus size={15} /> New Purchase Order</button>
@@ -139,7 +139,7 @@ export default function PurchasePage() {
           </select>
         </div>
 
-        {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+        {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
           <div className="table-wrap">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -147,7 +147,7 @@ export default function PurchasePage() {
             </thead>
             <tbody>
               {orders.length === 0 ? (
-                <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No purchase orders yet.</td></tr>
+                <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No purchase orders yet.</td></tr>
               ) : orders.map(po => (
                 <tr key={po.id}>
                   <td style={{ ...S.td, color: "#818CF8", fontWeight: 600 }}>{po.poNumber}</td>
@@ -155,7 +155,7 @@ export default function PurchasePage() {
                   <td style={S.td}>{new Date(po.orderDate).toLocaleDateString("en-IN")}</td>
                   <td style={S.td}>{po.expectedDate ? new Date(po.expectedDate).toLocaleDateString("en-IN") : "—"}</td>
                   <td style={S.td}>{po._count?.items || 0}</td>
-                  <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5" }}>₹{po.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                  <td style={{ ...S.td, fontWeight: 600, color: "var(--text-primary)" }}>₹{po.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                   <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (STATUS_COLORS[po.status] || "#818cf8") + "20", color: STATUS_COLORS[po.status] || "#818cf8" }}>{po.status}</span></td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
@@ -181,8 +181,8 @@ export default function PurchasePage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Purchase Order</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Purchase Order</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
 
@@ -205,7 +205,7 @@ export default function PurchasePage() {
                 <label style={{ ...S.label, marginBottom: 10 }}>Items</label>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {items.map((it, i) => (
-                    <div key={i} style={{ background: "#131327", borderRadius: 8, padding: 12 }}>
+                    <div key={i} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: 12 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
                         <div>
                           <label style={{ ...S.label, marginBottom: 4 }}>Product / Description</label>
@@ -226,7 +226,7 @@ export default function PurchasePage() {
                       </div>
                     </div>
                   ))}
-                  <button onClick={() => setItems(prev => [...prev, { ...emptyItem }])} style={{ background: "#1C1C35", border: "1px dashed #2a2a4a", color: "#818CF8", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+                  <button onClick={() => setItems(prev => [...prev, { ...emptyItem }])} style={{ background: "var(--bg-hover)", border: "1px dashed #2a2a4a", color: "#818CF8", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
                     <Plus size={12} /> Add Item
                   </button>
                 </div>
@@ -234,8 +234,8 @@ export default function PurchasePage() {
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <div style={{ textAlign: "right" }}>
-                  <span style={{ color: "#505070", fontSize: 12 }}>Total (incl. GST): </span>
-                  <span style={{ color: "#EEEEF5", fontWeight: 700, fontSize: 16 }}>₹{total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
+                  <span style={{ color: "var(--text-ghost)", fontSize: 12 }}>Total (incl. GST): </span>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 16 }}>₹{total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
 
@@ -243,7 +243,7 @@ export default function PurchasePage() {
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Create PO"}</button>
             </div>
           </div>

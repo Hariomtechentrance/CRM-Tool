@@ -3,16 +3,16 @@ import api from "@/lib/api";
 import { Calendar, Phone, Mail, MessageSquare, Users, Plus, X, Search, Clock, CheckCircle } from "lucide-react";
 
 const S = {
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiValue: { fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpiValue: { fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0" } as React.CSSProperties,
+  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
 };
 
 const TYPE_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
@@ -124,7 +124,7 @@ export default function ActivitiesPage() {
         {(["all", "upcoming"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: "6px 14px", borderRadius: 8, border: `1px solid ${tab === t ? "#6366f1" : "#1C1C35"}`,
-            background: tab === t ? "#6366f120" : "transparent", color: tab === t ? "#818CF8" : "#505070",
+            background: tab === t ? "#6366f120" : "transparent", color: tab === t ? "#818CF8" : "var(--text-ghost)",
             cursor: "pointer", fontSize: 12, fontWeight: 600,
           }}>
             {t === "all" ? "All Activities" : `Follow-ups (${upcoming.length + overdue.length})`}
@@ -144,18 +144,18 @@ export default function ActivitiesPage() {
       {/* Search */}
       {tab === "all" && (
         <div style={{ position: "relative", maxWidth: 360, marginBottom: 16 }}>
-          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
           <input style={{ ...S.input, paddingLeft: 34 }} placeholder="Search activities..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       )}
 
       {/* Activity Feed */}
-      {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading activities...</div> : (
+      {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading activities...</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {displayed.length === 0 ? (
-            <div style={{ ...S.card, textAlign: "center", padding: 48, color: "#505070" }}>
+            <div style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--text-ghost)" }}>
               <Calendar size={40} style={{ margin: "0 auto 12px", opacity: 0.3 }} />
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#CCCCEE" }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-sec)" }}>
                 {tab === "upcoming" ? "No follow-ups scheduled" : "No activities logged yet"}
               </p>
               <p style={{ fontSize: 13, marginTop: 6 }}>Click "Log Activity" to start tracking interactions</p>
@@ -173,29 +173,29 @@ export default function ActivitiesPage() {
                     <div style={{ width: 34, height: 34, borderRadius: "50%", background: meta.color + "20", border: `2px solid ${meta.color}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, zIndex: 1 }}>
                       <Icon size={15} color={meta.color} />
                     </div>
-                    {i < displayed.length - 1 && <div style={{ width: 2, flex: 1, background: "#1C1C35", minHeight: 16, marginTop: 4 }} />}
+                    {i < displayed.length - 1 && <div style={{ width: 2, flex: 1, background: "var(--bg-hover)", minHeight: 16, marginTop: 4 }} />}
                   </div>
 
                   {/* Content */}
                   <div style={{ flex: 1, paddingBottom: 20, paddingLeft: 12 }}>
-                    <div style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 10, padding: "12px 16px" }}>
+                    <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, background: meta.color + "20", color: meta.color }}>{meta.label}</span>
                           {a.party && <span style={{ fontSize: 12, color: "#818CF8", fontWeight: 600 }}>{a.party.name}</span>}
-                          {a.subject && <span style={{ fontSize: 12, color: "#EEEEF5", fontWeight: 600 }}>— {a.subject}</span>}
+                          {a.subject && <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600 }}>— {a.subject}</span>}
                         </div>
-                        <span style={{ fontSize: 11, color: "#505070", flexShrink: 0 }}>{new Date(a.createdAt).toLocaleDateString("en-IN")}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-ghost)", flexShrink: 0 }}>{new Date(a.createdAt).toLocaleDateString("en-IN")}</span>
                       </div>
-                      <p style={{ fontSize: 13, color: "#CCCCEE", lineHeight: 1.6, margin: 0 }}>{a.description}</p>
-                      {a.outcome && <p style={{ fontSize: 12, color: "#505070", marginTop: 6, fontStyle: "italic" }}>Outcome: {a.outcome}</p>}
+                      <p style={{ fontSize: 13, color: "var(--text-sec)", lineHeight: 1.6, margin: 0 }}>{a.description}</p>
+                      {a.outcome && <p style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 6, fontStyle: "italic" }}>Outcome: {a.outcome}</p>}
                       {a.followUpDate && (
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: isOverdue ? "#ef444420" : isDue ? "#f59e0b20" : "#6366f120", color: isOverdue ? "#ef4444" : isDue ? "#f59e0b" : "#818CF8" }}>
                           {isOverdue ? <><X size={10} /> Overdue: </> : <><Clock size={10} /> Follow-up: </>}
                           {new Date(a.followUpDate).toLocaleDateString("en-IN")}
                         </div>
                       )}
-                      {a.createdBy && <p style={{ fontSize: 11, color: "#404060", marginTop: 6 }}>by {a.createdBy.name}</p>}
+                      {a.createdBy && <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>by {a.createdBy.name}</p>}
                     </div>
                   </div>
                 </div>
@@ -211,8 +211,8 @@ export default function ActivitiesPage() {
           onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner" style={{ maxWidth: 500 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>Log Activity</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Log Activity</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -251,7 +251,7 @@ export default function ActivitiesPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>{saving ? "Saving..." : <><CheckCircle size={14} /> Log Activity</>}</button>
             </div>
           </div>

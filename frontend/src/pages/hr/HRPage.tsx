@@ -10,30 +10,30 @@ const years = Array.from({ length: 4 }, (_, i) => now.getFullYear() - i);
 
 const S = {
   page:  {} as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn:   { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   btnSm: { background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.2)", color: "#818CF8", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
   btnDanger: { background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
   btnGreen: { background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
-  kpi:   { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiV:  { fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
-  kpiL:  { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  card:  { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  kpi:   { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpiV:  { fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0" } as React.CSSProperties,
+  kpiL:  { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  card:  { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   tabs:  { display: "flex", gap: 4, marginBottom: 24, flexWrap: "wrap" as const } as React.CSSProperties,
-  tab:   (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "#505070" }) as React.CSSProperties,
+  tab:   (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "var(--text-ghost)" }) as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" as const },
   sw:    { position: "relative" as const, flex: 1, maxWidth: 280 },
-  si:    { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  sIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
-  th:    { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td:    { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  si:    { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  sIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
+  th:    { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td:    { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select:{ width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
-  fSel:  { background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "7px 10px", color: "#EEEEF5", fontSize: 12, outline: "none", colorScheme: "dark" as const },
-  empty: { padding: "48px 20px", textAlign: "center" as const, color: "#505070", fontSize: 13 },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select:{ width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  fSel:  { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "7px 10px", color: "var(--text-primary)", fontSize: 12, outline: "none", colorScheme: "dark" as const },
+  empty: { padding: "48px 20px", textAlign: "center" as const, color: "var(--text-ghost)", fontSize: 13 },
   err:   { background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 },
 };
 
@@ -51,7 +51,7 @@ interface Review { id: string; employeeId: string; reviewType: string; reviewPer
 interface Expense { id: string; employeeId: string; expenseDate: string; category: string; title: string; amount: number; currency: string; receiptUrl?: string; status: string; notes?: string; approvedById?: string; approvedAt?: string; paidAt?: string; employee: { id: string; name: string; employeeCode: string; department?: string }; }
 
 const ATT_COLORS: Record<string,string> = { PRESENT:"#10b981", ABSENT:"#ef4444", HALF_DAY:"#f59e0b", LEAVE:"#6366f1", HOLIDAY:"#8b5cf6" };
-const LEAVE_STATUS_C: Record<string,string> = { PENDING:"#f59e0b", APPROVED:"#10b981", REJECTED:"#ef4444", CANCELLED:"#505070" };
+const LEAVE_STATUS_C: Record<string,string> = { PENDING:"#f59e0b", APPROVED:"#10b981", REJECTED:"#ef4444", CANCELLED:"var(--text-ghost)" };
 const GOAL_STATUS_C: Record<string,string> = { IN_PROGRESS:"#6366f1", COMPLETED:"#10b981", ON_HOLD:"#f59e0b", CANCELLED:"#ef4444" };
 const EXP_STATUS_C: Record<string,string> = { PENDING:"#f59e0b", APPROVED:"#10b981", REJECTED:"#ef4444", PAID:"#8b5cf6" };
 const LEAVE_TYPES = ["Annual","Sick","Casual","Maternity","Paternity","Compensatory","Unpaid","Other"];
@@ -61,7 +61,7 @@ function Badge({ text, color }: { text: string; color: string }) {
   return <span style={{ padding:"2px 8px", borderRadius:5, fontSize:11, fontWeight:600, background:color+"22", color }}>{text.replace(/_/g," ")}</span>;
 }
 function Stars({ value }: { value?: number }) {
-  if (!value) return <span style={{ color:"#505070" }}>—</span>;
+  if (!value) return <span style={{ color:"var(--text-ghost)" }}>—</span>;
   return <span style={{ color:"#f59e0b" }}>{Array.from({length:5},(_,i)=><Star key={i} size={12} fill={i<Math.round(value)?"#f59e0b":"none"} color="#f59e0b"/>)}</span>;
 }
 function ProgBar({ pct, color="#6366f1" }: { pct: number; color?: string }) {
@@ -442,7 +442,7 @@ export default function HRPage() {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
             {/* Dept breakdown */}
             <div style={S.card}>
-              <div style={{fontSize:14,fontWeight:700,color:"#EEEEF5",marginBottom:14}}>Department Headcount</div>
+              <div style={{fontSize:14,fontWeight:700,color:"var(--text-primary)",marginBottom:14}}>Department Headcount</div>
               {loading ? <div style={S.empty}>Loading...</div> : (
                 (summary?.departments||[]).length===0
                   ? <div style={S.empty}>No departments yet</div>
@@ -452,7 +452,7 @@ export default function HRPage() {
                       return (
                         <div key={d.department||"none"}>
                           <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                            <span style={{fontSize:13,color:"#CCCCEE"}}>{d.department||"Unassigned"}</span>
+                            <span style={{fontSize:13,color:"var(--text-sec)"}}>{d.department||"Unassigned"}</span>
                             <span style={{fontSize:12,color:"#818CF8",fontWeight:600}}>{d._count}</span>
                           </div>
                           <ProgBar pct={pct}/>
@@ -466,7 +466,7 @@ export default function HRPage() {
             {/* Shifts overview */}
             <div style={S.card}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={{fontSize:14,fontWeight:700,color:"#EEEEF5"}}>Shifts</div>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--text-primary)"}}>Shifts</div>
                 <button style={S.btnSm} onClick={()=>{setEditShiftId(null);setShiftForm({...shiftEmpty});setError("");setShowShiftModal(true);}}>
                   <Plus size={12}/> Add Shift
                 </button>
@@ -475,10 +475,10 @@ export default function HRPage() {
                 ? <div style={S.empty}>No shifts defined</div>
                 : <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {shifts.map(s=>(
-                    <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#131327",borderRadius:8,padding:"10px 14px"}}>
+                    <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"var(--bg-hover)",borderRadius:8,padding:"10px 14px"}}>
                       <div>
-                        <div style={{fontSize:13,fontWeight:600,color:"#EEEEF5"}}>{s.name}</div>
-                        <div style={{fontSize:11,color:"#505070"}}>{s.startTime} – {s.endTime} · {s.workingHours}h · Grace {s.graceMins}m</div>
+                        <div style={{fontSize:13,fontWeight:600,color:"var(--text-primary)"}}>{s.name}</div>
+                        <div style={{fontSize:11,color:"var(--text-ghost)"}}>{s.startTime} – {s.endTime} · {s.workingHours}h · Grace {s.graceMins}m</div>
                       </div>
                       <div style={{display:"flex",gap:6,alignItems:"center"}}>
                         <span style={{fontSize:11,color:"#818CF8"}}>{s._count?.employees||0} emp</span>
@@ -509,11 +509,11 @@ export default function HRPage() {
                   : employees.map(e=>(
                     <tr key={e.id} onClick={()=>openDetail(e)} style={{cursor:"pointer"}}>
                       <td style={{...S.td,color:"#818CF8",fontWeight:600}}>{e.employeeCode}</td>
-                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}>{e.name}</td>
-                      <td style={S.td}><div style={{fontSize:13}}>{e.designation||"—"}</div><div style={{fontSize:11,color:"#505070"}}>{e.department||""}</div></td>
+                      <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}>{e.name}</td>
+                      <td style={S.td}><div style={{fontSize:13}}>{e.designation||"—"}</div><div style={{fontSize:11,color:"var(--text-ghost)"}}>{e.department||""}</div></td>
                       <td style={S.td}><Badge text={e.employmentType} color="#6366f1"/></td>
-                      <td style={S.td}><div>{e.salaryType==="DAILY"?`₹${(e.dailyRate||0).toLocaleString("en-IN")}/day`:`${fmt(e.basicSalary)}/mo`}</div>{(e.hra>0||e.allowances>0)&&<div style={{fontSize:11,color:"#505070"}}>+HRA/Allow: {fmt(e.hra+e.allowances)}</div>}</td>
-                      <td style={{...S.td,fontSize:12,color:"#505070"}}>{shifts.find(s=>s.id===e.shiftId)?.name||"—"}</td>
+                      <td style={S.td}><div>{e.salaryType==="DAILY"?`₹${(e.dailyRate||0).toLocaleString("en-IN")}/day`:`${fmt(e.basicSalary)}/mo`}</div>{(e.hra>0||e.allowances>0)&&<div style={{fontSize:11,color:"var(--text-ghost)"}}>+HRA/Allow: {fmt(e.hra+e.allowances)}</div>}</td>
+                      <td style={{...S.td,fontSize:12,color:"var(--text-ghost)"}}>{shifts.find(s=>s.id===e.shiftId)?.name||"—"}</td>
                       <td style={S.td}>{fmtDate(e.joiningDate)}</td>
                       <td style={S.td}><Badge text={e.status} color={e.status==="ACTIVE"?"#10b981":"#ef4444"}/></td>
                       <td style={S.td}><button onClick={ev=>{ev.stopPropagation();openEdit(e);}} style={{...S.btnSm,padding:"3px 8px"}}>Edit</button></td>
@@ -530,10 +530,10 @@ export default function HRPage() {
       {tab==="attendance" && (
         <div style={S.card}>
           <div style={S.toolbar}>
-            <span style={{fontSize:13,color:"#CCCCEE",fontWeight:600}}>Filter:</span>
+            <span style={{fontSize:13,color:"var(--text-sec)",fontWeight:600}}>Filter:</span>
             <select style={S.fSel} value={attMonth} onChange={e=>setAttMonth(parseInt(e.target.value))}>{MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
             <select style={S.fSel} value={attYear} onChange={e=>setAttYear(parseInt(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>
-            <span style={{marginLeft:"auto",fontSize:12,color:"#505070"}}>{attRecords.length} records</span>
+            <span style={{marginLeft:"auto",fontSize:12,color:"var(--text-ghost)"}}>{attRecords.length} records</span>
           </div>
           {attLoading ? <div style={S.empty}>Loading...</div> : (
             <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -543,13 +543,13 @@ export default function HRPage() {
                   ? <tr><td colSpan={7} style={S.empty}>No attendance records for {MONTHS[attMonth-1]} {attYear}.</td></tr>
                   : attRecords.map(r=>(
                     <tr key={r.id}>
-                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}>{r.employee.name}</td>
+                      <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}>{r.employee.name}</td>
                       <td style={{...S.td,color:"#818CF8",fontSize:12}}>{r.employee.employeeCode}</td>
                       <td style={S.td}>{fmtDate(r.date)}</td>
-                      <td style={S.td}><Badge text={r.status} color={ATT_COLORS[r.status]||"#CCCCEE"}/></td>
+                      <td style={S.td}><Badge text={r.status} color={ATT_COLORS[r.status]||"var(--text-sec)"}/></td>
                       <td style={S.td}>{r.checkIn?new Date(r.checkIn).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"—"}</td>
                       <td style={S.td}>{r.checkOut?new Date(r.checkOut).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"—"}</td>
-                      <td style={{...S.td,fontSize:12,color:"#505070"}}>{r.notes||"—"}</td>
+                      <td style={{...S.td,fontSize:12,color:"var(--text-ghost)"}}>{r.notes||"—"}</td>
                     </tr>
                   ))
                 }
@@ -563,10 +563,10 @@ export default function HRPage() {
       {tab==="payroll" && (
         <div style={S.card}>
           <div style={S.toolbar}>
-            <span style={{fontSize:13,color:"#CCCCEE",fontWeight:600}}>Filter:</span>
+            <span style={{fontSize:13,color:"var(--text-sec)",fontWeight:600}}>Filter:</span>
             <select style={S.fSel} value={payMonth} onChange={e=>setPayMonth(parseInt(e.target.value))}>{MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
             <select style={S.fSel} value={payYear} onChange={e=>setPayYear(parseInt(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>
-            <span style={{fontSize:12,color:"#505070"}}>{payrolls.length} payslips · Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))}</span>
+            <span style={{fontSize:12,color:"var(--text-ghost)"}}>{payrolls.length} payslips · Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))}</span>
             <button onClick={()=>{setAutoPayForm({month:String(payMonth),year:String(payYear),workingDays:"26"});setAutoPayResult(null);setShowAutoPayModal(true);}} style={{...S.btn,marginLeft:"auto",background:"linear-gradient(135deg,#10b981,#059669)",fontSize:12,padding:"6px 14px"}}>
               ⚡ Auto-Generate All
             </button>
@@ -579,12 +579,12 @@ export default function HRPage() {
                   ? <tr><td colSpan={8} style={S.empty}>No payrolls. Click "Auto-Generate All" to compute from attendance.</td></tr>
                   : payrolls.map(p=>(
                     <tr key={p.id}>
-                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{p.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{p.employee.employeeCode}{p.employee.designation?` · ${p.employee.designation}`:""}</div></td>
+                      <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}><div>{p.employee.name}</div><div style={{fontSize:11,color:"var(--text-ghost)"}}>{p.employee.employeeCode}{p.employee.designation?` · ${p.employee.designation}`:""}</div></td>
                       <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
                       <td style={S.td}>{fmt(p.basicSalary)}</td>
                       <td style={{...S.td,color:"#10b981"}}>{fmt(p.hra+p.allowances)}</td>
                       <td style={{...S.td,color:"#ef4444"}}>{fmt(p.pfDeduction+p.esiDeduction)}</td>
-                      <td style={{...S.td,color:"#EEEEF5",fontWeight:700}}>{fmt(p.netSalary)}</td>
+                      <td style={{...S.td,color:"var(--text-primary)",fontWeight:700}}>{fmt(p.netSalary)}</td>
                       <td style={S.td}>{p.isPaid?<Badge text="PAID" color="#10b981"/>:<Badge text="PENDING" color="#f59e0b"/>}</td>
                       <td style={S.td}>
                         <div style={{display:"flex",gap:6}}>
@@ -616,11 +616,11 @@ export default function HRPage() {
             <div style={S.card}>
               <div style={S.toolbar}>
                 {["","PENDING","APPROVED","REJECTED"].map(s=>(
-                  <button key={s||"ALL"} onClick={()=>setLeaveFilter(s)} style={{...S.btnSm,background:leaveFilter===s?"rgba(99,102,241,0.2)":"transparent",color:leaveFilter===s?"#818CF8":"#505070",border:"1px solid "+(leaveFilter===s?"#6366f130":"transparent")}}>
+                  <button key={s||"ALL"} onClick={()=>setLeaveFilter(s)} style={{...S.btnSm,background:leaveFilter===s?"rgba(99,102,241,0.2)":"transparent",color:leaveFilter===s?"#818CF8":"var(--text-ghost)",border:"1px solid "+(leaveFilter===s?"#6366f130":"transparent")}}>
                     {s||"All"}
                   </button>
                 ))}
-                <span style={{marginLeft:"auto",fontSize:12,color:"#505070"}}>{leaves.length} requests</span>
+                <span style={{marginLeft:"auto",fontSize:12,color:"var(--text-ghost)"}}>{leaves.length} requests</span>
               </div>
               {leaveLoading ? <div style={S.empty}>Loading...</div> : (
                 <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -630,13 +630,13 @@ export default function HRPage() {
                       ? <tr><td colSpan={8} style={S.empty}>No leave requests{leaveFilter?` with status ${leaveFilter}`:""}</td></tr>
                       : leaves.map(l=>(
                         <tr key={l.id}>
-                          <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{l.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{l.employee.employeeCode}</div></td>
+                          <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}><div>{l.employee.name}</div><div style={{fontSize:11,color:"var(--text-ghost)"}}>{l.employee.employeeCode}</div></td>
                           <td style={S.td}>{l.leaveType}</td>
                           <td style={S.td}>{fmtDate(l.fromDate)}</td>
                           <td style={S.td}>{fmtDate(l.toDate)}</td>
-                          <td style={{...S.td,color:"#EEEEF5",fontWeight:600}}>{l.days}</td>
+                          <td style={{...S.td,color:"var(--text-primary)",fontWeight:600}}>{l.days}</td>
                           <td style={{...S.td,fontSize:12,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{l.reason||"—"}</td>
-                          <td style={S.td}><Badge text={l.status} color={LEAVE_STATUS_C[l.status]||"#CCCCEE"}/></td>
+                          <td style={S.td}><Badge text={l.status} color={LEAVE_STATUS_C[l.status]||"var(--text-sec)"}/></td>
                           <td style={S.td}>
                             {l.status==="PENDING"&&(
                               <div style={{display:"flex",gap:6}}>
@@ -666,7 +666,7 @@ export default function HRPage() {
                         const avail = b.allocated + b.carried - b.used - b.pending;
                         return (
                           <tr key={b.id}>
-                            <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}>{b.employee.name}<div style={{fontSize:11,color:"#505070"}}>{b.employee.employeeCode}</div></td>
+                            <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}>{b.employee.name}<div style={{fontSize:11,color:"var(--text-ghost)"}}>{b.employee.employeeCode}</div></td>
                             <td style={S.td}>{b.leaveType}</td>
                             <td style={S.td}>{b.year}</td>
                             <td style={{...S.td,color:"#818CF8",fontWeight:600}}>{b.allocated}</td>
@@ -704,20 +704,20 @@ export default function HRPage() {
                   ? <div style={S.empty}>No goals yet. Add performance goals for employees.</div>
                   : <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     {goals.map(g=>(
-                      <div key={g.id} style={{background:"#131327",borderRadius:10,padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start"}}>
+                      <div key={g.id} style={{background:"var(--bg-hover)",borderRadius:10,padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start"}}>
                         <div style={{flex:1}}>
                           <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-                            <span style={{fontSize:14,fontWeight:600,color:"#EEEEF5"}}>{g.title}</span>
+                            <span style={{fontSize:14,fontWeight:600,color:"var(--text-primary)"}}>{g.title}</span>
                             <Badge text={g.status} color={GOAL_STATUS_C[g.status]||"#818CF8"}/>
-                            <span style={{fontSize:11,color:"#505070"}}>{g.category}</span>
-                            {g.quarter&&<span style={{fontSize:11,color:"#505070"}}>Q{g.quarter} {g.year}</span>}
+                            <span style={{fontSize:11,color:"var(--text-ghost)"}}>{g.category}</span>
+                            {g.quarter&&<span style={{fontSize:11,color:"var(--text-ghost)"}}>Q{g.quarter} {g.year}</span>}
                           </div>
-                          {g.description&&<div style={{fontSize:12,color:"#505070",marginBottom:8}}>{g.description}</div>}
+                          {g.description&&<div style={{fontSize:12,color:"var(--text-ghost)",marginBottom:8}}>{g.description}</div>}
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <div style={{flex:1,maxWidth:200}}><ProgBar pct={g.progress} color={g.status==="COMPLETED"?"#10b981":"#6366f1"}/></div>
                             <span style={{fontSize:12,color:"#818CF8",fontWeight:600}}>{g.progress}%</span>
                           </div>
-                          <div style={{fontSize:11,color:"#505070",marginTop:6}}>{g.employee.name} · {g.employee.designation||"—"}{g.targetDate&&` · Due ${fmtDate(g.targetDate)}`}</div>
+                          <div style={{fontSize:11,color:"var(--text-ghost)",marginTop:6}}>{g.employee.name} · {g.employee.designation||"—"}{g.targetDate&&` · Due ${fmtDate(g.targetDate)}`}</div>
                         </div>
                         <div style={{display:"flex",gap:6}}>
                           <button style={{...S.btnSm,padding:"4px 8px",fontSize:11}} onClick={()=>{setEditGoalId(g.id);setGoalForm({employeeId:g.employeeId,title:g.title,description:g.description||"",category:g.category,targetDate:g.targetDate?g.targetDate.slice(0,10):"",progress:String(g.progress),status:g.status,year:String(g.year),quarter:String(g.quarter||"")});setShowGoalModal(true);}}>Edit</button>
@@ -740,12 +740,12 @@ export default function HRPage() {
                       ? <tr><td colSpan={8} style={S.empty}>No performance reviews yet.</td></tr>
                       : reviews.map(r=>(
                         <tr key={r.id}>
-                          <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{r.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{r.employee.department||""}</div></td>
+                          <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}><div>{r.employee.name}</div><div style={{fontSize:11,color:"var(--text-ghost)"}}>{r.employee.department||""}</div></td>
                           <td style={S.td}><Badge text={r.reviewType} color="#6366f1"/></td>
                           <td style={S.td}>{r.reviewPeriod}</td>
                           <td style={S.td}><Stars value={r.selfRating}/></td>
                           <td style={S.td}><Stars value={r.rating}/></td>
-                          <td style={S.td}><Badge text={r.status} color={r.status==="COMPLETED"?"#10b981":r.status==="IN_REVIEW"?"#f59e0b":"#505070"}/></td>
+                          <td style={S.td}><Badge text={r.status} color={r.status==="COMPLETED"?"#10b981":r.status==="IN_REVIEW"?"#f59e0b":"var(--text-ghost)"}/></td>
                           <td style={{...S.td,fontSize:12,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.strengths||"—"}</td>
                           <td style={S.td}><button style={{...S.btnSm,padding:"3px 8px",fontSize:11}} onClick={()=>{setEditReviewId(r.id);setReviewForm({employeeId:r.employeeId,reviewType:r.reviewType,reviewPeriod:r.reviewPeriod,rating:r.rating?String(r.rating):"",selfRating:r.selfRating?String(r.selfRating):"",status:r.status,strengths:r.strengths||"",improvements:r.improvements||"",comments:r.comments||""});setShowReviewModal(true);}}>Edit</button></td>
                         </tr>
@@ -764,11 +764,11 @@ export default function HRPage() {
         <div style={S.card}>
           <div style={S.toolbar}>
             {["","PENDING","APPROVED","REJECTED","PAID"].map(s=>(
-              <button key={s||"ALL"} onClick={()=>setExpFilter(s)} style={{...S.btnSm,background:expFilter===s?"rgba(99,102,241,0.2)":"transparent",color:expFilter===s?"#818CF8":"#505070",border:"1px solid "+(expFilter===s?"#6366f130":"transparent")}}>
+              <button key={s||"ALL"} onClick={()=>setExpFilter(s)} style={{...S.btnSm,background:expFilter===s?"rgba(99,102,241,0.2)":"transparent",color:expFilter===s?"#818CF8":"var(--text-ghost)",border:"1px solid "+(expFilter===s?"#6366f130":"transparent")}}>
                 {s||"All"}
               </button>
             ))}
-            <span style={{marginLeft:"auto",fontSize:12,color:"#505070"}}>{expenses.length} expenses · Total: {fmt(expenses.reduce((s,e)=>s+e.amount,0))}</span>
+            <span style={{marginLeft:"auto",fontSize:12,color:"var(--text-ghost)"}}>{expenses.length} expenses · Total: {fmt(expenses.reduce((s,e)=>s+e.amount,0))}</span>
           </div>
           {expLoading ? <div style={S.empty}>Loading...</div> : (
             <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -778,12 +778,12 @@ export default function HRPage() {
                   ? <tr><td colSpan={7} style={S.empty}>No expenses{expFilter?` with status ${expFilter}`:""}</td></tr>
                   : expenses.map(e=>(
                     <tr key={e.id}>
-                      <td style={{...S.td,color:"#EEEEF5",fontWeight:500}}><div>{e.employee.name}</div><div style={{fontSize:11,color:"#505070"}}>{e.employee.department||""}</div></td>
+                      <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}><div>{e.employee.name}</div><div style={{fontSize:11,color:"var(--text-ghost)"}}>{e.employee.department||""}</div></td>
                       <td style={S.td}>{fmtDate(e.expenseDate)}</td>
                       <td style={S.td}><Badge text={e.category} color="#6366f1"/></td>
                       <td style={S.td}>{e.title}</td>
-                      <td style={{...S.td,color:"#EEEEF5",fontWeight:600}}>{fmt(e.amount)}</td>
-                      <td style={S.td}><Badge text={e.status} color={EXP_STATUS_C[e.status]||"#CCCCEE"}/></td>
+                      <td style={{...S.td,color:"var(--text-primary)",fontWeight:600}}>{fmt(e.amount)}</td>
+                      <td style={S.td}><Badge text={e.status} color={EXP_STATUS_C[e.status]||"var(--text-sec)"}/></td>
                       <td style={S.td}>
                         <div style={{display:"flex",gap:5}}>
                           {e.status==="PENDING"&&<><button style={{...S.btnGreen,padding:"3px 8px",fontSize:11}} onClick={()=>expAction(e.id,"approve")}>Approve</button><button style={{...S.btnDanger,padding:"3px 8px",fontSize:11}} onClick={()=>expAction(e.id,"reject")}>Reject</button></>}
@@ -807,8 +807,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowEmpModal(false)}>
           <div className="modal-inner">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editId?"Edit Employee":"Add Employee"}</h3>
-              <button onClick={()=>setShowEmpModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>{editId?"Edit Employee":"Add Employee"}</h3>
+              <button onClick={()=>setShowEmpModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -828,8 +828,8 @@ export default function HRPage() {
                 <div><label style={S.label}>Employment Type</label><select style={S.select} value={empForm.employmentType} onChange={e=>ef("employmentType",e.target.value)}>{["FULL_TIME","PART_TIME","CONTRACT","INTERN"].map(t=><option key={t} value={t}>{t.replace("_"," ")}</option>)}</select></div>
                 <div><label style={S.label}>Joining Date *</label><input type="date" style={S.input} value={empForm.joiningDate} onChange={e=>ef("joiningDate",e.target.value)}/></div>
               </div>
-              <div style={{background:"#131327",borderRadius:8,padding:"12px 14px"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#505070",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:10}}>Salary Structure</div>
+              <div style={{background:"var(--bg-hover)",borderRadius:8,padding:"12px 14px"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text-ghost)",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:10}}>Salary Structure</div>
                 <div className="grid-r2" style={{marginBottom:10}}>
                   <div><label style={S.label}>Salary Type</label><select style={S.select} value={empForm.salaryType} onChange={e=>ef("salaryType",e.target.value)}><option value="MONTHLY">Monthly (Fixed)</option><option value="DAILY">Daily Rate</option></select></div>
                   {empForm.salaryType==="MONTHLY"
@@ -841,7 +841,7 @@ export default function HRPage() {
                   <div><label style={S.label}>HRA (₹/month)</label><input type="number" style={S.input} value={empForm.hra} onChange={e=>ef("hra",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
                   <div><label style={S.label}>Other Allowances (₹/month)</label><input type="number" style={S.input} value={empForm.allowances} onChange={e=>ef("allowances",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
                 </div>
-                <div style={{marginTop:8,fontSize:11,color:"#505070"}}>PF (12% basic) and ESI (0.75% if gross ≤ ₹21,000) are auto-deducted during payroll.</div>
+                <div style={{marginTop:8,fontSize:11,color:"var(--text-ghost)"}}>PF (12% basic) and ESI (0.75% if gross ≤ ₹21,000) are auto-deducted during payroll.</div>
               </div>
               <div className="grid-r2">
                 <div><label style={S.label}>PAN Number</label><input style={S.input} value={empForm.panNumber} onChange={e=>ef("panNumber",e.target.value.toUpperCase())} placeholder="ABCDE1234F" onKeyDown={kAlphaNum} maxLength={10}/></div>
@@ -852,9 +852,9 @@ export default function HRPage() {
                 <div><label style={S.label}>IFSC Code</label><input style={S.input} value={empForm.bankIfsc} onChange={e=>ef("bankIfsc",e.target.value.toUpperCase())} onKeyDown={kAlphaNum} maxLength={11}/></div>
               </div>
             </div>
-            {editId&&<div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1C1C35"}}><DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact/></div>}
+            {editId&&<div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--border)"}}><DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact/></div>}
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowEmpModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowEmpModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveEmployee} style={S.btn} disabled={saving}>{saving?"Saving...":editId?"Update":"Add Employee"}</button>
             </div>
           </div>
@@ -866,8 +866,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowAttModal(false)}>
           <div className="modal-inner" style={{maxWidth:460}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Mark Attendance</h3>
-              <button onClick={()=>setShowAttModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Mark Attendance</h3>
+              <button onClick={()=>setShowAttModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -885,7 +885,7 @@ export default function HRPage() {
               <div><label style={S.label}>Notes</label><input style={S.input} value={attForm.notes} onChange={e=>af("notes",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowAttModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowAttModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveAttendance} style={S.btn} disabled={saving||!attForm.employeeId}>{saving?"Saving...":"Mark Attendance"}</button>
             </div>
           </div>
@@ -897,8 +897,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowPayModal(false)}>
           <div className="modal-inner" style={{maxWidth:500}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Generate Payroll</h3>
-              <button onClick={()=>setShowPayModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Generate Payroll</h3>
+              <button onClick={()=>setShowPayModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -918,7 +918,7 @@ export default function HRPage() {
               <div><label style={S.label}>Other Deductions (₹)</label><input type="number" style={S.input} value={payForm.deductions} onChange={e=>pf("deductions",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={savePayroll} style={S.btn} disabled={saving||!payForm.employeeId}>{saving?"Generating...":"Generate Payroll"}</button>
             </div>
           </div>
@@ -930,13 +930,13 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowAutoPayModal(false)}>
           <div className="modal-inner" style={{maxWidth:480}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>⚡ Auto-Generate Payroll</h3>
-              <button onClick={()=>setShowAutoPayModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>⚡ Auto-Generate Payroll</h3>
+              <button onClick={()=>setShowAutoPayModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {!autoPayResult ? (
               <>
-                <div style={{background:"#131327",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#818CF8"}}>
-                  Calculates salary for <strong style={{color:"#EEEEF5"}}>all active employees</strong> based on attendance. PF, ESI, and prorated components are computed automatically.
+                <div style={{background:"var(--bg-hover)",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#818CF8"}}>
+                  Calculates salary for <strong style={{color:"var(--text-primary)"}}>all active employees</strong> based on attendance. PF, ESI, and prorated components are computed automatically.
                 </div>
                 {error&&<div style={S.err}>{error}</div>}
                 <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -947,7 +947,7 @@ export default function HRPage() {
                   <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={autoPayForm.workingDays} onChange={e=>setAutoPayForm(p=>({...p,workingDays:e.target.value}))}/></div>
                 </div>
                 <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-                  <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+                  <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
                   <button onClick={autoGeneratePayroll} style={{...S.btn,background:"linear-gradient(135deg,#10b981,#059669)"}} disabled={saving}>{saving?"Generating...":"Generate"}</button>
                 </div>
               </>
@@ -955,8 +955,8 @@ export default function HRPage() {
               <>
                 <div style={{background:"#10b98120",border:"1px solid #10b98140",borderRadius:8,padding:"14px 16px",marginBottom:16}}>
                   <div style={{fontSize:15,fontWeight:700,color:"#10b981",marginBottom:4}}>✓ Payroll Generated</div>
-                  <div style={{fontSize:13,color:"#CCCCEE"}}>{autoPayResult.generated} employees · {MONTHS[autoPayResult.month-1]} {autoPayResult.year}</div>
-                  <div style={{fontSize:20,fontWeight:700,color:"#EEEEF5",marginTop:8}}>Total Payout: {fmt(autoPayResult.totalNetSalary)}</div>
+                  <div style={{fontSize:13,color:"var(--text-sec)"}}>{autoPayResult.generated} employees · {MONTHS[autoPayResult.month-1]} {autoPayResult.year}</div>
+                  <div style={{fontSize:20,fontWeight:700,color:"var(--text-primary)",marginTop:8}}>Total Payout: {fmt(autoPayResult.totalNetSalary)}</div>
                 </div>
                 <div style={{display:"flex",justifyContent:"flex-end"}}>
                   <button onClick={()=>setShowAutoPayModal(false)} style={S.btn}>Done</button>
@@ -972,8 +972,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowLeaveModal(false)}>
           <div className="modal-inner" style={{maxWidth:460}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Apply for Leave</h3>
-              <button onClick={()=>setShowLeaveModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Apply for Leave</h3>
+              <button onClick={()=>setShowLeaveModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -986,7 +986,7 @@ export default function HRPage() {
               <div><label style={S.label}>Reason</label><textarea style={{...S.input,height:70,resize:"none" as const}} value={leaveForm.reason} onChange={e=>lf("reason",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowLeaveModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowLeaveModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveLeave} style={S.btn} disabled={saving||!leaveForm.employeeId||!leaveForm.fromDate}>{saving?"Submitting...":"Submit"}</button>
             </div>
           </div>
@@ -998,8 +998,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowLbModal(false)}>
           <div className="modal-inner" style={{maxWidth:420}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Allocate Leave Balance</h3>
-              <button onClick={()=>setShowLbModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Allocate Leave Balance</h3>
+              <button onClick={()=>setShowLbModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1014,7 +1014,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowLbModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowLbModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveLeaveBalance} style={S.btn} disabled={saving||!lbForm.employeeId}>{saving?"Saving...":"Allocate"}</button>
             </div>
           </div>
@@ -1026,8 +1026,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowShiftModal(false)}>
           <div className="modal-inner" style={{maxWidth:420}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editShiftId?"Edit Shift":"Add Shift"}</h3>
-              <button onClick={()=>setShowShiftModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>{editShiftId?"Edit Shift":"Add Shift"}</h3>
+              <button onClick={()=>setShowShiftModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1042,7 +1042,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowShiftModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowShiftModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveShift} style={S.btn} disabled={saving||!shiftForm.name}>{saving?"Saving...":editShiftId?"Update Shift":"Add Shift"}</button>
             </div>
           </div>
@@ -1054,8 +1054,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowGoalModal(false)}>
           <div className="modal-inner" style={{maxWidth:520}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editGoalId?"Edit Goal":"Add Performance Goal"}</h3>
-              <button onClick={()=>setShowGoalModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>{editGoalId?"Edit Goal":"Add Performance Goal"}</h3>
+              <button onClick={()=>setShowGoalModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1076,7 +1076,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowGoalModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowGoalModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveGoal} style={S.btn} disabled={saving||!goalForm.employeeId||!goalForm.title}>{saving?"Saving...":editGoalId?"Update":"Add Goal"}</button>
             </div>
           </div>
@@ -1088,8 +1088,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowReviewModal(false)}>
           <div className="modal-inner" style={{maxWidth:540}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>{editReviewId?"Edit Review":"Add Performance Review"}</h3>
-              <button onClick={()=>setShowReviewModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>{editReviewId?"Edit Review":"Add Performance Review"}</h3>
+              <button onClick={()=>setShowReviewModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1108,7 +1108,7 @@ export default function HRPage() {
               <div><label style={S.label}>Comments</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={reviewForm.comments} onChange={e=>setReviewForm(p=>({...p,comments:e.target.value}))}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowReviewModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowReviewModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveReview} style={S.btn} disabled={saving||!reviewForm.employeeId||!reviewForm.reviewPeriod}>{saving?"Saving...":editReviewId?"Update":"Add Review"}</button>
             </div>
           </div>
@@ -1120,8 +1120,8 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowExpModal(false)}>
           <div className="modal-inner" style={{maxWidth:460}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Add Expense Claim</h3>
-              <button onClick={()=>setShowExpModal(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Add Expense Claim</h3>
+              <button onClick={()=>setShowExpModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1138,7 +1138,7 @@ export default function HRPage() {
               <div><label style={S.label}>Notes</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={expForm.notes} onChange={e=>setExpForm(p=>({...p,notes:e.target.value}))}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowExpModal(false)} style={{...S.btn,background:"#1C1C35",color:"#CCCCEE"}}>Cancel</button>
+              <button onClick={()=>setShowExpModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveExpense} style={S.btn} disabled={saving||!expForm.employeeId||!expForm.title||!expForm.amount}>{saving?"Submitting...":"Submit Claim"}</button>
             </div>
           </div>
@@ -1148,17 +1148,17 @@ export default function HRPage() {
       {/* Payslip Modal */}
       {showPayslip && payslip && (
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowPayslip(false)}>
-          <div style={{background:"#0D0D1F",border:"1px solid #1C1C35",borderRadius:16,padding:28,width:"min(640px,96vw)",maxHeight:"92vh",overflowY:"auto" as const}}>
+          <div style={{background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:16,padding:28,width:"min(640px,96vw)",maxHeight:"92vh",overflowY:"auto" as const}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Payslip — {payslip.period.label}</h3>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Payslip — {payslip.period.label}</h3>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>window.print()} style={{...S.btnSm,display:"flex",alignItems:"center",gap:4}}><Download size={13}/> Print</button>
-                <button onClick={()=>setShowPayslip(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+                <button onClick={()=>setShowPayslip(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
               </div>
             </div>
             {/* Company Header */}
             <div style={{background:"linear-gradient(135deg,#1a1a3e,#1C1C35)",borderRadius:10,padding:"16px 20px",marginBottom:16}}>
-              <div style={{fontSize:16,fontWeight:700,color:"#EEEEF5"}}>{payslip.org.name}</div>
+              <div style={{fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>{payslip.org.name}</div>
               <div style={{fontSize:12,color:"#818CF8",marginTop:2}}>{payslip.org.address}{payslip.org.city?`, ${payslip.org.city}`:""}{payslip.org.pan?` · PAN: ${payslip.org.pan}`:""}</div>
             </div>
             {/* Employee Info */}
@@ -1173,18 +1173,18 @@ export default function HRPage() {
                 {label:"Bank Account",value:payslip.employee.bankAccount||"—"},
                 {label:"IFSC Code",value:payslip.employee.bankIfsc||"—"},
               ].map(row=>(
-                <div key={row.label} style={{background:"#131327",borderRadius:6,padding:"8px 10px"}}>
-                  <div style={{fontSize:10,color:"#505070",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{row.label}</div>
-                  <div style={{fontSize:13,color:"#EEEEF5",marginTop:2}}>{row.value}</div>
+                <div key={row.label} style={{background:"var(--bg-hover)",borderRadius:6,padding:"8px 10px"}}>
+                  <div style={{fontSize:10,color:"var(--text-ghost)",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:"0.05em"}}>{row.label}</div>
+                  <div style={{fontSize:13,color:"var(--text-primary)",marginTop:2}}>{row.value}</div>
                 </div>
               ))}
             </div>
             {/* Attendance */}
             <div style={{display:"flex",gap:10,marginBottom:16}}>
               {[{label:"Working Days",value:payslip.attendance.workingDays},{label:"Days Present",value:payslip.attendance.presentDays}].map(r=>(
-                <div key={r.label} style={{flex:1,background:"#131327",borderRadius:6,padding:"8px 10px",textAlign:"center" as const}}>
-                  <div style={{fontSize:10,color:"#505070",fontWeight:700,textTransform:"uppercase" as const}}>{r.label}</div>
-                  <div style={{fontSize:18,fontWeight:700,color:"#EEEEF5",marginTop:2}}>{r.value}</div>
+                <div key={r.label} style={{flex:1,background:"var(--bg-hover)",borderRadius:6,padding:"8px 10px",textAlign:"center" as const}}>
+                  <div style={{fontSize:10,color:"var(--text-ghost)",fontWeight:700,textTransform:"uppercase" as const}}>{r.label}</div>
+                  <div style={{fontSize:18,fontWeight:700,color:"var(--text-primary)",marginTop:2}}>{r.value}</div>
                 </div>
               ))}
             </div>
@@ -1194,7 +1194,7 @@ export default function HRPage() {
                 <div style={{fontSize:12,fontWeight:700,color:"#10b981",marginBottom:8}}>EARNINGS</div>
                 {[{l:"Basic Salary",v:payslip.earnings.basic},{l:"HRA",v:payslip.earnings.hra},{l:"Allowances",v:payslip.earnings.allowances}].map(r=>(
                   <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131327",fontSize:13}}>
-                    <span style={{color:"#CCCCEE"}}>{r.l}</span><span style={{color:"#EEEEF5",fontWeight:500}}>{fmt(r.v)}</span>
+                    <span style={{color:"var(--text-sec)"}}>{r.l}</span><span style={{color:"var(--text-primary)",fontWeight:500}}>{fmt(r.v)}</span>
                   </div>
                 ))}
                 <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",fontSize:13,fontWeight:700}}>
@@ -1205,7 +1205,7 @@ export default function HRPage() {
                 <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:8}}>DEDUCTIONS</div>
                 {[{l:"PF (Employee 12%)",v:payslip.deductions.pf},{l:"ESI (0.75%)",v:payslip.deductions.esi},{l:"Prof. Tax",v:payslip.deductions.pt},{l:"TDS",v:payslip.deductions.tds},{l:"Other",v:payslip.deductions.other}].filter(r=>r.v>0).map(r=>(
                   <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131327",fontSize:13}}>
-                    <span style={{color:"#CCCCEE"}}>{r.l}</span><span style={{color:"#ef4444",fontWeight:500}}>− {fmt(r.v)}</span>
+                    <span style={{color:"var(--text-sec)"}}>{r.l}</span><span style={{color:"#ef4444",fontWeight:500}}>− {fmt(r.v)}</span>
                   </div>
                 ))}
                 <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",fontSize:13,fontWeight:700}}>
@@ -1217,13 +1217,13 @@ export default function HRPage() {
             <div style={{background:"linear-gradient(135deg,#6366f120,#8b5cf620)",border:"1px solid #6366f130",borderRadius:10,padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:12,color:"#818CF8",fontWeight:700,textTransform:"uppercase" as const}}>Net Take-Home Salary</div>
-                <div style={{fontSize:11,color:"#505070",marginTop:2}}>{payslip.period.label} · {payslip.isPaid?`Paid on ${payslip.paidAt?fmtDate(payslip.paidAt):"—"}`:"Pending Payment"}</div>
+                <div style={{fontSize:11,color:"var(--text-ghost)",marginTop:2}}>{payslip.period.label} · {payslip.isPaid?`Paid on ${payslip.paidAt?fmtDate(payslip.paidAt):"—"}`:"Pending Payment"}</div>
               </div>
-              <div style={{fontSize:28,fontWeight:700,color:"#EEEEF5"}}>{fmt(payslip.netSalary)}</div>
+              <div style={{fontSize:28,fontWeight:700,color:"var(--text-primary)"}}>{fmt(payslip.netSalary)}</div>
             </div>
             <div style={{marginTop:16,display:"flex",alignItems:"center",gap:6}}>
-              <ChevronRight size={12} color="#505070"/>
-              <span style={{fontSize:11,color:"#505070"}}>This is a computer-generated payslip and does not require a signature.</span>
+              <ChevronRight size={12} color="var(--text-ghost)"/>
+              <span style={{fontSize:11,color:"var(--text-ghost)"}}>This is a computer-generated payslip and does not require a signature.</span>
             </div>
           </div>
         </div>
@@ -1232,15 +1232,15 @@ export default function HRPage() {
       {/* Employee Detail Modal */}
       {showEmpDetail && (
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowEmpDetail(false)}>
-          <div style={{background:"#0D0D1F",border:"1px solid #1C1C35",borderRadius:16,padding:28,width:"min(760px,96vw)",maxHeight:"90vh",overflowY:"auto" as const}}>
+          <div style={{background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:16,padding:28,width:"min(760px,96vw)",maxHeight:"90vh",overflowY:"auto" as const}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"#EEEEF5",margin:0,fontSize:16,fontWeight:700}}>Employee Profile</h3>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Employee Profile</h3>
               <div style={{display:"flex",gap:8}}>
                 {detailEmp&&<button onClick={()=>{setShowEmpDetail(false);openEdit(detailEmp as Employee);}} style={S.btnSm}>Edit</button>}
-                <button onClick={()=>setShowEmpDetail(false)} style={{background:"none",border:"none",color:"#505070",cursor:"pointer"}}><X size={18}/></button>
+                <button onClick={()=>setShowEmpDetail(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
               </div>
             </div>
-            {detailLoading&&<div style={{padding:40,textAlign:"center" as const,color:"#505070"}}>Loading...</div>}
+            {detailLoading&&<div style={{padding:40,textAlign:"center" as const,color:"var(--text-ghost)"}}>Loading...</div>}
             {!detailLoading&&detailEmp&&(()=>{
               const emp=detailEmp;
               const atts:AttRecord[]=emp.attendances||[];
@@ -1253,37 +1253,37 @@ export default function HRPage() {
                       {emp.name.charAt(0).toUpperCase()}
                     </div>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:18,fontWeight:700,color:"#EEEEF5"}}>{emp.name}</div>
+                      <div style={{fontSize:18,fontWeight:700,color:"var(--text-primary)"}}>{emp.name}</div>
                       <div style={{fontSize:13,color:"#818CF8"}}>{emp.employeeCode} · {emp.designation||"—"} · {emp.department||"—"}</div>
-                      <div style={{fontSize:12,color:"#505070",marginTop:2}}>Joined {fmtDate(emp.joiningDate)} · <Badge text={emp.status} color={emp.status==="ACTIVE"?"#10b981":"#ef4444"}/></div>
+                      <div style={{fontSize:12,color:"var(--text-ghost)",marginTop:2}}>Joined {fmtDate(emp.joiningDate)} · <Badge text={emp.status} color={emp.status==="ACTIVE"?"#10b981":"#ef4444"}/></div>
                     </div>
                     <div style={{textAlign:"right" as const}}>
-                      <div style={{fontSize:20,fontWeight:700,color:"#EEEEF5"}}>{emp.salaryType==="DAILY"?`₹${(emp.dailyRate||0).toLocaleString("en-IN")}/day`:`${fmt(emp.basicSalary)}/mo`}</div>
-                      <div style={{fontSize:11,color:"#505070"}}>{emp.salaryType==="MONTHLY"?"Monthly CTC":"Daily Rate"}{(emp.hra>0||emp.allowances>0)?` + ₹${(emp.hra+emp.allowances).toLocaleString("en-IN")} HRA/Allow`:""}</div>
+                      <div style={{fontSize:20,fontWeight:700,color:"var(--text-primary)"}}>{emp.salaryType==="DAILY"?`₹${(emp.dailyRate||0).toLocaleString("en-IN")}/day`:`${fmt(emp.basicSalary)}/mo`}</div>
+                      <div style={{fontSize:11,color:"var(--text-ghost)"}}>{emp.salaryType==="MONTHLY"?"Monthly CTC":"Daily Rate"}{(emp.hra>0||emp.allowances>0)?` + ₹${(emp.hra+emp.allowances).toLocaleString("en-IN")} HRA/Allow`:""}</div>
                     </div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
                     {[{label:"Present (this month)",value:emp.thisMonthPresent??0,color:"#10b981"},{label:"Absences",value:atts.filter((a:AttRecord)=>a.status==="ABSENT").length,color:"#ef4444"},{label:"Payrolls",value:pays.length,color:"#6366f1"},{label:"Leave Requests",value:lvs.length,color:"#f59e0b"}].map(k=>(
-                      <div key={k.label} style={{background:"#131327",borderRadius:8,padding:"12px 14px"}}>
-                        <div style={{fontSize:11,color:"#505070"}}>{k.label}</div>
+                      <div key={k.label} style={{background:"var(--bg-hover)",borderRadius:8,padding:"12px 14px"}}>
+                        <div style={{fontSize:11,color:"var(--text-ghost)"}}>{k.label}</div>
                         <div style={{fontSize:22,fontWeight:700,color:k.color,marginTop:2}}>{k.value}</div>
                       </div>
                     ))}
                   </div>
                   <div style={{marginBottom:16}}>
-                    <div style={{fontSize:13,fontWeight:700,color:"#EEEEF5",marginBottom:8}}>Recent Attendance</div>
+                    <div style={{fontSize:13,fontWeight:700,color:"var(--text-primary)",marginBottom:8}}>Recent Attendance</div>
                     <div style={{display:"flex",flexWrap:"wrap" as const,gap:4}}>
                       {atts.slice(0,30).map((a:AttRecord)=>(
                         <div key={a.id} title={`${fmtDate(a.date)} — ${a.status}`} style={{width:30,height:30,borderRadius:5,background:ATT_COLORS[a.status]+"30",border:`1px solid ${ATT_COLORS[a.status]}50`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:600,color:ATT_COLORS[a.status]}}>
                           {new Date(a.date).getDate()}
                         </div>
                       ))}
-                      {atts.length===0&&<span style={{fontSize:12,color:"#505070"}}>No records yet.</span>}
+                      {atts.length===0&&<span style={{fontSize:12,color:"var(--text-ghost)"}}>No records yet.</span>}
                     </div>
                   </div>
                   {pays.length>0&&(
                     <div>
-                      <div style={{fontSize:13,fontWeight:700,color:"#EEEEF5",marginBottom:8}}>Payroll History</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"var(--text-primary)",marginBottom:8}}>Payroll History</div>
                       <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12}}>
                         <thead><tr>{["Month","Days","Gross","Deductions","Net","Status"].map(h=><th key={h} style={{...S.th,fontSize:10}}>{h}</th>)}</tr></thead>
                         <tbody>
@@ -1293,7 +1293,7 @@ export default function HRPage() {
                               <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
                               <td style={S.td}>{fmt(p.grossSalary)}</td>
                               <td style={{...S.td,color:"#ef4444"}}>{fmt(p.pfDeduction+p.esiDeduction+p.deductions)}</td>
-                              <td style={{...S.td,fontWeight:700,color:"#EEEEF5"}}>{fmt(p.netSalary)}</td>
+                              <td style={{...S.td,fontWeight:700,color:"var(--text-primary)"}}>{fmt(p.netSalary)}</td>
                               <td style={S.td}>{p.isPaid?<Badge text="PAID" color="#10b981"/>:<Badge text="PENDING" color="#f59e0b"/>}</td>
                             </tr>
                           ))}

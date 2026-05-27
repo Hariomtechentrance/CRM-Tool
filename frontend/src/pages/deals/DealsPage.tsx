@@ -4,18 +4,18 @@ import { Briefcase, Plus, Search, X, TrendingUp, LayoutList, Kanban, Target, Dol
 import DocumentsPanel from "@/components/DocumentsPanel";
 
 const S = {
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
   kpiValue: { fontSize: 26, fontWeight: 700, margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35", whiteSpace: "nowrap" as const },
-  td: { padding: "12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" as const },
+  td: { padding: "12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
 };
 
 const STAGES = [
@@ -104,8 +104,8 @@ export default function DealsPage() {
           <p style={S.subtitle}>Track your sales pipeline from prospect to close — Salesforce / HubSpot style</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setViewMode("kanban")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "kanban" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "kanban" ? "#6366f120" : "transparent", color: viewMode === "kanban" ? "#818CF8" : "#505070", cursor: "pointer" }}><Kanban size={16} /></button>
-          <button onClick={() => setViewMode("table")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "table" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "table" ? "#6366f120" : "transparent", color: viewMode === "table" ? "#818CF8" : "#505070", cursor: "pointer" }}><LayoutList size={16} /></button>
+          <button onClick={() => setViewMode("kanban")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "kanban" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "kanban" ? "#6366f120" : "transparent", color: viewMode === "kanban" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }}><Kanban size={16} /></button>
+          <button onClick={() => setViewMode("table")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "table" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "table" ? "#6366f120" : "transparent", color: viewMode === "table" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }}><LayoutList size={16} /></button>
           <button style={S.btn} onClick={() => { setEditId(null); setForm({ ...emptyForm }); setError(""); setShowModal(true); }}><Plus size={15} /> New Deal</button>
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function DealsPage() {
 
       {/* Stage filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
-        <button onClick={() => setStageFilter("")} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${!stageFilter ? "#6366f1" : "#1C1C35"}`, background: !stageFilter ? "#6366f120" : "transparent", color: !stageFilter ? "#818CF8" : "#505070", cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>All ({deals.length})</button>
+        <button onClick={() => setStageFilter("")} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${!stageFilter ? "#6366f1" : "#1C1C35"}`, background: !stageFilter ? "#6366f120" : "transparent", color: !stageFilter ? "#818CF8" : "var(--text-ghost)", cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>All ({deals.length})</button>
         {STAGES.map(s => {
           const count = deals.filter(d => d.stage === s.key).length;
           return (
@@ -140,7 +140,7 @@ export default function DealsPage() {
 
       {/* Search */}
       <div style={{ position: "relative", maxWidth: 340, marginBottom: 16 }}>
-        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
         <input style={{ ...S.input, paddingLeft: 34 }} placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
@@ -153,25 +153,25 @@ export default function DealsPage() {
               const stageValue = stageDeals.reduce((s, d) => s + (d.value || 0), 0);
               return (
                 <div key={stage.key} style={{ width: 240, flexShrink: 0 }}>
-                  <div style={{ background: "#0D0D1F", border: `1px solid ${stage.color}30`, borderRadius: "10px 10px 0 0", padding: "10px 14px", borderBottom: `2px solid ${stage.color}` }}>
+                  <div style={{ background: "var(--bg-card)", border: `1px solid ${stage.color}30`, borderRadius: "10px 10px 0 0", padding: "10px 14px", borderBottom: `2px solid ${stage.color}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: stage.color, textTransform: "uppercase" }}>{stage.label}</span>
                       <span style={{ background: stage.color + "25", color: stage.color, borderRadius: 99, fontSize: 11, fontWeight: 700, padding: "1px 8px" }}>{stageDeals.length}</span>
                     </div>
                     {stageValue > 0 && <div style={{ fontSize: 11, color: "#10b981", marginTop: 2 }}>{fmtL(stageValue)}</div>}
-                    <div style={{ fontSize: 10, color: "#505070", marginTop: 2 }}>{stage.prob}% probability</div>
+                    <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 2 }}>{stage.prob}% probability</div>
                   </div>
                   <div style={{ background: "#0A0A1A", border: `1px solid ${stage.color}20`, borderTop: "none", borderRadius: "0 0 10px 10px", minHeight: 160, padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
                     {stageDeals.length === 0 && <div style={{ padding: "20px 0", textAlign: "center", color: "#252540", fontSize: 12 }}>No deals</div>}
                     {stageDeals.map(d => (
-                      <div key={d.id} onClick={() => openEdit(d)} style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 8, padding: "10px 12px", cursor: "pointer" }}
+                      <div key={d.id} onClick={() => openEdit(d)} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", cursor: "pointer" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = stage.color + "60")}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = "#1C1C35")}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#EEEEF5", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
                         {d.party && <div style={{ fontSize: 11, color: "#818CF8", marginBottom: 4 }}>{d.party.name}</div>}
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           {d.value ? <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>{fmtVal(d.value)}</span> : <span />}
-                          {d.expectedCloseDate && <span style={{ fontSize: 10, color: "#505070" }}>{new Date(d.expectedCloseDate).toLocaleDateString("en-IN")}</span>}
+                          {d.expectedCloseDate && <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>{new Date(d.expectedCloseDate).toLocaleDateString("en-IN")}</span>}
                         </div>
                       </div>
                     ))}
@@ -186,31 +186,31 @@ export default function DealsPage() {
       {/* Table View */}
       {viewMode === "table" && (
         <div style={S.card}>
-          {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+          {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
             <div className="table-wrap">
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>{["Deal Title", "Party", "Stage", "Value", "Probability", "Close Date", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {filtered.length === 0
-                    ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 40 }}>No deals yet. Create your first deal!</td></tr>
+                    ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 40 }}>No deals yet. Create your first deal!</td></tr>
                     : filtered.map(d => {
                       const stage = STAGE_MAP[d.stage];
                       return (
                         <tr key={d.id} onClick={() => openEdit(d)} style={{ cursor: "pointer" }}>
-                          <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 600 }}>{d.title}</td>
+                          <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 600 }}>{d.title}</td>
                           <td style={S.td}>{d.party?.name || "—"}</td>
                           <td style={S.td}><span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (stage?.color || "#818cf8") + "20", color: stage?.color || "#818cf8" }}>{stage?.label || d.stage}</span></td>
                           <td style={{ ...S.td, color: "#10b981", fontWeight: 600 }}>{fmtVal(d.value)}</td>
                           <td style={S.td}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{ height: 4, width: 60, background: "#131327", borderRadius: 2 }}>
+                              <div style={{ height: 4, width: 60, background: "var(--bg-hover)", borderRadius: 2 }}>
                                 <div style={{ height: "100%", width: `${d.probability}%`, background: stage?.color || "#818cf8", borderRadius: 2 }} />
                               </div>
                               <span style={{ fontSize: 11, color: stage?.color || "#818cf8" }}>{d.probability}%</span>
                             </div>
                           </td>
                           <td style={S.td}>{d.expectedCloseDate ? new Date(d.expectedCloseDate).toLocaleDateString("en-IN") : "—"}</td>
-                          <td style={S.td}><button onClick={e => { e.stopPropagation(); deleteDeal(d.id); }} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer", fontSize: 11, padding: "2px 6px" }}>✕</button></td>
+                          <td style={S.td}><button onClick={e => { e.stopPropagation(); deleteDeal(d.id); }} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 11, padding: "2px 6px" }}>✕</button></td>
                         </tr>
                       );
                     })}
@@ -227,8 +227,8 @@ export default function DealsPage() {
           onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner" style={{ maxWidth: 520 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>{editId ? "Edit Deal" : "New Deal"}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>{editId ? "Edit Deal" : "New Deal"}</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -273,12 +273,12 @@ export default function DealsPage() {
               </div>
             </div>
             {editId && (
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #1C1C35" }}>
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
                 <DocumentsPanel entityType="DEAL" entityId={editId} compact />
               </div>
             )}
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>{saving ? "Saving..." : editId ? "Update Deal" : "Create Deal"}</button>
             </div>
           </div>

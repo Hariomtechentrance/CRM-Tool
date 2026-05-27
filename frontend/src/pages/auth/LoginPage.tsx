@@ -44,7 +44,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#07071A", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       {/* Decorative glow */}
       <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
 
@@ -54,12 +54,12 @@ export default function LoginPage() {
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", marginBottom: 16, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 16 }}>FC</span>
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Welcome back</h1>
-          <p style={{ fontSize: 14, color: "#7070A0", marginTop: 6 }}>Sign in to your FlowCRM account</p>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Welcome back</h1>
+          <p style={{ fontSize: 14, color: "var(--text-faint)", marginTop: 6 }}>Sign in to your FlowCRM account</p>
         </div>
 
         {/* Card */}
-        <div style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
 
           {apiError && (
             <div style={{ marginBottom: 20, padding: "12px 16px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: 13, color: "#F87171", display: "flex", alignItems: "center", gap: 8 }}>
@@ -116,7 +116,7 @@ export default function LoginPage() {
             </div>
           </form>
 
-          <p style={{ textAlign: "center", fontSize: 13, color: "#505070", marginTop: 24 }}>
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--text-ghost)", marginTop: 24 }}>
             Don't have an account?{" "}
             <Link to="/register" style={{ color: "#818cf8", textDecoration: "none", fontWeight: 600 }}>Create account</Link>
           </p>
@@ -125,7 +125,7 @@ export default function LoginPage() {
         {/* Features row */}
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28, flexWrap: "wrap" }}>
           {FEATURES.map((f, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, color: "#505070", fontSize: 12 }}>
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-ghost)", fontSize: 12 }}>
               <f.icon style={{ width: 13, height: 13, color: "#6366f1" }} />
               {f.text}
             </div>

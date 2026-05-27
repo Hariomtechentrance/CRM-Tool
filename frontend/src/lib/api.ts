@@ -33,10 +33,22 @@ function notifyRefresh(token: string) {
 api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
-    const original = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+    const original = error.config as (InternalAxiosRequestConfig & { _retry?: boolean; _dbRetry?: number }) | undefined;
     if (!original) return Promise.reject(error);
 
-    if (error.response?.status === 401 && !original._retry) {
+    // Auto-retry on 503 (database waking up from Neon auto-suspend) up to 3 times
+    if (error.response?.status === 503 && (error.response.data as { retryable?: boolean })?.retryable) {
+      const retries = original._dbRetry ?? 0;
+      if (retries < 3) {
+        original._dbRetry = retries + 1;
+        await new Promise((r) => setTimeout(r, 3000));
+        return api(original);
+      }
+    }
+
+    // Don't intercept auth endpoints — let login/register handle their own errors
+    const isAuthRoute = original.url?.includes("/auth/login") || original.url?.includes("/auth/register") || original.url?.includes("/auth/forgot") || original.url?.includes("/auth/reset");
+    if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       const refreshToken = localStorage.getItem("refreshToken");
       if (!refreshToken) {
         clearAuthStorage();

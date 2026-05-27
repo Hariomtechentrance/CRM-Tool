@@ -5,12 +5,12 @@ import { ALL_MODULES } from "@/lib/modules";
 import { Activity, Users, BarChart3, Shield, Check, X, Clock, CheckCircle, XCircle, DollarSign, ShoppingCart, TrendingUp, Headphones, Package, FileText } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20, marginBottom: 0 } as React.CSSProperties,
-  cardTitle: { fontSize: 14, fontWeight: 700, color: "#EEEEF5", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "14px 18px" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20, marginBottom: 0 } as React.CSSProperties,
+  cardTitle: { fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 18px" } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "7px 14px", borderRadius: 7, cursor: "pointer", fontWeight: 600, fontSize: 12 } as React.CSSProperties,
   tag: { display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 600 } as React.CSSProperties,
 };
@@ -99,8 +99,8 @@ export default function OrgAdminPage() {
   const tabBtn = (t: Tab, label: string, badge?: number) => (
     <button onClick={() => setTab(t)} style={{
       padding: "8px 18px", borderRadius: 8, border: "none", position: "relative" as const,
-      background: tab === t ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "#0D0D1F",
-      color: tab === t ? "white" : "#505070", cursor: "pointer", fontWeight: 600, fontSize: 13,
+      background: tab === t ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-card)",
+      color: tab === t ? "white" : "var(--text-ghost)", cursor: "pointer", fontWeight: 600, fontSize: 13,
     }}>
       {label}
       {badge !== undefined && badge > 0 && (
@@ -125,7 +125,7 @@ export default function OrgAdminPage() {
         {kpis.map(k => (
           <div key={k.label} style={S.kpi}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-              <span style={{ fontSize: 10, color: "#505070" }}>{k.label}</span>
+              <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>{k.label}</span>
               <k.icon size={12} color={k.color} />
             </div>
             <div style={{ fontSize: 20, fontWeight: 700, color: k.color }}>{k.value}</div>
@@ -140,14 +140,14 @@ export default function OrgAdminPage() {
         {isOrgAdmin && tabBtn("team", "Team & Modules")}
       </div>
 
-      {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+      {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
         <>
           {/* ── ACTIVITY FEED ── */}
           {tab === "activity" && (
             <div style={S.card}>
               <div style={S.cardTitle}><Activity size={15} color="#6366f1" /> Recent Activity Across All Departments</div>
               {feed.length === 0 ? (
-                <div style={{ color: "#505070", textAlign: "center", padding: 32 }}>No activity yet.</div>
+                <div style={{ color: "var(--text-ghost)", textAlign: "center", padding: 32 }}>No activity yet.</div>
               ) : feed.map((item, i) => {
                 const cfg = FEED_ICONS[item.type] || { icon: FileText, color: "#818cf8" };
                 const color = STATUS_COLORS[item.meta] || "#818cf8";
@@ -157,12 +157,12 @@ export default function OrgAdminPage() {
                       <cfg.icon size={13} color={cfg.color} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "#EEEEF5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                      {item.subtitle && <div style={{ fontSize: 11, color: "#505070" }}>{item.subtitle}</div>}
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+                      {item.subtitle && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{item.subtitle}</div>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
                       <span style={{ ...S.tag, background: color + "20", color }}>{item.meta}</span>
-                      <span style={{ fontSize: 10, color: "#505070" }}>{new Date(item.createdAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}</span>
+                      <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>{new Date(item.createdAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}</span>
                     </div>
                   </div>
                 );
@@ -175,7 +175,7 @@ export default function OrgAdminPage() {
             <div style={S.card}>
               <div style={S.cardTitle}><Shield size={15} color="#f59e0b" /> Pending Access Requests</div>
               {requests.length === 0 ? (
-                <div style={{ color: "#505070", textAlign: "center", padding: 32 }}>
+                <div style={{ color: "var(--text-ghost)", textAlign: "center", padding: 32 }}>
                   <CheckCircle size={32} color="#10b981" style={{ margin: "0 auto 12px", display: "block" }} />
                   No pending requests. All access is up to date.
                 </div>
@@ -185,16 +185,16 @@ export default function OrgAdminPage() {
                   <div key={r.id} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #131327", alignItems: "center" }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#EEEEF5" }}>{r.user.name}</div>
-                        <span style={{ fontSize: 10, color: "#505070" }}>{r.user.email}</span>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{r.user.name}</div>
+                        <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>{r.user.email}</span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 5, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>
                           {mod?.label || r.moduleKey}
                         </span>
-                        {r.message && <span style={{ fontSize: 12, color: "#505070", fontStyle: "italic" }}>"{r.message}"</span>}
+                        {r.message && <span style={{ fontSize: 12, color: "var(--text-ghost)", fontStyle: "italic" }}>"{r.message}"</span>}
                       </div>
-                      <div style={{ fontSize: 10, color: "#505070", marginTop: 4 }}>
+                      <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 4 }}>
                         <Clock size={10} style={{ display: "inline", marginRight: 4 }} />
                         {new Date(r.requestedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
                       </div>
@@ -223,16 +223,16 @@ export default function OrgAdminPage() {
           {tab === "team" && isOrgAdmin && (
             <div style={S.card}>
               <div style={S.cardTitle}><Users size={15} color="#6366f1" /> Team Module Access</div>
-              <p style={{ fontSize: 12, color: "#505070", marginBottom: 16 }}>Click any module cell to grant or revoke access for a team member. OWNER/ADMIN always have full access.</p>
+              <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 16 }}>Click any module cell to grant or revoke access for a team member. OWNER/ADMIN always have full access.</p>
 
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: "left", padding: "8px 12px", color: "#404060", fontWeight: 700, fontSize: 11, textTransform: "uppercase", borderBottom: "1px solid #1C1C35", minWidth: 180, position: "sticky", left: 0, background: "#0D0D1F", zIndex: 1 }}>Member</th>
-                      <th style={{ textAlign: "center", padding: "8px 8px", color: "#404060", fontWeight: 700, fontSize: 11, textTransform: "uppercase", borderBottom: "1px solid #1C1C35", minWidth: 50 }}>Role</th>
+                      <th style={{ textAlign: "left", padding: "8px 12px", color: "var(--text-ghost)", fontWeight: 700, fontSize: 11, textTransform: "uppercase", borderBottom: "1px solid var(--border)", minWidth: 180, position: "sticky", left: 0, background: "var(--bg-card)", zIndex: 1 }}>Member</th>
+                      <th style={{ textAlign: "center", padding: "8px 8px", color: "var(--text-ghost)", fontWeight: 700, fontSize: 11, textTransform: "uppercase", borderBottom: "1px solid var(--border)", minWidth: 50 }}>Role</th>
                       {ALL_MODULES.map(mod => (
-                        <th key={mod.key} style={{ textAlign: "center", padding: "6px 4px", color: "#404060", fontWeight: 700, fontSize: 10, borderBottom: "1px solid #1C1C35", minWidth: 72, writingMode: "vertical-rl" as const, transform: "rotate(180deg)", height: 90, verticalAlign: "bottom" }}>
+                        <th key={mod.key} style={{ textAlign: "center", padding: "6px 4px", color: "var(--text-ghost)", fontWeight: 700, fontSize: 10, borderBottom: "1px solid var(--border)", minWidth: 72, writingMode: "vertical-rl" as const, transform: "rotate(180deg)", height: 90, verticalAlign: "bottom" }}>
                           {mod.label}
                         </th>
                       ))}
@@ -244,12 +244,12 @@ export default function OrgAdminPage() {
                       const grantedKeys = new Set(m.user.moduleAccess.map(a => a.moduleKey));
                       return (
                         <tr key={m.id} style={{ borderBottom: "1px solid #131327" }}>
-                          <td style={{ padding: "10px 12px", position: "sticky", left: 0, background: "#0D0D1F", zIndex: 1 }}>
-                            <div style={{ fontWeight: 600, color: "#EEEEF5" }}>{m.user.name}</div>
-                            <div style={{ fontSize: 10, color: "#505070" }}>{m.user.email}</div>
+                          <td style={{ padding: "10px 12px", position: "sticky", left: 0, background: "var(--bg-card)", zIndex: 1 }}>
+                            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{m.user.name}</div>
+                            <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{m.user.email}</div>
                           </td>
                           <td style={{ textAlign: "center", padding: "10px 8px" }}>
-                            <span style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: isAdmin ? "#6366f120" : "#1C1C35", color: isAdmin ? "#818cf8" : "#505070", fontWeight: 700 }}>{m.role}</span>
+                            <span style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: isAdmin ? "#6366f120" : "#1C1C35", color: isAdmin ? "#818cf8" : "var(--text-ghost)", fontWeight: 700 }}>{m.role}</span>
                           </td>
                           {ALL_MODULES.map(mod => {
                             const has = isAdmin || grantedKeys.has(mod.key);
@@ -260,12 +260,12 @@ export default function OrgAdminPage() {
                                   title={isAdmin ? "Admin has full access" : has ? "Click to revoke" : "Click to grant"}
                                   style={{
                                     width: 26, height: 26, borderRadius: 6,
-                                    background: has ? (isAdmin ? "#6366f130" : "#10b98130") : "#131327",
+                                    background: has ? (isAdmin ? "#6366f130" : "#10b98130") : "var(--bg-hover)",
                                     border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : "#1C1C35"}`,
                                     cursor: isAdmin ? "default" : "pointer",
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                   }}>
-                                  {has ? <Check size={12} color={isAdmin ? "#818cf8" : "#10b981"} /> : <X size={10} color="#505070" />}
+                                  {has ? <Check size={12} color={isAdmin ? "#818cf8" : "#10b981"} /> : <X size={10} color="var(--text-ghost)" />}
                                 </button>
                               </td>
                             );

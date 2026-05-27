@@ -144,16 +144,16 @@ export default function LandingPage() {
   const filtered = filter === "All" ? MODULES : MODULES.filter(m => m.tag === filter);
 
   return (
-    <div style={{ background: "#07071A", minHeight: "100vh", color: "#EEEEF5", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <div style={{ background: "var(--bg-main)", minHeight: "100vh", color: "var(--text-primary)", fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
       {/* ── Navbar ── */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(7,7,26,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid #1C1C35", padding: "0 clamp(16px,4vw,64px)", display: "flex", alignItems: "center", height: 60, gap: 16 }}>
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(7,7,26,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)", padding: "0 clamp(16px,4vw,64px)", display: "flex", alignItems: "center", height: 60, gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
           <span style={{ fontSize: 18, fontWeight: 800, background: "linear-gradient(135deg,#818CF8,#C084FC)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FlowCRM</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => navigate("/login")} style={{ padding: "8px 18px", borderRadius: 8, background: "transparent", border: "1px solid #1E1E38", color: "#CCCCEE", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => navigate("/login")} style={{ padding: "8px 18px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             Login
           </button>
           <button onClick={() => navigate("/register")} style={{ padding: "8px 18px", borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
@@ -173,14 +173,14 @@ export default function LandingPage() {
             from One Platform
           </span>
         </h1>
-        <p style={{ fontSize: "clamp(15px,2vw,18px)", color: "#7070A0", maxWidth: 620, marginInline: "auto", lineHeight: 1.7, marginBottom: 36 }}>
+        <p style={{ fontSize: "clamp(15px,2vw,18px)", color: "var(--text-faint)", maxWidth: 620, marginInline: "auto", lineHeight: 1.7, marginBottom: 36 }}>
           CRM, Inventory, HR &amp; Payroll, Finance, Projects, Import-Export and more — all integrated, all GST-compliant, built for India.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={() => navigate("/register")} style={{ padding: "14px 32px", borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 32px #6366f140" }}>
             Start for Free →
           </button>
-          <button onClick={() => navigate("/login")} style={{ padding: "14px 32px", borderRadius: 10, background: "transparent", border: "1px solid #1E1E38", color: "#CCCCEE", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => navigate("/login")} style={{ padding: "14px 32px", borderRadius: 10, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
             Login to Dashboard
           </button>
         </div>
@@ -195,7 +195,7 @@ export default function LandingPage() {
           ].map(s => (
             <div key={s.label} style={{ textAlign: "center" }}>
               <div style={{ fontSize: "clamp(22px,3vw,32px)", fontWeight: 800, background: "linear-gradient(135deg,#818CF8,#C084FC)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -205,7 +205,7 @@ export default function LandingPage() {
       <section id="features" style={{ padding: "0 clamp(16px,4vw,64px) 80px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h2 style={{ fontSize: "clamp(24px,3vw,36px)", fontWeight: 800, margin: "0 0 12px" }}>Everything Your Business Needs</h2>
-          <p style={{ color: "#505070", fontSize: 15 }}>Click any module to see what it does</p>
+          <p style={{ color: "var(--text-ghost)", fontSize: 15 }}>Click any module to see what it does</p>
         </div>
 
         {/* Filter tabs */}
@@ -215,7 +215,7 @@ export default function LandingPage() {
               padding: "7px 18px", borderRadius: 20, border: "1px solid",
               borderColor: filter === t ? (TAG_COLORS[t] || "#6366f1") : "#1E1E38",
               background: filter === t ? (TAG_COLORS[t] || "#6366f1") + "20" : "transparent",
-              color: filter === t ? (TAG_COLORS[t] || "#818CF8") : "#505070",
+              color: filter === t ? (TAG_COLORS[t] || "#818CF8") : "var(--text-ghost)",
               fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}>{t}</button>
           ))}
@@ -228,7 +228,7 @@ export default function LandingPage() {
               key={mod.name}
               onClick={() => setExpanded(expanded === mod.name ? null : mod.name)}
               style={{
-                background: "#0D0D1F", border: `1px solid ${expanded === mod.name ? mod.color + "60" : "#1C1C35"}`,
+                background: "var(--bg-card)", border: `1px solid ${expanded === mod.name ? mod.color + "60" : "#1C1C35"}`,
                 borderRadius: 14, padding: 20, cursor: "pointer",
                 transition: "border-color 0.2s, transform 0.15s",
                 boxShadow: expanded === mod.name ? `0 0 24px ${mod.color}20` : "none",
@@ -240,10 +240,10 @@ export default function LandingPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "#EEEEF5" }}>{mod.name}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{mod.name}</span>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: (TAG_COLORS[mod.tag] || "#6366f1") + "20", color: TAG_COLORS[mod.tag] || "#818CF8" }}>{mod.tag}</span>
                   </div>
-                  <p style={{ fontSize: 12, color: "#7070A0", margin: 0, lineHeight: 1.5 }}>{mod.desc}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: 0, lineHeight: 1.5 }}>{mod.desc}</p>
                 </div>
               </div>
 
@@ -253,7 +253,7 @@ export default function LandingPage() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: mod.color, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>What's included</div>
                   <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5 }}>
                     {mod.features.map(f => (
-                      <li key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#CCCCEE" }}>
+                      <li key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-sec)" }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: mod.color, flexShrink: 0 }} />
                         {f}
                       </li>
@@ -273,14 +273,14 @@ export default function LandingPage() {
       </section>
 
       {/* ── Why FlowCRM ── */}
-      <section style={{ padding: "60px clamp(16px,4vw,64px)", background: "#0D0D1F", borderTop: "1px solid #1C1C35", borderBottom: "1px solid #1C1C35" }}>
+      <section style={{ padding: "60px clamp(16px,4vw,64px)", background: "var(--bg-card)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
         <h2 style={{ textAlign: "center", fontSize: "clamp(22px,3vw,32px)", fontWeight: 800, margin: "0 0 40px" }}>Why FlowCRM?</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,240px),1fr))", gap: 20, maxWidth: 1000, marginInline: "auto" }}>
           {WHY.map(w => (
-            <div key={w.title} style={{ background: "#131327", borderRadius: 12, padding: 24, border: "1px solid #1E1E38" }}>
+            <div key={w.title} style={{ background: "var(--bg-hover)", borderRadius: 12, padding: 24, border: "1px solid var(--border-input)" }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>{w.icon}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#EEEEF5", marginBottom: 8 }}>{w.title}</div>
-              <div style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6 }}>{w.desc}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{w.title}</div>
+              <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{w.desc}</div>
             </div>
           ))}
         </div>
@@ -294,8 +294,8 @@ export default function LandingPage() {
             <div key={s.n} style={{ flex: "1 1 240px", maxWidth: 280, textAlign: "center" }}>
               <div style={{ fontSize: 48, fontWeight: 900, color: "#1C1C35", lineHeight: 1, marginBottom: 8 }}>{s.n}</div>
               <div style={{ width: 40, height: 3, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", borderRadius: 2, marginInline: "auto", marginBottom: 16 }} />
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#EEEEF5", marginBottom: 8 }}>{s.title}</div>
-              <div style={{ fontSize: 13, color: "#7070A0", lineHeight: 1.6 }}>{s.desc}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{s.title}</div>
+              <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{s.desc}</div>
               {i < STEPS.length - 1 && (
                 <div style={{ fontSize: 24, color: "#1C1C35", marginTop: 16 }}>↓</div>
               )}
@@ -305,35 +305,35 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA Banner ── */}
-      <section style={{ padding: "60px clamp(16px,4vw,64px)", textAlign: "center", background: "linear-gradient(135deg,#6366f110,#8b5cf610)", borderTop: "1px solid #1C1C35" }}>
+      <section style={{ padding: "60px clamp(16px,4vw,64px)", textAlign: "center", background: "linear-gradient(135deg,#6366f110,#8b5cf610)", borderTop: "1px solid var(--border)" }}>
         <h2 style={{ fontSize: "clamp(24px,3.5vw,40px)", fontWeight: 900, margin: "0 0 16px" }}>
           Ready to streamline your business?
         </h2>
-        <p style={{ color: "#7070A0", fontSize: 15, marginBottom: 32 }}>
+        <p style={{ color: "var(--text-faint)", fontSize: 15, marginBottom: 32 }}>
           Join businesses already running on FlowCRM. Free to start, no credit card required.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={() => navigate("/register")} style={{ padding: "14px 36px", borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 32px #6366f140" }}>
             Create Free Account
           </button>
-          <button onClick={() => navigate("/login")} style={{ padding: "14px 28px", borderRadius: 10, background: "transparent", border: "1px solid #1E1E38", color: "#CCCCEE", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => navigate("/login")} style={{ padding: "14px 28px", borderRadius: 10, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
             Already have an account? Login
           </button>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer style={{ padding: "28px clamp(16px,4vw,64px)", borderTop: "1px solid #1C1C35", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+      <footer style={{ padding: "28px clamp(16px,4vw,64px)", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>⚡</div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#505070" }}>FlowCRM</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-ghost)" }}>FlowCRM</span>
         </div>
-        <div style={{ fontSize: 12, color: "#404060" }}>
+        <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>
           Built for Indian businesses · GST-compliant · Multi-org · Secure
         </div>
         <div style={{ display: "flex", gap: 16 }}>
-          <button onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: "#505070", fontSize: 12, cursor: "pointer" }}>Login</button>
-          <button onClick={() => navigate("/register")} style={{ background: "none", border: "none", color: "#505070", fontSize: 12, cursor: "pointer" }}>Register</button>
+          <button onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer" }}>Login</button>
+          <button onClick={() => navigate("/register")} style={{ background: "none", border: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer" }}>Register</button>
         </div>
       </footer>
     </div>

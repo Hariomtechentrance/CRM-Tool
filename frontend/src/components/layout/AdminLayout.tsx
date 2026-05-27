@@ -15,12 +15,13 @@ const navLinks = [
 ];
 
 export default function AdminLayout() {
-  const { user, isAuthenticated, isOrgAdmin, activeOrg, logout } = useAuthStore();
+  const { user, isAuthenticated, activeOrg, logout } = useAuthStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!isOrgAdmin) return <Navigate to="/dashboard" replace />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const handleLogout = async () => { await logout(); navigate("/login"); };
 
@@ -29,7 +30,7 @@ export default function AdminLayout() {
     : "AD";
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#07071A", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", background: "var(--bg-main)", overflow: "hidden" }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -42,7 +43,7 @@ export default function AdminLayout() {
       <div style={{
         width: 240,
         background: "#050514",
-        borderRight: "1px solid #1C1C35",
+        borderRight: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
@@ -60,13 +61,13 @@ export default function AdminLayout() {
       >
 
         {/* Brand / Org */}
-        <div style={{ padding: "18px 16px 16px", borderBottom: "1px solid #1C1C35" }}>
+        <div style={{ padding: "18px 16px 16px", borderBottom: "1px solid var(--border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "white", flexShrink: 0 }}>
               {initials}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#EEEEF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {activeOrg?.name ?? "Organization"}
               </div>
               <div style={{ fontSize: 10, color: "#818cf8", fontWeight: 600 }}>Admin Panel</div>
@@ -90,7 +91,7 @@ export default function AdminLayout() {
               style={({ isActive }) => ({
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "9px 12px", borderRadius: 8, marginBottom: 2,
-                color: isActive ? "#EEEEF5" : "#505070",
+                color: isActive ? "var(--text-primary)" : "var(--text-ghost)",
                 background: isActive ? "linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15))" : "transparent",
                 borderLeft: isActive ? "2px solid #6366f1" : "2px solid transparent",
                 textDecoration: "none", fontSize: 13,
@@ -103,12 +104,12 @@ export default function AdminLayout() {
         </nav>
 
         {/* Footer */}
-        <div style={{ padding: "12px 8px", borderTop: "1px solid #1C1C35" }}>
+        <div style={{ padding: "12px 8px", borderTop: "1px solid var(--border)" }}>
           <NavLink to="/dashboard"
             onClick={() => setSidebarOpen(false)}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, color: "#505070", textDecoration: "none", fontSize: 12, marginBottom: 4, transition: "all 0.15s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#CCCCEE")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#505070")}>
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, color: "var(--text-ghost)", textDecoration: "none", fontSize: 12, marginBottom: 4, transition: "all 0.15s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-sec)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-ghost)")}>
             <ChevronLeft size={14} /> Back to App
           </NavLink>
 
@@ -121,13 +122,13 @@ export default function AdminLayout() {
       {/* ── Main ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
         {/* Mobile top bar */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#050514", borderBottom: "1px solid #1C1C35" }}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#050514", borderBottom: "1px solid var(--border)" }}
           className="mobile-menu-btn" >
           <button onClick={() => setSidebarOpen(p => !p)}
             style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", display: "flex", alignItems: "center" }}>
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#EEEEF5" }}>Admin Panel</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Admin Panel</span>
         </div>
         <Outlet />
       </div>

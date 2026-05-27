@@ -3,29 +3,29 @@ import api from "@/lib/api";
 import { Kanban, Plus, Search, X } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   tabs: { display: "flex", gap: 4, marginBottom: 24 } as React.CSSProperties,
-  tab: (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "#505070" }) as React.CSSProperties,
+  tab: (a: boolean) => ({ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: a ? "rgba(99,102,241,0.15)" : "transparent", color: a ? "#818CF8" : "var(--text-ghost)" }) as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16 } as React.CSSProperties,
   searchWrap: { position: "relative" as const, flex: 1, maxWidth: 300 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 480, maxHeight: "90vh", overflowY: "auto" as const },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 480, maxHeight: "90vh", overflowY: "auto" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
   g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
   taskCol: { flex: 1, background: "#0F0F22", borderRadius: 10, padding: 14, minHeight: 200 } as React.CSSProperties,
-  taskCard: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 8, padding: "10px 12px", marginBottom: 8, cursor: "pointer" } as React.CSSProperties,
+  taskCard: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", marginBottom: 8, cursor: "pointer" } as React.CSSProperties,
 };
 
 const PROJ_COLORS: Record<string, string> = { PLANNING: "#818cf8", ACTIVE: "#10b981", ON_HOLD: "#f59e0b", COMPLETED: "#6366f1", CANCELLED: "#ef4444" };
@@ -95,7 +95,7 @@ export default function ProjectsPage() {
           <p style={S.subtitle}>Track projects, assign tasks, and monitor progress</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }} onClick={() => { setTaskForm({ projectId: "", title: "", description: "", status: "TODO", priority: "MEDIUM", dueDate: "" }); setError(""); setShowTaskModal(true); }}>
+          <button style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }} onClick={() => { setTaskForm({ projectId: "", title: "", description: "", status: "TODO", priority: "MEDIUM", dueDate: "" }); setError(""); setShowTaskModal(true); }}>
             <Plus size={14} /> Add Task
           </button>
           <button style={S.btn} onClick={() => { setProjForm({ name: "", description: "", status: "PLANNING", startDate: "", endDate: "", budget: "" }); setError(""); setShowModal(true); }}>
@@ -117,13 +117,13 @@ export default function ProjectsPage() {
               <input style={S.searchInput} placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           </div>
-          {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+          {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
             <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>{["Project", "Status", "Start", "End", "Budget", "Tasks"].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr></thead>
               <tbody>
-                {projects.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No projects yet.</td></tr> : projects.map(p => (
+                {projects.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No projects yet.</td></tr> : projects.map(p => (
                   <tr key={p.id}>
-                    <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 500 }}>{p.name}</td>
+                    <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 500 }}>{p.name}</td>
                     <td style={S.td}><span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (PROJ_COLORS[p.status] || "#818cf8") + "20", color: PROJ_COLORS[p.status] || "#818cf8" }}>{p.status}</span></td>
                     <td style={S.td}>{p.startDate ? new Date(p.startDate).toLocaleDateString("en-IN") : "—"}</td>
                     <td style={S.td}>{p.endDate ? new Date(p.endDate).toLocaleDateString("en-IN") : "—"}</td>
@@ -143,16 +143,16 @@ export default function ProjectsPage() {
             <div key={col} style={{ ...S.taskCol, minWidth: 240 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: TASK_COLORS[col] }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase", letterSpacing: "0.05em" }}>{col.replace("_", " ")}</span>
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "#404060" }}>{tasks.filter(t => t.status === col).length}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{col.replace("_", " ")}</span>
+                <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-ghost)" }}>{tasks.filter(t => t.status === col).length}</span>
               </div>
               {tasks.filter(t => t.status === col).map(task => (
                 <div key={task.id} style={S.taskCard}>
-                  <p style={{ margin: "0 0 6px", fontSize: 13, color: "#EEEEF5", fontWeight: 500 }}>{task.title}</p>
+                  <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{task.title}</p>
                   {task.project && <p style={{ margin: "0 0 6px", fontSize: 11, color: "#818CF8" }}>{task.project.name}</p>}
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <span style={{ padding: "2px 6px", borderRadius: 5, fontSize: 10, fontWeight: 600, background: (PRIORITY_COLORS[task.priority] || "#818cf8") + "25", color: PRIORITY_COLORS[task.priority] || "#818cf8" }}>{task.priority}</span>
-                    {task.dueDate && <span style={{ fontSize: 11, color: "#505070" }}>{new Date(task.dueDate).toLocaleDateString("en-IN")}</span>}
+                    {task.dueDate && <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>{new Date(task.dueDate).toLocaleDateString("en-IN")}</span>}
                   </div>
                   {col !== "DONE" && (
                     <div style={{ marginTop: 8, display: "flex", gap: 4 }}>
@@ -172,8 +172,8 @@ export default function ProjectsPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Project</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Project</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -193,7 +193,7 @@ export default function ProjectsPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveProject} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Create Project"}</button>
             </div>
           </div>
@@ -204,8 +204,8 @@ export default function ProjectsPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowTaskModal(false)}>
           <div className="modal-inner" style={{ maxWidth: 440 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Task</h3>
-              <button onClick={() => setShowTaskModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Task</h3>
+              <button onClick={() => setShowTaskModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -227,7 +227,7 @@ export default function ProjectsPage() {
               <div><label style={S.label}>Description</label><textarea style={{ ...S.input, minHeight: 60, resize: "vertical" as const }} value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowTaskModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowTaskModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveTask} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Add Task"}</button>
             </div>
           </div>

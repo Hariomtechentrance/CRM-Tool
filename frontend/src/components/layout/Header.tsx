@@ -157,12 +157,12 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         {/* Hamburger — mobile only */}
         <button
           onClick={onMenuToggle}
-          className="mobile-menu-btn w-9 h-9 rounded-lg items-center justify-center text-[#7070A0] hover:text-[#EEEEF5] hover:bg-[#131327] transition-colors cursor-pointer"
-          style={{ display: "none" }}
+          className="mobile-menu-btn w-9 h-9 rounded-lg items-center justify-center transition-colors cursor-pointer"
+          style={{ display: "none", color: "var(--text-faint)" }}
         >
           <Menu style={{ width: 20, height: 20 }} />
         </button>
-        <span className="text-[#7070A0] text-sm font-medium truncate max-w-[200px]">{activeOrg?.name}</span>
+        <span className="text-sm font-medium truncate max-w-[200px]" style={{ color: "var(--text-faint)" }}>{activeOrg?.name}</span>
         {activeOrg && (
           <span className="text-[11px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
             {activeOrg.currency}
@@ -172,7 +172,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Global Search */}
       <div ref={searchRef} style={{ position: "relative", flex: 1, maxWidth: 380, margin: "0 16px" }}>
-        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070", pointerEvents: "none" }} />
+        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)", pointerEvents: "none" }} />
         <input
           type="text"
           value={searchQuery}
@@ -186,7 +186,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           }}
         />
         {searchQuery && (
-          <button onClick={() => { setSearchQuery(""); setSearchResults(null); }} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 2 }}>
+          <button onClick={() => { setSearchQuery(""); setSearchResults(null); }} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 2 }}>
             <X size={13} />
           </button>
         )}
@@ -199,9 +199,9 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             boxShadow: "0 20px 60px var(--shadow)", zIndex: 200, overflow: "hidden", maxHeight: 420, overflowY: "auto",
           }}>
             {searchLoading ? (
-              <div style={{ padding: "20px 16px", textAlign: "center", color: "#505070", fontSize: 13 }}>Searching...</div>
+              <div style={{ padding: "20px 16px", textAlign: "center", color: "var(--text-ghost)", fontSize: 13 }}>Searching...</div>
             ) : !hasResults ? (
-              <div style={{ padding: "20px 16px", textAlign: "center", color: "#505070", fontSize: 13 }}>No results for "{searchQuery}"</div>
+              <div style={{ padding: "20px 16px", textAlign: "center", color: "var(--text-ghost)", fontSize: 13 }}>No results for "{searchQuery}"</div>
             ) : (
               Object.entries(searchResults || {}).map(([category, items]) => {
                 if (!items || items.length === 0) return null;
@@ -209,7 +209,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 const icon = RESULT_ICONS[category];
                 return (
                   <div key={category}>
-                    <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 5 }}>
                       <span style={{ color }}>{icon}</span>
                       {category}
                     </div>
@@ -220,13 +220,13 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                           key={item.id}
                           onClick={() => { navigate(display.href); setSearchOpen(false); setSearchQuery(""); }}
                           style={{ padding: "9px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s" }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "#131327")}
+                          onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                         >
                           <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, color: "#EEEEF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{display.label}</div>
-                            {display.sub && <div style={{ fontSize: 11, color: "#505070" }}>{display.sub}</div>}
+                            <div style={{ fontSize: 13, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{display.label}</div>
+                            {display.sub && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{display.sub}</div>}
                           </div>
                         </div>
                       );
@@ -257,7 +257,10 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         <div ref={bellRef} style={{ position: "relative" }}>
           <button
             onClick={toggleBell}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#505070] hover:text-[#EEEEF5] hover:bg-[#131327] transition-colors relative cursor-pointer"
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors relative cursor-pointer"
+            style={{ color: "var(--text-ghost)" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-ghost)"; }}
           >
             <Bell style={{ width: 18, height: 18 }} />
             {totalCount > 0 && (
@@ -283,16 +286,16 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               boxShadow: "0 24px 80px var(--shadow)", zIndex: 100, overflow: "hidden",
             }}>
               {/* Header */}
-              <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #1C1C35", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#EEEEF5" }}>Notifications</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Notifications</span>
                   {totalCount > 0 && (
                     <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: "#6366f120", color: "#818CF8", padding: "1px 7px", borderRadius: 99 }}>
                       {totalCount}
                     </span>
                   )}
                 </div>
-                <button onClick={() => setBellOpen(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 4 }}>
+                <button onClick={() => setBellOpen(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 4 }}>
                   <X size={15} />
                 </button>
               </div>
@@ -300,12 +303,12 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               {/* Alert + Notification List */}
               <div style={{ maxHeight: 400, overflowY: "auto" }}>
                 {alertLoading ? (
-                  <div style={{ padding: "32px 16px", textAlign: "center", color: "#505070", fontSize: 13 }}>Loading...</div>
+                  <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-ghost)", fontSize: 13 }}>Loading...</div>
                 ) : alerts.length === 0 && notifications.length === 0 ? (
                   <div style={{ padding: "40px 16px", textAlign: "center" }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#CCCCEE", margin: 0 }}>All clear!</p>
-                    <p style={{ fontSize: 12, color: "#505070", marginTop: 4 }}>No pending alerts or notifications.</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-sec)", margin: 0 }}>All clear!</p>
+                    <p style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 4 }}>No pending alerts or notifications.</p>
                   </div>
                 ) : (
                   <>
@@ -316,17 +319,17 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                         style={{
                           display: "flex", alignItems: "flex-start", gap: 10,
                           padding: "12px 16px", cursor: "pointer",
-                          borderBottom: "1px solid #131327", transition: "background 0.15s",
+                          borderBottom: "1px solid var(--border)", transition: "background 0.15s",
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "#131327")}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                       >
                         <div style={{ marginTop: 2, flexShrink: 0 }}>{SEV_ICON[a.severity]}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, color: "#EEEEF5", fontWeight: 500, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {a.title}
                           </div>
-                          <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{a.subtitle}</div>
+                          <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{a.subtitle}</div>
                         </div>
                         <div style={{ width: 6, height: 6, borderRadius: "50%", background: SEV_DOT[a.severity], flexShrink: 0, marginTop: 5 }} />
                       </div>
@@ -346,18 +349,18 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                         style={{
                           display: "flex", alignItems: "flex-start", gap: 10,
                           padding: "12px 16px", cursor: "pointer",
-                          borderBottom: "1px solid #131327", transition: "background 0.15s",
+                          borderBottom: "1px solid var(--border)", transition: "background 0.15s",
                           background: n.isRead ? "transparent" : "#6366f108",
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "#131327")}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                         onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? "transparent" : "#6366f108")}
                       >
                         <div style={{ marginTop: 2, flexShrink: 0 }}><Info size={14} color="#6366f1" /></div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, color: "#EEEEF5", fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {n.title}
                           </div>
-                          <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>{n.message}</div>
+                          <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{n.message}</div>
                         </div>
                         {!n.isRead && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", flexShrink: 0, marginTop: 5 }} />}
                       </div>
@@ -368,7 +371,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
               {/* Footer */}
               {(alerts.length > 0 || notifications.length > 0) && (
-                <div style={{ padding: "10px 16px", borderTop: "1px solid #1C1C35", display: "flex", gap: 8 }}>
+                <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", display: "flex", gap: 8 }}>
                   {unreadCount > 0 && (
                     <button
                       onClick={async () => {
@@ -376,14 +379,14 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
                         setUnreadCount(0);
                       }}
-                      style={{ flex: 1, background: "#131327", border: "1px solid #1C1C35", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                      style={{ flex: 1, background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                     >
                       Mark all read
                     </button>
                   )}
                   <button
                     onClick={() => { navigate("/admin/dashboard"); setBellOpen(false); }}
-                    style={{ flex: 1, background: "#131327", border: "1px solid #1C1C35", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                    style={{ flex: 1, background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                   >
                     View Admin →
                   </button>
@@ -397,33 +400,39 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         <div className="relative">
           <button
             onClick={() => { setMenuOpen(!menuOpen); setBellOpen(false); }}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-[#131327] transition-colors cursor-pointer"
+            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{ background: "transparent" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
               style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
               {user ? getInitials(user.name) : "U"}
             </div>
-            <span className="text-sm font-medium text-[#CCCCEE]">{user?.name?.split(" ")[0]}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#505070]" />
+            <span className="text-sm font-medium" style={{ color: "var(--text-sec)" }}>{user?.name?.split(" ")[0]}</span>
+            <ChevronDown className="w-3.5 h-3.5" style={{ color: "var(--text-ghost)" }} />
           </button>
 
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 top-full mt-1 w-52 rounded-xl shadow-2xl z-50 py-1 border"
-                style={{ background: "#0D0D1F", borderColor: "#1C1C35", boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}>
-                <div className="px-4 py-3" style={{ borderBottom: "1px solid #1C1C35" }}>
-                  <p className="text-sm font-semibold text-[#EEEEF5]">{user?.name}</p>
-                  <p className="text-xs text-[#505070] truncate mt-0.5">{user?.email}</p>
+                style={{ background: "var(--bg-card)", borderColor: "var(--border)", boxShadow: "0 20px 60px var(--shadow)" }}>
+                <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{user?.name}</p>
+                  <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-ghost)" }}>{user?.email}</p>
                 </div>
                 <button
                   onClick={() => { navigate("/settings"); setMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#9090B0] hover:text-[#EEEEF5] hover:bg-[#131327] transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)"; }}
                 >
                   <User className="w-4 h-4" />
                   Settings
                 </button>
-                <div style={{ borderTop: "1px solid #1C1C35" }} className="mt-1">
+                <div style={{ borderTop: "1px solid var(--border)" }} className="mt-1">
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"

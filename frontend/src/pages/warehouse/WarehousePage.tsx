@@ -3,27 +3,27 @@ import api from "@/lib/api";
 import { Warehouse, Plus, Search, X, ArrowRightLeft } from "lucide-react";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  cardTitle: { fontSize: 14, fontWeight: 700, color: "#EEEEF5", marginBottom: 16 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  cardTitle: { fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 } as React.CSSProperties,
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 480, maxHeight: "90vh", overflowY: "auto" as const },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 480, maxHeight: "90vh", overflowY: "auto" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
   g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16 } as React.CSSProperties,
   searchWrap: { position: "relative" as const, flex: 1, maxWidth: 300 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
 };
 
 const ST_COLORS: Record<string, string> = { DRAFT: "#818cf8", IN_TRANSIT: "#f59e0b", COMPLETED: "#10b981", CANCELLED: "#ef4444" };
@@ -98,7 +98,7 @@ export default function WarehousePage() {
           <p style={S.subtitle}>Multi-location inventory, stock transfers and audits</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }} onClick={() => { setError(""); setShowTrModal(true); }}>
+          <button style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }} onClick={() => { setError(""); setShowTrModal(true); }}>
             <ArrowRightLeft size={14} /> New Transfer
           </button>
           <button style={S.btn} onClick={() => { setError(""); setShowWhModal(true); }}>
@@ -110,30 +110,30 @@ export default function WarehousePage() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
         {(["warehouses", "transfers"] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: tab === t ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "#0D0D1F", color: tab === t ? "white" : "#505070", cursor: "pointer", fontWeight: 600, fontSize: 13, textTransform: "capitalize" }}>
+          <button key={t} onClick={() => setTab(t)} style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: tab === t ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-card)", color: tab === t ? "white" : "var(--text-ghost)", cursor: "pointer", fontWeight: 600, fontSize: 13, textTransform: "capitalize" }}>
             {t}
           </button>
         ))}
       </div>
 
-      {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+      {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
         <>
           {tab === "warehouses" && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
               {warehouses.length === 0 ? (
-                <div style={{ ...S.card, textAlign: "center", color: "#505070", padding: 40 }}>No warehouses yet. Add your first warehouse.</div>
+                <div style={{ ...S.card, textAlign: "center", color: "var(--text-ghost)", padding: 40 }}>No warehouses yet. Add your first warehouse.</div>
               ) : warehouses.map(w => (
                 <div key={w.id} style={{ ...S.card, borderColor: w.isDefault ? "#6366f1" : "#1C1C35" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "#EEEEF5" }}>{w.name}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{w.name}</div>
                       <div style={{ fontSize: 12, color: "#818cf8", fontFamily: "monospace" }}>{w.code}</div>
                     </div>
                     {w.isDefault && <span style={{ fontSize: 10, background: "#6366f120", color: "#818cf8", padding: "2px 7px", borderRadius: 5, fontWeight: 600 }}>DEFAULT</span>}
                   </div>
-                  {(w.city || w.state) && <div style={{ fontSize: 12, color: "#505070" }}>{[w.city, w.state].filter(Boolean).join(", ")}</div>}
-                  <div style={{ marginTop: 12, padding: "8px 12px", background: "#131327", borderRadius: 8, fontSize: 12, color: "#CCCCEE" }}>
-                    <Warehouse size={12} style={{ display: "inline", marginRight: 6, color: "#505070" }} />
+                  {(w.city || w.state) && <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>{[w.city, w.state].filter(Boolean).join(", ")}</div>}
+                  <div style={{ marginTop: 12, padding: "8px 12px", background: "var(--bg-hover)", borderRadius: 8, fontSize: 12, color: "var(--text-sec)" }}>
+                    <Warehouse size={12} style={{ display: "inline", marginRight: 6, color: "var(--text-ghost)" }} />
                     {w._count?.products || 0} products
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function WarehousePage() {
                 <thead><tr>{["Transfer#", "From", "To", "Items", "Status", "Date", "Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {transfers.length === 0 ? (
-                    <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No transfers yet.</td></tr>
+                    <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No transfers yet.</td></tr>
                   ) : transfers.map(t => (
                     <tr key={t.id}>
                       <td style={{ ...S.td, color: "#818CF8", fontWeight: 600, fontFamily: "monospace" }}>{t.transferNumber}</td>
@@ -179,8 +179,8 @@ export default function WarehousePage() {
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowWhModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>Add Warehouse</h3>
-              <button onClick={() => setShowWhModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Add Warehouse</h3>
+              <button onClick={() => setShowWhModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -195,11 +195,11 @@ export default function WarehousePage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <input type="checkbox" id="isDefault" checked={whForm.isDefault} onChange={e => setWhForm(p => ({ ...p, isDefault: e.target.checked }))} />
-                <label htmlFor="isDefault" style={{ color: "#CCCCEE", fontSize: 13, cursor: "pointer" }}>Set as default warehouse</label>
+                <label htmlFor="isDefault" style={{ color: "var(--text-sec)", fontSize: 13, cursor: "pointer" }}>Set as default warehouse</label>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowWhModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowWhModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveWarehouse} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Add Warehouse"}</button>
             </div>
           </div>
@@ -211,8 +211,8 @@ export default function WarehousePage() {
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowTrModal(false)}>
           <div className="modal-inner" style={{ maxWidth: 540 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>New Stock Transfer</h3>
-              <button onClick={() => setShowTrModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>New Stock Transfer</h3>
+              <button onClick={() => setShowTrModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -249,7 +249,7 @@ export default function WarehousePage() {
               <div><label style={S.label}>Notes</label><textarea style={{ ...S.input, minHeight: 60, resize: "vertical" as const }} value={trForm.notes} onChange={e => setTrForm(p => ({ ...p, notes: e.target.value }))} /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowTrModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowTrModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={saveTransfer} style={S.btn} disabled={saving}>{saving ? "Saving..." : "Create Transfer"}</button>
             </div>
           </div>

@@ -4,17 +4,17 @@ import { FileText, Plus, Search, X, Eye, Trash2, CheckCircle, Send, Clock, XCirc
 import { kDecimal } from "@/lib/fieldRules";
 
 const S = {
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
   kpiValue: { fontSize: 26, fontWeight: 700, margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35", whiteSpace: "nowrap" as const },
-  td: { padding: "12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" as const },
+  td: { padding: "12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
@@ -249,7 +249,7 @@ export default function QuotationsPage() {
       <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 14, marginBottom: 24 }}>
         <div style={S.kpi}>
           <div style={S.kpiLabel}>Total</div>
-          <div style={{ ...S.kpiValue, color: "#EEEEF5" }}>{stats?.total ?? "—"}</div>
+          <div style={{ ...S.kpiValue, color: "var(--text-primary)" }}>{stats?.total ?? "—"}</div>
         </div>
         <div style={S.kpi}>
           <div style={S.kpiLabel}>Draft</div>
@@ -272,7 +272,7 @@ export default function QuotationsPage() {
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" as const }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
           <input
             style={{ ...S.input, paddingLeft: 32 }}
             placeholder="Search quotations..."
@@ -289,7 +289,7 @@ export default function QuotationsPage() {
                 padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid",
                 ...(statusFilter === s
                   ? { background: "#6366f1", borderColor: "#6366f1", color: "white" }
-                  : { background: "transparent", borderColor: "#1E1E38", color: "#505070" }),
+                  : { background: "transparent", borderColor: "#1E1E38", color: "var(--text-ghost)" }),
               }}
             >
               {s || "All"}
@@ -299,13 +299,13 @@ export default function QuotationsPage() {
       </div>
 
       {/* Table */}
-      <div className="table-wrap" style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, overflow: "hidden" }}>
+      <div className="table-wrap" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: "60px 24px", textAlign: "center", color: "#505070" }}>Loading...</div>
+          <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : quotations.length === 0 ? (
           <div style={{ padding: "60px 24px", textAlign: "center" }}>
             <FileText size={40} color="#1C1C35" style={{ margin: "0 auto 12px" }} />
-            <p style={{ color: "#505070", margin: 0 }}>No quotations yet. Create your first proposal.</p>
+            <p style={{ color: "var(--text-ghost)", margin: 0 }}>No quotations yet. Create your first proposal.</p>
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -325,15 +325,15 @@ export default function QuotationsPage() {
                     <td style={S.td}>
                       <span style={{ fontFamily: "monospace", color: "#818CF8", fontWeight: 700 }}>{q.quotationNumber}</span>
                     </td>
-                    <td style={S.td}>{q.subject || <span style={{ color: "#404060" }}>—</span>}</td>
-                    <td style={S.td}>{q.party?.name || <span style={{ color: "#404060" }}>—</span>}</td>
+                    <td style={S.td}>{q.subject || <span style={{ color: "var(--text-ghost)" }}>—</span>}</td>
+                    <td style={S.td}>{q.party?.name || <span style={{ color: "var(--text-ghost)" }}>—</span>}</td>
                     <td style={S.td}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <StatusBadge status={q.status} />
                         {STATUS_TRANSITIONS[q.status]?.length > 0 && (
                           <div style={{ position: "relative", display: "inline-block" }}>
                             <select
-                              style={{ background: "transparent", border: "none", color: "#505070", fontSize: 11, cursor: "pointer", outline: "none", colorScheme: "dark" }}
+                              style={{ background: "transparent", border: "none", color: "var(--text-ghost)", fontSize: 11, cursor: "pointer", outline: "none", colorScheme: "dark" }}
                               value=""
                               onChange={e => { if (e.target.value) handleStatusChange(q.id, e.target.value); }}
                             >
@@ -346,8 +346,8 @@ export default function QuotationsPage() {
                         )}
                       </div>
                     </td>
-                    <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5" }}>₹{fmt(Number(q.total))}</td>
-                    <td style={{ ...S.td, color: q.validUntil && new Date(q.validUntil) < new Date() ? "#ef4444" : "#CCCCEE" }}>
+                    <td style={{ ...S.td, fontWeight: 600, color: "var(--text-primary)" }}>₹{fmt(Number(q.total))}</td>
+                    <td style={{ ...S.td, color: q.validUntil && new Date(q.validUntil) < new Date() ? "#ef4444" : "var(--text-sec)" }}>
                       {q.validUntil ? new Date(q.validUntil).toLocaleDateString("en-IN") : "—"}
                     </td>
                     <td style={S.td}>
@@ -384,14 +384,14 @@ export default function QuotationsPage() {
       {/* Create Modal */}
       {showCreate && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 16px", overflowY: "auto" }}>
-          <div className="modal-inner" style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, width: "100%", maxWidth: 860, boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}>
+          <div className="modal-inner" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, width: "100%", maxWidth: 860, boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}>
             {/* Modal header */}
-            <div style={{ padding: "20px 24px", borderBottom: "1px solid #1C1C35", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#EEEEF5" }}>New Quotation</h2>
-                <p style={{ margin: "3px 0 0", fontSize: 12, color: "#505070" }}>Create a quotation with line items</p>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>New Quotation</h2>
+                <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--text-ghost)" }}>Create a quotation with line items</p>
               </div>
-              <button onClick={() => setShowCreate(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 4 }}><X size={20} /></button>
+              <button onClick={() => setShowCreate(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 4 }}><X size={20} /></button>
             </div>
 
             <div style={{ padding: "24px", display: "grid", gap: 18 }}>
@@ -426,11 +426,11 @@ export default function QuotationsPage() {
                   </button>
                 </div>
 
-                <div style={{ border: "1px solid #1C1C35", borderRadius: 10, overflow: "hidden" }}>
+                <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
                   {/* Column headers */}
                   <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr 0.8fr 0.8fr 80px", gap: 0, background: "#0A0A18", padding: "8px 12px" }}>
                     {["Description / Product", "Product (optional)", "Qty", "Unit Price", "Tax %", "Discount", ""].map((h, i) => (
-                      <div key={i} style={{ fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</div>
+                      <div key={i} style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</div>
                     ))}
                   </div>
 
@@ -457,7 +457,7 @@ export default function QuotationsPage() {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 4 }}>
                         <span style={{ fontSize: 12, color: "#818CF8", fontWeight: 600 }}>₹{calcItem(item).toFixed(2)}</span>
                         {items.length > 1 && (
-                          <button onClick={() => removeItem(idx)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 2 }}><X size={14} /></button>
+                          <button onClick={() => removeItem(idx)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 2 }}><X size={14} /></button>
                         )}
                       </div>
                     </div>
@@ -466,8 +466,8 @@ export default function QuotationsPage() {
 
                 {/* Totals */}
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-                  <div style={{ background: "#0A0A18", border: "1px solid #1C1C35", borderRadius: 10, padding: "14px 20px", minWidth: 260, fontSize: 13 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#7070A0" }}>
+                  <div style={{ background: "#0A0A18", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 20px", minWidth: 260, fontSize: 13 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "var(--text-faint)" }}>
                       <span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     {totalDiscount > 0 && (
@@ -475,10 +475,10 @@ export default function QuotationsPage() {
                         <span>Discount</span><span>-₹{totalDiscount.toFixed(2)}</span>
                       </div>
                     )}
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, color: "#7070A0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, color: "var(--text-faint)" }}>
                       <span>Tax</span><span>₹{totalTax.toFixed(2)}</span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid #1C1C35", fontWeight: 700, fontSize: 15, color: "#EEEEF5" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid var(--border)", fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}>
                       <span>Grand Total</span><span>₹{grandTotal.toFixed(2)}</span>
                     </div>
                   </div>
@@ -499,8 +499,8 @@ export default function QuotationsPage() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: "16px 24px", borderTop: "1px solid #1C1C35", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={() => setShowCreate(false)} style={{ background: "none", border: "1px solid #1E1E38", color: "#CCCCEE", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>Cancel</button>
+            <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowCreate(false)} style={{ background: "none", border: "1px solid var(--border-input)", color: "var(--text-sec)", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>Cancel</button>
               <button onClick={handleCreate} disabled={saving} style={{ ...S.btn, opacity: saving ? 0.6 : 1 }}>
                 {saving ? "Creating..." : "Create Quotation"}
               </button>
@@ -512,8 +512,8 @@ export default function QuotationsPage() {
       {/* View Modal */}
       {viewQt && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 16px", overflowY: "auto" }}>
-          <div className="modal-inner" style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, width: "100%", maxWidth: 760, boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}>
-            <div style={{ padding: "20px 24px", borderBottom: "1px solid #1C1C35", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="modal-inner" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, width: "100%", maxWidth: 760, boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: "#818CF8" }}>{viewQt.quotationNumber}</span>
                 <StatusBadge status={viewQt.status} />
@@ -525,7 +525,7 @@ export default function QuotationsPage() {
                 >
                   <Printer size={14} /> Print / PDF
                 </button>
-                <button onClick={() => setViewQt(null)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={20} /></button>
+                <button onClick={() => setViewQt(null)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={20} /></button>
               </div>
             </div>
 
@@ -533,17 +533,17 @@ export default function QuotationsPage() {
               {/* Meta */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", marginBottom: 4 }}>Party</div>
-                  <div style={{ fontSize: 14, color: "#EEEEF5" }}>{viewQt.party?.name || "—"}</div>
-                  {viewQt.party?.email && <div style={{ fontSize: 12, color: "#505070" }}>{viewQt.party.email}</div>}
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 4 }}>Party</div>
+                  <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{viewQt.party?.name || "—"}</div>
+                  {viewQt.party?.email && <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>{viewQt.party.email}</div>}
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", marginBottom: 4 }}>Subject</div>
-                  <div style={{ fontSize: 14, color: "#EEEEF5" }}>{viewQt.subject || "—"}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 4 }}>Subject</div>
+                  <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{viewQt.subject || "—"}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", marginBottom: 4 }}>Valid Until</div>
-                  <div style={{ fontSize: 14, color: viewQt.validUntil && new Date(viewQt.validUntil) < new Date() ? "#ef4444" : "#EEEEF5" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 4 }}>Valid Until</div>
+                  <div style={{ fontSize: 14, color: viewQt.validUntil && new Date(viewQt.validUntil) < new Date() ? "#ef4444" : "var(--text-primary)" }}>
                     {viewQt.validUntil ? new Date(viewQt.validUntil).toLocaleDateString("en-IN") : "—"}
                   </div>
                 </div>
@@ -552,26 +552,26 @@ export default function QuotationsPage() {
               {/* Items table */}
               {viewQt.items && viewQt.items.length > 0 && (
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase", marginBottom: 10 }}>Line Items</div>
-                  <div style={{ border: "1px solid #1C1C35", borderRadius: 8, overflow: "hidden" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 10 }}>Line Items</div>
+                  <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                       <thead>
                         <tr style={{ background: "#0A0A18" }}>
                           {["#", "Description", "Qty", "Unit Price", "Tax", "Discount", "Total"].map(h => (
-                            <th key={h} style={{ padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1C1C35" }}>{h}</th>
+                            <th key={h} style={{ padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--border)" }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {viewQt.items.map((item, i) => (
                           <tr key={i}>
-                            <td style={{ ...S.td, color: "#505070" }}>{i + 1}</td>
+                            <td style={{ ...S.td, color: "var(--text-ghost)" }}>{i + 1}</td>
                             <td style={S.td}>{item.description}</td>
                             <td style={S.td}>{item.quantity}</td>
                             <td style={S.td}>₹{fmt(Number(item.unitPrice))}</td>
                             <td style={S.td}>{item.taxRate}%</td>
                             <td style={{ ...S.td, color: "#f59e0b" }}>₹{fmt(Number(item.discount))}</td>
-                            <td style={{ ...S.td, fontWeight: 600, color: "#EEEEF5" }}>₹{fmt(Number(calcItem({ ...item, quantity: String(item.quantity), unitPrice: String(item.unitPrice), taxRate: String(item.taxRate), discount: String(item.discount) })))}</td>
+                            <td style={{ ...S.td, fontWeight: 600, color: "var(--text-primary)" }}>₹{fmt(Number(calcItem({ ...item, quantity: String(item.quantity), unitPrice: String(item.unitPrice), taxRate: String(item.taxRate), discount: String(item.discount) })))}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -582,11 +582,11 @@ export default function QuotationsPage() {
 
               {/* Totals */}
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <div style={{ background: "#0A0A18", border: "1px solid #1C1C35", borderRadius: 10, padding: "14px 20px", minWidth: 240, fontSize: 13 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#7070A0" }}><span>Subtotal</span><span>₹{fmt(Number(viewQt.subtotal))}</span></div>
+                <div style={{ background: "#0A0A18", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 20px", minWidth: 240, fontSize: 13 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "var(--text-faint)" }}><span>Subtotal</span><span>₹{fmt(Number(viewQt.subtotal))}</span></div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#f59e0b" }}><span>Discount</span><span>-₹{fmt(Number(viewQt.discount))}</span></div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, color: "#7070A0" }}><span>Tax</span><span>₹{fmt(Number(viewQt.taxAmount))}</span></div>
-                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid #1C1C35", fontWeight: 700, fontSize: 15, color: "#EEEEF5" }}><span>Grand Total</span><span>₹{fmt(Number(viewQt.total))}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, color: "var(--text-faint)" }}><span>Tax</span><span>₹{fmt(Number(viewQt.taxAmount))}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid var(--border)", fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}><span>Grand Total</span><span>₹{fmt(Number(viewQt.total))}</span></div>
                 </div>
               </div>
 
@@ -595,14 +595,14 @@ export default function QuotationsPage() {
                 <div style={{ display: "grid", gridTemplateColumns: viewQt.notes && viewQt.terms ? "1fr 1fr" : "1fr", gap: 16, marginTop: 20 }}>
                   {viewQt.notes && (
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", marginBottom: 6 }}>Notes</div>
-                      <div style={{ fontSize: 13, color: "#9090B0", lineHeight: 1.6, background: "#0A0A18", border: "1px solid #1C1C35", borderRadius: 8, padding: 12 }}>{viewQt.notes}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 6 }}>Notes</div>
+                      <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, background: "#0A0A18", border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>{viewQt.notes}</div>
                     </div>
                   )}
                   {viewQt.terms && (
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#404060", textTransform: "uppercase", marginBottom: 6 }}>Terms & Conditions</div>
-                      <div style={{ fontSize: 13, color: "#9090B0", lineHeight: 1.6, background: "#0A0A18", border: "1px solid #1C1C35", borderRadius: 8, padding: 12 }}>{viewQt.terms}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 6 }}>Terms & Conditions</div>
+                      <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, background: "#0A0A18", border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>{viewQt.terms}</div>
                     </div>
                   )}
                 </div>
@@ -610,8 +610,8 @@ export default function QuotationsPage() {
 
               {/* Status actions */}
               {STATUS_TRANSITIONS[viewQt.status]?.length > 0 && (
-                <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #1C1C35", display: "flex", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#505070", alignSelf: "center" }}>Move to:</span>
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)", display: "flex", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-ghost)", alignSelf: "center" }}>Move to:</span>
                   {STATUS_TRANSITIONS[viewQt.status].map(s => {
                     const cfg = STATUS_CONFIG[s];
                     return (

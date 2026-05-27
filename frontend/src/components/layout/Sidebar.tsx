@@ -20,58 +20,78 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HeadphonesIcon: Headphones,
 };
 
+// Short display labels for module grid cells
+const MOD_SHORT: Record<string, string> = {
+  CRM: "CRM",
+  INVENTORY: "Inventory",
+  PURCHASE: "Purchase",
+  STORE: "Store",
+  DISPATCH: "Dispatch",
+  ACCOUNTS: "Accounts",
+  POS: "POS",
+  WAREHOUSE: "Warehouse",
+  HR: "HR",
+  PROJECTS: "Projects",
+  MARKETING: "Marketing",
+  SUPPORT: "Support",
+  ECOMMERCE: "E-commerce",
+  REPORTS: "Reports",
+  IMPORT_EXPORT_SUITE: "Import/Export",
+  RETAIL_FASHION: "Retail",
+};
+
 function OrgSwitcherDropdown() {
   const { organizations, activeOrg, setActiveOrg } = useAuthStore();
   const [open, setOpen] = useState(false);
   if (!activeOrg) return null;
 
   return (
-    <div style={{ position: "relative", padding: "0 12px", marginBottom: 16 }}>
+    <div style={{ position: "relative", padding: "0 10px", marginBottom: 8 }}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors cursor-pointer"
         style={{ background: "var(--bg-hover)", border: "1px solid var(--border-input)" }}
       >
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
           style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
           {getInitials(activeOrg.name)}
         </div>
         <div className="flex-1 text-left overflow-hidden min-w-0">
-          <p className="text-sm font-semibold truncate leading-tight" style={{ color: "#EEEEF5" }}>{activeOrg.name}</p>
-          <p className="text-[11px] truncate" style={{ color: "#505070" }}>{activeOrg.role}</p>
+          <p className="text-sm font-semibold truncate leading-tight" style={{ color: "var(--text-primary)" }}>{activeOrg.name}</p>
+          <p className="text-[10px] truncate" style={{ color: "var(--text-ghost)" }}>{activeOrg.role}</p>
         </div>
-        <ChevronDown className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200", open && "rotate-180")} style={{ color: "#505070" }} />
+        <ChevronDown className={cn("w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200", open && "rotate-180")} style={{ color: "var(--text-ghost)" }} />
       </button>
 
       {open && (
-        <div className="absolute left-3 right-3 top-full mt-1.5 rounded-xl py-1.5 z-50"
+        <div className="absolute left-2 right-2 top-full mt-1 rounded-xl py-1.5 z-50"
           style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "0 20px 60px var(--shadow)" }}>
           {organizations.map((org: OrganizationSummary) => (
             <button
               key={org.id}
               onClick={() => { setActiveOrg(org); setOpen(false); }}
-              className={cn("w-full flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer", activeOrg.id === org.id ? "bg-indigo-600/10" : "hover:bg-[#131327]")}
+              className={cn("w-full flex items-center gap-3 px-3 py-2 transition-colors cursor-pointer", activeOrg.id === org.id ? "bg-indigo-600/10" : "hover:bg-[#131327]")}
             >
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
+              <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
                 style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
                 {getInitials(org.name)}
               </div>
               <div className="flex-1 text-left overflow-hidden min-w-0">
-                <p className="text-sm truncate font-medium" style={{ color: "#EEEEF5" }}>{org.name}</p>
-                <p className="text-[11px]" style={{ color: "#505070" }}>{org.role}</p>
+                <p className="text-xs truncate font-medium" style={{ color: "var(--text-primary)" }}>{org.name}</p>
+                <p className="text-[10px]" style={{ color: "var(--text-ghost)" }}>{org.role}</p>
               </div>
-              {activeOrg.id === org.id && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#6366f1" }} />}
+              {activeOrg.id === org.id && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#6366f1" }} />}
             </button>
           ))}
-          <div style={{ borderTop: "1px solid #1C1C35" }} className="mt-1 pt-1">
+          <div style={{ borderTop: "1px solid var(--border)" }} className="mt-1 pt-1">
             <NavLink
               to="/create-org"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 transition-colors"
               style={{ color: "#818CF8" }}
             >
-              <Building2 className="w-4 h-4" />
-              <span className="text-sm font-medium">Add new organization</span>
+              <Building2 className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">Add new organization</span>
             </NavLink>
           </div>
         </div>
@@ -80,192 +100,168 @@ function OrgSwitcherDropdown() {
   );
 }
 
+interface CollapsibleSectionProps {
+  label: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+function CollapsibleSection({ label, children, defaultOpen = false }: CollapsibleSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ padding: "0 10px", marginBottom: 2 }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "6px 8px", borderRadius: 8, background: "none", border: "none", cursor: "pointer",
+          color: "var(--text-ghost)",
+        }}
+      >
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>
+        <ChevronDown
+          style={{
+            width: 12, height: 12, color: "var(--text-ghost)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s",
+          }}
+        />
+      </button>
+      {open && <div style={{ marginTop: 2 }}>{children}</div>}
+    </div>
+  );
+}
+
 interface SidebarProps { open?: boolean; onClose?: () => void; }
 
 export default function Sidebar({ open = false, onClose }: SidebarProps) {
-  const { activeOrg, moduleAccess, isOrgAdmin } = useAuthStore();
+  const { moduleAccess } = useAuthStore();
+  const navModules = getNavModules(moduleAccess);
 
-  // Show only modules the user has been granted access to (admins see all enabled)
-  const orgEnabled = Array.isArray(activeOrg?.enabledModules) ? activeOrg!.enabledModules : [];
-  const visibleKeys = isOrgAdmin ? orgEnabled : moduleAccess;
-  const navModules = getNavModules(visibleKeys);
+  const navLinkClass = ({ isActive }: { isActive: boolean }) => cn(
+    "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150",
+    isActive
+      ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
+      : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
+  );
 
   return (
     <aside
-      className={`app-sidebar h-screen flex flex-col flex-shrink-0${open ? " sidebar-open" : ""}`}
-      style={{ width: 232, background: "var(--bg-card)", borderRight: "1px solid var(--border)" }}>
-
+      className={`app-sidebar flex flex-col flex-shrink-0${open ? " sidebar-open" : ""}`}
+      style={{ width: 232, height: "100vh", background: "var(--bg-card)", borderRight: "1px solid var(--border)" }}
+    >
       {/* Logo */}
-      <div className="h-14 flex items-center px-5 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+      <div className="flex items-center px-4 flex-shrink-0" style={{ height: 50, borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm shadow-lg flex-shrink-0"
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-lg flex-shrink-0"
             style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
             FC
           </div>
-          <span className="font-bold text-base tracking-tight" style={{ color: "#EEEEF5" }}>FlowCRM</span>
+          <span className="font-bold text-sm tracking-tight" style={{ color: "var(--text-primary)" }}>FlowCRM</span>
         </div>
       </div>
 
       {/* Org switcher */}
-      <div className="pt-4">
+      <div className="pt-3 flex-shrink-0">
         <OrgSwitcherDropdown />
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto" style={{ padding: "0 10px" }}>
-        {/* Dashboard — always visible */}
-        <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-2" style={{ color: "#404060", letterSpacing: "0.1em" }}>Overview</p>
-        <NavLink
-          to="/dashboard"
-          end
-          onClick={onClose}
-          className={({ isActive }) => cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-1",
-            isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
-          )}
-        >
-          <LayoutDashboard style={{ width: 17, height: 17 }} />
-          Dashboard
-        </NavLink>
+      {/* ── Scrollable middle: Dashboard + Modules ── */}
+      <div className="flex-1 overflow-y-auto" style={{ padding: "0 10px 4px" }}>
 
-        {/* Grouped module nav */}
-        {(["core", "operations", "growth", "industry"] as const).map((cat) => {
-          const mods = navModules.filter((m) => m.category === cat);
-          if (mods.length === 0) return null;
+        {/* Dashboard */}
+        <div style={{ marginBottom: 8 }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1" style={{ color: "var(--text-ghost)", letterSpacing: "0.1em" }}>Overview</p>
+          <NavLink
+            to="/dashboard"
+            end
+            onClick={onClose}
+            className={navLinkClass}
+          >
+            <LayoutDashboard style={{ width: 15, height: 15, flexShrink: 0 }} />
+            Dashboard
+          </NavLink>
+        </div>
 
-          const catLabel: Record<string, string> = {
-            core: "Modules",
-            operations: "Operations",
-            growth: "Growth",
-            industry: "Industry",
-          };
-
-          return (
-            <div key={cat} className="mt-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1.5" style={{ color: "#404060", letterSpacing: "0.1em" }}>
-                {catLabel[cat]}
-              </p>
-              <ul className="space-y-0.5">
-                {mods.map((mod) => {
-                  const Icon = ICON_MAP[mod.iconName] || Package;
-                  return (
-                    <li key={mod.key}>
-                      <NavLink
-                        to={mod.href}
-                        onClick={onClose}
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
-                          isActive
-                            ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
-                            : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
-                        )}
-                      >
-                        <Icon style={{ width: 17, height: 17, flexShrink: 0 }} />
-                        <span className="truncate">{mod.label}</span>
-                      </NavLink>
-                    </li>
-                  );
-                })}
-              </ul>
+        {/* Modules — 2-column compact grid */}
+        {navModules.length > 0 && (
+          <div style={{ marginBottom: 6 }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-2" style={{ color: "var(--text-ghost)", letterSpacing: "0.1em" }}>
+              Modules
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
+              {navModules.map((mod) => {
+                const Icon = ICON_MAP[mod.iconName] || Package;
+                const label = MOD_SHORT[mod.key] || mod.label;
+                return (
+                  <NavLink
+                    key={mod.key}
+                    to={mod.href}
+                    onClick={onClose}
+                    className={({ isActive }) => cn(
+                      "flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-center transition-all duration-150",
+                      isActive
+                        ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
+                        : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22] border border-transparent"
+                    )}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontWeight: 500, lineHeight: 1.2, wordBreak: "break-word" as const }}>{label}</span>
+                  </NavLink>
+                );
+              })}
             </div>
-          );
-        })}
-      </nav>
+          </div>
+        )}
+      </div>
 
-      {/* Sales tools — always visible */}
-      <div className="mt-4" style={{ padding: "0 10px" }}>
-        <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1.5" style={{ color: "#404060", letterSpacing: "0.1em" }}>
-          Sales
-        </p>
-        <ul className="space-y-0.5">
+      {/* ── Fixed bottom section ── */}
+      <div className="flex-shrink-0" style={{ borderTop: "1px solid var(--border)" }}>
+
+        {/* Sales — collapsible */}
+        <CollapsibleSection label="Sales">
           {[
             { href: "/deals", label: "Deals", Icon: Briefcase },
             { href: "/quotations", label: "Quotations", Icon: FileText },
             { href: "/recurring", label: "Recurring Invoices", Icon: RefreshCw },
           ].map(({ href, label, Icon }) => (
-            <li key={href}>
-              <NavLink
-                to={href}
-                onClick={onClose}
-                className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
-                  isActive
-                    ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
-                    : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
-                )}
-              >
-                <Icon style={{ width: 17, height: 17, flexShrink: 0 }} />
-                <span className="truncate">{label}</span>
-              </NavLink>
-            </li>
+            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+              <span className="truncate">{label}</span>
+            </NavLink>
           ))}
-        </ul>
-      </div>
+        </CollapsibleSection>
 
-      {/* Communication tools — always visible */}
-      <div className="mt-4" style={{ padding: "0 10px" }}>
-        <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1.5" style={{ color: "#404060", letterSpacing: "0.1em" }}>
-          Communication
-        </p>
-        <ul className="space-y-0.5">
+        {/* Communication — collapsible */}
+        <CollapsibleSection label="Communication">
           {[
             { href: "/email", label: "Email", Icon: Mail },
             { href: "/activities", label: "Activities", Icon: Calendar },
           ].map(({ href, label, Icon }) => (
-            <li key={href}>
-              <NavLink
-                to={href}
-                onClick={onClose}
-                className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
-                  isActive
-                    ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
-                    : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
-                )}
-              >
-                <Icon style={{ width: 17, height: 17, flexShrink: 0 }} />
-                <span className="truncate">{label}</span>
-              </NavLink>
-            </li>
+            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+              <span className="truncate">{label}</span>
+            </NavLink>
           ))}
-        </ul>
-      </div>
+        </CollapsibleSection>
 
-      {/* Bottom links */}
-      <div className="flex-shrink-0 px-2.5 pb-4" style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-        <NavLink
-          to="/admin/dashboard"
-          onClick={onClose}
-          className={({ isActive }) => cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-0.5",
-            isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
-          )}
-        >
-          <LayoutGrid style={{ width: 17, height: 17 }} />
-          Admin Panel
-        </NavLink>
-        <NavLink
-          to="/audit"
-          onClick={onClose}
-          className={({ isActive }) => cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-0.5",
-            isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
-          )}
-        >
-          <ShieldCheck style={{ width: 17, height: 17 }} />
-          Audit Trail
-        </NavLink>
-        <NavLink
-          to="/settings"
-          onClick={onClose}
-          className={({ isActive }) => cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 mb-0.5",
-            isActive ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20" : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
-          )}
-        >
-          <Settings style={{ width: 17, height: 17 }} />
-          Settings
-        </NavLink>
+        {/* Settings row */}
+        <div style={{ padding: "6px 10px 10px" }}>
+          <NavLink to="/admin/dashboard" onClick={onClose} className={navLinkClass}>
+            <LayoutGrid style={{ width: 14, height: 14 }} />
+            <span className="truncate">Admin Panel</span>
+          </NavLink>
+          <NavLink to="/audit" onClick={onClose} className={navLinkClass}>
+            <ShieldCheck style={{ width: 14, height: 14 }} />
+            <span className="truncate">Audit Trail</span>
+          </NavLink>
+          <NavLink to="/settings" onClick={onClose} className={navLinkClass}>
+            <Settings style={{ width: 14, height: 14 }} />
+            <span className="truncate">Settings</span>
+          </NavLink>
+        </div>
+
       </div>
     </aside>
   );

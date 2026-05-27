@@ -129,8 +129,8 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
         {/* Header row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Paperclip size={13} color="#505070" />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <Paperclip size={13} color="var(--text-ghost)" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Attachments {docs.length > 0 && <span style={{ color: "#818CF8" }}>({docs.length})</span>}
             </span>
           </div>
@@ -152,10 +152,10 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
 
         {uploading && (
           <div style={{ marginBottom: 8 }}>
-            <div style={{ height: 3, background: "#1C1C35", borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ height: 3, background: "var(--bg-hover)", borderRadius: 2, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${uploadProgress}%`, background: "#6366f1", borderRadius: 2, transition: "width 0.2s" }} />
             </div>
-            <div style={{ fontSize: 10, color: "#505070", marginTop: 3 }}>Uploading… {uploadProgress}%</div>
+            <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 3 }}>Uploading… {uploadProgress}%</div>
           </div>
         )}
 
@@ -174,8 +174,8 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
             transition: "all 0.15s",
           }}
         >
-          <span style={{ fontSize: 11, color: "#505070" }}>Drag files here or <span style={{ color: "#818CF8" }}>click to browse</span></span>
-          <div style={{ fontSize: 10, color: "#404060", marginTop: 2 }}>PDF, CSV, Excel, Word, Images • Max 20 MB</div>
+          <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>Drag files here or <span style={{ color: "#818CF8" }}>click to browse</span></span>
+          <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 2 }}>PDF, CSV, Excel, Word, Images • Max 20 MB</div>
         </div>
 
         {/* File list — compact */}
@@ -187,15 +187,15 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
                 <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#0A0A18", border: "1px solid #131327", borderRadius: 8 }}>
                   <div style={{ color, flexShrink: 0 }}>{getFileIcon(doc.mimeType)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, color: "#CCCCEE", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.originalName}</div>
-                    <div style={{ fontSize: 10, color: "#404060" }}>{fmtSize(doc.fileSize)} · {fmtDate(doc.createdAt)}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-sec)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.originalName}</div>
+                    <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{fmtSize(doc.fileSize)} · {fmtDate(doc.createdAt)}</div>
                   </div>
-                  <button onClick={() => handleDownload(doc)} title="Download" style={{ background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 3, borderRadius: 4 }}>
+                  <button onClick={() => handleDownload(doc)} title="Download" style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 3, borderRadius: 4 }}>
                     <Download size={13} />
                   </button>
-                  <button onClick={() => handleDelete(doc.id)} title="Delete" style={{ background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 3, borderRadius: 4 }}
+                  <button onClick={() => handleDelete(doc.id)} title="Delete" style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 3, borderRadius: 4 }}
                     onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "#ef4444")}
-                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "#505070")}>
+                    onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--text-ghost)")}>
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -205,7 +205,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
         )}
 
         {!loading && docs.length === 0 && !uploading && (
-          <div style={{ fontSize: 11, color: "#404060", textAlign: "center", padding: "4px 0" }}>No attachments yet</div>
+          <div style={{ fontSize: 11, color: "var(--text-ghost)", textAlign: "center", padding: "4px 0" }}>No attachments yet</div>
         )}
       </div>
     );
@@ -234,17 +234,17 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
         </div>
         {uploading ? (
           <div>
-            <div style={{ fontSize: 14, color: "#EEEEF5", fontWeight: 600 }}>Uploading… {uploadProgress}%</div>
-            <div style={{ height: 4, background: "#1C1C35", borderRadius: 2, overflow: "hidden", maxWidth: 200, margin: "10px auto 0" }}>
+            <div style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600 }}>Uploading… {uploadProgress}%</div>
+            <div style={{ height: 4, background: "var(--bg-hover)", borderRadius: 2, overflow: "hidden", maxWidth: 200, margin: "10px auto 0" }}>
               <div style={{ height: "100%", width: `${uploadProgress}%`, background: "#6366f1", borderRadius: 2, transition: "width 0.2s" }} />
             </div>
           </div>
         ) : (
           <>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "#CCCCEE", margin: "0 0 4px" }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-sec)", margin: "0 0 4px" }}>
               {dragOver ? "Drop files here" : "Drag & drop files or click to browse"}
             </p>
-            <p style={{ fontSize: 12, color: "#505070", margin: 0 }}>
+            <p style={{ fontSize: 12, color: "var(--text-ghost)", margin: 0 }}>
               PDF, CSV, Excel, Word, Images, TXT — Max 20 MB per file
             </p>
           </>
@@ -259,19 +259,19 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
 
       {/* File list */}
       {loading ? (
-        <div style={{ textAlign: "center", color: "#505070", padding: "24px 0", fontSize: 13 }}>Loading…</div>
+        <div style={{ textAlign: "center", color: "var(--text-ghost)", padding: "24px 0", fontSize: 13 }}>Loading…</div>
       ) : docs.length === 0 ? (
         <div style={{ textAlign: "center", padding: "32px 20px" }}>
           <Paperclip size={36} color="#1C1C35" style={{ margin: "0 auto 10px" }} />
-          <p style={{ color: "#505070", margin: 0, fontSize: 13 }}>No files uploaded yet</p>
-          <p style={{ color: "#404060", margin: "4px 0 0", fontSize: 12 }}>Upload contracts, invoices, certificates, photos and more</p>
+          <p style={{ color: "var(--text-ghost)", margin: 0, fontSize: 13 }}>No files uploaded yet</p>
+          <p style={{ color: "var(--text-ghost)", margin: "4px 0 0", fontSize: 12 }}>Upload contracts, invoices, certificates, photos and more</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {docs.map(doc => {
             const color = getFileColor(doc.mimeType);
             return (
-              <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 10, transition: "border-color 0.15s" }}
+              <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, transition: "border-color 0.15s" }}
                 onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.borderColor = "#2D2D50")}
                 onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.borderColor = "#1C1C35")}>
                 {/* Icon */}
@@ -280,10 +280,10 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
                 </div>
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#EEEEF5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.originalName}</div>
-                  <div style={{ fontSize: 11, color: "#505070", marginTop: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.originalName}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>
                     {fmtSize(doc.fileSize)} · {fmtDate(doc.createdAt)}
-                    {doc.description && <> · <span style={{ color: "#7070A0" }}>{doc.description}</span></>}
+                    {doc.description && <> · <span style={{ color: "var(--text-faint)" }}>{doc.description}</span></>}
                   </div>
                 </div>
                 {/* Actions */}
@@ -296,9 +296,9 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
                   </button>
                   <button
                     onClick={() => handleDelete(doc.id)}
-                    style={{ padding: "5px 8px", borderRadius: 6, cursor: "pointer", background: "transparent", border: "1px solid #1E1E38", color: "#505070" }}
+                    style={{ padding: "5px 8px", borderRadius: 6, cursor: "pointer", background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-ghost)" }}
                     onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.3)"; (e.currentTarget as HTMLButtonElement).style.color = "#ef4444"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#1E1E38"; (e.currentTarget as HTMLButtonElement).style.color = "#505070"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#1E1E38"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-ghost)"; }}
                   >
                     <Trash2 size={13} />
                   </button>

@@ -36,9 +36,9 @@ function fmtSize(bytes: number): string {
 }
 
 const S = {
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 14px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  th: { textAlign: "left" as const, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 14px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
 };
 
 export default function DocumentsPage() {
@@ -93,8 +93,8 @@ export default function DocumentsPage() {
             <FolderOpen size={20} color="#818CF8" />
           </div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 }}>Documents</h1>
-            <p style={{ fontSize: 13, color: "#505070", marginTop: 2 }}>All uploaded files across your organization</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Documents</h1>
+            <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>All uploaded files across your organization</p>
           </div>
         </div>
       </div>
@@ -102,15 +102,15 @@ export default function DocumentsPage() {
       {/* Stats */}
       <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>
         <div style={S.kpi}>
-          <div style={{ fontSize: 12, color: "#505070", fontWeight: 500 }}>Total Files</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: "#EEEEF5", marginTop: 4 }}>{stats?.total ?? "—"}</div>
+          <div style={{ fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 }}>Total Files</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>{stats?.total ?? "—"}</div>
         </div>
         <div style={S.kpi}>
-          <div style={{ fontSize: 12, color: "#505070", fontWeight: 500 }}>Storage Used</div>
+          <div style={{ fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 }}>Storage Used</div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#818cf8", marginTop: 4 }}>{stats ? fmtSize(stats.totalSize) : "—"}</div>
         </div>
         <div style={S.kpi}>
-          <div style={{ fontSize: 12, color: "#505070", fontWeight: 500 }}>Modules With Files</div>
+          <div style={{ fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 }}>Modules With Files</div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#10b981", marginTop: 4 }}>{activeTypes.filter(t => t._count > 0).length}</div>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function DocumentsPage() {
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" as const }}>
         <button
           onClick={() => setEntityFilter("")}
-          style={{ padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", ...(entityFilter === "" ? { background: "#6366f1", borderColor: "#6366f1", color: "white" } : { background: "transparent", borderColor: "#1E1E38", color: "#505070" }) }}
+          style={{ padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", ...(entityFilter === "" ? { background: "#6366f1", borderColor: "#6366f1", color: "white" } : { background: "transparent", borderColor: "#1E1E38", color: "var(--text-ghost)" }) }}
         >
           All
         </button>
@@ -141,27 +141,27 @@ export default function DocumentsPage() {
 
       {/* Search */}
       <div style={{ position: "relative", marginBottom: 18, maxWidth: 400 }}>
-        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" }} />
+        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
         <input
-          style={{ width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px 9px 32px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}
+          style={{ width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px 9px 32px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}
           placeholder="Search by file name or description..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         {search && (
-          <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 2 }}><X size={13} /></button>
+          <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 2 }}><X size={13} /></button>
         )}
       </div>
 
       {/* File table */}
-      <div className="table-wrap" style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, overflow: "hidden" }}>
+      <div className="table-wrap" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: "60px 24px", textAlign: "center", color: "#505070" }}>Loading...</div>
+          <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : docs.length === 0 ? (
           <div style={{ padding: "60px 24px", textAlign: "center" }}>
             <FolderOpen size={44} color="#1C1C35" style={{ margin: "0 auto 12px" }} />
-            <p style={{ color: "#505070", margin: 0, fontSize: 14 }}>No documents uploaded yet</p>
-            <p style={{ color: "#404060", margin: "4px 0 0", fontSize: 12 }}>Upload files from any module — Inventory, Purchase, HR, Finance, etc.</p>
+            <p style={{ color: "var(--text-ghost)", margin: 0, fontSize: 14 }}>No documents uploaded yet</p>
+            <p style={{ color: "var(--text-ghost)", margin: "4px 0 0", fontSize: 12 }}>Upload files from any module — Inventory, Purchase, HR, Finance, etc.</p>
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -183,16 +183,16 @@ export default function DocumentsPage() {
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ flexShrink: 0 }}>{getFileIcon(doc.mimeType)}</div>
                           <div>
-                            <div style={{ fontSize: 13, color: "#EEEEF5", fontWeight: 500 }}>{doc.originalName}</div>
-                            {doc.description && <div style={{ fontSize: 11, color: "#505070" }}>{doc.description}</div>}
+                            <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{doc.originalName}</div>
+                            {doc.description && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{doc.description}</div>}
                           </div>
                         </div>
                       </td>
                       <td style={S.td}>
                         <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: color + "18", color }}>{label}</span>
                       </td>
-                      <td style={{ ...S.td, color: "#7070A0" }}>{fmtSize(doc.fileSize)}</td>
-                      <td style={{ ...S.td, color: "#7070A0", whiteSpace: "nowrap" as const }}>
+                      <td style={{ ...S.td, color: "var(--text-faint)" }}>{fmtSize(doc.fileSize)}</td>
+                      <td style={{ ...S.td, color: "var(--text-faint)", whiteSpace: "nowrap" as const }}>
                         {new Date(doc.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                       </td>
                       <td style={S.td}>
@@ -205,9 +205,9 @@ export default function DocumentsPage() {
                           </button>
                           <button
                             onClick={() => handleDelete(doc.id)}
-                            style={{ padding: "5px 8px", borderRadius: 6, cursor: "pointer", background: "transparent", border: "1px solid #1E1E38", color: "#505070" }}
+                            style={{ padding: "5px 8px", borderRadius: 6, cursor: "pointer", background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-ghost)" }}
                             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)"; (e.currentTarget as HTMLButtonElement).style.color = "#ef4444"; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#505070"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-ghost)"; }}
                           >
                             <Trash2 size={13} />
                           </button>

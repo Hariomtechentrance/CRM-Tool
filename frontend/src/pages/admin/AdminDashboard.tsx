@@ -7,14 +7,14 @@ import {
 } from "lucide-react";
 
 const S = {
-  page: { padding: "28px 32px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "28px 32px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   hdr: { marginBottom: 28 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  sub: { fontSize: 13, color: "#505070", marginTop: 4 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  sub: { fontSize: 13, color: "var(--text-ghost)", marginTop: 4 } as React.CSSProperties,
   kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  cardTitle: { fontSize: 14, fontWeight: 700, color: "#EEEEF5", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  cardTitle: { fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
   tag: { display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 600 } as React.CSSProperties,
 };
 
@@ -73,14 +73,14 @@ export default function AdminDashboard() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 60, textAlign: "center", color: "#505070" }}>Loading...</div>
+        <div style={{ padding: 60, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
       ) : (
         <>
           <div className="kpi-grid">
             {kpis.map((k) => (
               <div key={k.label} style={S.kpi}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, color: "#505070", fontWeight: 500 }}>{k.label}</span>
+                  <span style={{ fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 }}>{k.label}</span>
                   <div style={{ padding: 6, borderRadius: 8, background: k.color + "20" }}>
                     <k.icon size={14} color={k.color} />
                   </div>
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
               <Activity size={15} color="#6366f1" /> Live Activity Feed
             </div>
             {feed.length === 0 ? (
-              <div style={{ color: "#505070", textAlign: "center", padding: 32 }}>No activity yet.</div>
+              <div style={{ color: "var(--text-ghost)", textAlign: "center", padding: 32 }}>No activity yet.</div>
             ) : feed.map((item, i) => {
               const cfg = FEED_ICONS[item.type] || { icon: FileText, color: "#818cf8" };
               const color = STATUS_COLORS[item.meta] || "#818cf8";
@@ -105,12 +105,12 @@ export default function AdminDashboard() {
                     <cfg.icon size={14} color={cfg.color} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#EEEEF5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                    {item.subtitle && <div style={{ fontSize: 11, color: "#505070" }}>{item.subtitle}</div>}
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+                    {item.subtitle && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{item.subtitle}</div>}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
                     <span style={{ ...S.tag, background: color + "20", color }}>{item.meta}</span>
-                    <span style={{ fontSize: 10, color: "#505070" }}>
+                    <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>
                       {new Date(item.createdAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
                     </span>
                   </div>

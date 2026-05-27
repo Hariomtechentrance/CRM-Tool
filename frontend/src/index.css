@@ -78,6 +78,15 @@ input:focus, textarea:focus, select:focus { outline: none; }
   align-items: flex-start;
   margin-bottom: 24px;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }

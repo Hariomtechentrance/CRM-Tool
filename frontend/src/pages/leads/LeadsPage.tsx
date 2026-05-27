@@ -4,28 +4,28 @@ import { Megaphone, Plus, Search, X, TrendingUp, LayoutList, Kanban } from "luci
 import DocumentsButton from "@/components/DocumentsButton";
 
 const S = {
-  page: { padding: "24px 28px", background: "#07071A", minHeight: "100vh" } as React.CSSProperties,
+  page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 700, color: "#EEEEF5", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "#505070", marginTop: 2 } as React.CSSProperties,
+  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 } as React.CSSProperties,
-  kpi: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiValue: { fontSize: 24, fontWeight: 700, color: "#EEEEF5", margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "#505070", fontWeight: 500 } as React.CSSProperties,
-  card: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 12, padding: 20 } as React.CSSProperties,
+  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
+  kpiValue: { fontSize: 24, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0" } as React.CSSProperties,
+  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
+  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   toolbar: { display: "flex", gap: 10, marginBottom: 16 } as React.CSSProperties,
   searchWrap: { position: "relative" as const, flex: 1, maxWidth: 300 },
-  searchInput: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "8px 12px 8px 34px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "#505070" },
+  searchInput: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   table: { width: "100%", borderCollapse: "collapse" as const },
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#404060", textTransform: "uppercase" as const, borderBottom: "1px solid #1C1C35" },
-  td: { padding: "12px 12px", fontSize: 13, color: "#CCCCEE", borderBottom: "1px solid #131327" },
+  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, padding: 28, width: 460, maxHeight: "90vh", overflowY: "auto" as const },
-  input: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "#505070", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "9px 12px", color: "#EEEEF5", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 460, maxHeight: "90vh", overflowY: "auto" as const },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
   g2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 } as React.CSSProperties,
 };
 
@@ -56,11 +56,11 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
             <button onClick={() => onChange(tags.filter(x => x !== t))} style={{ background: "none", border: "none", color: tagColor(t), cursor: "pointer", padding: 0, lineHeight: 1 }}><X size={10} /></button>
           </span>
         ))}
-        {tags.length === 0 && <span style={{ fontSize: 11, color: "#404060" }}>No tags</span>}
+        {tags.length === 0 && <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>No tags</span>}
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         <input
-          style={{ flex: 1, background: "#131327", border: "1px solid #1E1E38", borderRadius: 8, padding: "6px 10px", color: "#EEEEF5", fontSize: 12, outline: "none" }}
+          style={{ flex: 1, background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "6px 10px", color: "var(--text-primary)", fontSize: 12, outline: "none" }}
           placeholder="Add tag and press Enter"
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -137,8 +137,8 @@ export default function LeadsPage() {
           <p style={S.subtitle}>Lead pipeline, follow-ups, and campaign tracking</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setViewMode("table")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "table" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "table" ? "#6366f120" : "transparent", color: viewMode === "table" ? "#818CF8" : "#505070", cursor: "pointer" }} title="Table view"><LayoutList size={16} /></button>
-          <button onClick={() => setViewMode("kanban")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "kanban" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "kanban" ? "#6366f120" : "transparent", color: viewMode === "kanban" ? "#818CF8" : "#505070", cursor: "pointer" }} title="Kanban view"><Kanban size={16} /></button>
+          <button onClick={() => setViewMode("table")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "table" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "table" ? "#6366f120" : "transparent", color: viewMode === "table" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }} title="Table view"><LayoutList size={16} /></button>
+          <button onClick={() => setViewMode("kanban")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "kanban" ? "#6366f1" : "#1C1C35"}`, background: viewMode === "kanban" ? "#6366f120" : "transparent", color: viewMode === "kanban" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }} title="Kanban view"><Kanban size={16} /></button>
           <button style={S.btn} onClick={openCreate}><Plus size={15} /> Add Lead</button>
         </div>
       </div>
@@ -177,22 +177,22 @@ export default function LeadsPage() {
               <Search size={14} style={S.searchIcon} />
               <input style={S.searchInput} placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#505070", fontSize: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-ghost)", fontSize: 12 }}>
               <TrendingUp size={14} /> {leads.length} leads
             </div>
           </div>
-          {loading ? <div style={{ padding: 40, textAlign: "center", color: "#505070" }}>Loading...</div> : (
+          {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
             <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>{["Name", "Company", "Contact", "Tags", "Source", "Score", "Value", "Status", "Added", "Docs"].map(h => <th key={h} style={{ ...S.th, whiteSpace: "nowrap" as const }}>{h}</th>)}</tr></thead>
               <tbody>
-                {leads.length === 0 ? <tr><td colSpan={10} style={{ ...S.td, textAlign: "center", color: "#505070", padding: 32 }}>No leads yet.</td></tr> : leads.map(l => (
+                {leads.length === 0 ? <tr><td colSpan={10} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No leads yet.</td></tr> : leads.map(l => (
                   <tr key={l.id} onClick={() => openEdit(l)} style={{ cursor: "pointer" }}>
-                    <td style={{ ...S.td, color: "#EEEEF5", fontWeight: 500 }}>{l.name}</td>
+                    <td style={{ ...S.td, color: "var(--text-primary)", fontWeight: 500 }}>{l.name}</td>
                     <td style={S.td}>{l.company || "—"}</td>
                     <td style={S.td}>{l.email || l.phone || "—"}</td>
                     <td style={S.td}>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
-                        {(l.tags || []).length === 0 ? <span style={{ color: "#404060", fontSize: 11 }}>—</span> : (l.tags || []).map(t => (
+                        {(l.tags || []).length === 0 ? <span style={{ color: "var(--text-ghost)", fontSize: 11 }}>—</span> : (l.tags || []).map(t => (
                           <span key={t} style={{ padding: "1px 6px", borderRadius: 99, fontSize: 10, fontWeight: 600, background: tagColor(t) + "20", color: tagColor(t) }}>{t}</span>
                         ))}
                       </div>
@@ -201,10 +201,10 @@ export default function LeadsPage() {
                     <td style={S.td}>
                       {l.score != null ? (
                         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                          <div style={{ width: 36, height: 4, borderRadius: 2, background: "#131327", overflow: "hidden" }}>
+                          <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--bg-hover)", overflow: "hidden" }}>
                             <div style={{ width: `${l.score}%`, height: "100%", background: l.score >= 70 ? "#10b981" : l.score >= 40 ? "#f59e0b" : "#ef4444", borderRadius: 2 }} />
                           </div>
-                          <span style={{ fontSize: 11, color: "#CCCCEE" }}>{l.score}</span>
+                          <span style={{ fontSize: 11, color: "var(--text-sec)" }}>{l.score}</span>
                         </div>
                       ) : "—"}
                     </td>
@@ -230,7 +230,7 @@ export default function LeadsPage() {
               const colValue = colLeads.reduce((s, l) => s + (l.value || 0), 0);
               return (
                 <div key={status} style={{ width: 240, flexShrink: 0 }}>
-                  <div style={{ background: "#0D0D1F", border: `1px solid ${color}30`, borderRadius: "10px 10px 0 0", padding: "10px 14px", borderBottom: `2px solid ${color}` }}>
+                  <div style={{ background: "var(--bg-card)", border: `1px solid ${color}30`, borderRadius: "10px 10px 0 0", padding: "10px 14px", borderBottom: `2px solid ${color}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color, textTransform: "uppercase" }}>{status}</span>
                       <span style={{ background: color + "25", color, borderRadius: 99, fontSize: 11, fontWeight: 700, padding: "1px 8px" }}>{colLeads.length}</span>
@@ -240,11 +240,11 @@ export default function LeadsPage() {
                   <div style={{ background: "#0A0A1A", border: `1px solid ${color}20`, borderTop: "none", borderRadius: "0 0 10px 10px", minHeight: 200, padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
                     {colLeads.length === 0 && <div style={{ padding: "24px 0", textAlign: "center", color: "#2A2A40", fontSize: 12 }}>Drop here</div>}
                     {colLeads.map(l => (
-                      <div key={l.id} onClick={() => openEdit(l)} style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 8, padding: "10px 12px", cursor: "pointer", transition: "border-color 0.15s" }}
+                      <div key={l.id} onClick={() => openEdit(l)} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", cursor: "pointer", transition: "border-color 0.15s" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = color + "60")}
                         onMouseLeave={e => (e.currentTarget.style.borderColor = "#1C1C35")}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#EEEEF5", marginBottom: 4 }}>{l.name}</div>
-                        {l.company && <div style={{ fontSize: 11, color: "#505070", marginBottom: 4 }}>{l.company}</div>}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>{l.name}</div>
+                        {l.company && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 4 }}>{l.company}</div>}
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <span style={{ padding: "1px 5px", borderRadius: 4, fontSize: 10, background: (SOURCE_COLORS[l.source] || "#818cf8") + "20", color: SOURCE_COLORS[l.source] || "#818cf8", fontWeight: 600 }}>{l.source}</span>
                           {l.value && <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>₹{l.value.toLocaleString("en-IN")}</span>}
@@ -263,8 +263,8 @@ export default function LeadsPage() {
         <div style={S.modal} onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "#EEEEF5", margin: 0, fontSize: 16, fontWeight: 700 }}>{editId ? "Edit Lead" : "Add Lead"}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>{editId ? "Edit Lead" : "Add Lead"}</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
             {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -296,7 +296,7 @@ export default function LeadsPage() {
               <div><label style={S.label}>Notes</label><textarea style={{ ...S.input, minHeight: 60, resize: "vertical" as const }} value={form.notes} onChange={(e) => f("notes", e.target.value)} /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "#1C1C35", color: "#CCCCEE" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>{saving ? "Saving..." : editId ? "Update" : "Add Lead"}</button>
             </div>
           </div>

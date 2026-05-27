@@ -36,20 +36,20 @@ export default function DocumentsButton({ entityType, entityId, entityLabel }: P
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: "#0D0D1F", border: "1px solid #1C1C35", borderRadius: 16, width: "100%", maxWidth: 620, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, width: "100%", maxWidth: 620, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}
           >
             {/* Header */}
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #1C1C35", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Paperclip size={15} color="#818CF8" />
                 </div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#EEEEF5" }}>Documents</div>
-                  {entityLabel && <div style={{ fontSize: 11, color: "#505070" }}>{entityLabel}</div>}
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Documents</div>
+                  {entityLabel && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{entityLabel}</div>}
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "#505070", cursor: "pointer", padding: 4 }}>
+              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 4 }}>
                 <X size={18} />
               </button>
             </div>
