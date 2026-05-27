@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
-import { Users, Shield, Check, X, Clock, CheckCircle, XCircle, Mail, UserPlus } from "lucide-react";
+import { Users, Shield, Check, X, Clock, CheckCircle, XCircle, Mail, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
 
 const S = {
-  page: { padding: "28px 32px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
   sub: { fontSize: 13, color: "var(--text-ghost)", marginTop: 4, marginBottom: 28 } as React.CSSProperties,
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20, marginBottom: 20 } as React.CSSProperties,
@@ -13,9 +12,36 @@ const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   input: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" as const },
   select: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const },
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 6 } as React.CSSProperties,
 };
 
-const ROLE_COLORS: Record<string, string> = { OWNER: "#ef4444", ADMIN: "#f59e0b", MANAGER: "#6366f1", STAFF: "#818cf8", ACCOUNTANT: "#10b981", VIEWER: "var(--text-ghost)" };
+const ROLE_COLORS: Record<string, string> = {
+  OWNER: "#ef4444", ADMIN: "#f59e0b", MANAGER: "#6366f1",
+  STAFF: "#818cf8", ACCOUNTANT: "#10b981", VIEWER: "var(--text-ghost)",
+};
+
+// Department presets — pre-select typical modules for each department
+const DEPT_PRESETS: { label: string; color: string; modules: string[] }[] = [
+  { label: "Stock Inward",  color: "#34D399", modules: ["STORE", "INVENTORY"] },
+  { label: "Stock Outward", color: "#FBBF24", modules: ["DISPATCH", "INVENTORY"] },
+  { label: "Purchase",      color: "#C084FC", modules: ["PURCHASE", "INVENTORY"] },
+  { label: "Accounts",      color: "#F87171", modules: ["ACCOUNTS"] },
+  { label: "HR & Payroll",  color: "#818CF8", modules: ["HR"] },
+  { label: "Warehouse",     color: "#FBBF24", modules: ["WAREHOUSE", "INVENTORY"] },
+  { label: "Sales & CRM",   color: "#818CF8", modules: ["CRM", "DISPATCH", "ACCOUNTS"] },
+  { label: "Marketing",     color: "#F87171", modules: ["MARKETING", "CRM"] },
+  { label: "Support",       color: "#34D399", modules: ["SUPPORT", "CRM"] },
+  { label: "Reports Only",  color: "#818CF8", modules: ["REPORTS"] },
+  { label: "Import/Export", color: "#34D399", modules: ["IMPORT_EXPORT_SUITE", "DISPATCH", "STORE", "INVENTORY", "ACCOUNTS"] },
+  { label: "Full Access",   color: "#6366f1", modules: ALL_MODULES.map((m) => m.key) },
+];
+
+const MODULE_GROUPS = [
+  { label: "Core Business", modules: ALL_MODULES.filter((m) => m.category === "core") },
+  { label: "Operations",    modules: ALL_MODULES.filter((m) => m.category === "operations") },
+  { label: "Growth",        modules: ALL_MODULES.filter((m) => m.category === "growth") },
+  { label: "Industry",      modules: ALL_MODULES.filter((m) => m.category === "industry") },
+];
 
 interface MemberAccess {
   id: string; role: string; joinedAt: string;
@@ -33,8 +59,12 @@ export default function AdminTeamPage() {
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"members" | "access" | "invite">("members");
+
+  // Invite state
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("STAFF");
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [showModules, setShowModules] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
 
@@ -65,13 +95,20 @@ export default function AdminTeamPage() {
     } catch { /* ignore */ }
   };
 
+  const applyPreset = (modules: string[]) => { setSelectedModules(modules); setInviteMsg(""); };
+  const toggleModule = (key: string) => {
+    setSelectedModules((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
+    setInviteMsg("");
+  };
+
   const sendInvite = async () => {
     if (!inviteEmail) return;
+    if (selectedModules.length === 0) { setInviteMsg("✗ Please select at least one module for this employee."); return; }
     setInviting(true); setInviteMsg("");
     try {
-      await api.post("/organizations/current/members/invite", { email: inviteEmail, role: inviteRole });
-      setInviteMsg(`✓ Invite sent to ${inviteEmail}`);
-      setInviteEmail("");
+      await api.post("/organizations/current/members/invite", { email: inviteEmail, role: inviteRole, allowedModules: selectedModules });
+      setInviteMsg(`✓ Invite sent to ${inviteEmail}. They will see ${selectedModules.length} module(s) after joining.`);
+      setInviteEmail(""); setSelectedModules([]);
     } catch (e: any) {
       setInviteMsg("✗ " + (e?.response?.data?.message || "Failed to send invite"));
     }
@@ -104,11 +141,13 @@ export default function AdminTeamPage() {
 
       {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
         <>
-          {/* MEMBERS + MODULE MATRIX */}
+          {/* ── MEMBERS + MODULE MATRIX ── */}
           {activeTab === "members" && (
             <div style={S.card}>
               <div style={S.cardTitle}><Users size={15} color="#6366f1" /> Team Members & Module Access Matrix</div>
-              <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 16 }}>Click any module cell to grant/revoke access. OWNER/ADMIN always have full access.</p>
+              <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 16 }}>
+                Click any module cell to grant/revoke access instantly. OWNER/ADMIN always have full access.
+              </p>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
@@ -129,7 +168,7 @@ export default function AdminTeamPage() {
                       const grantedKeys = new Set(m.user.moduleAccess.map((a) => a.moduleKey));
                       const rc = ROLE_COLORS[m.role] || "var(--text-ghost)";
                       return (
-                        <tr key={m.id} style={{ borderBottom: "1px solid #131327" }}>
+                        <tr key={m.id} style={{ borderBottom: "1px solid var(--border)" }}>
                           <td style={{ padding: "10px 12px", position: "sticky", left: 0, background: "var(--bg-card)", zIndex: 1 }}>
                             <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{m.user.name}</div>
                             <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{m.user.email}</div>
@@ -150,7 +189,7 @@ export default function AdminTeamPage() {
                                   style={{
                                     width: 26, height: 26, borderRadius: 6, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center",
                                     background: has ? (isAdmin ? "#6366f130" : "#10b98130") : "var(--bg-hover)",
-                                    border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : "#1C1C35"}`,
+                                    border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : "var(--border)"}`,
                                     cursor: isAdmin ? "default" : "pointer",
                                   }}>
                                   {has ? <Check size={12} color={isAdmin ? "#818cf8" : "#10b981"} /> : <X size={10} color="var(--text-ghost)" />}
@@ -167,7 +206,7 @@ export default function AdminTeamPage() {
             </div>
           )}
 
-          {/* ACCESS REQUESTS */}
+          {/* ── ACCESS REQUESTS ── */}
           {activeTab === "access" && (
             <div style={S.card}>
               <div style={S.cardTitle}><Shield size={15} color="#f59e0b" /> Pending Module Access Requests</div>
@@ -179,7 +218,7 @@ export default function AdminTeamPage() {
               ) : requests.map((r) => {
                 const mod = ALL_MODULES.find((m) => m.key === r.moduleKey);
                 return (
-                  <div key={r.id} style={{ display: "flex", gap: 14, padding: "16px 0", borderBottom: "1px solid #131327", alignItems: "center" }}>
+                  <div key={r.id} style={{ display: "flex", gap: 14, padding: "16px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                         <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{r.user.name}</span>
@@ -212,37 +251,164 @@ export default function AdminTeamPage() {
             </div>
           )}
 
-          {/* INVITE */}
+          {/* ── INVITE MEMBER ── */}
           {activeTab === "invite" && (
-            <div style={{ ...S.card, maxWidth: 520 }}>
-              <div style={S.cardTitle}><UserPlus size={15} color="#6366f1" /> Invite a Team Member</div>
-              <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 20 }}>An invite email will be sent. The member can register or log in to join your organisation.</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Email Address</label>
-                  <div style={{ position: "relative" }}>
-                    <Mail size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
-                    <input style={{ ...S.input, paddingLeft: 36 }} type="email" placeholder="colleague@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+            <div style={{ maxWidth: 720 }}>
+              <div style={S.card}>
+                <div style={S.cardTitle}><UserPlus size={15} color="#6366f1" /> Invite a Team Member</div>
+                <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 20 }}>
+                  Send an email invite and control exactly which modules the employee sees on their dashboard.
+                </p>
+
+                {/* Email + Role row */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+                  <div>
+                    <label style={S.label}>Email Address</label>
+                    <div style={{ position: "relative" }}>
+                      <Mail size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
+                      <input style={{ ...S.input, paddingLeft: 36 }} type="email" placeholder="employee@company.com"
+                        value={inviteEmail} onChange={(e) => { setInviteEmail(e.target.value); setInviteMsg(""); }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={S.label}>Role</label>
+                    <select style={{ ...S.select, width: "100%" }} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                      <option value="ADMIN">Admin (full access)</option>
+                      <option value="MANAGER">Manager</option>
+                      <option value="STAFF">Staff</option>
+                      <option value="ACCOUNTANT">Accountant</option>
+                      <option value="VIEWER">Viewer (read-only)</option>
+                    </select>
                   </div>
                 </div>
-                <div>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Role</label>
-                  <select style={{ ...S.select, width: "100%" }} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                    <option value="ADMIN">Admin</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="STAFF">Staff</option>
-                    <option value="ACCOUNTANT">Accountant</option>
-                    <option value="VIEWER">Viewer (read-only)</option>
-                  </select>
+
+                {/* Department Presets */}
+                <div style={{ marginBottom: 18 }}>
+                  <label style={S.label}>Quick Select by Department</label>
+                  <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 10, marginTop: 0 }}>
+                    Click a department to pre-fill typical modules for that role.
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {DEPT_PRESETS.map((preset) => {
+                      const isActive = preset.modules.length === selectedModules.length &&
+                        preset.modules.every((m) => selectedModules.includes(m));
+                      return (
+                        <button key={preset.label} onClick={() => applyPreset(preset.modules)} style={{
+                          padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          border: `1px solid ${isActive ? preset.color : "var(--border)"}`,
+                          background: isActive ? preset.color + "20" : "var(--bg-hover)",
+                          color: isActive ? preset.color : "var(--text-sec)",
+                          display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
+                        }}>
+                          {preset.label}
+                          {isActive && <Check size={11} />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Module Checkboxes */}
+                <div style={{ marginBottom: 20 }}>
+                  <button onClick={() => setShowModules((p) => !p)} style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 10,
+                  }}>
+                    <span style={{ ...S.label, marginBottom: 0 }}>
+                      Modules to Grant ({selectedModules.length} selected)
+                    </span>
+                    {showModules
+                      ? <ChevronUp size={13} color="var(--text-ghost)" />
+                      : <ChevronDown size={13} color="var(--text-ghost)" />}
+                  </button>
+
+                  {showModules && (
+                    <div style={{ background: "var(--bg-hover)", borderRadius: 10, border: "1px solid var(--border)", padding: 16 }}>
+                      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                        <button onClick={() => setSelectedModules(ALL_MODULES.map((m) => m.key))}
+                          style={{ fontSize: 11, color: "#818cf8", background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: 0 }}>
+                          Select All
+                        </button>
+                        <span style={{ color: "var(--text-ghost)" }}>·</span>
+                        <button onClick={() => setSelectedModules([])}
+                          style={{ fontSize: 11, color: "var(--text-ghost)", background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: 0 }}>
+                          Clear All
+                        </button>
+                      </div>
+
+                      {MODULE_GROUPS.map((group) => (
+                        <div key={group.label} style={{ marginBottom: 14 }}>
+                          <p style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, marginTop: 0 }}>
+                            {group.label}
+                          </p>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 6 }}>
+                            {group.modules.map((mod) => {
+                              const checked = selectedModules.includes(mod.key);
+                              return (
+                                <label key={mod.key} onClick={() => toggleModule(mod.key)} style={{
+                                  display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 8, cursor: "pointer",
+                                  background: checked ? mod.accentBg : "var(--bg-card)",
+                                  border: `1px solid ${checked ? mod.accentBorder : "var(--border)"}`,
+                                  transition: "all 0.15s", userSelect: "none" as const,
+                                }}>
+                                  <div style={{
+                                    width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                                    border: `2px solid ${checked ? mod.accentColor : "var(--border)"}`,
+                                    background: checked ? mod.accentColor : "transparent",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    transition: "all 0.15s",
+                                  }}>
+                                    {checked && <Check size={10} color="white" />}
+                                  </div>
+                                  <span style={{ fontSize: 12, fontWeight: 500, color: checked ? "var(--text-primary)" : "var(--text-sec)", lineHeight: 1.3 }}>
+                                    {mod.label}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {inviteMsg && (
-                  <div style={{ padding: "10px 14px", borderRadius: 8, background: inviteMsg.startsWith("✓") ? "#10b98120" : "#ef444420", color: inviteMsg.startsWith("✓") ? "#10b981" : "#ef4444", fontSize: 13, fontWeight: 500 }}>
+                  <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 14, background: inviteMsg.startsWith("✓") ? "#10b98120" : "#ef444420", color: inviteMsg.startsWith("✓") ? "#10b981" : "#ef4444", fontSize: 13, fontWeight: 500 }}>
                     {inviteMsg}
                   </div>
                 )}
-                <button onClick={sendInvite} style={S.btn} disabled={inviting || !inviteEmail}>
-                  <Mail size={14} /> {inviting ? "Sending..." : "Send Invite"}
-                </button>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <button onClick={sendInvite} style={{ ...S.btn, opacity: (inviting || !inviteEmail) ? 0.6 : 1, cursor: (inviting || !inviteEmail) ? "not-allowed" : "pointer" }} disabled={inviting || !inviteEmail}>
+                    <Mail size={14} /> {inviting ? "Sending..." : "Send Invite"}
+                  </button>
+                  {selectedModules.length > 0 && (
+                    <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>
+                      Employee will see <strong style={{ color: "var(--text-primary)" }}>{selectedModules.length}</strong> module(s)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* How it works guide */}
+              <div style={{ ...S.card, background: "#6366f108", border: "1px solid #6366f130" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Shield size={14} /> How Employee Access Works
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    ["1. You send invite",      "Employee receives an email with a join link. You pre-select which modules they can access."],
+                    ["2. Employee joins",        "They register or log in. Their sidebar and dashboard show only the modules you granted."],
+                    ["3. Admin adjusts anytime", "Members tab → click any module cell to instantly grant or revoke access for any employee."],
+                    ["4. Employee can request",  "If they need more modules, they submit an access request. You approve/deny from Access Requests tab."],
+                  ].map(([step, desc]) => (
+                    <div key={step} style={{ display: "flex", gap: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#818cf8", minWidth: 140, flexShrink: 0 }}>{step}</span>
+                      <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{desc}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
