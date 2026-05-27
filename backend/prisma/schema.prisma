@@ -197,6 +197,7 @@ model OrgInvite {
   email          String
   organizationId String
   role           MemberRole   @default(STAFF)
+  allowedModules String[]
   token          String       @unique @default(cuid())
   status         InviteStatus @default(PENDING)
   invitedById    String

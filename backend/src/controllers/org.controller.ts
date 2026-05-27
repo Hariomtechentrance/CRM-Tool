@@ -110,7 +110,7 @@ export async function inviteMember(req: OrgRequest, res: Response): Promise<void
     const parsed = inviteMemberSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
 
-    const { email, role } = parsed.data;
+    const { email, role, allowedModules } = parsed.data;
 
     // Check if already a member
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -121,7 +121,7 @@ export async function inviteMember(req: OrgRequest, res: Response): Promise<void
       if (alreadyMember?.isActive) { conflict(res, "This user is already a member"); return; }
     }
 
-    // Check for pending invite
+    // Check for pending invite — resend if exists (update modules)
     const existingInvite = await prisma.orgInvite.findFirst({
       where: { email, organizationId: req.organizationId!, status: "PENDING" },
     });
@@ -132,16 +132,16 @@ export async function inviteMember(req: OrgRequest, res: Response): Promise<void
 
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
     const invite = await prisma.orgInvite.create({
-      data: { email, organizationId: req.organizationId!, role, invitedById: req.userId!, expiresAt },
+      data: { email, organizationId: req.organizationId!, role, allowedModules: allowedModules ?? [], invitedById: req.userId!, expiresAt },
     });
 
     await sendEmail({
       to: email,
-      subject: `You're invited to join ${org!.name} on BL-CRM`,
+      subject: `You're invited to join ${org!.name} on FlowCRM`,
       html: inviteEmailTemplate(org!.name, inviter!.name, invite.token),
     });
 
-    created(res, { id: invite.id, email, role }, "Invitation sent successfully");
+    created(res, { id: invite.id, email, role, allowedModules: invite.allowedModules }, "Invitation sent successfully");
   } catch (err) {
     serverError(res, err);
   }
@@ -200,14 +200,27 @@ export async function acceptInvite(req: AuthRequest, res: Response): Promise<voi
       forbidden(res, "This invitation was sent to a different email address"); return;
     }
 
-    await prisma.$transaction([
-      prisma.organizationMember.upsert({
+    await prisma.$transaction(async (tx) => {
+      await tx.organizationMember.upsert({
         where: { userId_organizationId: { userId: req.userId!, organizationId: invite.organizationId } },
         update: { role: invite.role, isActive: true },
         create: { userId: req.userId!, organizationId: invite.organizationId, role: invite.role },
-      }),
-      prisma.orgInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } }),
-    ]);
+      });
+      await tx.orgInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
+
+      // Grant the modules the admin pre-selected for this employee
+      if (invite.allowedModules.length > 0) {
+        await tx.userModuleAccess.createMany({
+          data: invite.allowedModules.map((moduleKey) => ({
+            userId: req.userId!,
+            organizationId: invite.organizationId,
+            moduleKey,
+            grantedById: invite.invitedById,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    });
 
     ok(res, { organization: invite.organization, role: invite.role }, "Joined organization successfully");
   } catch (err) {

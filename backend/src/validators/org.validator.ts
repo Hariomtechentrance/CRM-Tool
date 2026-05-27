@@ -33,6 +33,7 @@ export const updateOrgSchema = createOrgSchema.omit({ enabledModules: true }).pa
 export const inviteMemberSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.nativeEnum(MemberRole).default("STAFF"),
+  allowedModules: z.array(z.string()).optional().default([]),
 });
 
 export const updateMemberRoleSchema = z.object({
