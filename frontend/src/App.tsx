@@ -25,6 +25,7 @@ import RetailPage from "@/pages/retail/RetailPage";
 import WarehousePage from "@/pages/warehouse/WarehousePage";
 import StorePage from "@/pages/store/StorePage";
 import ReportsPage from "@/pages/reports/ReportsPage";
+import GSTReportsPage from "@/pages/gst/GSTReportsPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTeamPage from "@/pages/admin/AdminTeamPage";
@@ -44,6 +45,8 @@ import QuotationsPage from "@/pages/quotations/QuotationsPage";
 import RecurringInvoicesPage from "@/pages/recurring/RecurringInvoicesPage";
 import DocumentsPage from "@/pages/documents/DocumentsPage";
 import AuditPage from "@/pages/audit/AuditPage";
+import ApprovalQueuePage from "@/pages/admin/ApprovalQueuePage";
+import BatchTrackingPage from "@/pages/inventory/BatchTrackingPage";
 import LandingPage from "@/pages/landing/LandingPage";
 import { useAuthStore } from "@/stores/authStore";
 import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
@@ -81,8 +84,9 @@ export default function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="team"      element={<AdminTeamPage />} />
           <Route path="modules"   element={<AdminModulesPage />} />
-          <Route path="settings"  element={<AdminSettingsPage />} />
-          <Route path="logs"      element={<AdminLogsPage />} />
+          <Route path="settings"   element={<AdminSettingsPage />} />
+          <Route path="logs"       element={<AdminLogsPage />} />
+          <Route path="approvals"  element={<ApprovalQueuePage />} />
         </Route>
 
         {/* ── Super Admin (platform owner only) ── */}
@@ -101,6 +105,7 @@ export default function App() {
           <Route path="/crm"          element={G("CRM", CrmPage)} />
           <Route path="/crm/:id"      element={G("CRM", PartyDetailPage)} />
           <Route path="/inventory"    element={G("INVENTORY", InventoryPage)} />
+          <Route path="/batches"      element={G("INVENTORY", BatchTrackingPage)} />
           <Route path="/purchase"     element={G("PURCHASE", PurchasePage)} />
           <Route path="/store"        element={G("STORE", StorePage)} />
           <Route path="/dispatch"     element={G("DISPATCH", SalesPage)} />
@@ -117,6 +122,7 @@ export default function App() {
           <Route path="/support"      element={G("SUPPORT", SupportPage)} />
           <Route path="/ecommerce"    element={<ComingSoonPage title="E-commerce" description="Connect Shopify, WooCommerce and sync online orders automatically." />} />
           <Route path="/reports"      element={G("REPORTS", ReportsPage)} />
+          <Route path="/gst"          element={G("REPORTS", GSTReportsPage)} />
 
           {/* ── Industry ── */}
           <Route path="/import-export" element={G("IMPORT_EXPORT_SUITE", TradePage)} />

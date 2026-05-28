@@ -3,15 +3,16 @@ import { Outlet, Navigate, NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import {
   LayoutDashboard, Users, Puzzle, Settings, ScrollText,
-  LogOut, ChevronLeft, Shield, Menu, X,
+  LogOut, ChevronLeft, Shield, Menu, X, ClipboardCheck,
 } from "lucide-react";
 
 const navLinks = [
-  { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/admin/team",      icon: Users,           label: "Team & Access" },
-  { to: "/admin/modules",   icon: Puzzle,          label: "Modules" },
-  { to: "/admin/settings",  icon: Settings,        label: "Org Settings" },
-  { to: "/admin/logs",      icon: ScrollText,      label: "Audit Logs" },
+  { to: "/admin/dashboard", icon: LayoutDashboard,  label: "Dashboard" },
+  { to: "/admin/team",      icon: Users,             label: "Team & Access" },
+  { to: "/admin/modules",   icon: Puzzle,            label: "Modules" },
+  { to: "/admin/approvals", icon: ClipboardCheck,    label: "Approvals" },
+  { to: "/admin/settings",  icon: Settings,          label: "Org Settings" },
+  { to: "/admin/logs",      icon: ScrollText,        label: "Audit Logs" },
 ];
 
 export default function AdminLayout() {

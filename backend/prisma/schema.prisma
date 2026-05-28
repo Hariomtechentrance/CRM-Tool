@@ -18,6 +18,8 @@ model User {
   passwordResetToken  String?              @unique
   passwordResetExpiry DateTime?
   isSuperAdmin        Boolean              @default(false)
+  twoFactorSecret     String?
+  twoFactorEnabled    Boolean              @default(false)
   lastLoginAt         DateTime?
   isActive            Boolean              @default(true)
   createdAt           DateTime             @default(now())
@@ -58,6 +60,7 @@ model Organization {
   pincode      String?
   currency     String               @default("INR")
   taxId        String?
+  gstStateCode String?
   iecCode      String?
   panNumber    String?
   logo           String?
@@ -108,6 +111,7 @@ model Organization {
   notifications     Notification[]
   recurringInvoices RecurringInvoice[]
   leaveBalances     LeaveBalance[]
+  productBatches    ProductBatch[]
   performanceGoals  PerformanceGoal[]
   performanceReviews PerformanceReview[]
   expenses          Expense[]
@@ -446,10 +450,35 @@ model Product {
   variants        ProductVariant[]
   posSaleItems    POSSaleItem[]
   quotationItems  QuotationItem[]
+  batches         ProductBatch[]
 
   @@unique([organizationId, sku])
   @@index([organizationId])
   @@index([organizationId, categoryId])
+}
+
+model ProductBatch {
+  id             String    @id @default(cuid())
+  organizationId String
+  productId      String
+  batchNumber    String
+  lotNumber      String?
+  manufacturingDate DateTime?
+  expiryDate     DateTime?
+  quantity       Float     @default(0)
+  costPrice      Float?
+  notes          String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, productId, batchNumber])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([expiryDate])
 }
 
 model StockMovement {
@@ -550,12 +579,22 @@ enum PurchaseOrderStatus {
   CANCELLED
 }
 
+enum ApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 model PurchaseOrder {
   id             String              @id @default(cuid())
   organizationId String
   partyId        String?
   poNumber       String
   status         PurchaseOrderStatus @default(DRAFT)
+  approvalStatus ApprovalStatus      @default(PENDING_APPROVAL)
+  approvedById   String?
+  approvalNote   String?
+  approvedAt     DateTime?
   orderDate      DateTime            @default(now())
   expectedDate   DateTime?
   warehouseId    String?
@@ -735,6 +774,14 @@ model Invoice {
   notes          String?
   terms          String?
   createdById    String?
+  // GST fields
+  placeOfSupply  String?
+  reverseCharge  Boolean       @default(false)
+  igstAmount     Float         @default(0)
+  cgstAmount     Float         @default(0)
+  sgstAmount     Float         @default(0)
+  eInvoiceIRN    String?
+  eWayBillNumber String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -760,6 +807,13 @@ model InvoiceItem {
   taxAmount   Float   @default(0)
   discount    Float   @default(0)
   total       Float
+  hsnCode     String?
+  igstRate    Float   @default(0)
+  igstAmount  Float   @default(0)
+  cgstRate    Float   @default(0)
+  cgstAmount  Float   @default(0)
+  sgstRate    Float   @default(0)
+  sgstAmount  Float   @default(0)
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }

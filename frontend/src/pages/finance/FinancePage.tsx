@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { Receipt, Plus, Search, X, TrendingUp, TrendingDown, Clock, CheckCircle, Printer } from "lucide-react";
+import { Receipt, Plus, Search, X, TrendingUp, TrendingDown, Clock, CheckCircle, Printer, Download, CreditCard } from "lucide-react";
+import { generateInvoicePDF } from "@/lib/generatePDF";
 import DocumentsButton from "@/components/DocumentsButton";
 import { kDecimal } from "@/lib/fieldRules";
 
@@ -279,6 +280,53 @@ export default function FinancePage() {
     setPrintingId(null);
   };
 
+  const handleDownloadPDF = async (invoiceId: string) => {
+    setPrintingId(invoiceId + "_pdf");
+    try {
+      const [invRes, orgRes] = await Promise.all([
+        api.get(`/finance/${invoiceId}`),
+        api.get("/organizations/current"),
+      ]);
+      const inv = invRes.data.data;
+      const org = orgRes.data.data;
+      generateInvoicePDF({
+        org: { name: org.name, address: org.address, city: org.city, state: org.state, taxId: org.taxId, phone: org.phone, email: org.email },
+        party: { name: inv.party?.name || "Customer", address: inv.party?.address, city: inv.party?.city, state: inv.party?.state, gstin: inv.party?.gstin },
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate: inv.invoiceDate,
+        dueDate: inv.dueDate,
+        type: inv.type,
+        status: inv.status,
+        items: (inv.items || []).map((it: any) => ({ description: it.description, hsnCode: it.hsnCode, quantity: it.quantity, unitPrice: it.unitPrice, taxRate: it.taxRate, taxAmount: it.taxAmount, discount: it.discount, total: it.total })),
+        subtotal: inv.subtotal,
+        taxAmount: inv.taxAmount,
+        discount: inv.discount,
+        total: inv.total,
+        paidAmount: inv.paidAmount,
+        balanceDue: inv.balanceDue,
+        notes: inv.notes,
+        terms: inv.terms,
+        placeOfSupply: inv.placeOfSupply,
+        cgstAmount: inv.cgstAmount,
+        sgstAmount: inv.sgstAmount,
+        igstAmount: inv.igstAmount,
+      });
+    } catch { /* ignore */ }
+    setPrintingId(null);
+  };
+
+  const handlePayNow = async (invoiceId: string) => {
+    setPrintingId(invoiceId + "_pay");
+    try {
+      const res = await api.post("/payments/razorpay/create-link", { invoiceId });
+      const { paymentUrl } = res.data.data;
+      window.open(paymentUrl, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      alert(e?.response?.data?.message || "Failed to create payment link. Check Razorpay settings.");
+    }
+    setPrintingId(null);
+  };
+
   const setItem = (i: number, k: string, v: string) => setItems(prev => prev.map((it, j) => j === i ? { ...it, [k]: v } : it));
   const total = items.reduce((s, it) => {
     const line = parseFloat(it.quantity || "0") * parseFloat(it.unitPrice || "0");
@@ -380,13 +428,31 @@ export default function FinancePage() {
                     <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                       <DocumentsButton entityType="INVOICE" entityId={inv.id} entityLabel={inv.invoiceNumber} />
                       <button
-                        title="Print / Save PDF"
+                        title="Print invoice"
                         onClick={() => handlePrint(inv.id)}
-                        disabled={printingId === inv.id}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: printingId === inv.id ? "#2a2a4a" : "var(--text-ghost)", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}
+                        disabled={!!printingId}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}
                       >
                         <Printer size={15} />
                       </button>
+                      <button
+                        title="Download PDF"
+                        onClick={() => handleDownloadPDF(inv.id)}
+                        disabled={!!printingId}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}
+                      >
+                        <Download size={15} />
+                      </button>
+                      {inv.balanceDue > 0 && inv.status !== "CANCELLED" && (
+                        <button
+                          title="Send Razorpay payment link"
+                          onClick={() => handlePayNow(inv.id)}
+                          disabled={printingId === inv.id + "_pay"}
+                          style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: "#10b98120", color: "#10b981", cursor: "pointer", fontSize: 11, fontWeight: 600 }}
+                        >
+                          <CreditCard size={12} /> Pay Now
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

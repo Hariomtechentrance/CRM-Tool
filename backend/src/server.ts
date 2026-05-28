@@ -29,6 +29,11 @@ import quotationRoutes from "./routes/quotation.routes";
 import searchRoutes from "./routes/search.routes";
 import documentRoutes from "./routes/document.routes";
 import notificationRoutes from "./routes/notifications.routes";
+import gstRoutes from "./routes/gst.routes";
+import approvalRoutes from "./routes/approval.routes";
+import paymentRoutes from "./routes/payment.routes";
+import batchRoutes from "./routes/batch.routes";
+import twoFactorRoutes from "./routes/twoFactor.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -133,6 +138,11 @@ app.use("/api/quotations",     quotationRoutes);
 app.use("/api/search",         searchRoutes);
 app.use("/api/documents",      documentRoutes);
 app.use("/api/notifications",  notificationRoutes);
+app.use("/api/gst",            gstRoutes);
+app.use("/api/approvals",      approvalRoutes);
+app.use("/api/payments",       paymentRoutes);
+app.use("/api/batches",        batchRoutes);
+app.use("/api/2fa",            twoFactorRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

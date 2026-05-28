@@ -4,7 +4,7 @@ import {
   Users, Package, ShoppingCart, Truck, Receipt,
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
-  LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw,
+  LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -225,6 +225,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             { href: "/deals", label: "Deals", Icon: Briefcase },
             { href: "/quotations", label: "Quotations", Icon: FileText },
             { href: "/recurring", label: "Recurring Invoices", Icon: RefreshCw },
+            { href: "/batches",   label: "Batch Tracking",    Icon: Layers },
           ].map(({ href, label, Icon }) => (
             <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
               <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
@@ -248,6 +249,10 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
         {/* Settings row */}
         <div style={{ padding: "6px 10px 10px" }}>
+          <NavLink to="/gst" onClick={onClose} className={navLinkClass}>
+            <IndianRupee style={{ width: 14, height: 14 }} />
+            <span className="truncate">GST Reports</span>
+          </NavLink>
           <NavLink to="/admin/dashboard" onClick={onClose} className={navLinkClass}>
             <LayoutGrid style={{ width: 14, height: 14 }} />
             <span className="truncate">Admin Panel</span>

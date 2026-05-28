@@ -193,6 +193,49 @@ async function runStockAlerts() {
   }
 }
 
+// ── Expiry Alerts ─────────────────────────────────────────────
+// Runs daily at 7:00 AM — notifies when product batches are expiring within 30 days
+async function runExpiryAlerts() {
+  try {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + 30);
+
+    const batches = await (prisma as any).productBatch.findMany({
+      where: {
+        isActive: true,
+        quantity: { gt: 0 },
+        expiryDate: { lte: cutoff, not: null },
+      },
+      include: { product: { select: { id: true, name: true } } },
+    });
+
+    for (const batch of batches) {
+      const daysLeft = Math.floor((new Date(batch.expiryDate).getTime() - Date.now()) / 86400000);
+      if (daysLeft < 0) continue;
+
+      const existing = await prisma.notification.findFirst({
+        where: {
+          organizationId: batch.organizationId,
+          type: "EXPIRY_ALERT",
+          link: `/inventory?product=${batch.productId}`,
+          createdAt: { gt: new Date(Date.now() - 24 * 3600000) },
+        },
+      });
+      if (existing) continue;
+
+      await createNotification({
+        organizationId: batch.organizationId,
+        type: "EXPIRY_ALERT",
+        title: "Batch expiring soon",
+        message: `${batch.product.name} — Batch ${batch.batchNumber} expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"} (qty: ${batch.quantity})`,
+        link: `/inventory?product=${batch.productId}`,
+      });
+    }
+  } catch (e) {
+    console.error("[CRON] Expiry alerts failed:", e);
+  }
+}
+
 // ── Register all cron jobs ────────────────────────────────────
 export function startCronJobs() {
   // Payment reminders — daily at 9:00 AM
@@ -204,5 +247,8 @@ export function startCronJobs() {
   // Stock alerts — every 6 hours
   cron.schedule("0 */6 * * *", runStockAlerts, { timezone: "Asia/Kolkata" });
 
-  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts");
+  // Expiry alerts — daily at 7:00 AM
+  cron.schedule("0 7 * * *", runExpiryAlerts, { timezone: "Asia/Kolkata" });
+
+  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts, expiry alerts");
 }

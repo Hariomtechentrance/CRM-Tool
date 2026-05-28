@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
-import { Settings, Building2, Users, Shield, X, Plus, Check, Zap } from "lucide-react";
+import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc } from "lucide-react";
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -21,7 +21,7 @@ const S = {
   modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 460 },
 };
 
-type Tab = "organization" | "modules" | "team";
+type Tab = "organization" | "modules" | "team" | "security";
 
 interface Member { id: string; name: string; email: string; role: string; joinedAt: string }
 
@@ -177,6 +177,9 @@ export default function SettingsPage() {
         <button style={tabStyle("team")} onClick={() => setTab("team")}>
           <Users size={13} style={{ display: "inline", marginRight: 6 }} />Team
         </button>
+        <button style={tabStyle("security")} onClick={() => setTab("security")}>
+          <Lock size={13} style={{ display: "inline", marginRight: 6 }} />Security
+        </button>
       </div>
 
       {/* ── ORGANIZATION PROFILE ── */}
@@ -328,6 +331,139 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── SECURITY / 2FA ── */}
+      {tab === "security" && <TwoFactorSettings />}
+    </div>
+  );
+}
+
+function TwoFactorSettings() {
+  const [status, setStatus] = useState<"idle" | "loading" | "setup" | "verify" | "done">("loading");
+  const [enabled, setEnabled] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [token, setToken] = useState("");
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.get("/2fa/status").then(r => {
+      setEnabled(r.data.data.enabled);
+      setStatus("idle");
+    }).catch(() => setStatus("idle"));
+  }, []);
+
+  async function startSetup() {
+    setStatus("loading");
+    try {
+      const r = await api.post("/2fa/setup");
+      setQrDataUrl(r.data.data.qrDataUrl);
+      setSecret(r.data.data.secret);
+      setStatus("setup");
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Failed");
+      setStatus("idle");
+    }
+  }
+
+  async function confirmToken() {
+    setError("");
+    try {
+      await api.post("/2fa/verify", { token });
+      setEnabled(true);
+      setStatus("done");
+      setMsg("2FA enabled successfully! Your account is now protected.");
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Invalid OTP");
+    }
+  }
+
+  async function disableIt() {
+    if (!token) { setError("Enter your current OTP to disable 2FA"); return; }
+    try {
+      await api.post("/2fa/disable", { token });
+      setEnabled(false);
+      setToken("");
+      setStatus("idle");
+      setMsg("2FA has been disabled.");
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Invalid OTP");
+    }
+  }
+
+  const S2 = {
+    card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24, marginBottom: 20 } as React.CSSProperties,
+    input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const, letterSpacing: "0.2em", fontSize: 18, textAlign: "center" as const } as React.CSSProperties,
+    btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 } as React.CSSProperties,
+  };
+
+  if (status === "loading") return <div style={{ textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>Loading…</div>;
+
+  return (
+    <div style={S2.card}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: "#6366f115", border: "1px solid #6366f130", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <SmartphoneNfc size={18} color="#818cf8" />
+        </div>
+        <div>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Two-Factor Authentication (2FA)</p>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-ghost)" }}>Add an extra layer of security using an authenticator app</p>
+        </div>
+        <div style={{ marginLeft: "auto" }}>
+          <span style={{ padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, background: enabled ? "#10b98120" : "#ef444420", color: enabled ? "#10b981" : "#ef4444" }}>
+            {enabled ? "Enabled" : "Disabled"}
+          </span>
+        </div>
+      </div>
+
+      {msg && <div style={{ background: "#10b98115", border: "1px solid #10b98130", borderRadius: 8, padding: "10px 14px", color: "#10b981", fontSize: 13, marginBottom: 16 }}>{msg}</div>}
+      {error && <div style={{ background: "#ef444415", border: "1px solid #ef444430", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
+      {status === "idle" && !enabled && (
+        <div>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 16 }}>
+            Use any TOTP authenticator app (Google Authenticator, Authy, Microsoft Authenticator) to scan a QR code and generate 6-digit login codes.
+          </p>
+          <button style={S2.btn} onClick={startSetup}>Set Up 2FA</button>
+        </div>
+      )}
+
+      {status === "setup" && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <p style={{ fontSize: 13, color: "var(--text-sec)", textAlign: "center" }}>
+            Scan this QR code with your authenticator app, then enter the 6-digit code below to confirm.
+          </p>
+          <img src={qrDataUrl} alt="QR Code" style={{ width: 200, height: 200, borderRadius: 12, background: "white", padding: 8 }} />
+          <p style={{ fontSize: 11, color: "var(--text-ghost)", textAlign: "center" }}>
+            Can't scan? Enter this secret manually: <code style={{ background: "var(--bg-hover)", padding: "2px 6px", borderRadius: 4, fontSize: 11 }}>{secret}</code>
+          </p>
+          <div style={{ width: "100%", maxWidth: 240 }}>
+            <input
+              value={token} onChange={e => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000" maxLength={6} style={S2.input}
+            />
+          </div>
+          <button style={S2.btn} onClick={confirmToken} disabled={token.length !== 6}>Confirm & Enable</button>
+        </div>
+      )}
+
+      {status === "done" && (
+        <p style={{ fontSize: 13, color: "#10b981" }}>Your account is protected with 2FA. You can disable it below.</p>
+      )}
+
+      {(status === "idle" || status === "done") && enabled && (
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 12 }}>To disable 2FA, enter your current OTP:</p>
+          <div style={{ display: "flex", gap: 10, maxWidth: 320 }}>
+            <input value={token} onChange={e => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" maxLength={6}
+              style={{ ...S2.input, flex: 1, fontSize: 14 }} />
+            <button onClick={disableIt} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #ef444440", background: "#ef444415", color: "#ef4444", cursor: "pointer", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" as const }}>
+              Disable 2FA
+            </button>
           </div>
         </div>
       )}
