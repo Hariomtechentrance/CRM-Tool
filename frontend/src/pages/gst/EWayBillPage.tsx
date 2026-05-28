@@ -21,7 +21,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingEWB, onClose, on
   onClose: () => void;
   onSave: () => void;
 }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [ewbNo, setEwbNo] = useState(existingEWB ?? "");
   const [validUpto, setValidUpto] = useState("");
   const [saving, setSaving] = useState(false);
@@ -124,7 +124,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingEWB, onClose, on
 }
 
 export default function EWayBillPage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [invoices, setInvoices] = useState<PendingInvoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<{ payload: object; invoiceId: string; invoiceNumber: string; existingEWB?: string } | null>(null);

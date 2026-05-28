@@ -57,14 +57,14 @@ function parseCSV(text: string): { txnDate: string; description: string; amount:
       txnDate: get(["date", "txn date", "value date"]),
       description: get(["description", "narration", "particulars", "details"]),
       amount: Math.abs(parseFloat(get(["amount", "debit", "credit"]).replace(/,/g, "")) || 0),
-      type: (rawType.includes("CR") || rawType === "CREDIT") ? "CREDIT" : "DEBIT",
+      type: ((rawType.includes("CR") || rawType === "CREDIT") ? "CREDIT" : "DEBIT") as "CREDIT" | "DEBIT",
       reference: get(["reference", "ref no", "cheque no", "ref"]) || undefined,
     };
   }).filter(r => r.txnDate && r.description && r.amount > 0);
 }
 
 function ImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [accountName, setAccountName] = useState("HDFC Current Account");
   const [rows, setRows] = useState<any[]>([]);
   const [csvError, setCsvError] = useState("");
@@ -135,7 +135,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
 }
 
 export default function ReconciliationPage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [txns, setTxns] = useState<BankTxn[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);

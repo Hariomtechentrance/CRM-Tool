@@ -54,7 +54,7 @@ const EMPTY_FORM = { name: "", department: "", fiscalYear: "2025-2026", startDat
 const EMPTY_ITEM = { category: "", allocatedAmount: "" };
 
 function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [form, setForm] = useState(EMPTY_FORM);
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
   const [saving, setSaving] = useState(false);
@@ -164,7 +164,7 @@ function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated
 }
 
 export default function BudgetPage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [fy, setFy] = useState("2025-2026");
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);

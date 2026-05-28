@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { BrowserMultiFormatReader, NotFoundException } from "@zxing/browser";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import type { IScannerControls } from "@zxing/browser";
+import { NotFoundException } from "@zxing/library";
 import { Camera, X, RefreshCw, ZoomIn } from "lucide-react";
 
 interface BarcodeScannerProps {
@@ -10,37 +12,39 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ onScan, onClose, title = "Scan Barcode" }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [activeCam, setActiveCam] = useState<string | undefined>(undefined);
   const [lastCode, setLastCode] = useState<string | null>(null);
   const [scanning, setScanning] = useState(true);
 
+  const stopScan = useCallback(() => {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+  }, []);
+
   const startScan = useCallback(async (deviceId?: string) => {
+    stopScan();
     if (!videoRef.current) return;
     try {
       setError(null);
       const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader;
 
       const devices = await BrowserMultiFormatReader.listVideoInputDevices();
       setCameras(devices);
 
-      // Prefer rear camera
       const rearCam = devices.find(d => /back|rear|environment/i.test(d.label));
       const selectedId = deviceId ?? rearCam?.deviceId ?? devices[0]?.deviceId;
       setActiveCam(selectedId);
 
-      await reader.decodeFromVideoDevice(selectedId, videoRef.current, (result, err) => {
+      controlsRef.current = await reader.decodeFromVideoDevice(selectedId, videoRef.current, (result, err) => {
         if (result) {
           const code = result.getText();
           setLastCode(code);
           setScanning(false);
-          // Brief pause then callback
           setTimeout(() => onScan(code), 300);
         } else if (err && !(err instanceof NotFoundException)) {
-          // NotFoundException is normal (no barcode in frame yet) — ignore
           console.debug("Scan error:", err.message);
         }
       });
@@ -53,24 +57,20 @@ export default function BarcodeScanner({ onScan, onClose, title = "Scan Barcode"
         setError(e.message ?? "Failed to start camera.");
       }
     }
-  }, [onScan]);
+  }, [onScan, stopScan]);
 
   useEffect(() => {
     startScan();
-    return () => {
-      readerRef.current?.reset();
-    };
-  }, [startScan]);
+    return () => { stopScan(); };
+  }, [startScan, stopScan]);
 
   function switchCamera(deviceId: string) {
-    readerRef.current?.reset();
     setScanning(true);
     setLastCode(null);
     startScan(deviceId);
   }
 
   function rescan() {
-    readerRef.current?.reset();
     setScanning(true);
     setLastCode(null);
     startScan(activeCam);
@@ -99,11 +99,9 @@ export default function BarcodeScanner({ onScan, onClose, title = "Scan Barcode"
             muted
             playsInline
           />
-          {/* Scan crosshair overlay */}
           {scanning && !error && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
               <div style={{ width: 200, height: 100, border: "2px solid #6366f1", borderRadius: 8, boxShadow: "0 0 0 9999px rgba(0,0,0,0.4)" }}>
-                {/* Animated scan line */}
                 <div style={{
                   position: "absolute", left: 0, right: 0, height: 2,
                   background: "linear-gradient(90deg, transparent, #6366f1, transparent)",
@@ -113,7 +111,6 @@ export default function BarcodeScanner({ onScan, onClose, title = "Scan Barcode"
               </div>
             </div>
           )}
-          {/* Success flash */}
           {lastCode && (
             <div style={{ position: "absolute", inset: 0, background: "#10b98133", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div style={{ background: "#10b981", color: "#fff", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
@@ -121,7 +118,6 @@ export default function BarcodeScanner({ onScan, onClose, title = "Scan Barcode"
               </div>
             </div>
           )}
-          {/* Error */}
           {error && (
             <div style={{ position: "absolute", inset: 0, background: "#00000099", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
               <ZoomIn className="w-8 h-8 mb-3" style={{ color: "#ef4444" }} />
@@ -157,7 +153,6 @@ export default function BarcodeScanner({ onScan, onClose, title = "Scan Barcode"
           </p>
         </div>
       </div>
-      {/* Scan-line keyframe */}
       <style>{`
         @keyframes scanLine {
           0%   { top: 10%; }

@@ -35,7 +35,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingIRN, onClose, on
   onClose: () => void;
   onSave: (irn: string) => void;
 }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [irn, setIrn] = useState(existingIRN ?? "");
   const [ackNo, setAckNo] = useState("");
   const [saving, setSaving] = useState(false);
@@ -141,7 +141,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingIRN, onClose, on
 }
 
 export default function EInvoicePage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [invoices, setInvoices] = useState<PendingInvoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<{ payload: object; invoiceId: string; invoiceNumber: string; existingIRN?: string } | null>(null);

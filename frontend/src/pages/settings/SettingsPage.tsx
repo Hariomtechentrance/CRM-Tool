@@ -397,7 +397,7 @@ function TwoFactorSettings() {
 
   const S2 = {
     card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24, marginBottom: 20 } as React.CSSProperties,
-    input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const, letterSpacing: "0.2em", fontSize: 18, textAlign: "center" as const } as React.CSSProperties,
+    input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", outline: "none", boxSizing: "border-box" as const, letterSpacing: "0.2em", fontSize: 18, textAlign: "center" as const } as React.CSSProperties,
     btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 } as React.CSSProperties,
   };
 

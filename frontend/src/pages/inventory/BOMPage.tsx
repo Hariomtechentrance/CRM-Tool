@@ -22,7 +22,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
   const [name, setName] = useState("");
@@ -125,7 +125,7 @@ function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 }
 
 function CreateWOModal({ bom, onClose, onCreated }: { bom: BOM; onClose: () => void; onCreated: () => void }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [qty, setQty] = useState("1");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -179,7 +179,7 @@ function CreateWOModal({ bom, onClose, onCreated }: { bom: BOM; onClose: () => v
 }
 
 export default function BOMPage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [tab, setTab] = useState<"boms" | "workorders">("boms");
   const [boms, setBoms] = useState<BOM[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);

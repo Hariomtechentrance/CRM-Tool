@@ -46,7 +46,7 @@ function EventBadge({ event }: { event: string }) {
 }
 
 function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClose: () => void; onSaved: () => void }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -119,7 +119,7 @@ function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClo
 }
 
 function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allEvents: string[]; onRefresh: () => void }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [expanded, setExpanded] = useState(false);
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [loadingDel, setLoadingDel] = useState(false);
@@ -275,7 +275,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
 }
 
 export default function WebhooksPage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [allEvents, setAllEvents] = useState<string[]>(ALL_EVENTS);
   const [loading, setLoading] = useState(true);

@@ -62,7 +62,7 @@ function fieldBadge(field: string) {
 }
 
 function PartyGroupCard({ group, onMerged }: { group: PartyGroup; onMerged: () => void }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [expanded, setExpanded] = useState(true);
   const [keepId, setKeepId] = useState(group.parties[0].id);
   const [merging, setMerging] = useState(false);
@@ -239,7 +239,7 @@ function ProductGroupCard({ group }: { group: ProductGroup }) {
 }
 
 export default function DuplicatesPage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [tab, setTab] = useState<Tab>("parties");
   const [partyGroups, setPartyGroups] = useState<PartyGroup[]>([]);
   const [productGroups, setProductGroups] = useState<ProductGroup[]>([]);

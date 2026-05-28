@@ -20,7 +20,7 @@ function AddRateModal({ currencies, onClose, onAdded }: {
   onClose: () => void;
   onAdded: () => void;
 }) {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [from, setFrom] = useState("USD");
   const [to, setTo] = useState("INR");
   const [rate, setRate] = useState("");
@@ -165,7 +165,7 @@ function ConvertPanel({ currencies, token, orgId }: { currencies: Currency[]; to
 }
 
 export default function CurrencyPage() {
-  const { token, activeOrg } = useAuthStore();
+  const { accessToken: token, activeOrg } = useAuthStore();
   const [rates, setRates] = useState<Rate[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(false);
