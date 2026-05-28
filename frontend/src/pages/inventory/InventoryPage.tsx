@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { Package, Plus, Search, AlertTriangle, TrendingDown, Tag, RefreshCw, X, Upload } from "lucide-react";
+import { Package, Plus, Search, AlertTriangle, TrendingDown, Tag, RefreshCw, X, Upload, Camera } from "lucide-react";
 import DocumentsPanel from "@/components/DocumentsPanel";
 import { kDigits, kDecimal, kAlphaNum, kName } from "@/lib/fieldRules";
 import BulkImportModal from "@/components/ui/BulkImportModal";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -34,6 +35,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -111,6 +113,9 @@ export default function InventoryPage() {
           <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Manage products, categories, and stock levels</p>
         </div>
         <div className="hdr-actions">
+          <button style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }} onClick={() => setShowScanner(true)}>
+            <Camera size={14} /> Scan Barcode
+          </button>
           <button style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }} onClick={() => setShowImport(true)}>
             <Upload size={14} /> Import CSV
           </button>
@@ -304,6 +309,14 @@ export default function InventoryPage() {
             { Name: "Cotton T-Shirt", SKU: "TSH-001", Unit: "PCS", "Cost Price": "250", "Selling Price": "499", "Tax Rate": "5", "Reorder Level": "10", "HSN Code": "6109" },
             { Name: "Laptop Bag", SKU: "BAG-002", Unit: "PCS", "Cost Price": "800", "Selling Price": "1499", "Tax Rate": "18", "Reorder Level": "5", "HSN Code": "4202" },
           ]}
+        />
+      )}
+
+      {showScanner && (
+        <BarcodeScanner
+          title="Scan Product Barcode / SKU"
+          onClose={() => setShowScanner(false)}
+          onScan={code => { setSearch(code); setShowScanner(false); }}
         />
       )}
     </div>

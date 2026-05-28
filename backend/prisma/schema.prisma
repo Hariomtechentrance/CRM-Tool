@@ -112,6 +112,14 @@ model Organization {
   recurringInvoices RecurringInvoice[]
   leaveBalances     LeaveBalance[]
   productBatches    ProductBatch[]
+  recordComments    RecordComment[]
+  tdsEntries        TDSEntry[]
+  budgets           Budget[]
+  boms              BOM[]
+  workOrders        WorkOrder[]
+  exchangeRates     ExchangeRate[]
+  bankTransactions  BankTransaction[]
+  webhooks          WebhookEndpoint[]
   performanceGoals  PerformanceGoal[]
   performanceReviews PerformanceReview[]
   expenses          Expense[]
@@ -328,6 +336,7 @@ model Party {
   deals              Deal[]
   quotations         Quotation[]
   recurringInvoices  RecurringInvoice[]
+  tdsEntries         TDSEntry[]
 
   @@index([organizationId])
   @@index([organizationId, type])
@@ -391,6 +400,8 @@ enum MovementType {
   RETURN_IN
   RETURN_OUT
   OPENING_STOCK
+  PRODUCTION_IN
+  PRODUCTION_USE
 }
 
 enum ProductStatus {
@@ -451,6 +462,8 @@ model Product {
   posSaleItems    POSSaleItem[]
   quotationItems  QuotationItem[]
   batches         ProductBatch[]
+  boms            BOM[]
+  bomComponents   BOMItem[]        @relation("BOMComponents")
 
   @@unique([organizationId, sku])
   @@index([organizationId])
@@ -782,6 +795,7 @@ model Invoice {
   sgstAmount     Float         @default(0)
   eInvoiceIRN    String?
   eWayBillNumber String?
+  publicToken    String?       @unique
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -1743,6 +1757,66 @@ model RecurringInvoice {
   @@index([nextRunDate, isActive])
 }
 
+// ─────────────────────────────────────────────────────────────
+//  RECORD COMMENTS (polymorphic — any entity type)
+// ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+//  TDS / TCS TRACKING
+// ─────────────────────────────────────────────────────────────
+
+enum TDSType {
+  TDS
+  TCS
+}
+
+model TDSEntry {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           TDSType  @default(TDS)
+  partyId        String?
+  invoiceId      String?
+  section        String               // "194C", "194Q", "206C" etc.
+  description    String?
+  baseAmount     Float
+  tdsRate        Float                // percentage
+  tdsAmount      Float
+  paymentDate    DateTime             @default(now())
+  challanNumber  String?
+  depositedAt    DateTime?
+  isDeposited    Boolean              @default(false)
+  notes          String?
+  createdById    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party        Party?       @relation(fields: [partyId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, type])
+  @@index([organizationId, isDeposited])
+}
+
+model RecordComment {
+  id             String   @id @default(cuid())
+  organizationId String
+  entityType     String   // "INVOICE" | "PURCHASE_ORDER" | "LEAD" | "DEAL" | "TASK" | etc.
+  entityId       String
+  comment        String   @db.Text
+  authorId       String?
+  authorName     String?
+  authorEmail    String?
+  isInternal     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, entityType, entityId])
+}
+
 model Document {
   id             String   @id @default(cuid())
   organizationId String
@@ -1763,4 +1837,190 @@ model Document {
 
   @@index([organizationId])
   @@index([organizationId, entityType, entityId])
+}
+
+model Budget {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  department     String?
+  fiscalYear     String   // e.g. "2024-2025"
+  startDate      DateTime
+  endDate        DateTime
+  totalBudget    Float    @default(0)
+  notes          String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items        BudgetItem[]
+
+  @@index([organizationId])
+  @@index([organizationId, fiscalYear])
+}
+
+model BudgetItem {
+  id          String  @id @default(cuid())
+  budgetId    String
+  category    String  // e.g. "Salaries", "Marketing", "Operations"
+  allocatedAmount Float @default(0)
+  spentAmount    Float @default(0)
+  notes          String?
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId])
+}
+
+model BOM {
+  id             String   @id @default(cuid())
+  organizationId String
+  productId      String
+  name           String
+  version        String   @default("1.0")
+  isActive       Boolean  @default(true)
+  notes          String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product       @relation(fields: [productId], references: [id])
+  items        BOMItem[]
+  workOrders   WorkOrder[]
+
+  @@index([organizationId])
+  @@index([organizationId, productId])
+}
+
+model BOMItem {
+  id           String @id @default(cuid())
+  bomId        String
+  componentId  String
+  quantity     Float  @default(1)
+  unit         String @default("PCS")
+  notes        String?
+
+  bom       BOM     @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  component Product @relation("BOMComponents", fields: [componentId], references: [id])
+
+  @@index([bomId])
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model WorkOrder {
+  id             String          @id @default(cuid())
+  organizationId String
+  bomId          String
+  workOrderNo    String
+  status         WorkOrderStatus @default(DRAFT)
+  quantity       Float           @default(1)
+  startDate      DateTime?
+  endDate        DateTime?
+  completedAt    DateTime?
+  notes          String?
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bom          BOM          @relation(fields: [bomId], references: [id])
+
+  @@unique([organizationId, workOrderNo])
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model ExchangeRate {
+  id             String   @id @default(cuid())
+  organizationId String
+  fromCurrency   String   // e.g. "USD"
+  toCurrency     String   // e.g. "INR"
+  rate           Float    // 1 fromCurrency = rate toCurrency
+  effectiveDate  DateTime @default(now())
+  source         String   @default("MANUAL") // MANUAL | AUTO
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, fromCurrency, toCurrency])
+}
+
+enum BankTxnType {
+  CREDIT
+  DEBIT
+}
+
+enum ReconcileStatus {
+  UNMATCHED
+  MATCHED
+  IGNORED
+}
+
+model BankTransaction {
+  id             String          @id @default(cuid())
+  organizationId String
+  accountName    String          // Bank account label
+  txnDate        DateTime
+  description    String
+  amount         Float
+  type           BankTxnType
+  reference      String?
+  reconcileStatus ReconcileStatus @default(UNMATCHED)
+  matchedInvoiceId String?
+  matchedPaymentId String?
+  notes          String?
+  importedAt     DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, reconcileStatus])
+  @@index([organizationId, txnDate])
+}
+
+model WebhookEndpoint {
+  id             String    @id @default(cuid())
+  organizationId String
+  url            String
+  events         String[]
+  secret         String
+  isActive       Boolean   @default(true)
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries   WebhookDelivery[]
+
+  @@index([organizationId])
+}
+
+model WebhookDelivery {
+  id           String   @id @default(cuid())
+  webhookId    String
+  event        String
+  payload      Json
+  statusCode   Int?
+  success      Boolean  @default(false)
+  attempts     Int      @default(0)
+  responseBody String?
+  deliveredAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  webhook WebhookEndpoint @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([webhookId, event])
 }

@@ -12,6 +12,7 @@ import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import CrmPage from "@/pages/crm/CrmPage";
 import PartyDetailPage from "@/pages/crm/PartyDetailPage";
+import DuplicatesPage from "@/pages/crm/DuplicatesPage";
 import InventoryPage from "@/pages/inventory/InventoryPage";
 import PurchasePage from "@/pages/purchase/PurchasePage";
 import SalesPage from "@/pages/sales/SalesPage";
@@ -26,6 +27,8 @@ import WarehousePage from "@/pages/warehouse/WarehousePage";
 import StorePage from "@/pages/store/StorePage";
 import ReportsPage from "@/pages/reports/ReportsPage";
 import GSTReportsPage from "@/pages/gst/GSTReportsPage";
+import EInvoicePage from "@/pages/gst/EInvoicePage";
+import EWayBillPage from "@/pages/gst/EWayBillPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTeamPage from "@/pages/admin/AdminTeamPage";
@@ -47,7 +50,14 @@ import DocumentsPage from "@/pages/documents/DocumentsPage";
 import AuditPage from "@/pages/audit/AuditPage";
 import ApprovalQueuePage from "@/pages/admin/ApprovalQueuePage";
 import BatchTrackingPage from "@/pages/inventory/BatchTrackingPage";
+import BOMPage from "@/pages/inventory/BOMPage";
+import TDSPage from "@/pages/finance/TDSPage";
+import BudgetPage from "@/pages/finance/BudgetPage";
+import ReconciliationPage from "@/pages/finance/ReconciliationPage";
+import WebhooksPage from "@/pages/settings/WebhooksPage";
+import CurrencyPage from "@/pages/settings/CurrencyPage";
 import LandingPage from "@/pages/landing/LandingPage";
+import InvoicePortalPage from "@/pages/portal/InvoicePortalPage";
 import { useAuthStore } from "@/stores/authStore";
 import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
 
@@ -70,6 +80,7 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
+        <Route path="/portal/invoice/:token" element={<InvoicePortalPage />} />
         <Route path="/login"          element={<LoginPage />} />
         <Route path="/register"       element={<RegisterPage />} />
         <Route path="/create-org"     element={<CreateOrgPage />} />
@@ -104,8 +115,10 @@ export default function App() {
           {/* ── Core (gated by module key) ── */}
           <Route path="/crm"          element={G("CRM", CrmPage)} />
           <Route path="/crm/:id"      element={G("CRM", PartyDetailPage)} />
+          <Route path="/duplicates"   element={G("CRM", DuplicatesPage)} />
           <Route path="/inventory"    element={G("INVENTORY", InventoryPage)} />
           <Route path="/batches"      element={G("INVENTORY", BatchTrackingPage)} />
+          <Route path="/bom"          element={G("INVENTORY", BOMPage)} />
           <Route path="/purchase"     element={G("PURCHASE", PurchasePage)} />
           <Route path="/store"        element={G("STORE", StorePage)} />
           <Route path="/dispatch"     element={G("DISPATCH", SalesPage)} />
@@ -123,6 +136,11 @@ export default function App() {
           <Route path="/ecommerce"    element={<ComingSoonPage title="E-commerce" description="Connect Shopify, WooCommerce and sync online orders automatically." />} />
           <Route path="/reports"      element={G("REPORTS", ReportsPage)} />
           <Route path="/gst"          element={G("REPORTS", GSTReportsPage)} />
+          <Route path="/einvoice"     element={G("ACCOUNTS", EInvoicePage)} />
+          <Route path="/ewaybill"     element={G("ACCOUNTS", EWayBillPage)} />
+          <Route path="/tds"          element={G("ACCOUNTS", TDSPage)} />
+          <Route path="/budgets"         element={G("ACCOUNTS", BudgetPage)} />
+          <Route path="/reconciliation" element={G("ACCOUNTS", ReconciliationPage)} />
 
           {/* ── Industry ── */}
           <Route path="/import-export" element={G("IMPORT_EXPORT_SUITE", TradePage)} />
@@ -140,6 +158,8 @@ export default function App() {
           {/* ── Utility (no gate needed) ── */}
           <Route path="/documents"    element={<DocumentsPage />} />
           <Route path="/settings"     element={<SettingsPage />} />
+          <Route path="/currency"     element={<CurrencyPage />} />
+          <Route path="/webhooks"     element={<WebhooksPage />} />
           <Route path="/audit"        element={<AuditPage />} />
         </Route>
 

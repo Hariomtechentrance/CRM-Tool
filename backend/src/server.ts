@@ -34,6 +34,17 @@ import approvalRoutes from "./routes/approval.routes";
 import paymentRoutes from "./routes/payment.routes";
 import batchRoutes from "./routes/batch.routes";
 import twoFactorRoutes from "./routes/twoFactor.routes";
+import commentsRoutes from "./routes/comments.routes";
+import tdsRoutes from "./routes/tds.routes";
+import duplicateRoutes from "./routes/duplicate.routes";
+import einvoiceRoutes from "./routes/einvoice.routes";
+import ewaybillRoutes from "./routes/ewaybill.routes";
+import budgetRoutes from "./routes/budget.routes";
+import bomRoutes from "./routes/bom.routes";
+import portalRoutes from "./routes/portal.routes";
+import currencyRoutes from "./routes/currency.routes";
+import reconciliationRoutes from "./routes/reconciliation.routes";
+import webhookRoutes from "./routes/webhook.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -143,6 +154,17 @@ app.use("/api/approvals",      approvalRoutes);
 app.use("/api/payments",       paymentRoutes);
 app.use("/api/batches",        batchRoutes);
 app.use("/api/2fa",            twoFactorRoutes);
+app.use("/api/comments",       commentsRoutes);
+app.use("/api/tds",            tdsRoutes);
+app.use("/api/duplicates",    duplicateRoutes);
+app.use("/api/einvoice",      einvoiceRoutes);
+app.use("/api/ewaybill",      ewaybillRoutes);
+app.use("/api/budgets",       budgetRoutes);
+app.use("/api/bom",           bomRoutes);
+app.use("/api/portal",        portalRoutes);
+app.use("/api/currency",      currencyRoutes);
+app.use("/api/reconciliation", reconciliationRoutes);
+app.use("/api/webhooks",       webhookRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

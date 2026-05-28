@@ -4,7 +4,7 @@ import {
   Users, Package, ShoppingCart, Truck, Receipt,
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
-  LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers,
+  LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -226,6 +226,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             { href: "/quotations", label: "Quotations", Icon: FileText },
             { href: "/recurring", label: "Recurring Invoices", Icon: RefreshCw },
             { href: "/batches",   label: "Batch Tracking",    Icon: Layers },
+            { href: "/bom",       label: "BOM / Work Orders", Icon: Cog },
           ].map(({ href, label, Icon }) => (
             <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
               <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
@@ -253,6 +254,30 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             <IndianRupee style={{ width: 14, height: 14 }} />
             <span className="truncate">GST Reports</span>
           </NavLink>
+          <NavLink to="/einvoice" onClick={onClose} className={navLinkClass}>
+            <Stamp style={{ width: 14, height: 14 }} />
+            <span className="truncate">E-Invoice IRN</span>
+          </NavLink>
+          <NavLink to="/ewaybill" onClick={onClose} className={navLinkClass}>
+            <Truck style={{ width: 14, height: 14 }} />
+            <span className="truncate">E-Way Bill</span>
+          </NavLink>
+          <NavLink to="/tds" onClick={onClose} className={navLinkClass}>
+            <Receipt style={{ width: 14, height: 14 }} />
+            <span className="truncate">TDS / TCS</span>
+          </NavLink>
+          <NavLink to="/budgets" onClick={onClose} className={navLinkClass}>
+            <PiggyBank style={{ width: 14, height: 14 }} />
+            <span className="truncate">Budgets</span>
+          </NavLink>
+          <NavLink to="/reconciliation" onClick={onClose} className={navLinkClass}>
+            <Landmark style={{ width: 14, height: 14 }} />
+            <span className="truncate">Reconciliation</span>
+          </NavLink>
+          <NavLink to="/duplicates" onClick={onClose} className={navLinkClass}>
+            <Copy style={{ width: 14, height: 14 }} />
+            <span className="truncate">Duplicates</span>
+          </NavLink>
           <NavLink to="/admin/dashboard" onClick={onClose} className={navLinkClass}>
             <LayoutGrid style={{ width: 14, height: 14 }} />
             <span className="truncate">Admin Panel</span>
@@ -260,6 +285,14 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           <NavLink to="/audit" onClick={onClose} className={navLinkClass}>
             <ShieldCheck style={{ width: 14, height: 14 }} />
             <span className="truncate">Audit Trail</span>
+          </NavLink>
+          <NavLink to="/currency" onClick={onClose} className={navLinkClass}>
+            <DollarSign style={{ width: 14, height: 14 }} />
+            <span className="truncate">Currency</span>
+          </NavLink>
+          <NavLink to="/webhooks" onClick={onClose} className={navLinkClass}>
+            <Webhook style={{ width: 14, height: 14 }} />
+            <span className="truncate">Webhooks</span>
           </NavLink>
           <NavLink to="/settings" onClick={onClose} className={navLinkClass}>
             <Settings style={{ width: 14, height: 14 }} />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { Receipt, Plus, Search, X, TrendingUp, TrendingDown, Clock, CheckCircle, Printer, Download, CreditCard } from "lucide-react";
+import { Receipt, Plus, Search, X, TrendingUp, TrendingDown, Clock, CheckCircle, Printer, Download, CreditCard, Link } from "lucide-react";
 import { generateInvoicePDF } from "@/lib/generatePDF";
 import DocumentsButton from "@/components/DocumentsButton";
 import { kDecimal } from "@/lib/fieldRules";
@@ -315,6 +315,17 @@ export default function FinancePage() {
     setPrintingId(null);
   };
 
+  const handleShareLink = async (invoiceId: string) => {
+    try {
+      const res = await api.get(`/portal/link/${invoiceId}`);
+      const url = res.data.data?.url;
+      if (url) {
+        await navigator.clipboard.writeText(url);
+        alert(`Portal link copied!\n${url}`);
+      }
+    } catch { alert("Failed to generate portal link"); }
+  };
+
   const handlePayNow = async (invoiceId: string) => {
     setPrintingId(invoiceId + "_pay");
     try {
@@ -451,6 +462,15 @@ export default function FinancePage() {
                           style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: "#10b98120", color: "#10b981", cursor: "pointer", fontSize: 11, fontWeight: 600 }}
                         >
                           <CreditCard size={12} /> Pay Now
+                        </button>
+                      )}
+                      {inv.status !== "CANCELLED" && (
+                        <button
+                          title="Copy customer portal link"
+                          onClick={() => handleShareLink(inv.id)}
+                          style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: "#6366f120", color: "#818cf8", cursor: "pointer", fontSize: 11, fontWeight: 600 }}
+                        >
+                          <Link size={12} /> Share
                         </button>
                       )}
                     </div>

@@ -17,6 +17,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { PartyForm } from "@/components/crm/PartyForm";
 import DocumentsPanel from "@/components/DocumentsPanel";
+import RecordComments from "@/components/RecordComments";
 import api from "@/lib/api";
 import { getInitials, getApiError, formatDate } from "@/lib/utils";
 import type { Party, Contact, CommunicationType } from "@/types";
@@ -186,7 +187,7 @@ function PartyTagEditor({ partyId, initialTags, onUpdated }: { partyId: string; 
 }
 
 // ── Main Detail Page ──────────────────────────────────────────
-type DetailTab = "overview" | "contacts" | "communications" | "documents";
+type DetailTab = "overview" | "contacts" | "communications" | "documents" | "comments";
 
 export default function PartyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -301,6 +302,7 @@ export default function PartyDetailPage() {
           Activity Log {(party.communications?.length ?? 0) > 0 && <span className="ml-1.5 text-xs bg-slate-200 text-slate-600 rounded-full px-1.5">{party.communications?.length}</span>}
         </button>
         <button className={tabClass("documents")} onClick={() => setTab("documents")}>Documents</button>
+        <button className={tabClass("comments")} onClick={() => setTab("comments")}>Comments</button>
       </div>
 
       {/* ── Overview ── */}
@@ -541,6 +543,15 @@ export default function PartyDetailPage() {
           <CardHeader><h3 className="font-semibold text-slate-700">Documents &amp; Attachments</h3></CardHeader>
           <CardBody>
             <DocumentsPanel entityType="PARTY" entityId={party.id} />
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ── Comments ── */}
+      {tab === "comments" && (
+        <Card>
+          <CardBody>
+            <RecordComments entityType="PARTY" entityId={party.id} />
           </CardBody>
         </Card>
       )}
