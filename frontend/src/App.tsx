@@ -55,6 +55,10 @@ import TDSPage from "@/pages/finance/TDSPage";
 import BudgetPage from "@/pages/finance/BudgetPage";
 import ReconciliationPage from "@/pages/finance/ReconciliationPage";
 import WebhooksPage from "@/pages/settings/WebhooksPage";
+import ITProjectsPage from "@/pages/projects/ITProjectsPage";
+import SprintBoardPage from "@/pages/projects/SprintBoardPage";
+import TeamDashboardPage from "@/pages/hr/TeamDashboardPage";
+import MyWorkPage from "@/pages/projects/MyWorkPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
 import LandingPage from "@/pages/landing/LandingPage";
 import InvoicePortalPage from "@/pages/portal/InvoicePortalPage";
@@ -128,7 +132,11 @@ export default function App() {
           <Route path="/pos"          element={G("POS", RetailPage)} />
           <Route path="/warehouse"    element={G("WAREHOUSE", WarehousePage)} />
           <Route path="/hr"           element={G("HR", HRPage)} />
-          <Route path="/projects"     element={G("PROJECTS", ProjectsPage)} />
+          <Route path="/projects"      element={G("PROJECTS", ProjectsPage)} />
+          <Route path="/it-projects"   element={G("PROJECTS", ITProjectsPage)} />
+          <Route path="/sprint-board"  element={G("PROJECTS", SprintBoardPage)} />
+          <Route path="/team-dashboard" element={G("HR", TeamDashboardPage)} />
+          <Route path="/my-work"       element={G("PROJECTS", MyWorkPage)} />
 
           {/* ── Growth ── */}
           <Route path="/marketing"    element={G("MARKETING", LeadsPage)} />

@@ -5,6 +5,7 @@ import {
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
+  MonitorCheck, ClipboardList, UserCog, KanbanSquare,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -218,6 +219,21 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
       {/* ── Fixed bottom section ── */}
       <div className="flex-shrink-0" style={{ borderTop: "1px solid var(--border)" }}>
+
+        {/* IT / Projects — collapsible */}
+        <CollapsibleSection label="IT &amp; Projects" defaultOpen={true}>
+          {[
+            { href: "/it-projects",    label: "IT Projects",      Icon: MonitorCheck },
+            { href: "/sprint-board",   label: "Sprint Board",     Icon: KanbanSquare },
+            { href: "/my-work",        label: "My Work",          Icon: ClipboardList },
+            { href: "/team-dashboard", label: "Team Dashboard",   Icon: UserCog },
+          ].map(({ href, label, Icon }) => (
+            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+              <span className="truncate">{label}</span>
+            </NavLink>
+          ))}
+        </CollapsibleSection>
 
         {/* Sales — collapsible */}
         <CollapsibleSection label="Sales">

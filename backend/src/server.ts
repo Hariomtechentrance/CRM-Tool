@@ -45,6 +45,8 @@ import portalRoutes from "./routes/portal.routes";
 import currencyRoutes from "./routes/currency.routes";
 import reconciliationRoutes from "./routes/reconciliation.routes";
 import webhookRoutes from "./routes/webhook.routes";
+import itProjectRoutes from "./routes/itProject.routes";
+import sprintRoutes from "./routes/sprint.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -165,6 +167,8 @@ app.use("/api/portal",        portalRoutes);
 app.use("/api/currency",      currencyRoutes);
 app.use("/api/reconciliation", reconciliationRoutes);
 app.use("/api/webhooks",       webhookRoutes);
+app.use("/api/it-projects",   itProjectRoutes);
+app.use("/api/sprints",       sprintRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

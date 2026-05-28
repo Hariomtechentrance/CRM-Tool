@@ -120,6 +120,7 @@ model Organization {
   exchangeRates     ExchangeRate[]
   bankTransactions  BankTransaction[]
   webhooks          WebhookEndpoint[]
+  sprints           Sprint[]
   performanceGoals  PerformanceGoal[]
   performanceReviews PerformanceReview[]
   expenses          Expense[]
@@ -999,6 +1000,8 @@ model Employee {
   performanceGoals PerformanceGoal[]
   performanceReviews PerformanceReview[]
   expenses         Expense[]
+  projectMembers   ProjectMember[]
+  timeLogs         TimeLog[]
 
   @@unique([organizationId, employeeCode])
   @@index([organizationId])
@@ -1211,30 +1214,48 @@ model Project {
   name           String
   description    String?
   status         ProjectStatus @default(PLANNING)
+  projectType    ITProjectType @default(OTHER)
+  priority       TaskPriority  @default(MEDIUM)
   startDate      DateTime?
   endDate        DateTime?
   budget         Float?
+  clientName     String?
+  techStack      String[]      @default([])
+  repoUrl        String?
+  liveUrl        String?
+  totalEstHours  Float?
+  completionPct  Int           @default(0)
   partyId        String?
   managerId      String?
+  createdById    String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  party        Party?       @relation(fields: [partyId], references: [id])
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party        Party?            @relation(fields: [partyId], references: [id])
   tasks        Task[]
+  members      ProjectMember[]
+  milestones   ProjectMilestone[]
+  sprints      Sprint[]
 
   @@index([organizationId])
+  @@index([organizationId, status])
 }
 
 model Task {
   id             String       @id @default(cuid())
   organizationId String
   projectId      String?
+  sprintId       String?
   title          String
   description    String?
   status         TaskStatus   @default(TODO)
   priority       TaskPriority @default(MEDIUM)
   assignedToId   String?
+  storyPoints    Int?
+  estimatedHours Float?
+  actualHours    Float?
+  tags           String[]     @default([])
   dueDate        DateTime?
   completedAt    DateTime?
   createdById    String?
@@ -1243,11 +1264,15 @@ model Task {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project      Project?     @relation(fields: [projectId], references: [id])
+  sprint       Sprint?      @relation(fields: [sprintId], references: [id])
   comments     TaskComment[]
+  timeLogs     TimeLog[]
 
   @@index([organizationId])
   @@index([projectId])
+  @@index([sprintId])
   @@index([organizationId, status])
+  @@index([assignedToId])
 }
 
 model TaskComment {
@@ -2023,4 +2048,112 @@ model WebhookDelivery {
 
   @@index([webhookId])
   @@index([webhookId, event])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  IT PROJECT MANAGEMENT
+// ─────────────────────────────────────────────────────────────
+
+enum ITProjectType {
+  WEB_APP
+  MOBILE_APP
+  API_SERVICE
+  DESKTOP_APP
+  DATA_ANALYTICS
+  AI_ML
+  DEVOPS_INFRA
+  ECOMMERCE
+  ERP_CRM
+  CONSULTING
+  OTHER
+}
+
+enum ProjectMemberRole {
+  PROJECT_MANAGER
+  PROJECT_INCHARGE
+  TECH_LEAD
+  SENIOR_DEVELOPER
+  DEVELOPER
+  FRONTEND_DEV
+  BACKEND_DEV
+  FULLSTACK_DEV
+  UI_UX_DESIGNER
+  QA_ENGINEER
+  DEVOPS_ENGINEER
+  BUSINESS_ANALYST
+  SCRUM_MASTER
+  STAKEHOLDER
+}
+
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model ProjectMember {
+  id         String            @id @default(cuid())
+  projectId  String
+  employeeId String
+  role       ProjectMemberRole @default(DEVELOPER)
+  joinedAt   DateTime          @default(now())
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, employeeId])
+  @@index([projectId])
+  @@index([employeeId])
+}
+
+model ProjectMilestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Sprint {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String
+  name           String
+  goal           String?
+  startDate      DateTime
+  endDate        DateTime
+  status         SprintStatus @default(PLANNED)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([organizationId])
+  @@index([projectId])
+}
+
+model TimeLog {
+  id         String   @id @default(cuid())
+  taskId     String
+  employeeId String
+  logDate    DateTime @default(now())
+  hours      Float
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([employeeId])
+  @@index([employeeId, logDate])
 }
