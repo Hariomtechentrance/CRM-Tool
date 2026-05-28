@@ -1,10 +1,16 @@
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { prisma } from "./lib/prisma";
+import { requestTimeout } from "./middleware/requestTimeout";
+import { withCache } from "./middleware/cacheMiddleware";
+import { dbBreaker } from "./lib/circuitBreaker";
+import { apiCache } from "./lib/cache";
+import { v4 as uuidv4 } from "uuid";
 import authRoutes from "./routes/auth.routes";
 import orgRoutes from "./routes/org.routes";
 import partyRoutes from "./routes/party.routes";
@@ -63,6 +69,30 @@ if (missing.length) {
   process.exit(1);
 }
 
+// ── Gzip compression (60-80 % smaller responses) ─────────────
+app.use(compression());
+
+// ── Per-request timeout (30 s) — releases hung connections ────
+app.use(requestTimeout(30_000));
+
+// ── Request-ID for distributed tracing ───────────────────────
+app.use((_req, res, next) => {
+  res.setHeader("X-Request-Id", uuidv4());
+  next();
+});
+
+// ── Circuit breaker — fast-fail when DB is overwhelmed ────────
+app.use("/api", (req, res, next) => {
+  if (dbBreaker.isOpen && req.path !== "/health" && req.path !== "/metrics") {
+    return res.status(503).json({
+      success: false,
+      message: "Service temporarily unavailable. The database is recovering — please retry in 30 s.",
+      retryAfter: 30,
+    });
+  }
+  next();
+});
+
 // ── Security headers ─────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -106,37 +136,82 @@ const apiLimiter = rateLimit({
   message: { success: false, message: "Rate limit exceeded. Please slow down." },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === "/api/health",
+  skip: (req) => req.path === "/api/health" || req.path === "/api/metrics",
+});
+
+// Heavy endpoints — PDF/report generation, exports
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  message: { success: false, message: "Too many export/report requests. Wait 1 minute." },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 app.use("/api/auth/login",          authLimiter);
 app.use("/api/auth/register",       authLimiter);
 app.use("/api/auth/forgot-password",authLimiter);
-app.use("/api/auth/refresh",        authLimiter); // prevent refresh token brute-force
+app.use("/api/auth/refresh",        authLimiter);
 app.use("/api/auth/reset-password", authLimiter);
-app.use("/api", apiLimiter);
+app.use("/api/gst",                 heavyLimiter);
+app.use("/api",                     apiLimiter);
 
-// ── Health check ─────────────────────────────────────────────
+// ── Health + readiness checks ─────────────────────────────────
 app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: "ok", db: "connected", timestamp: new Date().toISOString(), app: "FlowCRM API" });
-  } catch {
-    res.status(503).json({ status: "error", db: "disconnected", timestamp: new Date().toISOString() });
+    dbBreaker.success();
+    res.json({
+      status: "ok",
+      db: "connected",
+      circuitBreaker: dbBreaker.getState(),
+      pid: process.pid,
+      timestamp: new Date().toISOString(),
+      app: "FlowCRM API",
+    });
+  } catch (err) {
+    dbBreaker.fail();
+    res.status(503).json({
+      status: "error",
+      db: "disconnected",
+      circuitBreaker: dbBreaker.getState(),
+      timestamp: new Date().toISOString(),
+    });
   }
+});
+
+// ── Metrics — latency, cache, circuit breaker ─────────────────
+app.get("/api/metrics", (_req, res) => {
+  const mem = process.memoryUsage();
+  res.json({
+    pid: process.pid,
+    uptime: Math.round(process.uptime()),
+    memoryMB: {
+      heapUsed:  Math.round(mem.heapUsed  / 1_048_576),
+      heapTotal: Math.round(mem.heapTotal / 1_048_576),
+      rss:       Math.round(mem.rss       / 1_048_576),
+    },
+    cache: apiCache.stats(),
+    circuitBreaker: {
+      state:    dbBreaker.getState(),
+      failures: dbBreaker.getFailures(),
+    },
+    node: process.version,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ── Routes ───────────────────────────────────────────────────
 app.use("/api/auth",           authRoutes);
 app.use("/api/organizations",  orgRoutes);
-app.use("/api/parties",        partyRoutes);
-app.use("/api/inventory",      inventoryRoutes);
+app.use("/api/parties",        withCache(30_000), partyRoutes);
+app.use("/api/inventory",      withCache(30_000), inventoryRoutes);
 app.use("/api/purchase-orders",purchaseRoutes);
 app.use("/api/sales-orders",   salesRoutes);
 app.use("/api/finance",        financeRoutes);
-app.use("/api/hr",             hrRoutes);
-app.use("/api/projects",       projectsRoutes);
-app.use("/api/leads",          leadsRoutes);
+app.use("/api/hr",             withCache(60_000), hrRoutes);
+app.use("/api/projects",       withCache(20_000), projectsRoutes);
+app.use("/api/leads",          withCache(20_000), leadsRoutes);
 app.use("/api/support",        supportRoutes);
 app.use("/api/trade",          tradeRoutes);
 app.use("/api/retail",         retailRoutes);
@@ -167,7 +242,7 @@ app.use("/api/portal",        portalRoutes);
 app.use("/api/currency",      currencyRoutes);
 app.use("/api/reconciliation", reconciliationRoutes);
 app.use("/api/webhooks",       webhookRoutes);
-app.use("/api/it-projects",   itProjectRoutes);
+app.use("/api/it-projects",   withCache(15_000), itProjectRoutes);
 app.use("/api/sprints",       sprintRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
