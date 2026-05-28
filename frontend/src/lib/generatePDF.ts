@@ -181,7 +181,7 @@ export function generateInvoicePDF(data: InvoiceData): void {
   totalsRows.forEach(([label, value, bold]) => {
     doc.setFontSize(bold ? 10 : 8.5);
     doc.setFont("helvetica", bold ? "bold" : "normal");
-    doc.setTextColor(bold ? ...DARK : ...GRAY);
+    doc.setTextColor(...(bold ? DARK : GRAY));
     if (bold) {
       doc.setFillColor(...ACCENT);
       doc.setTextColor(255, 255, 255);
