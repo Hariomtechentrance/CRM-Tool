@@ -4,7 +4,7 @@ import { requireOrgContext } from "../middleware/orgContext";
 import {
   listProjects, getProject, createProject, updateProject,
   addMember, removeMember, addMilestone, updateMilestone,
-  getTeamDashboard, getMyWork,
+  getTeamDashboard, getMyWork, generateShareLink, revokeShareLink,
 } from "../controllers/itProject.controller";
 
 const router = Router();
@@ -20,5 +20,7 @@ router.post("/:id/members",                  addMember);
 router.delete("/:id/members/:memberId",      removeMember);
 router.post("/:id/milestones",               addMilestone);
 router.patch("/:id/milestones/:msId",        updateMilestone);
+router.post("/:id/share",                    generateShareLink);
+router.delete("/:id/share",                  revokeShareLink);
 
 export default router;

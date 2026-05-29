@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { Plus, Users, Calendar, GitBranch, ExternalLink, ChevronRight, Target, Code2, Briefcase, Search, Filter } from "lucide-react";
+import { Plus, Users, Calendar, GitBranch, ExternalLink, ChevronRight, Target, Code2, Briefcase, Search, Filter, Share2, Copy, Check, Trash2 } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -58,6 +58,7 @@ interface Project {
   id: string; name: string; description?: string; status: string; projectType: string;
   priority: string; clientName?: string; techStack: string[]; repoUrl?: string;
   liveUrl?: string; startDate?: string; endDate?: string; completionPct: number;
+  publicToken?: string | null;
   members: Member[]; _count: { tasks: number; sprints: number };
   taskStats: { total: number; done: number; pct: number };
 }
@@ -244,7 +245,37 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
   const [addMemberEmpId, setAddMemberEmpId] = useState("");
   const [addMemberRole, setAddMemberRole] = useState("DEVELOPER");
   const [msTitle, setMsTitle] = useState(""); const [msDue, setMsDue] = useState("");
+  const [shareToken, setShareToken] = useState<string | null>(project.publicToken ?? null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
   const h = () => authH(token!, activeOrg!.id);
+
+  const publicUrl = shareToken ? `${window.location.origin}/public/project/${shareToken}` : null;
+
+  async function generateLink() {
+    setShareLoading(true);
+    try {
+      const r = await fetch(`${API}/api/it-projects/${project.id}/share`, { method: "POST", headers: h() });
+      const d = await r.json();
+      if (d.success) { setShareToken(d.data.token); onRefresh(); }
+    } finally { setShareLoading(false); }
+  }
+
+  async function revokeLink() {
+    if (!confirm("Revoke public link? Anyone with the current link will lose access.")) return;
+    setShareLoading(true);
+    try {
+      await fetch(`${API}/api/it-projects/${project.id}/share`, { method: "DELETE", headers: h() });
+      setShareToken(null); onRefresh();
+    } finally { setShareLoading(false); }
+  }
+
+  function copyLink() {
+    if (!publicUrl) return;
+    navigator.clipboard.writeText(publicUrl);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  }
 
   useEffect(() => {
     fetch(`${API}/api/hr/employees?status=ACTIVE`, { headers: h() })
@@ -302,6 +333,38 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
             </div>
           </div>
           <button onClick={onClose} style={{ background: "var(--bg-hover)", border: "none", color: "var(--text-ghost)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12 }}>✕</button>
+        </div>
+
+        {/* ── Public share link ── */}
+        <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10, background: shareToken ? "#0f1f0f" : "var(--bg-hover)", border: `1px solid ${shareToken ? "#22c55e44" : "var(--border)"}` }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Share2 style={{ width: 13, height: 13, color: shareToken ? "#22c55e" : "#6b7280" }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: shareToken ? "#22c55e" : "var(--text-secondary)" }}>
+                {shareToken ? "Public link active" : "Share with client (no login needed)"}
+              </span>
+            </div>
+            {shareToken
+              ? <button onClick={revokeLink} disabled={shareLoading} style={{ background: "none", border: "none", cursor: "pointer", color: "#f87171", padding: 0 }} title="Revoke link">
+                  <Trash2 style={{ width: 13, height: 13 }} />
+                </button>
+              : <button onClick={generateLink} disabled={shareLoading} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: "#6366f1", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                  {shareLoading ? "…" : "Generate link"}
+                </button>
+            }
+          </div>
+          {shareToken && publicUrl && (
+            <div className="flex items-center gap-2">
+              <input readOnly value={publicUrl} style={{ flex: 1, fontSize: 11, padding: "5px 8px", borderRadius: 6, background: "#0a140a", border: "1px solid #22c55e33", color: "#86efac", outline: "none" }} />
+              <button onClick={copyLink} style={{ flexShrink: 0, padding: "5px 10px", borderRadius: 6, background: shareCopied ? "#22c55e" : "#1e3a1e", border: "none", cursor: "pointer", color: shareCopied ? "#fff" : "#4ade80", display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                {shareCopied ? <Check style={{ width: 11, height: 11 }} /> : <Copy style={{ width: 11, height: 11 }} />}
+                {shareCopied ? "Copied" : "Copy"}
+              </button>
+              <a href={publicUrl} target="_blank" rel="noreferrer" style={{ flexShrink: 0, padding: "5px 10px", borderRadius: 6, background: "#1e3a1e", border: "none", color: "#4ade80", fontSize: 11, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+                <ExternalLink style={{ width: 11, height: 11 }} /> Preview
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Tech stack */}

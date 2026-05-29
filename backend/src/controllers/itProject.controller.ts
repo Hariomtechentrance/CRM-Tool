@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
+import { v4 as uuidv4 } from "uuid";
 import { OrgRequest } from "../middleware/orgContext";
 import { ok, created, notFound, badRequest, serverError } from "../utils/response";
 
@@ -335,6 +336,48 @@ export async function getMyWork(req: OrgRequest, res: Response): Promise<void> {
     });
 
     ok(res, { board, tasks, timeLogs });
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// ── Generate public share link ────────────────────────────────
+export async function generateShareLink(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const { id } = req.params;
+
+    const project = await db().project.findFirst({ where: { id, organizationId: orgId } });
+    if (!project) { notFound(res, "Project not found"); return; }
+
+    // Reuse existing token or mint a new one
+    const token: string = project.publicToken ?? uuidv4();
+    await db().project.update({
+      where: { id },
+      data: { publicToken: token, publicSharedAt: new Date() },
+    });
+
+    ok(res, { token, url: `/public/project/${token}` });
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// ── Revoke public share link ──────────────────────────────────
+export async function revokeShareLink(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const { id } = req.params;
+
+    const project = await db().project.findFirst({ where: { id, organizationId: orgId } });
+    if (!project) { notFound(res, "Project not found"); return; }
+
+    await db().project.update({
+      where: { id },
+      data: { publicToken: null, publicSharedAt: null },
+    });
+
+    ok(res, { revoked: true });
   } catch (err) {
     serverError(res, err);
   }

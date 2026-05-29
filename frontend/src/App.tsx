@@ -62,6 +62,7 @@ import MyWorkPage from "@/pages/projects/MyWorkPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
 import LandingPage from "@/pages/landing/LandingPage";
 import InvoicePortalPage from "@/pages/portal/InvoicePortalPage";
+import PublicProjectPage from "@/pages/public/PublicProjectPage";
 import { useAuthStore } from "@/stores/authStore";
 import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
 
@@ -84,7 +85,8 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
-        <Route path="/portal/invoice/:token" element={<InvoicePortalPage />} />
+        <Route path="/portal/invoice/:token"  element={<InvoicePortalPage />} />
+        <Route path="/public/project/:token" element={<PublicProjectPage />} />
         <Route path="/login"          element={<LoginPage />} />
         <Route path="/register"       element={<RegisterPage />} />
         <Route path="/create-org"     element={<CreateOrgPage />} />

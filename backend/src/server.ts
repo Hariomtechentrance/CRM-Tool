@@ -53,6 +53,7 @@ import reconciliationRoutes from "./routes/reconciliation.routes";
 import webhookRoutes from "./routes/webhook.routes";
 import itProjectRoutes from "./routes/itProject.routes";
 import sprintRoutes from "./routes/sprint.routes";
+import publicProjectRoutes from "./routes/publicProject.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -244,6 +245,7 @@ app.use("/api/reconciliation", reconciliationRoutes);
 app.use("/api/webhooks",       webhookRoutes);
 app.use("/api/it-projects",   withCache(15_000), itProjectRoutes);
 app.use("/api/sprints",       sprintRoutes);
+app.use("/api/public",        publicProjectRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {
