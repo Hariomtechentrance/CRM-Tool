@@ -30,8 +30,24 @@ model User {
   communications      Communication[]
   moduleAccess        UserModuleAccess[]
   accessRequests      AccessRequest[]
+  gmailAccount        GmailAccount?
 
   @@index([email])
+}
+
+model GmailAccount {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  email        String
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model RefreshToken {
@@ -125,6 +141,8 @@ model Organization {
   performanceReviews PerformanceReview[]
   expenses          Expense[]
   shifts            Shift[]
+  appointments      Appointment[]
+  automationRules   LeadAutomationRule[]
 
   @@index([slug])
 }
@@ -1314,45 +1332,107 @@ enum LeadSource {
 }
 
 model Lead {
-  id             String     @id @default(cuid())
-  organizationId String
-  name           String
-  company        String?
-  email          String?
-  phone          String?
-  source         LeadSource @default(OTHER)
-  status         LeadStatus @default(NEW)
-  value          Float?
-  assignedToId   String?
-  campaignId     String?
-  notes          String?
-  tags           String[]   @default([])
-  score          Int        @default(0)
-  convertedAt    DateTime?
-  partyId        String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id               String     @id @default(cuid())
+  organizationId   String
+  name             String
+  company          String?
+  email            String?
+  phone            String?
+  phone2           String?
+  city             String?
+  industry         String?
+  source           LeadSource @default(OTHER)
+  status           LeadStatus @default(NEW)
+  value            Float?
+  assignedToId     String?
+  campaignId       String?
+  notes            String?
+  tags             String[]   @default([])
+  score            Int        @default(0)
+  leadGrade        String?
+  isDoNotCall      Boolean    @default(false)
+  nextFollowUpDate DateTime?
+  lastContactedAt  DateTime?
+  convertedAt      DateTime?
+  partyId          String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  party        Party?         @relation(fields: [partyId], references: [id])
-  activities   LeadActivity[]
-  campaign     Campaign?      @relation(fields: [campaignId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party          Party?         @relation(fields: [partyId], references: [id])
+  activities     LeadActivity[]
+  campaign       Campaign?      @relation(fields: [campaignId], references: [id])
+  appointments   Appointment[]
 
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([assignedToId])
+  @@index([organizationId, nextFollowUpDate])
 }
 
 model LeadActivity {
-  id          String   @id @default(cuid())
-  leadId      String
-  type        String
-  description String
-  createdById String?
-  createdAt   DateTime @default(now())
+  id           String    @id @default(cuid())
+  leadId       String
+  type         String
+  subject      String?
+  description  String
+  outcome      String?
+  callOutcome  String?
+  duration     Int?
+  followUpDate DateTime?
+  createdById  String?
+  createdAt    DateTime  @default(now())
 
   lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
+  @@index([followUpDate])
+}
+
+model Appointment {
+  id             String   @id @default(cuid())
+  organizationId String
+  leadId         String?
+  partyId        String?
+  title          String
+  description    String?
+  scheduledAt    DateTime
+  duration       Int      @default(30)
+  location       String?
+  meetingLink    String?
+  status         String   @default("SCHEDULED")
+  outcome        String?
+  assignedToId   String?
+  remindAt       DateTime?
+  reminderSent   Boolean  @default(false)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead?        @relation(fields: [leadId], references: [id])
+
+  @@index([organizationId])
+  @@index([scheduledAt])
+  @@index([leadId])
+}
+
+model LeadAutomationRule {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  isActive       Boolean  @default(true)
+  trigger        String
+  triggerValue   String?
+  actionType     String
+  actionConfig   Json     @default("{}")
+  executionCount Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 model Campaign {

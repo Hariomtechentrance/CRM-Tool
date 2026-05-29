@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { Plus, Clock, User, Flag, ChevronDown, Play, CheckCircle, Timer } from "lucide-react";
+import { Plus, Clock, User, ChevronDown, Play, CheckCircle, Timer } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -197,7 +197,7 @@ export default function SprintBoardPage() {
   useEffect(() => {
     fetch(`${API}/api/it-projects`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
       .then(r => r.json()).then(d => { const ps = d.data ?? []; setProjects(ps); if (ps.length) setSelProjectId(ps[0].id); });
-    fetch(`${API}/api/hr/employees?status=ACTIVE`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
+    fetch(`${API}/api/hr?status=ACTIVE`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
       .then(r => r.json()).then(d => setEmployees(d.data ?? []));
   }, [activeOrg?.id]);
 

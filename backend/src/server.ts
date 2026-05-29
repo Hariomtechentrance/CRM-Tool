@@ -54,6 +54,9 @@ import webhookRoutes from "./routes/webhook.routes";
 import itProjectRoutes from "./routes/itProject.routes";
 import sprintRoutes from "./routes/sprint.routes";
 import publicProjectRoutes from "./routes/publicProject.routes";
+import gmailRoutes from "./routes/gmail.routes";
+import appointmentRoutes from "./routes/appointment.routes";
+import automationRoutes from "./routes/automation.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -246,6 +249,9 @@ app.use("/api/webhooks",       webhookRoutes);
 app.use("/api/it-projects",   withCache(15_000), itProjectRoutes);
 app.use("/api/sprints",       sprintRoutes);
 app.use("/api/public",        publicProjectRoutes);
+app.use("/api/gmail",         gmailRoutes);
+app.use("/api/appointments",  appointmentRoutes);
+app.use("/api/automations",   automationRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

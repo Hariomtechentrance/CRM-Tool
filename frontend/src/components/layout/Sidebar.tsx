@@ -5,7 +5,7 @@ import {
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
-  MonitorCheck, ClipboardList, UserCog, KanbanSquare,
+  MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -254,8 +254,10 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         {/* Communication — collapsible */}
         <CollapsibleSection label="Communication">
           {[
-            { href: "/email", label: "Email", Icon: Mail },
-            { href: "/activities", label: "Activities", Icon: Calendar },
+            { href: "/email",        label: "Email",        Icon: Mail },
+            { href: "/activities",   label: "Activities",   Icon: Calendar },
+            { href: "/appointments", label: "Appointments", Icon: CalendarClock },
+            { href: "/automations",  label: "Automations",  Icon: Zap },
           ].map(({ href, label, Icon }) => (
             <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
               <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />

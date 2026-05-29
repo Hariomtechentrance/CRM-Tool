@@ -236,6 +236,116 @@ async function runExpiryAlerts() {
   }
 }
 
+// ── Lead Follow-up Reminders ──────────────────────────────────
+// Runs every 30 min — notifies assignees about due follow-ups
+async function runLeadFollowUpReminders() {
+  try {
+    const db = prisma as any;
+    const now = new Date();
+    const window = new Date(now.getTime() + 60 * 60000); // next 60 min
+
+    const leads = await db.lead.findMany({
+      where: {
+        nextFollowUpDate: { gte: now, lte: window },
+        status: { notIn: ["WON", "LOST"] },
+      },
+      take: 100,
+    });
+
+    for (const lead of leads) {
+      // Deduplicate — skip if already notified in last hour
+      const existing = await prisma.notification.findFirst({
+        where: {
+          organizationId: lead.organizationId,
+          type: "FOLLOW_UP_DUE",
+          link: `/marketing?lead=${lead.id}`,
+          createdAt: { gt: new Date(Date.now() - 3600000) },
+        },
+      });
+      if (existing) continue;
+
+      await createNotification({
+        organizationId: lead.organizationId,
+        type: "FOLLOW_UP_DUE",
+        title: "Follow-up due",
+        message: `${lead.name}${lead.company ? ` (${lead.company})` : ""} — follow up scheduled now`,
+        link: `/marketing?lead=${lead.id}`,
+        userId: lead.assignedToId ?? undefined,
+      });
+    }
+
+    // Overdue follow-ups — notify once daily at 9 AM (check hour)
+    if (now.getHours() === 9 && now.getMinutes() < 30) {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const overdue = await db.lead.findMany({
+        where: {
+          nextFollowUpDate: { lt: startOfDay },
+          status: { notIn: ["WON", "LOST"] },
+        },
+        take: 50,
+      });
+
+      for (const lead of overdue) {
+        const existing = await prisma.notification.findFirst({
+          where: {
+            organizationId: lead.organizationId,
+            type: "FOLLOW_UP_OVERDUE",
+            link: `/marketing?lead=${lead.id}`,
+            createdAt: { gt: new Date(Date.now() - 24 * 3600000) },
+          },
+        });
+        if (existing) continue;
+        await createNotification({
+          organizationId: lead.organizationId,
+          type: "FOLLOW_UP_OVERDUE",
+          title: "Overdue follow-up",
+          message: `${lead.name} — follow-up was missed! Update status or reschedule.`,
+          link: `/marketing?lead=${lead.id}`,
+          userId: lead.assignedToId ?? undefined,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[CRON] Lead follow-up reminders failed:", e);
+  }
+}
+
+// ── Appointment Reminders ─────────────────────────────────────
+// Runs every 15 min — sends reminders 30 min before appointments
+async function runAppointmentReminders() {
+  try {
+    const db = prisma as any;
+    const now = new Date();
+    const window = new Date(now.getTime() + 35 * 60000); // 35 min ahead
+
+    const appointments = await db.appointment.findMany({
+      where: {
+        remindAt: { gte: now, lte: window },
+        reminderSent: false,
+        status: { in: ["SCHEDULED", "CONFIRMED"] },
+      },
+      take: 50,
+    });
+
+    for (const appt of appointments) {
+      try {
+        const minutesAway = Math.round((new Date(appt.scheduledAt).getTime() - now.getTime()) / 60000);
+        await createNotification({
+          organizationId: appt.organizationId,
+          type: "APPOINTMENT_REMINDER",
+          title: `Appointment in ${minutesAway} min`,
+          message: `${appt.title}${appt.location ? ` — ${appt.location}` : ""}${appt.meetingLink ? ` | ${appt.meetingLink}` : ""}`,
+          link: `/appointments`,
+          userId: appt.assignedToId ?? undefined,
+        });
+        await db.appointment.update({ where: { id: appt.id }, data: { reminderSent: true } });
+      } catch {}
+    }
+  } catch (e) {
+    console.error("[CRON] Appointment reminders failed:", e);
+  }
+}
+
 // ── Register all cron jobs ────────────────────────────────────
 export function startCronJobs() {
   // Payment reminders — daily at 9:00 AM
@@ -250,5 +360,11 @@ export function startCronJobs() {
   // Expiry alerts — daily at 7:00 AM
   cron.schedule("0 7 * * *", runExpiryAlerts, { timezone: "Asia/Kolkata" });
 
-  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts, expiry alerts");
+  // Lead follow-up reminders — every 30 min
+  cron.schedule("*/30 * * * *", runLeadFollowUpReminders, { timezone: "Asia/Kolkata" });
+
+  // Appointment reminders — every 15 min
+  cron.schedule("*/15 * * * *", runAppointmentReminders, { timezone: "Asia/Kolkata" });
+
+  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts, expiry alerts, lead follow-ups, appointment reminders");
 }

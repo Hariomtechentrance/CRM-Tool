@@ -20,6 +20,8 @@ import FinancePage from "@/pages/finance/FinancePage";
 import HRPage from "@/pages/hr/HRPage";
 import ProjectsPage from "@/pages/projects/ProjectsPage";
 import LeadsPage from "@/pages/leads/LeadsPage";
+import AppointmentsPage from "@/pages/leads/AppointmentsPage";
+import AutomationPage from "@/pages/leads/AutomationPage";
 import SupportPage from "@/pages/support/SupportPage";
 import TradePage from "@/pages/trade/TradePage";
 import RetailPage from "@/pages/retail/RetailPage";
@@ -164,6 +166,8 @@ export default function App() {
           {/* ── Communication ── */}
           <Route path="/email"        element={<EmailPage />} />
           <Route path="/activities"   element={<ActivitiesPage />} />
+          <Route path="/appointments" element={<AppointmentsPage />} />
+          <Route path="/automations"  element={<AutomationPage />} />
 
           {/* ── Utility (no gate needed) ── */}
           <Route path="/documents"    element={<DocumentsPage />} />

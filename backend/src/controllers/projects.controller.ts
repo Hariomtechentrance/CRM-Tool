@@ -16,12 +16,16 @@ const projectSchema = z.object({
 
 const taskSchema = z.object({
   projectId: z.string().optional(),
+  sprintId: z.string().optional(),
   title: z.string().min(1),
   description: z.string().optional(),
   status: z.enum(["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE", "CANCELLED"]).default("TODO"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
   assignedToId: z.string().optional(),
   dueDate: z.string().optional(),
+  storyPoints: z.number().int().positive().optional(),
+  estimatedHours: z.number().positive().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export async function listProjects(req: OrgRequest, res: Response): Promise<void> {

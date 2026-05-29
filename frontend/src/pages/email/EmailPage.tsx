@@ -1,397 +1,535 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api";
 import {
-  Mail, Send, Plus, Search, X, Trash2, FileText,
-  CheckCircle, XCircle, Clock, ChevronDown, Eye,
+  Mail, Send, Plus, Search, X, Trash2, RefreshCw,
+  Inbox, Star, FileText, AlertTriangle, LogOut, Loader2,
+  Reply, ChevronLeft, MailOpen,
 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
+const API = import.meta.env.VITE_API_URL ?? "";
+
+// ── Styles ───────────────────────────────────────────────────
 const S = {
-  title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
-  subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2 } as React.CSSProperties,
-  btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
-  kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
-  kpiValue: { fontSize: 28, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0" } as React.CSSProperties,
-  kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
-  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
-  th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" as const },
-  td: { padding: "12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
-  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
-  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
-  select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
+  input: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" } as React.CSSProperties,
+  btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "#fff", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
+  ghost: { background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 5 } as React.CSSProperties,
 };
 
-const CATEGORIES = ["GENERAL", "SALES", "SUPPORT", "INVOICE", "FOLLOW_UP", "CAMPAIGN", "HR"];
-const STATUS_COLORS: Record<string, string> = { SENT: "#10b981", FAILED: "#ef4444", DRAFT: "#818cf8" };
+interface GmailStatus { connected: boolean; email: string | null; }
+interface GmailLabel { id: string; name: string; messagesUnread?: number; }
+interface GmailMessage {
+  id: string; threadId: string; subject: string; from: string; to: string;
+  date: string; snippet: string; unread: boolean; labelIds?: string[];
+}
+interface GmailMessageFull extends GmailMessage { html: string; text: string; cc?: string; }
 
-interface Stats { total: number; sent: number; failed: number; draft: number; }
-interface EmailLog { id: string; toEmail: string; ccEmail?: string; subject: string; status: string; sentAt?: string; createdAt: string; party?: { id: string; name: string } | null; template?: { id: string; name: string } | null; body: string; }
-interface Template { id: string; name: string; subject: string; body: string; category: string; }
-interface Party { id: string; name: string; email?: string; }
-
-const emptyCompose = { toEmail: "", ccEmail: "", subject: "", body: "", templateId: "", partyId: "" };
-const emptyTemplate = { name: "", subject: "", body: "", category: "GENERAL" };
-
-export default function EmailPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [emails, setEmails] = useState<EmailLog[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [parties, setParties] = useState<Party[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"sent" | "templates">("sent");
-  const [search, setSearch] = useState("");
-  const [showCompose, setShowCompose] = useState(false);
-  const [showTemplate, setShowTemplate] = useState(false);
-  const [editTemplateId, setEditTemplateId] = useState<string | null>(null);
-  const [previewEmail, setPreviewEmail] = useState<EmailLog | null>(null);
-  const [compose, setCompose] = useState({ ...emptyCompose });
-  const [tplForm, setTplForm] = useState({ ...emptyTemplate });
+// ── Compose Modal ────────────────────────────────────────────
+function ComposeModal({ onClose, onSent, replyTo }: {
+  onClose: () => void; onSent: () => void; replyTo?: { to: string; subject: string; threadId: string } | null;
+}) {
+  const [form, setForm] = useState({
+    to: replyTo?.to ?? "",
+    subject: replyTo ? `Re: ${replyTo.subject.replace(/^Re: /i, "")}` : "",
+    body: "",
+  });
   const [sending, setSending] = useState(false);
-  const [savingTpl, setSavingTpl] = useState(false);
-  const [error, setError] = useState("");
-  const [tplError, setTplError] = useState("");
+  const [err, setErr] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  async function send() {
+    if (!form.to || !form.subject || !form.body) { setErr("To, Subject and Body are required"); return; }
+    setSending(true);
     try {
-      const [sRes, eRes, tRes, pRes] = await Promise.all([
-        api.get("/email/stats"),
-        api.get("/email?limit=200"),
-        api.get("/email/templates"),
-        api.get("/parties?limit=300"),
-      ]);
-      setStats(sRes.data.data);
-      setEmails(eRes.data.data.emails || []);
-      setTemplates(tRes.data.data.templates || []);
-      setParties(pRes.data.data?.parties || pRes.data.data || []);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const applyTemplate = (tplId: string) => {
-    const t = templates.find(t => t.id === tplId);
-    if (t) setCompose(p => ({ ...p, subject: t.subject, body: t.body, templateId: tplId }));
-  };
-
-  const applyPartyEmail = (partyId: string) => {
-    const p = parties.find(p => p.id === partyId);
-    if (p?.email) setCompose(prev => ({ ...prev, toEmail: p.email!, partyId }));
-    else setCompose(prev => ({ ...prev, partyId }));
-  };
-
-  const sendEmail = async () => {
-    if (!compose.toEmail || !compose.subject || !compose.body) {
-      setError("To, Subject and Body are required"); return;
-    }
-    setSending(true); setError("");
-    try {
-      await api.post("/email/send", {
-        ...compose,
-        partyId: compose.partyId || undefined,
-        templateId: compose.templateId || undefined,
-        ccEmail: compose.ccEmail || undefined,
+      await api.post("/gmail/send", {
+        to: form.to, subject: form.subject, body: form.body,
+        ...(replyTo?.threadId && { threadId: replyTo.threadId }),
       });
-      setShowCompose(false);
-      setCompose({ ...emptyCompose });
-      load();
-    } catch (e: any) { setError(e?.response?.data?.message || "Failed to send"); }
-    setSending(false);
-  };
-
-  const deleteEmail = async (id: string) => {
-    try { await api.delete(`/email/${id}`); load(); } catch { /* ignore */ }
-  };
-
-  const saveTemplate = async () => {
-    if (!tplForm.name || !tplForm.subject || !tplForm.body) {
-      setTplError("Name, Subject and Body are required"); return;
-    }
-    setSavingTpl(true); setTplError("");
-    try {
-      if (editTemplateId) await api.put(`/email/templates/${editTemplateId}`, tplForm);
-      else await api.post("/email/templates", tplForm);
-      setShowTemplate(false);
-      setTplForm({ ...emptyTemplate });
-      setEditTemplateId(null);
-      load();
-    } catch (e: any) { setTplError(e?.response?.data?.message || "Failed"); }
-    setSavingTpl(false);
-  };
-
-  const deleteTemplate = async (id: string) => {
-    try { await api.delete(`/email/templates/${id}`); load(); } catch { /* ignore */ }
-  };
-
-  const openEditTemplate = (t: Template) => {
-    setEditTemplateId(t.id);
-    setTplForm({ name: t.name, subject: t.subject, body: t.body, category: t.category });
-    setTplError("");
-    setShowTemplate(true);
-  };
-
-  const filtered = emails.filter(e =>
-    !search || e.toEmail.toLowerCase().includes(search.toLowerCase()) ||
-    e.subject.toLowerCase().includes(search.toLowerCase()) ||
-    (e.party?.name || "").toLowerCase().includes(search.toLowerCase())
-  );
+      onSent(); onClose();
+    } catch (e: any) {
+      setErr(e.response?.data?.message ?? "Failed to send");
+    } finally { setSending(false); }
+  }
 
   return (
-    <div className="page-pad">
-      {/* Header */}
-      <div className="page-hdr">
-        <div>
-          <h1 style={S.title}>Email & Communications</h1>
-          <p style={S.subtitle}>Compose, send and track emails to customers, leads and partners</p>
+    <div className="fixed inset-0 z-50 flex items-end justify-end p-6" style={{ pointerEvents: "none" }}>
+      <div className="rounded-2xl overflow-hidden shadow-2xl w-full max-w-lg" style={{ pointerEvents: "all", background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+          <span className="text-sm font-bold text-white">{replyTo ? "Reply" : "New Message"}</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer" }}><X style={{ width: 16, height: 16 }} /></button>
         </div>
-        <button style={S.btn} onClick={() => { setCompose({ ...emptyCompose }); setError(""); setShowCompose(true); }}>
-          <Send size={15} /> Compose Email
-        </button>
-      </div>
-
-      {/* KPIs */}
-      <div className="kpi-grid">
-        {[
-          { label: "Total Sent", value: stats?.total ?? "—", color: "#6366f1" },
-          { label: "Delivered", value: stats?.sent ?? "—", color: "#10b981" },
-          { label: "Failed", value: stats?.failed ?? "—", color: "#ef4444" },
-          { label: "Templates", value: templates.length, color: "#f59e0b" },
-        ].map(k => (
-          <div key={k.label} style={S.kpi}>
-            <span style={S.kpiLabel}>{k.label}</span>
-            <div style={{ ...S.kpiValue, color: k.color }}>{k.value}</div>
+        {/* Fields */}
+        <div className="p-4 space-y-3">
+          {err && <p className="text-xs text-red-400">{err}</p>}
+          <div>
+            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>To</label>
+            <input style={S.input} value={form.to} onChange={e => setForm(p => ({ ...p, to: e.target.value }))} placeholder="recipient@example.com" />
           </div>
-        ))}
+          <div>
+            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Subject</label>
+            <input style={S.input} value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} placeholder="Subject" />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Message</label>
+            <textarea style={{ ...S.input, resize: "vertical", minHeight: 140 } as React.CSSProperties} value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} placeholder="Write your message..." />
+          </div>
+          <div className="flex justify-end gap-3 pt-1">
+            <button onClick={onClose} style={S.ghost}>Cancel</button>
+            <button onClick={send} disabled={sending} style={S.btn}>
+              {sending ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} /> : <Send style={{ width: 13, height: 13 }} />}
+              {sending ? "Sending…" : "Send"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Connect Gmail Banner ─────────────────────────────────────
+function ConnectGmailPage({ onConnect }: { onConnect: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function connect() {
+    setLoading(true); setErr("");
+    try {
+      const r = await api.get("/gmail/auth-url");
+      window.location.href = r.data.data.url;
+    } catch (e: any) {
+      setErr(e.response?.data?.message ?? "Failed to start Gmail OAuth");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
+      <div className="rounded-full w-20 h-20 flex items-center justify-center" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+        <Mail style={{ width: 36, height: 36, color: "#fff" }} />
+      </div>
+      <div className="text-center max-w-sm">
+        <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Connect Your Gmail</h2>
+        <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+          Read your inbox, reply to emails, and send messages — all without leaving this tool.
+        </p>
+        <p className="text-xs" style={{ color: "var(--text-ghost)" }}>
+          You'll be redirected to Google to sign in and grant access. Your emails stay private.
+        </p>
+      </div>
+      {err && (
+        <div className="text-xs text-red-400 px-4 py-2 rounded-lg" style={{ background: "#1a0a0a", border: "1px solid #7f1d1d" }}>
+          {err.includes("GOOGLE_CLIENT_ID") ? (
+            <span>Gmail OAuth not configured yet. See setup instructions below.</span>
+          ) : err}
+        </div>
+      )}
+      <button onClick={connect} disabled={loading} style={{ ...S.btn, padding: "12px 28px", fontSize: 14 }}>
+        {loading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : <Mail style={{ width: 16, height: 16 }} />}
+        {loading ? "Redirecting to Google…" : "Connect Gmail Account"}
+      </button>
+
+      {/* Setup instructions */}
+      <div className="w-full max-w-lg rounded-xl p-5 text-xs space-y-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+        <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>Setup Required (one-time) — Google Cloud Console</p>
+        <ol className="space-y-2 list-decimal list-inside" style={{ color: "var(--text-secondary)" }}>
+          <li>Go to <span className="font-mono" style={{ color: "#818cf8" }}>console.cloud.google.com</span> → Create a new project</li>
+          <li>Enable <strong>Gmail API</strong> (APIs &amp; Services → Library → search Gmail)</li>
+          <li>Go to <strong>OAuth consent screen</strong> → External → fill in App name &amp; your email</li>
+          <li>Add scopes: <span className="font-mono" style={{ color: "#818cf8" }}>gmail.readonly, gmail.send, gmail.modify</span></li>
+          <li>Go to <strong>Credentials</strong> → Create OAuth 2.0 Client ID → Web Application</li>
+          <li>Add Authorized redirect URI: <span className="font-mono" style={{ color: "#4ade80" }}>http://localhost:5000/api/gmail/callback</span></li>
+          <li>Copy <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+          <li>Add to your <span className="font-mono">.env</span> file:</li>
+        </ol>
+        <div className="rounded-lg p-3 font-mono text-xs" style={{ background: "#0f172a", color: "#4ade80" }}>
+          GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com<br />
+          GOOGLE_CLIENT_SECRET=your-client-secret<br />
+          GOOGLE_REDIRECT_URI=http://localhost:5000/api/gmail/callback
+        </div>
+        <p style={{ color: "var(--text-ghost)" }}>After adding these, restart the backend server, then click "Connect Gmail Account" above.</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Message Viewer ───────────────────────────────────────────
+function MessageViewer({ msg, onBack, onReply, onTrash }: {
+  msg: GmailMessageFull; onBack: () => void;
+  onReply: (data: { to: string; subject: string; threadId: string }) => void;
+  onTrash: (id: string) => void;
+}) {
+  function extractEmail(from: string) {
+    const m = from.match(/<(.+?)>/);
+    return m ? m[1] : from;
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        <button onClick={onBack} style={{ ...S.ghost, padding: "6px 10px" }}>
+          <ChevronLeft style={{ width: 14, height: 14 }} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-bold truncate" style={{ color: "var(--text-primary)" }}>{msg.subject}</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => onReply({ to: extractEmail(msg.from), subject: msg.subject, threadId: msg.threadId })}
+            style={{ ...S.ghost, gap: 5 }}>
+            <Reply style={{ width: 13, height: 13 }} /> Reply
+          </button>
+          <button onClick={() => onTrash(msg.id)} style={{ ...S.ghost, color: "#f87171" }}>
+            <Trash2 style={{ width: 13, height: 13 }} />
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {(["sent", "templates"] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: "7px 16px", borderRadius: 8, border: `1px solid ${tab === t ? "#6366f1" : "#1C1C35"}`,
-            background: tab === t ? "#6366f120" : "transparent", color: tab === t ? "#818CF8" : "var(--text-ghost)",
-            cursor: "pointer", fontSize: 13, fontWeight: 600, textTransform: "capitalize",
-          }}>
-            {t === "sent" ? "Sent Emails" : "Templates"}
-          </button>
-        ))}
-        {tab === "templates" && (
-          <button style={{ ...S.btn, marginLeft: "auto", padding: "7px 14px", fontSize: 12 }}
-            onClick={() => { setEditTemplateId(null); setTplForm({ ...emptyTemplate }); setTplError(""); setShowTemplate(true); }}>
-            <Plus size={14} /> New Template
-          </button>
+      {/* Meta */}
+      <div className="px-5 py-3 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-hover)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", flexShrink: 0 }}>
+            {(msg.from.charAt(0) || "?").toUpperCase()}
+          </div>
+          <div>
+            <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{msg.from}</p>
+            <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>
+              To: {msg.to} {msg.cc ? `· CC: ${msg.cc}` : ""} · {new Date(msg.date).toLocaleString("en-IN")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto p-5">
+        {msg.html ? (
+          <div className="prose prose-sm max-w-none" style={{ color: "var(--text-secondary)" }}
+            dangerouslySetInnerHTML={{ __html: msg.html }} />
+        ) : (
+          <pre className="text-sm whitespace-pre-wrap" style={{ color: "var(--text-secondary)", fontFamily: "inherit" }}>{msg.text}</pre>
         )}
       </div>
+    </div>
+  );
+}
 
-      {/* Sent Emails Tab */}
-      {tab === "sent" && (
-        <div style={S.card}>
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
-              <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
-              <input style={{ ...S.input, paddingLeft: 34 }} placeholder="Search by recipient, subject..." value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-ghost)", fontSize: 12 }}>
-              <Mail size={14} /> {filtered.length} emails
+// ── Main EmailPage ───────────────────────────────────────────
+export default function EmailPage() {
+  const location = useLocation();
+  const [status, setStatus] = useState<GmailStatus | null>(null);
+  const [labels, setLabels] = useState<GmailLabel[]>([]);
+  const [messages, setMessages] = useState<GmailMessage[]>([]);
+  const [activeLabel, setActiveLabel] = useState("INBOX");
+  const [selected, setSelected] = useState<GmailMessageFull | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [showCompose, setShowCompose] = useState(false);
+  const [replyData, setReplyData] = useState<{ to: string; subject: string; threadId: string } | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Check status + handle OAuth redirect
+  useEffect(() => {
+    checkStatus();
+    const params = new URLSearchParams(location.search);
+    if (params.get("gmail") === "connected") {
+      window.history.replaceState({}, "", "/email");
+    }
+  }, []);
+
+  async function checkStatus() {
+    try {
+      const r = await api.get("/gmail/status");
+      setStatus(r.data.data);
+      if (r.data.data.connected) {
+        loadLabels();
+        loadMessages("INBOX");
+      }
+    } catch { setStatus({ connected: false, email: null }); }
+  }
+
+  async function loadLabels() {
+    try {
+      const r = await api.get("/gmail/labels");
+      setLabels(r.data.data.labels ?? []);
+    } catch {}
+  }
+
+  async function loadMessages(label: string, q?: string, pageToken?: string) {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ label, maxResults: "25" });
+      if (q) params.set("q", q);
+      if (pageToken) params.set("pageToken", pageToken);
+      const r = await api.get(`/gmail/inbox?${params}`);
+      const d = r.data.data;
+      if (pageToken) {
+        setMessages(p => [...p, ...(d.messages ?? [])]);
+      } else {
+        setMessages(d.messages ?? []);
+      }
+      setNextPageToken(d.nextPageToken ?? null);
+    } catch {}
+    setLoading(false);
+  }
+
+  async function openMessage(id: string) {
+    setMsgLoading(true);
+    try {
+      const r = await api.get(`/gmail/message/${id}`);
+      setSelected(r.data.data);
+      // Mark as read in local state
+      setMessages(p => p.map(m => m.id === id ? { ...m, unread: false } : m));
+    } catch {}
+    setMsgLoading(false);
+  }
+
+  async function trashMessage(id: string) {
+    try {
+      await api.delete(`/gmail/message/${id}`);
+      setMessages(p => p.filter(m => m.id !== id));
+      setSelected(null);
+    } catch {}
+  }
+
+  async function disconnect() {
+    await api.delete("/gmail/disconnect");
+    setStatus({ connected: false, email: null });
+    setMessages([]); setLabels([]); setSelected(null);
+  }
+
+  function switchLabel(labelId: string) {
+    setActiveLabel(labelId);
+    setSelected(null);
+    setSearch("");
+    setSearchInput("");
+    loadMessages(labelId);
+  }
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setSearch(searchInput);
+    setSelected(null);
+    loadMessages(activeLabel, searchInput);
+  }
+
+  function formatDate(dateStr: string) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    return isToday
+      ? d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+      : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  }
+
+  function extractName(from: string) {
+    const m = from.match(/^(.+?)\s*</);
+    return m ? m[1].replace(/"/g, "") : from.split("@")[0];
+  }
+
+  const SYSTEM_LABELS = [
+    { id: "INBOX", name: "Inbox", Icon: Inbox },
+    { id: "SENT", name: "Sent", Icon: Send },
+    { id: "DRAFT", name: "Drafts", Icon: FileText },
+    { id: "STARRED", name: "Starred", Icon: Star },
+    { id: "SPAM", name: "Spam", Icon: AlertTriangle },
+    { id: "TRASH", name: "Trash", Icon: Trash2 },
+  ];
+
+  const userLabels = labels.filter(l => !SYSTEM_LABELS.find(s => s.id === l.id));
+
+  if (!status) return (
+    <div className="flex items-center justify-center h-full">
+      <Loader2 style={{ width: 24, height: 24, color: "#6366f1", animation: "spin 1s linear infinite" }} />
+    </div>
+  );
+
+  if (!status.connected) return <ConnectGmailPage onConnect={checkStatus} />;
+
+  return (
+    <div className="flex h-full overflow-hidden" style={{ minHeight: "calc(100vh - 60px)" }}>
+
+      {/* ── Left Sidebar ── */}
+      <div className="flex-shrink-0 flex flex-col py-3" style={{ width: 200, borderRight: "1px solid var(--border)", background: "var(--bg-card)" }}>
+        {/* Connected account */}
+        <div className="px-3 mb-3">
+          <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--bg-hover)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+                style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                {(status.email?.charAt(0) ?? "G").toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold truncate" style={{ color: "var(--text-primary)" }}>{status.email}</p>
+                <p className="text-[9px]" style={{ color: "#4ade80" }}>● Connected</p>
+              </div>
             </div>
           </div>
+        </div>
 
-          {loading ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div> : (
-            <div className="table-wrap">
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr>
-                  {["To", "Subject", "Party", "Template", "Status", "Sent", ""].map(h => <th key={h} style={S.th}>{h}</th>)}
-                </tr></thead>
-                <tbody>
-                  {filtered.length === 0
-                    ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "var(--text-ghost)", padding: 40 }}>No emails yet. Compose your first email!</td></tr>
-                    : filtered.map(e => (
-                      <tr key={e.id}>
-                        <td style={{ ...S.td, color: "var(--text-primary)" }}>{e.toEmail}{e.ccEmail && <span style={{ color: "var(--text-ghost)", fontSize: 11 }}> +cc</span>}</td>
-                        <td style={{ ...S.td, maxWidth: 240 }}><span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.subject}</span></td>
-                        <td style={S.td}>{e.party?.name || "—"}</td>
-                        <td style={S.td}>{e.template?.name ? <span style={{ padding: "2px 6px", borderRadius: 4, fontSize: 10, background: "#6366f120", color: "#818CF8" }}>{e.template.name}</span> : "—"}</td>
-                        <td style={S.td}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (STATUS_COLORS[e.status] || "#818cf8") + "20", color: STATUS_COLORS[e.status] || "#818cf8" }}>
-                            {e.status === "SENT" ? <CheckCircle size={10} /> : e.status === "FAILED" ? <XCircle size={10} /> : <Clock size={10} />}
-                            {e.status}
-                          </span>
-                        </td>
-                        <td style={S.td}>{e.sentAt ? new Date(e.sentAt).toLocaleDateString("en-IN") : new Date(e.createdAt).toLocaleDateString("en-IN")}</td>
-                        <td style={S.td}>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={() => setPreviewEmail(e)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 4 }} title="Preview"><Eye size={14} /></button>
-                            <button onClick={() => deleteEmail(e.id)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 4 }} title="Delete"><Trash2 size={14} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+        {/* Compose button */}
+        <div className="px-3 mb-4">
+          <button onClick={() => { setReplyData(null); setShowCompose(true); }} style={{ ...S.btn, width: "100%", justifyContent: "center", padding: "9px 0" }}>
+            <Plus style={{ width: 14, height: 14 }} /> Compose
+          </button>
+        </div>
+
+        {/* System Labels */}
+        <div className="flex-1 overflow-y-auto">
+          {SYSTEM_LABELS.map(({ id, name, Icon }) => {
+            const labelInfo = labels.find(l => l.id === id);
+            return (
+              <button key={id} onClick={() => switchLabel(id)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs"
+                style={{
+                  background: activeLabel === id ? "var(--bg-hover)" : "transparent",
+                  borderLeft: activeLabel === id ? "2px solid #6366f1" : "2px solid transparent",
+                  color: activeLabel === id ? "var(--text-primary)" : "var(--text-secondary)",
+                  cursor: "pointer", border: "none", textAlign: "left", fontWeight: activeLabel === id ? 600 : 400,
+                }}>
+                <Icon style={{ width: 13, height: 13, flexShrink: 0 }} />
+                <span className="flex-1">{name}</span>
+                {labelInfo?.messagesUnread ? (
+                  <span style={{ fontSize: 9, background: "#4f46e5", color: "#fff", borderRadius: 99, padding: "1px 5px", fontWeight: 700 }}>
+                    {labelInfo.messagesUnread}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+
+          {/* User labels */}
+          {userLabels.length > 0 && (
+            <>
+              <p className="px-3 mt-4 mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-ghost)" }}>Labels</p>
+              {userLabels.map(l => (
+                <button key={l.id} onClick={() => switchLabel(l.id!)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs"
+                  style={{
+                    background: activeLabel === l.id ? "var(--bg-hover)" : "transparent",
+                    borderLeft: activeLabel === l.id ? "2px solid #6366f1" : "2px solid transparent",
+                    color: activeLabel === l.id ? "var(--text-primary)" : "var(--text-secondary)",
+                    cursor: "pointer", border: "none", textAlign: "left",
+                  }}>
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#818cf8" }} />
+                  <span className="truncate">{l.name}</span>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Disconnect */}
+        <div className="px-3 mt-2">
+          <button onClick={disconnect} style={{ ...S.ghost, width: "100%", justifyContent: "center", fontSize: 11 }}>
+            <LogOut style={{ width: 11, height: 11 }} /> Disconnect
+          </button>
+        </div>
+      </div>
+
+      {/* ── Message List ── */}
+      <div className="flex-shrink-0 flex flex-col overflow-hidden" style={{ width: selected ? 300 : "calc(100% - 200px)", borderRight: selected ? "1px solid var(--border)" : "none", transition: "width 0.15s" }}>
+        {/* Search bar */}
+        <div className="px-3 py-3 flex-shrink-0 flex items-center gap-2" style={{ borderBottom: "1px solid var(--border)" }}>
+          <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+            <div className="flex-1 relative">
+              <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 13, height: 13, color: "var(--text-ghost)" }} />
+              <input style={{ ...S.input, paddingLeft: 32, height: 34, fontSize: 12 }} placeholder="Search mail…"
+                value={searchInput} onChange={e => setSearchInput(e.target.value)} />
             </div>
+            <button type="submit" style={{ ...S.ghost, padding: "0 12px", height: 34, fontSize: 12 }}>Go</button>
+          </form>
+          <button onClick={() => loadMessages(activeLabel, search)} title="Refresh" style={{ ...S.ghost, padding: "0 10px", height: 34 }}>
+            <RefreshCw style={{ width: 13, height: 13 }} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
+
+        {/* Label header */}
+        <div className="px-4 py-2 flex-shrink-0 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-hover)" }}>
+          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+            {SYSTEM_LABELS.find(l => l.id === activeLabel)?.name ?? activeLabel}
+          </span>
+          {search && <span className="text-xs" style={{ color: "#818cf8" }}>"{search}" · <button onClick={() => { setSearch(""); setSearchInput(""); loadMessages(activeLabel); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#818cf8" }}>clear</button></span>}
+        </div>
+
+        {/* Message rows */}
+        <div className="flex-1 overflow-y-auto">
+          {loading && messages.length === 0 ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 style={{ width: 22, height: 22, color: "#6366f1", animation: "spin 1s linear infinite" }} />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <MailOpen style={{ width: 36, height: 36, color: "var(--text-ghost)" }} />
+              <p className="text-sm" style={{ color: "var(--text-ghost)" }}>No messages</p>
+            </div>
+          ) : (
+            <>
+              {messages.map(m => (
+                <div key={m.id} onClick={() => openMessage(m.id)}
+                  className="flex items-start gap-3 px-4 py-3 cursor-pointer"
+                  style={{
+                    background: selected?.id === m.id ? "var(--bg-hover)" : "transparent",
+                    borderBottom: "1px solid var(--border)",
+                    borderLeft: m.unread ? "3px solid #6366f1" : "3px solid transparent",
+                  }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
+                    style={{ background: m.unread ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-hover)", border: "1px solid var(--border)" }}>
+                    {extractName(m.from).charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs truncate" style={{ color: "var(--text-primary)", fontWeight: m.unread ? 700 : 500 }}>
+                        {extractName(m.from)}
+                      </span>
+                      <span className="text-[10px] flex-shrink-0 ml-2" style={{ color: "var(--text-ghost)" }}>{formatDate(m.date)}</span>
+                    </div>
+                    <p className="text-xs truncate mb-0.5" style={{ color: m.unread ? "var(--text-secondary)" : "var(--text-ghost)", fontWeight: m.unread ? 600 : 400 }}>
+                      {m.subject}
+                    </p>
+                    <p className="text-[11px] truncate" style={{ color: "var(--text-ghost)" }}>{m.snippet}</p>
+                  </div>
+                </div>
+              ))}
+              {nextPageToken && (
+                <div className="text-center py-4">
+                  <button onClick={() => loadMessages(activeLabel, search, nextPageToken!)} style={S.ghost} disabled={loading}>
+                    {loading ? "Loading…" : "Load More"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Message Viewer ── */}
+      {selected && (
+        <div className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
+          {msgLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 style={{ width: 24, height: 24, color: "#6366f1", animation: "spin 1s linear infinite" }} />
+            </div>
+          ) : (
+            <MessageViewer
+              msg={selected}
+              onBack={() => setSelected(null)}
+              onReply={(data) => { setReplyData(data); setShowCompose(true); }}
+              onTrash={trashMessage}
+            />
           )}
         </div>
       )}
 
-      {/* Templates Tab */}
-      {tab === "templates" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-          {templates.length === 0 && !loading && (
-            <div style={{ gridColumn: "1/-1", ...S.card, textAlign: "center", padding: 48, color: "var(--text-ghost)" }}>
-              <FileText size={36} style={{ margin: "0 auto 12px", opacity: 0.4 }} />
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-sec)" }}>No templates yet</p>
-              <p style={{ fontSize: 13, marginTop: 6 }}>Create reusable email templates for faster communication</p>
-            </div>
-          )}
-          {templates.map(t => (
-            <div key={t.id} style={{ ...S.card, cursor: "default" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>{t.name}</p>
-                  <span style={{ padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: "#6366f120", color: "#818CF8" }}>{t.category}</span>
-                </div>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={() => { setCompose(p => ({ ...p, subject: t.subject, body: t.body, templateId: t.id })); setShowCompose(true); }}
-                    style={{ ...S.btn, padding: "4px 10px", fontSize: 11 }}><Send size={11} /> Use</button>
-                  <button onClick={() => openEditTemplate(t)} style={{ background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-sec)", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11 }}>Edit</button>
-                  <button onClick={() => deleteTemplate(t.id)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 4 }}><Trash2 size={13} /></button>
-                </div>
-              </div>
-              <p style={{ fontSize: 12, color: "#818CF8", fontWeight: 600, marginBottom: 6 }}>Subject: {t.subject}</p>
-              <p style={{ fontSize: 12, color: "var(--text-ghost)", lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" as any }}>{t.body}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Compose Modal */}
+      {/* ── Compose / Reply Modal ── */}
       {showCompose && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}
-          onClick={e => e.target === e.currentTarget && setShowCompose(false)}>
-          <div className="modal-inner" style={{ maxWidth: 560 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><Mail size={18} color="#818CF8" /> Compose Email</h3>
-              <button onClick={() => setShowCompose(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
-            </div>
-
-            {error && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{error}</div>}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Party picker */}
-              <div>
-                <label style={S.label}>Customer / Party (optional)</label>
-                <select style={S.select} value={compose.partyId} onChange={e => applyPartyEmail(e.target.value)}>
-                  <option value="">— Select to auto-fill email —</option>
-                  {parties.map(p => <option key={p.id} value={p.id}>{p.name}{p.email ? ` (${p.email})` : ""}</option>)}
-                </select>
-              </div>
-
-              {/* Template picker */}
-              <div>
-                <label style={S.label}>Use Template (optional)</label>
-                <select style={S.select} value={compose.templateId} onChange={e => applyTemplate(e.target.value)}>
-                  <option value="">— Select template —</option>
-                  {templates.map(t => <option key={t.id} value={t.id}>[{t.category}] {t.name}</option>)}
-                </select>
-              </div>
-
-              <div className="grid-r2">
-                <div>
-                  <label style={S.label}>To (Email) *</label>
-                  <input style={S.input} type="email" placeholder="recipient@email.com" value={compose.toEmail} onChange={e => setCompose(p => ({ ...p, toEmail: e.target.value }))} />
-                </div>
-                <div>
-                  <label style={S.label}>CC (optional)</label>
-                  <input style={S.input} type="email" placeholder="cc@email.com" value={compose.ccEmail} onChange={e => setCompose(p => ({ ...p, ccEmail: e.target.value }))} />
-                </div>
-              </div>
-
-              <div>
-                <label style={S.label}>Subject *</label>
-                <input style={S.input} placeholder="Email subject" value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} />
-              </div>
-
-              <div>
-                <label style={S.label}>Message *</label>
-                <textarea style={{ ...S.input, minHeight: 160, resize: "vertical" }} placeholder="Write your message here..." value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} />
-              </div>
-
-              <div style={{ background: "#f59e0b15", border: "1px solid #f59e0b40", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#f59e0b" }}>
-                ⚠ Emails are logged in history. For real sending, set SMTP_USER & SMTP_PASS (Gmail App Password) in backend/.env
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowCompose(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
-              <button onClick={sendEmail} style={S.btn} disabled={sending}>{sending ? "Sending..." : <><Send size={14} /> Send Email</>}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Template Modal */}
-      {showTemplate && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}
-          onClick={e => e.target === e.currentTarget && setShowTemplate(false)}>
-          <div className="modal-inner" style={{ maxWidth: 520 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>{editTemplateId ? "Edit Template" : "New Template"}</h3>
-              <button onClick={() => setShowTemplate(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
-            </div>
-            {tplError && <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 12, marginBottom: 14 }}>{tplError}</div>}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div className="grid-r2">
-                <div>
-                  <label style={S.label}>Template Name *</label>
-                  <input style={S.input} placeholder="e.g. Follow-up Email" value={tplForm.name} onChange={e => setTplForm(p => ({ ...p, name: e.target.value }))} />
-                </div>
-                <div>
-                  <label style={S.label}>Category</label>
-                  <select style={S.select} value={tplForm.category} onChange={e => setTplForm(p => ({ ...p, category: e.target.value }))}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label style={S.label}>Subject *</label>
-                <input style={S.input} placeholder="Email subject line" value={tplForm.subject} onChange={e => setTplForm(p => ({ ...p, subject: e.target.value }))} />
-              </div>
-              <div>
-                <label style={S.label}>Body *</label>
-                <textarea style={{ ...S.input, minHeight: 160, resize: "vertical" }} placeholder="Email body content..." value={tplForm.body} onChange={e => setTplForm(p => ({ ...p, body: e.target.value }))} />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowTemplate(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
-              <button onClick={saveTemplate} style={S.btn} disabled={savingTpl}>{savingTpl ? "Saving..." : editTemplateId ? "Update" : "Create Template"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      {previewEmail && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}
-          onClick={e => e.target === e.currentTarget && setPreviewEmail(null)}>
-          <div className="modal-inner" style={{ maxWidth: 560 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 15, fontWeight: 700 }}>Email Preview</h3>
-              <button onClick={() => setPreviewEmail(null)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
-            </div>
-            <div style={{ background: "var(--bg-hover)", borderRadius: 8, padding: 16, marginBottom: 14 }}>
-              <div style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 6 }}>
-                <strong style={{ color: "var(--text-sec)" }}>To:</strong> {previewEmail.toEmail}
-                {previewEmail.ccEmail && <> &nbsp;|&nbsp; <strong style={{ color: "var(--text-sec)" }}>CC:</strong> {previewEmail.ccEmail}</>}
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>{previewEmail.subject}</div>
-              <div style={{ fontSize: 13, color: "var(--text-sec)", lineHeight: 1.7, whiteSpace: "pre-wrap", borderTop: "1px solid var(--border-input)", paddingTop: 12 }}>{previewEmail.body}</div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>{previewEmail.sentAt ? `Sent: ${new Date(previewEmail.sentAt).toLocaleString("en-IN")}` : `Created: ${new Date(previewEmail.createdAt).toLocaleString("en-IN")}`}</span>
-              <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: (STATUS_COLORS[previewEmail.status] || "#818cf8") + "20", color: STATUS_COLORS[previewEmail.status] || "#818cf8" }}>{previewEmail.status}</span>
-            </div>
-          </div>
-        </div>
+        <ComposeModal
+          replyTo={replyData}
+          onClose={() => { setShowCompose(false); setReplyData(null); }}
+          onSent={() => { if (activeLabel === "SENT") loadMessages("SENT"); }}
+        />
       )}
     </div>
   );
