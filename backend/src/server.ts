@@ -57,6 +57,8 @@ import publicProjectRoutes from "./routes/publicProject.routes";
 import gmailRoutes from "./routes/gmail.routes";
 import appointmentRoutes from "./routes/appointment.routes";
 import automationRoutes from "./routes/automation.routes";
+import whatsappRoutes from "./routes/whatsapp.routes";
+import leadFormRoutes from "./routes/leadForm.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -252,6 +254,8 @@ app.use("/api/public",        publicProjectRoutes);
 app.use("/api/gmail",         gmailRoutes);
 app.use("/api/appointments",  appointmentRoutes);
 app.use("/api/automations",   automationRoutes);
+app.use("/api/whatsapp",      whatsappRoutes);
+app.use("/api/lead-forms",    leadFormRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

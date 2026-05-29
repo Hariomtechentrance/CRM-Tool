@@ -143,6 +143,9 @@ model Organization {
   shifts            Shift[]
   appointments      Appointment[]
   automationRules   LeadAutomationRule[]
+  whatsappConfig    WhatsAppConfig?
+  whatsappMessages  WhatsAppMessage[]
+  leadForms         LeadForm[]
 
   @@index([slug])
 }
@@ -1358,11 +1361,12 @@ model Lead {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  party          Party?         @relation(fields: [partyId], references: [id])
-  activities     LeadActivity[]
-  campaign       Campaign?      @relation(fields: [campaignId], references: [id])
-  appointments   Appointment[]
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  party             Party?            @relation(fields: [partyId], references: [id])
+  activities        LeadActivity[]
+  campaign          Campaign?         @relation(fields: [campaignId], references: [id])
+  appointments      Appointment[]
+  whatsappMessages  WhatsAppMessage[]
 
   @@index([organizationId])
   @@index([organizationId, status])
@@ -2238,4 +2242,91 @@ model TimeLog {
   @@index([taskId])
   @@index([employeeId])
   @@index([employeeId, logDate])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  WHATSAPP BUSINESS API
+// ─────────────────────────────────────────────────────────────
+
+model WhatsAppConfig {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  phoneNumberId   String
+  accessToken     String   @db.Text
+  businessId      String?
+  wabaId          String?
+  phoneNumber     String?
+  displayName     String?
+  isActive        Boolean  @default(true)
+  webhookVerifyToken String @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppMessage {
+  id             String   @id @default(cuid())
+  organizationId String
+  leadId         String?
+  partyId        String?
+  direction      String   @default("OUTBOUND")
+  toPhone        String
+  fromPhone      String?
+  type           String   @default("text")
+  content        String   @db.Text
+  templateName   String?
+  status         String   @default("SENT")
+  waMessageId    String?
+  errorMessage   String?
+  sentById       String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead?        @relation(fields: [leadId], references: [id])
+
+  @@index([organizationId])
+  @@index([leadId])
+  @@index([toPhone])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  LEAD CAPTURE FORMS
+// ─────────────────────────────────────────────────────────────
+
+model LeadForm {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  fields          Json     @default("[]")
+  successMessage  String   @default("Thank you! We'll be in touch soon.")
+  isActive        Boolean  @default(true)
+  defaultSource   String   @default("WEBSITE")
+  defaultCampaignId String?
+  assignToId      String?
+  submitCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  submissions   LeadFormSubmission[]
+
+  @@index([organizationId])
+}
+
+model LeadFormSubmission {
+  id         String   @id @default(cuid())
+  formId     String
+  data       Json
+  ipAddress  String?
+  userAgent  String?
+  leadId     String?
+  createdAt  DateTime @default(now())
+
+  form LeadForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@index([createdAt])
 }

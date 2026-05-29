@@ -22,6 +22,9 @@ import ProjectsPage from "@/pages/projects/ProjectsPage";
 import LeadsPage from "@/pages/leads/LeadsPage";
 import AppointmentsPage from "@/pages/leads/AppointmentsPage";
 import AutomationPage from "@/pages/leads/AutomationPage";
+import LeadFormsPage from "@/pages/leads/LeadFormsPage";
+import WhatsAppPage from "@/pages/whatsapp/WhatsAppPage";
+import LeadCaptureFormPage from "@/pages/public/LeadCaptureFormPage";
 import SupportPage from "@/pages/support/SupportPage";
 import TradePage from "@/pages/trade/TradePage";
 import RetailPage from "@/pages/retail/RetailPage";
@@ -89,6 +92,7 @@ export default function App() {
         <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
         <Route path="/portal/invoice/:token"  element={<InvoicePortalPage />} />
         <Route path="/public/project/:token" element={<PublicProjectPage />} />
+        <Route path="/forms/:id"             element={<LeadCaptureFormPage />} />
         <Route path="/login"          element={<LoginPage />} />
         <Route path="/register"       element={<RegisterPage />} />
         <Route path="/create-org"     element={<CreateOrgPage />} />
@@ -168,6 +172,8 @@ export default function App() {
           <Route path="/activities"   element={<ActivitiesPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
           <Route path="/automations"  element={<AutomationPage />} />
+          <Route path="/whatsapp"     element={<WhatsAppPage />} />
+          <Route path="/lead-forms"   element={<LeadFormsPage />} />
 
           {/* ── Utility (no gate needed) ── */}
           <Route path="/documents"    element={<DocumentsPage />} />
