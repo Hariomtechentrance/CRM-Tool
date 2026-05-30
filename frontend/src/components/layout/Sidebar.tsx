@@ -23,23 +23,23 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HeadphonesIcon: Headphones,
 };
 
-const MOD_SHORT: Record<string, string> = {
-  CRM: "CRM",
-  INVENTORY: "Inventory",
-  PURCHASE: "Purchase",
-  STORE: "Store",
-  DISPATCH: "Dispatch",
-  ACCOUNTS: "Accounts",
-  POS: "POS",
-  WAREHOUSE: "Warehouse",
-  HR: "HR",
-  PROJECTS: "Projects",
-  MARKETING: "Marketing",
-  SUPPORT: "Support",
-  ECOMMERCE: "E-commerce",
-  REPORTS: "Reports",
-  IMPORT_EXPORT_SUITE: "Import/Export",
-  RETAIL_FASHION: "Retail",
+const MOD_I18N_KEY: Record<string, string> = {
+  CRM: "mod_crm",
+  INVENTORY: "mod_inventory",
+  PURCHASE: "mod_purchase",
+  STORE: "mod_store",
+  DISPATCH: "mod_dispatch",
+  ACCOUNTS: "mod_accounts",
+  POS: "mod_pos",
+  WAREHOUSE: "mod_warehouse",
+  HR: "mod_hr",
+  PROJECTS: "mod_projects",
+  MARKETING: "mod_marketing",
+  SUPPORT: "mod_support",
+  ECOMMERCE: "mod_ecommerce",
+  REPORTS: "mod_reports",
+  IMPORT_EXPORT_SUITE: "mod_import_export",
+  RETAIL_FASHION: "mod_retail",
 };
 
 function OrgSwitcherDropdown() {
@@ -204,7 +204,8 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
               {navModules.map((mod) => {
                 const Icon = ICON_MAP[mod.iconName] || Package;
-                const label = MOD_SHORT[mod.key] || mod.label;
+                const i18nKey = MOD_I18N_KEY[mod.key];
+                const label = i18nKey ? t(i18nKey) : mod.label;
                 return (
                   <NavLink
                     key={mod.key}
