@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   TrendingUp, Package, Truck, Receipt, Users, AlertCircle,
   Clock, ArrowUpRight, DollarSign, ShoppingCart, Headphones, FileText,
@@ -64,6 +65,7 @@ export default function DashboardPage() {
   const { activeOrg, moduleAccess } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const currency = activeOrg?.currency || "INR";
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
@@ -121,7 +123,7 @@ export default function DashboardPage() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-            Welcome back 👋
+            {t("dash_welcome")} 👋
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 4 }}>{today} · {activeOrg?.name}</p>
         </div>
@@ -131,7 +133,7 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 60, textAlign: "center", color: "var(--text-ghost)" }}>Loading dashboard...</div>
+        <div style={{ padding: 60, textAlign: "center", color: "var(--text-ghost)" }}>{t("dash_loading")}</div>
       ) : (
         <>
           {/* KPI Row — financial */}
@@ -145,7 +147,7 @@ export default function DashboardPage() {
                     </div>
                     <span style={{ fontSize: 10, color: "var(--text-ghost)", background: "var(--bg-hover)", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>PAID</span>
                   </div>
-                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>Total Revenue</p>
+                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>{t("dash_total_revenue")}</p>
                   <p style={{ fontSize: 24, fontWeight: 700, color: "#34D399", margin: 0 }}>{formatCurrency(totalRevenue, currency)}</p>
                 </div>
               )}
@@ -157,7 +159,7 @@ export default function DashboardPage() {
                     </div>
                     <span style={{ fontSize: 10, color: "#f87171", background: "#ef444415", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>PENDING</span>
                   </div>
-                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>Outstanding Dues</p>
+                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>{t("dash_outstanding_dues")}</p>
                   <p style={{ fontSize: 24, fontWeight: 700, color: "#F87171", margin: 0 }}>{formatCurrency(pendingRevenue, currency)}</p>
                 </div>
               )}
@@ -169,7 +171,7 @@ export default function DashboardPage() {
                     </div>
                     <span style={{ fontSize: 10, color: "#FBBF24", background: "#f59e0b15", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>ACTIVE</span>
                   </div>
-                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>Open Orders</p>
+                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>{t("dash_open_orders")}</p>
                   <p style={{ fontSize: 24, fontWeight: 700, color: "#FBBF24", margin: 0 }}>{openOrders}</p>
                 </div>
               )}
@@ -181,7 +183,7 @@ export default function DashboardPage() {
                     </div>
                     <span style={{ fontSize: 10, color: "#C084FC", background: "#8b5cf615", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>OPEN</span>
                   </div>
-                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>Pending Purchases</p>
+                  <p style={{ fontSize: 12, color: "var(--text-faint)", margin: "0 0 4px", fontWeight: 500 }}>{t("dash_pending_purchases")}</p>
                   <p style={{ fontSize: 24, fontWeight: 700, color: "#C084FC", margin: 0 }}>{pendingPurchases}</p>
                 </div>
               )}
@@ -191,12 +193,12 @@ export default function DashboardPage() {
           {/* Mini stats row */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
             {[
-              { label: "Team Members",  value: stats?.members  ?? 0, icon: <Users size={18} />,       bg: "rgba(99,102,241,0.12)",  color: "#818CF8", show: true },
-              { label: "Parties/Contacts", value: stats?.parties  ?? 0, icon: <FileText size={18} />, bg: "rgba(129,140,248,0.1)", color: "#818CF8", show: canSee("CRM") },
-              { label: "Products",      value: stats?.products  ?? 0, icon: <Package size={18} />,    bg: "rgba(16,185,129,0.1)",   color: "#34D399", show: canSee("INVENTORY") },
-              { label: "Active Leads",  value: stats?.leads     ?? 0, icon: <TrendingUp size={18} />, bg: "rgba(245,158,11,0.1)",   color: "#FBBF24", show: canSee("MARKETING") },
-              { label: "Open Tickets",  value: stats?.tickets   ?? 0, icon: <Headphones size={18} />, bg: "rgba(239,68,68,0.08)",   color: "#F87171", show: canSee("SUPPORT") },
-              { label: "Active Tasks",  value: stats?.tasks     ?? 0, icon: <Clock size={18} />,      bg: "rgba(139,92,246,0.12)",  color: "#C084FC", show: canSee("PROJECTS") },
+              { label: t("dash_team_members"),    value: stats?.members  ?? 0, icon: <Users size={18} />,       bg: "rgba(99,102,241,0.12)",  color: "#818CF8", show: true },
+              { label: t("dash_parties"),        value: stats?.parties  ?? 0, icon: <FileText size={18} />,    bg: "rgba(129,140,248,0.1)", color: "#818CF8", show: canSee("CRM") },
+              { label: t("dash_products"),       value: stats?.products ?? 0, icon: <Package size={18} />,    bg: "rgba(16,185,129,0.1)",   color: "#34D399", show: canSee("INVENTORY") },
+              { label: t("dash_active_leads"),   value: stats?.leads    ?? 0, icon: <TrendingUp size={18} />, bg: "rgba(245,158,11,0.1)",   color: "#FBBF24", show: canSee("MARKETING") },
+              { label: t("dash_open_tickets"),   value: stats?.tickets  ?? 0, icon: <Headphones size={18} />, bg: "rgba(239,68,68,0.08)",   color: "#F87171", show: canSee("SUPPORT") },
+              { label: t("dash_active_tasks"),   value: stats?.tasks    ?? 0, icon: <Clock size={18} />,      bg: "rgba(139,92,246,0.12)",  color: "#C084FC", show: canSee("PROJECTS") },
             ].filter(s => s.show).map(s => (
               <div key={s.label} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px", display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", color: s.color, flexShrink: 0 }}>
@@ -218,8 +220,8 @@ export default function DashboardPage() {
               <div style={card}>
                 <div style={cardHeader}>
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Revenue Trend</p>
-                    <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: "3px 0 0" }}>Paid invoices — last 6 months</p>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{t("dash_revenue_trend")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: "3px 0 0" }}>{t("dash_revenue_subtitle")}</p>
                   </div>
                 </div>
                 <div style={{ padding: "16px 8px 12px" }}>
@@ -244,8 +246,8 @@ export default function DashboardPage() {
               <div style={card}>
                 <div style={cardHeader}>
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Lead Pipeline</p>
-                    <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: "3px 0 0" }}>Leads by current stage</p>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{t("dash_lead_pipeline")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: "3px 0 0" }}>{t("dash_lead_subtitle")}</p>
                   </div>
                 </div>
                 <div style={{ padding: "16px 8px 12px" }}>
@@ -275,18 +277,18 @@ export default function DashboardPage() {
             <div style={card}>
               <div style={cardHeader}>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Recent Activity</p>
-                  <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: "3px 0 0" }}>Latest across all modules</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{t("dash_recent_activity")}</p>
+                  <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: "3px 0 0" }}>{t("dash_activity_subtitle")}</p>
                 </div>
                 <button onClick={() => navigate("/admin")} style={{ background: "none", border: "none", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                  View all <ArrowUpRight size={13} />
+                  {t("label_view_all")} <ArrowUpRight size={13} />
                 </button>
               </div>
               <div>
                 {feed.length === 0 ? (
                   <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>
                     <AlertCircle size={28} style={{ margin: "0 auto 10px", display: "block", opacity: 0.4 }} />
-                    No activity yet. Start by adding parties, products or creating orders.
+                    {t("dash_no_activity")}
                   </div>
                 ) : feed.slice(0, 10).map((item, i) => {
                   const cfg = FEED_ICONS[item.type] || { icon: FileText, color: "#818cf8" };
@@ -314,16 +316,16 @@ export default function DashboardPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={card}>
                 <div style={{ ...cardHeader, borderBottom: "none" }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Quick Actions</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{t("dash_quick_actions")}</p>
                 </div>
                 <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
                   {[
-                    { label: "Add Party / Contact", href: "/crm",       color: "#818CF8", show: canSee("CRM") },
-                    { label: "Create Sales Order",  href: "/dispatch",  color: "#FBBF24", show: canSee("DISPATCH") },
-                    { label: "New Invoice",         href: "/accounts",  color: "#34D399", show: canSee("ACCOUNTS") },
-                    { label: "Add Product",         href: "/inventory", color: "#C084FC", show: canSee("INVENTORY") },
-                    { label: "New Purchase Order",  href: "/purchase",  color: "#F87171", show: canSee("PURCHASE") },
-                    { label: "Log Lead",            href: "/marketing", color: "#60A5FA", show: canSee("MARKETING") },
+                    { label: t("dash_action_add_party"),      href: "/crm",       color: "#818CF8", show: canSee("CRM") },
+                    { label: t("dash_action_sales_order"),   href: "/dispatch",  color: "#FBBF24", show: canSee("DISPATCH") },
+                    { label: t("dash_action_new_invoice"),   href: "/accounts",  color: "#34D399", show: canSee("ACCOUNTS") },
+                    { label: t("dash_action_add_product"),   href: "/inventory", color: "#C084FC", show: canSee("INVENTORY") },
+                    { label: t("dash_action_purchase_order"),href: "/purchase",  color: "#F87171", show: canSee("PURCHASE") },
+                    { label: t("dash_action_log_lead"),      href: "/marketing", color: "#60A5FA", show: canSee("MARKETING") },
                   ].filter(a => a.show).map(a => (
                     <button key={a.href} onClick={() => navigate(a.href)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${a.color}20`, background: a.color + "10", color: a.color, fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left" as const }}>
                       {a.label} →
@@ -336,14 +338,14 @@ export default function DashboardPage() {
               {moduleStats && (
                 <div style={card}>
                   <div style={{ ...cardHeader, borderBottom: "none" }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Module Overview</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{t("dash_module_overview")}</p>
                   </div>
                   <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
                     {[
-                      { label: "Invoices",  total: moduleStats.invoiceStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,  color: "#34D399", show: canSee("ACCOUNTS") },
-                      { label: "Orders",    total: moduleStats.orderStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,    color: "#818CF8", show: canSee("DISPATCH") },
-                      { label: "Purchases", total: moduleStats.purchaseStats?.reduce((s, i) => s + i._count._all, 0) ?? 0, color: "#C084FC", show: canSee("PURCHASE") },
-                      { label: "Leads",     total: moduleStats.leadStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,     color: "#FBBF24", show: canSee("MARKETING") },
+                      { label: t("dash_invoices"),  total: moduleStats.invoiceStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,  color: "#34D399", show: canSee("ACCOUNTS") },
+                      { label: t("dash_orders"),    total: moduleStats.orderStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,    color: "#818CF8", show: canSee("DISPATCH") },
+                      { label: t("dash_purchases"), total: moduleStats.purchaseStats?.reduce((s, i) => s + i._count._all, 0) ?? 0, color: "#C084FC", show: canSee("PURCHASE") },
+                      { label: t("dash_leads"),     total: moduleStats.leadStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,     color: "#FBBF24", show: canSee("MARKETING") },
                     ].filter(m => m.show && m.total > 0).map(m => (
                       <div key={m.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #131327" }}>
                         <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{m.label}</span>

@@ -23,7 +23,6 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HeadphonesIcon: Headphones,
 };
 
-// Short display labels for module grid cells
 const MOD_SHORT: Record<string, string> = {
   CRM: "CRM",
   INVENTORY: "Inventory",
@@ -113,7 +112,7 @@ interface CollapsibleSectionProps {
 function CollapsibleSection({ label, children, defaultOpen = false }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ padding: "0 10px", marginBottom: 2 }}>
+    <div style={{ marginBottom: 2 }}>
       <button
         onClick={() => setOpen(!open)}
         style={{
@@ -139,9 +138,18 @@ function CollapsibleSection({ label, children, defaultOpen = false }: Collapsibl
 interface SidebarProps { open?: boolean; onClose?: () => void; }
 
 export default function Sidebar({ open = false, onClose }: SidebarProps) {
-  const { moduleAccess } = useAuthStore();
+  const { moduleAccess, activeOrg } = useAuthStore();
+  const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
   const navModules = getNavModules(moduleAccess);
   const { t } = useTranslation();
+
+  const canSee = (key: string) => isOrgAdmin || moduleAccess.includes(key);
+
+  // Visibility rules for each section
+  const showIT       = isOrgAdmin || canSee("PROJECTS");
+  const showSales    = isOrgAdmin || canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
+  const showFinance  = isOrgAdmin || canSee("ACCOUNTS");
+  const showAdmin    = isOrgAdmin;
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) => cn(
     "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150",
@@ -171,27 +179,26 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         <OrgSwitcherDropdown />
       </div>
 
-      {/* ── Scrollable middle: Dashboard + Modules ── */}
-      <div className="flex-1 overflow-y-auto" style={{ padding: "0 10px 4px" }}>
+      {/* ── Scrollable area: everything ── */}
+      <div className="flex-1 overflow-y-auto" style={{ padding: "0 10px 8px" }}>
 
         {/* Dashboard */}
         <div style={{ marginBottom: 8 }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1" style={{ color: "var(--text-ghost)", letterSpacing: "0.1em" }}>{t("nav_overview")}</p>
-          <NavLink
-            to="/dashboard"
-            end
-            onClick={onClose}
-            className={navLinkClass}
-          >
+          <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1"
+            style={{ color: "var(--text-ghost)", letterSpacing: "0.1em" }}>
+            {t("nav_overview")}
+          </p>
+          <NavLink to="/dashboard" end onClick={onClose} className={navLinkClass}>
             <LayoutDashboard style={{ width: 15, height: 15, flexShrink: 0 }} />
             {t("nav_dashboard")}
           </NavLink>
         </div>
 
-        {/* Modules — 2-column compact grid */}
+        {/* ── Modules — static 2-col grid, only selected modules ── */}
         {navModules.length > 0 && (
-          <div style={{ marginBottom: 6 }}>
-            <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-2" style={{ color: "var(--text-ghost)", letterSpacing: "0.1em" }}>
+          <div style={{ marginBottom: 10 }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-2"
+              style={{ color: "var(--text-ghost)", letterSpacing: "0.1em" }}>
               {t("nav_modules")}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
@@ -219,43 +226,11 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             </div>
           </div>
         )}
-      </div>
 
-      {/* ── Fixed bottom section ── */}
-      <div className="flex-shrink-0" style={{ borderTop: "1px solid var(--border)" }}>
+        {/* Divider after modules */}
+        <div style={{ height: 1, background: "var(--border)", margin: "4px 0 8px" }} />
 
-        {/* IT / Projects — collapsible */}
-        <CollapsibleSection label={t("nav_it_section")} defaultOpen={true}>
-          {[
-            { href: "/it-projects",    tKey: "nav_it_projects",    Icon: MonitorCheck },
-            { href: "/sprint-board",   tKey: "nav_sprint_board",   Icon: KanbanSquare },
-            { href: "/my-work",        tKey: "nav_my_work",        Icon: ClipboardList },
-            { href: "/team-dashboard", tKey: "nav_team_dashboard", Icon: UserCog },
-          ].map(({ href, tKey, Icon }) => (
-            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
-              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
-              <span className="truncate">{t(tKey)}</span>
-            </NavLink>
-          ))}
-        </CollapsibleSection>
-
-        {/* Sales — collapsible */}
-        <CollapsibleSection label={t("nav_sales_section")}>
-          {[
-            { href: "/deals",       tKey: "nav_deals",       Icon: Briefcase },
-            { href: "/quotations",  tKey: "nav_quotations",  Icon: FileText },
-            { href: "/recurring",   tKey: "nav_recurring",   Icon: RefreshCw },
-            { href: "/batches",     tKey: "nav_batch",       Icon: Layers },
-            { href: "/bom",         tKey: "nav_bom",         Icon: Cog },
-          ].map(({ href, tKey, Icon }) => (
-            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
-              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
-              <span className="truncate">{t(tKey)}</span>
-            </NavLink>
-          ))}
-        </CollapsibleSection>
-
-        {/* Communication — collapsible */}
+        {/* ── Communication — always visible ── */}
         <CollapsibleSection label={t("nav_communication")}>
           {[
             { href: "/email",        tKey: "nav_email",        Icon: Mail },
@@ -272,65 +247,92 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           ))}
         </CollapsibleSection>
 
-        {/* Bottom links + language switcher */}
-        <div style={{ padding: "6px 10px 4px" }}>
-          <NavLink to="/gst" onClick={onClose} className={navLinkClass}>
-            <IndianRupee style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_gst")}</span>
-          </NavLink>
-          <NavLink to="/einvoice" onClick={onClose} className={navLinkClass}>
-            <Stamp style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_einvoice")}</span>
-          </NavLink>
-          <NavLink to="/ewaybill" onClick={onClose} className={navLinkClass}>
-            <Truck style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_ewaybill")}</span>
-          </NavLink>
-          <NavLink to="/tds" onClick={onClose} className={navLinkClass}>
-            <Receipt style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_tds")}</span>
-          </NavLink>
-          <NavLink to="/budgets" onClick={onClose} className={navLinkClass}>
-            <PiggyBank style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_budgets")}</span>
-          </NavLink>
-          <NavLink to="/reconciliation" onClick={onClose} className={navLinkClass}>
-            <Landmark style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_reconciliation")}</span>
-          </NavLink>
-          <NavLink to="/duplicates" onClick={onClose} className={navLinkClass}>
-            <Copy style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_duplicates")}</span>
-          </NavLink>
-          <NavLink to="/admin/dashboard" onClick={onClose} className={navLinkClass}>
-            <LayoutGrid style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_admin")}</span>
-          </NavLink>
-          <NavLink to="/audit" onClick={onClose} className={navLinkClass}>
-            <ShieldCheck style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_audit")}</span>
-          </NavLink>
-          <NavLink to="/currency" onClick={onClose} className={navLinkClass}>
-            <DollarSign style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_currency")}</span>
-          </NavLink>
-          <NavLink to="/webhooks" onClick={onClose} className={navLinkClass}>
-            <Webhook style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_webhooks")}</span>
-          </NavLink>
-          <NavLink to="/security" onClick={onClose} className={navLinkClass}>
-            <ShieldAlert style={{ width: 14, height: 14 }} />
-            <span className="truncate">{t("nav_security")}</span>
-          </NavLink>
+        {/* ── IT & Projects — only if has PROJECTS access ── */}
+        {showIT && (
+          <CollapsibleSection label={t("nav_it_section")}>
+            {[
+              { href: "/it-projects",    tKey: "nav_it_projects",    Icon: MonitorCheck },
+              { href: "/sprint-board",   tKey: "nav_sprint_board",   Icon: KanbanSquare },
+              { href: "/my-work",        tKey: "nav_my_work",        Icon: ClipboardList },
+              { href: "/team-dashboard", tKey: "nav_team_dashboard", Icon: UserCog },
+            ].map(({ href, tKey, Icon }) => (
+              <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+                <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+                <span className="truncate">{t(tKey)}</span>
+              </NavLink>
+            ))}
+          </CollapsibleSection>
+        )}
+
+        {/* ── Sales — only if has CRM / Dispatch / Marketing access ── */}
+        {showSales && (
+          <CollapsibleSection label={t("nav_sales_section")}>
+            {[
+              { href: "/deals",      tKey: "nav_deals",      Icon: Briefcase },
+              { href: "/quotations", tKey: "nav_quotations", Icon: FileText },
+              { href: "/recurring",  tKey: "nav_recurring",  Icon: RefreshCw },
+              { href: "/batches",    tKey: "nav_batch",      Icon: Layers },
+              { href: "/bom",        tKey: "nav_bom",        Icon: Cog },
+            ].map(({ href, tKey, Icon }) => (
+              <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+                <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+                <span className="truncate">{t(tKey)}</span>
+              </NavLink>
+            ))}
+          </CollapsibleSection>
+        )}
+
+        {/* ── Finance & Tax — only if has Accounts access ── */}
+        {showFinance && (
+          <CollapsibleSection label={t("nav_finance_section")}>
+            {[
+              { href: "/gst",            tKey: "nav_gst",            Icon: IndianRupee },
+              { href: "/einvoice",       tKey: "nav_einvoice",       Icon: Stamp },
+              { href: "/ewaybill",       tKey: "nav_ewaybill",       Icon: Truck },
+              { href: "/tds",            tKey: "nav_tds",            Icon: Receipt },
+              { href: "/budgets",        tKey: "nav_budgets",        Icon: PiggyBank },
+              { href: "/reconciliation", tKey: "nav_reconciliation", Icon: Landmark },
+              { href: "/duplicates",     tKey: "nav_duplicates",     Icon: Copy },
+            ].map(({ href, tKey, Icon }) => (
+              <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+                <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+                <span className="truncate">{t(tKey)}</span>
+              </NavLink>
+            ))}
+          </CollapsibleSection>
+        )}
+
+        {/* ── Admin & Tools — only for OWNER / ADMIN ── */}
+        {showAdmin && (
+          <CollapsibleSection label={t("nav_admin_section")}>
+            {[
+              { href: "/admin/dashboard", tKey: "nav_admin",    Icon: LayoutGrid },
+              { href: "/audit",           tKey: "nav_audit",    Icon: ShieldCheck },
+              { href: "/currency",        tKey: "nav_currency", Icon: DollarSign },
+              { href: "/webhooks",        tKey: "nav_webhooks", Icon: Webhook },
+              { href: "/security",        tKey: "nav_security", Icon: ShieldAlert },
+            ].map(({ href, tKey, Icon }) => (
+              <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+                <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+                <span className="truncate">{t(tKey)}</span>
+              </NavLink>
+            ))}
+          </CollapsibleSection>
+        )}
+
+        {/* Settings — always visible */}
+        <div style={{ marginTop: 4 }}>
           <NavLink to="/settings" onClick={onClose} className={navLinkClass}>
-            <Settings style={{ width: 14, height: 14 }} />
+            <Settings style={{ width: 14, height: 14, flexShrink: 0 }} />
             <span className="truncate">{t("nav_settings")}</span>
           </NavLink>
         </div>
 
-        {/* Language switcher */}
-        <LanguageSwitcher />
+      </div>
 
+      {/* ── Fixed bottom: language switcher only ── */}
+      <div className="flex-shrink-0" style={{ borderTop: "1px solid var(--border)" }}>
+        <LanguageSwitcher />
       </div>
     </aside>
   );
