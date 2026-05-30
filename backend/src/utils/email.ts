@@ -16,13 +16,18 @@ const transporter = nodemailer.createTransport({
 interface SendMailOptions { to: string; subject: string; html: string; }
 
 export async function sendEmail({ to, subject, html }: SendMailOptions) {
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`\n📧 [DEV EMAIL] To: ${to} | Subject: ${subject}\n`);
-    return;
+  // Always log so developers can see emails in console
+  console.log(`\n📧 [EMAIL] To: ${to} | Subject: ${subject}\n`);
+
+  // Skip actual send only if SMTP is not configured (host/user missing)
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    if (process.env.NODE_ENV !== "production") return; // dev without SMTP — just log
+    throw new Error("SMTP not configured. Set SMTP_HOST and SMTP_USER in your environment.");
   }
+
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM || "BL-CRM <noreply@blcrm.com>",
+      from: process.env.EMAIL_FROM || "FlowCRM <noreply@flowcrm.in>",
       to, subject, html,
     });
   } catch (err) {
@@ -69,14 +74,42 @@ export function verifyEmailTemplate(name: string, token: string): string {
   `);
 }
 
+const MODULE_LABELS: Record<string, string> = {
+  CRM: "CRM", INVENTORY: "Inventory", PURCHASE: "Purchase", STORE: "Store (Inward)",
+  DISPATCH: "Sales & Dispatch", ACCOUNTS: "Accounts & Finance", POS: "POS / Retail",
+  WAREHOUSE: "Warehouse", HR: "HR & Payroll", PROJECTS: "Projects", MARKETING: "Marketing & Leads",
+  SUPPORT: "Customer Support", REPORTS: "Reports & Analytics", IMPORT_EXPORT_SUITE: "Import/Export Suite",
+  RETAIL_FASHION: "Retail / Fashion",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: "Owner", ADMIN: "Admin", MANAGER: "Manager",
+  STAFF: "Staff", ACCOUNTANT: "Accountant", VIEWER: "Viewer",
+};
+
 // ── Team invite ──────────────────────────────────────────────
-export function inviteEmailTemplate(orgName: string, inviterName: string, token: string): string {
+export function inviteEmailTemplate(
+  orgName: string,
+  inviterName: string,
+  token: string,
+  role = "STAFF",
+  allowedModules: string[] = [],
+): string {
   const url = `${process.env.FRONTEND_URL}/accept-invite?token=${token}`;
-  return emailLayout(`You're invited to join ${orgName}`, `
-    ${h1("You're Invited!")}
-    ${p(`<strong style="color:#1a1a2e">${inviterName}</strong> has invited you to join <strong style="color:#6366f1">${orgName}</strong> on BL-CRM.`)}
-    ${p("BL-CRM is an all-in-one business management platform for CRM, inventory, sales, and more.")}
-    ${btn(url, "Accept Invitation")}
+  const roleLabel = ROLE_LABELS[role] || role;
+
+  const moduleChips = allowedModules.length > 0
+    ? `<div style="margin:16px 0;display:flex;flex-wrap:wrap;gap:6px">
+        ${allowedModules.map(k => `<span style="display:inline-block;padding:4px 10px;border-radius:20px;background:#eff0ff;color:#4f46e5;font-size:12px;font-weight:600;border:1px solid #c7d2fe">${MODULE_LABELS[k] || k}</span>`).join("")}
+      </div>`
+    : "";
+
+  return emailLayout(`You're invited to join ${orgName} on FlowCRM`, `
+    ${h1(`You're Invited to Join ${orgName}!`)}
+    ${p(`<strong style="color:#1a1a2e">${inviterName}</strong> has invited you to join <strong style="color:#6366f1">${orgName}</strong> on FlowCRM as a <strong style="color:#1a1a2e">${roleLabel}</strong>.`)}
+    ${allowedModules.length > 0 ? `<p style="margin:4px 0 6px;font-size:14px;color:#505070;line-height:1.6">You'll have access to the following modules:</p>${moduleChips}` : ""}
+    ${p("FlowCRM is an all-in-one business platform — CRM, inventory, sales, accounts, HR, and more.")}
+    ${btn(url, "Accept Invitation & Join")}
     ${note("This invitation expires in 48 hours. If you weren't expecting this, you can safely ignore this email.")}
   `);
 }

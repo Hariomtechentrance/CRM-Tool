@@ -9,6 +9,9 @@ import {
   inviteMember,
   getInviteInfo,
   acceptInvite,
+  listPendingInvites,
+  resendInvite,
+  cancelInvite,
   listMembers,
   updateMemberRole,
   removeMember,
@@ -32,6 +35,9 @@ router.get("/current", requireOrgContext, getOrganization);
 router.patch("/current", requireOrgContext, updateOrganization);
 router.get("/current/members", requireOrgContext, listMembers);
 router.post("/current/members/invite", requireOrgContext, inviteMember);
+router.get("/current/members/invites", requireOrgContext, listPendingInvites);
+router.post("/current/members/invites/:inviteId/resend", requireOrgContext, resendInvite);
+router.delete("/current/members/invites/:inviteId", requireOrgContext, cancelInvite);
 router.patch("/current/members/:memberId/role", requireOrgContext, updateMemberRole);
 router.delete("/current/members/:memberId", requireOrgContext, removeMember);
 

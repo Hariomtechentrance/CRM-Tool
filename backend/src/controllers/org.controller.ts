@@ -12,6 +12,7 @@ import { ok, created, badRequest, forbidden, notFound, serverError, conflict } f
 import { uniqueOrgSlug } from "../utils/slug";
 import { sendEmail, inviteEmailTemplate } from "../utils/email";
 import { MemberRole } from "@prisma/client";
+import { google } from "googleapis";
 
 // ── Create Organization ──────────────────────────────────────
 export async function createOrganization(req: AuthRequest, res: Response): Promise<void> {
@@ -101,6 +102,53 @@ export async function updateOrganization(req: OrgRequest, res: Response): Promis
   }
 }
 
+// ── Send invite via the inviter's connected Gmail account ─────
+async function sendInviteViaGmail(inviterId: string, to: string, subject: string, html: string): Promise<boolean> {
+  try {
+    const db = (prisma as any);
+    const account = await db.gmailAccount.findUnique({ where: { userId: inviterId } });
+    if (!account || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) return false;
+
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI,
+    );
+    oAuth2Client.setCredentials({
+      access_token: account.accessToken,
+      refresh_token: account.refreshToken,
+      expiry_date: account.expiresAt.getTime(),
+    });
+    // Auto-refresh if needed
+    if (account.expiresAt < new Date()) {
+      const { credentials } = await oAuth2Client.refreshAccessToken();
+      await db.gmailAccount.update({
+        where: { userId: inviterId },
+        data: { accessToken: credentials.access_token!, expiresAt: new Date(credentials.expiry_date || Date.now() + 3600_000) },
+      });
+      oAuth2Client.setCredentials(credentials);
+    }
+
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client }) as any;
+    const mimeLines = [
+      `From: ${account.email}`,
+      `To: ${to}`,
+      `Subject: =?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`,
+      "MIME-Version: 1.0",
+      "Content-Type: text/html; charset=utf-8",
+      "",
+      html,
+    ];
+    const raw = Buffer.from(mimeLines.join("\r\n")).toString("base64url");
+    await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+    console.log(`📧 [GMAIL] Invite sent to ${to} via ${account.email}`);
+    return true;
+  } catch (err: any) {
+    console.warn("[Gmail invite] Failed, will fall back to SMTP:", err.message);
+    return false;
+  }
+}
+
 // ── Invite Member ────────────────────────────────────────────
 export async function inviteMember(req: OrgRequest, res: Response): Promise<void> {
   try {
@@ -135,11 +183,14 @@ export async function inviteMember(req: OrgRequest, res: Response): Promise<void
       data: { email, organizationId: req.organizationId!, role, allowedModules: allowedModules ?? [], invitedById: req.userId!, expiresAt },
     });
 
-    await sendEmail({
-      to: email,
-      subject: `You're invited to join ${org!.name} on FlowCRM`,
-      html: inviteEmailTemplate(org!.name, inviter!.name, invite.token),
-    });
+    const subject = `You're invited to join ${org!.name} on FlowCRM`;
+    const html = inviteEmailTemplate(org!.name, inviter!.name, invite.token, role, allowedModules ?? []);
+
+    // Try the inviter's connected Gmail first; fall back to SMTP
+    const sentViaGmail = await sendInviteViaGmail(req.userId!, email, subject, html);
+    if (!sentViaGmail) {
+      await sendEmail({ to: email, subject, html });
+    }
 
     created(res, { id: invite.id, email, role, allowedModules: invite.allowedModules }, "Invitation sent successfully");
   } catch (err) {
@@ -226,6 +277,68 @@ export async function acceptInvite(req: AuthRequest, res: Response): Promise<voi
   } catch (err) {
     serverError(res, err);
   }
+}
+
+// ── List Pending Invites ─────────────────────────────────────
+export async function listPendingInvites(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only Owner or Admin can view invites"); return;
+    }
+    const invites = await prisma.orgInvite.findMany({
+      where: { organizationId: req.organizationId!, status: "PENDING" },
+      include: { invitedBy: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    ok(res, invites.map(i => ({
+      id: i.id, email: i.email, role: i.role,
+      allowedModules: i.allowedModules, expiresAt: i.expiresAt,
+      createdAt: i.createdAt, invitedBy: i.invitedBy?.name,
+      expired: i.expiresAt < new Date(),
+    })));
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Resend Invite ────────────────────────────────────────────
+export async function resendInvite(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only Owner or Admin can resend invites"); return;
+    }
+    const invite = await prisma.orgInvite.findFirst({
+      where: { id: req.params.inviteId, organizationId: req.organizationId!, status: "PENDING" },
+    });
+    if (!invite) { notFound(res, "Invite not found"); return; }
+
+    // Extend expiry by another 48 hours
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    await prisma.orgInvite.update({ where: { id: invite.id }, data: { expiresAt } });
+
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId }, select: { name: true } });
+    const inviter = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true } });
+
+    const subject = `Reminder: You're invited to join ${org!.name} on FlowCRM`;
+    const html = inviteEmailTemplate(org!.name, inviter!.name, invite.token, invite.role, invite.allowedModules);
+
+    const sentViaGmail = await sendInviteViaGmail(req.userId!, invite.email, subject, html);
+    if (!sentViaGmail) await sendEmail({ to: invite.email, subject, html });
+
+    ok(res, null, "Invite resent successfully");
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Cancel Invite ────────────────────────────────────────────
+export async function cancelInvite(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only Owner or Admin can cancel invites"); return;
+    }
+    const deleted = await prisma.orgInvite.deleteMany({
+      where: { id: req.params.inviteId, organizationId: req.organizationId!, status: "PENDING" },
+    });
+    if (!deleted.count) { notFound(res, "Invite not found"); return; }
+    ok(res, null, "Invite cancelled");
+  } catch (err) { serverError(res, err); }
 }
 
 // ── List & Remove Members ────────────────────────────────────

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
-import { Users, Shield, Check, X, Clock, CheckCircle, XCircle, Mail, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, Shield, Check, X, Clock, CheckCircle, XCircle, Mail, UserPlus, ChevronDown, ChevronUp, Send, Trash2, AlertCircle } from "lucide-react";
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -51,14 +51,19 @@ interface AccessReq {
   id: string; moduleKey: string; status: string; message?: string; requestedAt: string;
   user: { id: string; name: string; email: string };
 }
+interface PendingInvite {
+  id: string; email: string; role: string; allowedModules: string[];
+  expiresAt: string; createdAt: string; invitedBy?: string; expired: boolean;
+}
 
 export default function AdminTeamPage() {
   const { activeOrg } = useAuthStore();
   const [members, setMembers] = useState<MemberAccess[]>([]);
   const [requests, setRequests] = useState<AccessReq[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"members" | "access" | "invite">("members");
+  const [activeTab, setActiveTab] = useState<"members" | "access" | "invite" | "pending">("members");
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState("");
@@ -67,15 +72,18 @@ export default function AdminTeamPage() {
   const [showModules, setShowModules] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+  const [resending, setResending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [mRes, rRes] = await Promise.allSettled([
+    const [mRes, rRes, iRes] = await Promise.allSettled([
       api.get("/access/team"),
       api.get("/access/requests?status=PENDING"),
+      api.get("/organizations/current/members/invites"),
     ]);
     if (mRes.status === "fulfilled") setMembers(mRes.value.data.data.members || []);
     if (rRes.status === "fulfilled") setRequests(rRes.value.data.data.requests || []);
+    if (iRes.status === "fulfilled") setPendingInvites(iRes.value.data.data || []);
     setLoading(false);
   }, [activeOrg?.id]);
 
@@ -99,6 +107,22 @@ export default function AdminTeamPage() {
   const toggleModule = (key: string) => {
     setSelectedModules((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
     setInviteMsg("");
+  };
+
+  const resendInvite = async (id: string) => {
+    setResending(id);
+    try {
+      await api.post(`/organizations/current/members/invites/${id}/resend`);
+      load();
+    } catch { /* ignore */ }
+    setResending(null);
+  };
+
+  const cancelInvite = async (id: string) => {
+    try {
+      await api.delete(`/organizations/current/members/invites/${id}`);
+      load();
+    } catch { /* ignore */ }
   };
 
   const sendInvite = async () => {
@@ -133,9 +157,10 @@ export default function AdminTeamPage() {
       <h1 style={S.title}>Team & Access</h1>
       <p style={S.sub}>Manage team members, module access, and pending requests</p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         {tabBtn("members", `Members (${members.length})`)}
         {tabBtn("access", "Access Requests", requests.length)}
+        {tabBtn("pending", "Pending Invites", pendingInvites.length)}
         {tabBtn("invite", "Invite Member")}
       </div>
 
@@ -410,6 +435,83 @@ export default function AdminTeamPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ── PENDING INVITES ── */}
+          {activeTab === "pending" && (
+            <div style={S.card}>
+              <div style={S.cardTitle}><Mail size={15} color="#6366f1" /> Pending Invitations</div>
+              <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 20 }}>
+                Invites below haven't been accepted yet. You can resend or cancel them.
+              </p>
+              {pendingInvites.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>
+                  <CheckCircle size={36} color="#10b981" style={{ margin: "0 auto 12px", display: "block" }} />
+                  No pending invitations — everyone has joined!
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {pendingInvites.map(inv => {
+                    const rc = { OWNER:"#ef4444",ADMIN:"#f59e0b",MANAGER:"#6366f1",STAFF:"#818cf8",ACCOUNTANT:"#10b981",VIEWER:"var(--text-ghost)" }[inv.role] || "#818cf8";
+                    const isExpired = inv.expired;
+                    return (
+                      <div key={inv.id} style={{
+                        display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+                        background: "var(--bg-hover)", borderRadius: 10,
+                        border: `1px solid ${isExpired ? "rgba(239,68,68,0.3)" : "var(--border)"}`,
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)" }}>{inv.email}</span>
+                            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 5, background: rc+"20", color: rc, fontWeight: 700 }}>{inv.role}</span>
+                            {isExpired && (
+                              <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 5, background: "rgba(239,68,68,0.1)", color: "#ef4444", fontWeight: 700, display:"flex", alignItems:"center", gap:3 }}>
+                                <AlertCircle size={9} /> Expired
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: "var(--text-ghost)", display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <span><Clock size={10} style={{ display:"inline", marginRight:3 }} />Sent {new Date(inv.createdAt).toLocaleDateString("en-IN", { dateStyle:"medium" })}</span>
+                            {inv.invitedBy && <span>by {inv.invitedBy}</span>}
+                            <span>· Expires {new Date(inv.expiresAt).toLocaleDateString("en-IN", { dateStyle:"medium" })}</span>
+                            {inv.allowedModules.length > 0 && (
+                              <span>{inv.allowedModules.length} module{inv.allowedModules.length > 1 ? "s" : ""}</span>
+                            )}
+                          </div>
+                          {inv.allowedModules.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                              {inv.allowedModules.slice(0, 6).map(m => (
+                                <span key={m} style={{ fontSize: 10, padding: "1px 7px", borderRadius: 9999, background: "#6366f115", color: "#818cf8", border: "1px solid #6366f130" }}>{m}</span>
+                              ))}
+                              {inv.allowedModules.length > 6 && (
+                                <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>+{inv.allowedModules.length - 6} more</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                          <button
+                            onClick={() => resendInvite(inv.id)}
+                            disabled={resending === inv.id}
+                            title="Resend invite email"
+                            style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:7, fontSize:12, cursor:"pointer", background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.3)", color:"#818cf8" }}
+                          >
+                            <Send size={12} /> {resending === inv.id ? "…" : "Resend"}
+                          </button>
+                          <button
+                            onClick={() => cancelInvite(inv.id)}
+                            title="Cancel invite"
+                            style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:7, fontSize:12, cursor:"pointer", background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.25)", color:"#ef4444" }}
+                          >
+                            <Trash2 size={12} /> Cancel
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </>
