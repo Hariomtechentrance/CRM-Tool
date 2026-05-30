@@ -59,6 +59,9 @@ import appointmentRoutes from "./routes/appointment.routes";
 import automationRoutes from "./routes/automation.routes";
 import whatsappRoutes from "./routes/whatsapp.routes";
 import leadFormRoutes from "./routes/leadForm.routes";
+import sessionRoutes from "./routes/session.routes";
+import apiKeyRoutes from "./routes/apiKey.routes";
+import securityRoutes from "./routes/security.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -103,7 +106,15 @@ app.use("/api", (req, res, next) => {
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: isProd ? undefined : false,
+  hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  permittedCrossDomainPolicies: { permittedPolicies: "none" },
+  noSniff: true,
+  frameguard: { action: "deny" },
 }));
+
+// ── Remove fingerprinting header ──────────────────────────────
+app.disable("x-powered-by");
 
 // ── CORS ─────────────────────────────────────────────────────
 const defaultOrigins = isProd ? "" : "http://localhost:5173,http://localhost:5174,http://localhost:5175";
@@ -256,6 +267,9 @@ app.use("/api/appointments",  appointmentRoutes);
 app.use("/api/automations",   automationRoutes);
 app.use("/api/whatsapp",      whatsappRoutes);
 app.use("/api/lead-forms",    leadFormRoutes);
+app.use("/api/sessions",      sessionRoutes);
+app.use("/api/api-keys",      apiKeyRoutes);
+app.use("/api/security",      securityRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

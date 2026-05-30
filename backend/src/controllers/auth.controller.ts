@@ -27,26 +27,58 @@ import {
 import { sendEmail, verifyEmailTemplate, resetPasswordTemplate } from "../utils/email";
 import { AuthRequest } from "../middleware/auth";
 
-// ── In-memory login lockout ──────────────────────────────────
-// Resets on process restart — acceptable for a single-process deployment.
-const _failMap = new Map<string, { count: number; lockUntil: number }>();
-const MAX_FAIL   = 5;
-const LOCK_MS    = 15 * 60 * 1000; // 15 minutes
+const MAX_FAIL  = 5;
+const LOCK_MS   = 15 * 60 * 1000; // 15 min
+const PASS_MIN_LENGTH = 8;
 
-function isLocked(email: string): boolean {
-  const e = _failMap.get(email);
-  if (!e) return false;
-  if (e.lockUntil && Date.now() < e.lockUntil) return true;
-  _failMap.delete(email); // lock expired
-  return false;
+// ── Password strength check ───────────────────────────────────
+export function isStrongPassword(password: string): { ok: boolean; reason?: string } {
+  if (password.length < PASS_MIN_LENGTH) return { ok: false, reason: `Password must be at least ${PASS_MIN_LENGTH} characters` };
+  if (!/[A-Z]/.test(password)) return { ok: false, reason: "Password must contain at least one uppercase letter" };
+  if (!/[0-9]/.test(password)) return { ok: false, reason: "Password must contain at least one number" };
+  if (!/[^A-Za-z0-9]/.test(password)) return { ok: false, reason: "Password must contain at least one special character" };
+  return { ok: true };
 }
-function recordFail(email: string): void {
-  const e = _failMap.get(email) ?? { count: 0, lockUntil: 0 };
-  e.count++;
-  if (e.count >= MAX_FAIL) { e.lockUntil = Date.now() + LOCK_MS; e.count = 0; }
-  _failMap.set(email, e);
+
+// ── Parse user agent into readable parts ─────────────────────
+function parseUA(ua: string = ""): { browser: string; os: string } {
+  const browser =
+    ua.includes("Chrome") ? "Chrome" :
+    ua.includes("Firefox") ? "Firefox" :
+    ua.includes("Safari") ? "Safari" :
+    ua.includes("Edge") ? "Edge" : "Unknown";
+  const os =
+    ua.includes("Windows") ? "Windows" :
+    ua.includes("Mac") ? "macOS" :
+    ua.includes("Linux") ? "Linux" :
+    ua.includes("Android") ? "Android" :
+    ua.includes("iPhone") || ua.includes("iPad") ? "iOS" : "Unknown";
+  return { browser, os };
 }
-function clearFail(email: string): void { _failMap.delete(email); }
+
+// ── Suspicious login alert email ──────────────────────────────
+async function sendLoginAlert(user: { name: string; email: string }, ip: string, ua: string, isNew: boolean) {
+  if (!isNew) return;
+  const { browser, os } = parseUA(ua);
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: "New login detected — FlowCRM",
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px">
+          <h2 style="color:#ef4444;margin:0 0 8px">New Login Detected</h2>
+          <p style="color:#555">Hi ${user.name}, a new login to your FlowCRM account was detected.</p>
+          <div style="background:#f9f9f9;border-radius:8px;padding:16px;margin:20px 0">
+            <div style="margin-bottom:8px"><span style="color:#888">Browser: </span><strong>${browser}</strong></div>
+            <div style="margin-bottom:8px"><span style="color:#888">OS: </span><strong>${os}</strong></div>
+            <div><span style="color:#888">IP Address: </span><strong>${ip}</strong></div>
+          </div>
+          <p style="color:#555">If this was you, no action needed. If not, <a href="${process.env.FRONTEND_URL || ""}/settings" style="color:#6366f1">secure your account immediately</a>.</p>
+        </div>
+      `,
+    });
+  } catch { /* non-blocking */ }
+}
 
 export async function register(req: Request, res: Response): Promise<void> {
   try {
@@ -124,55 +156,54 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
 export async function login(req: Request, res: Response): Promise<void> {
   try {
     const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) {
-      badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors);
-      return;
-    }
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const { email, password } = parsed.data;
 
-    // Lockout check — must happen before DB lookup to avoid timing leaks
-    if (isLocked(email)) {
-      unauthorized(res, "Too many failed attempts. Account locked for 15 minutes.");
+    const user = await (prisma as any).user.findUnique({ where: { email } });
+    if (!user || !user.isActive) {
+      unauthorized(res, "Invalid email or password");
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !user.isActive) {
-      recordFail(email);
-      unauthorized(res, "Invalid email or password");
+    // ── DB-persisted lockout ─────────────────────────────────
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      const mins = Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000);
+      unauthorized(res, `Account locked. Try again in ${mins} minute${mins !== 1 ? "s" : ""}.`);
       return;
     }
 
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid) {
-      recordFail(email);
-      unauthorized(res, "Invalid email or password");
+      const attempts = (user.loginAttempts || 0) + 1;
+      const lockData = attempts >= MAX_FAIL
+        ? { loginAttempts: 0, lockedUntil: new Date(Date.now() + LOCK_MS) }
+        : { loginAttempts: attempts };
+      await prisma.user.update({ where: { id: user.id }, data: lockData });
+      const remaining = MAX_FAIL - attempts;
+      unauthorized(res, remaining > 0
+        ? `Invalid email or password. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
+        : "Too many failed attempts. Account locked for 15 minutes."
+      );
       return;
     }
 
-    clearFail(email); // successful auth — reset counter
+    // Clear lockout on success
+    await prisma.user.update({ where: { id: user.id }, data: { loginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() } });
 
     if (!user.isEmailVerified && process.env.NODE_ENV === "production") {
       unauthorized(res, "Please verify your email before logging in");
       return;
     }
-    // Auto-verify on first login in dev mode
     if (!user.isEmailVerified && process.env.NODE_ENV !== "production") {
       await prisma.user.update({ where: { id: user.id }, data: { isEmailVerified: true, emailVerifyToken: null } });
     }
 
-    // Fetch user's organizations
     const memberships = await prisma.organizationMember.findMany({
       where: { userId: user.id, isActive: true },
       include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
     });
 
-    const accessToken = signAccessToken({
-      userId: user.id,
-      email: user.email,
-      isSuperAdmin: user.isSuperAdmin,
-    });
-
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
     const tokenId = uuidv4();
     const refreshToken = signRefreshToken({ userId: user.id, tokenId });
 
@@ -180,20 +211,30 @@ export async function login(req: Request, res: Response): Promise<void> {
       data: { id: tokenId, token: refreshToken, userId: user.id, expiresAt: getRefreshExpiryDate() },
     });
 
-    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    // ── Session tracking ─────────────────────────────────────
+    const ip = ((req.headers["x-forwarded-for"] as string) || "").split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+    const ua = req.headers["user-agent"] || "";
+    const { browser, os } = parseUA(ua);
+
+    // Check if this IP is new for this user
+    const existingSession = await (prisma as any).userSession.findFirst({ where: { userId: user.id, ipAddress: ip } });
+
+    // Mark previous sessions as not current
+    await (prisma as any).userSession.updateMany({ where: { userId: user.id, isCurrent: true }, data: { isCurrent: false } });
+
+    await (prisma as any).userSession.create({
+      data: { userId: user.id, tokenId, device: os, browser, os, ipAddress: ip, isCurrent: true, lastActiveAt: new Date() },
+    });
+
+    // Send suspicious login alert if new IP
+    sendLoginAlert(user, ip, ua, !existingSession);
 
     ok(res, {
-      accessToken,
-      refreshToken,
+      accessToken, refreshToken,
       user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
-      organizations: memberships.map((m) => ({
-        ...m.organization,
-        role: m.role,
-      })),
+      organizations: memberships.map((m) => ({ ...m.organization, role: m.role })),
     });
-  } catch (err) {
-    serverError(res, err);
-  }
+  } catch (err) { serverError(res, err); }
 }
 
 export async function refreshToken(req: Request, res: Response): Promise<void> {
@@ -320,16 +361,81 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
     });
     if (!user) { badRequest(res, "Invalid or expired reset token"); return; }
 
+    // ── Password strength check ──────────────────────────────
+    const strength = isStrongPassword(password);
+    if (!strength.ok) { badRequest(res, strength.reason!); return; }
+
+    // ── Password history check (last 5) ──────────────────────
+    const history: string[] = (user as any).passwordHistory || [];
+    for (const old of history.slice(-5)) {
+      if (await bcrypt.compare(password, old)) {
+        badRequest(res, "Cannot reuse one of your last 5 passwords"); return;
+      }
+    }
+
     const hashed = await bcrypt.hash(password, 12);
-    await prisma.user.update({
+    const newHistory = [...history.slice(-4), hashed];
+
+    await (prisma as any).user.update({
       where: { id: user.id },
-      data: { password: hashed, passwordResetToken: null, passwordResetExpiry: null },
+      data: {
+        password: hashed,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+        lastPasswordChange: new Date(),
+        passwordHistory: newHistory,
+      },
     });
-    // Revoke all refresh tokens for security
+    // Revoke all refresh tokens + sessions for security
     await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+    await (prisma as any).userSession.updateMany({ where: { userId: user.id }, data: { isActive: false } });
 
     ok(res, null, "Password reset successfully. Please log in.");
   } catch (err) {
     serverError(res, err);
   }
+}
+
+// ── Change password (authenticated) ──────────────────────────
+export async function changePassword(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) { badRequest(res, "currentPassword and newPassword required"); return; }
+
+    const strength = isStrongPassword(newPassword);
+    if (!strength.ok) { badRequest(res, strength.reason!); return; }
+
+    const user = await (prisma as any).user.findUnique({ where: { id: req.userId } });
+    if (!user) { unauthorized(res); return; }
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) { badRequest(res, "Current password is incorrect"); return; }
+
+    const history: string[] = user.passwordHistory || [];
+    for (const old of history.slice(-5)) {
+      if (await bcrypt.compare(newPassword, old)) {
+        badRequest(res, "Cannot reuse one of your last 5 passwords"); return;
+      }
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await (prisma as any).user.update({
+      where: { id: req.userId },
+      data: { password: hashed, lastPasswordChange: new Date(), passwordHistory: [...history.slice(-4), hashed] },
+    });
+
+    ok(res, null, "Password changed successfully");
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Unlock account (admin) ────────────────────────────────────
+export async function unlockAccount(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { userId } = req.params;
+    await (prisma as any).user.update({
+      where: { id: userId },
+      data: { loginAttempts: 0, lockedUntil: null },
+    });
+    ok(res, null, "Account unlocked");
+  } catch (err) { serverError(res, err); }
 }

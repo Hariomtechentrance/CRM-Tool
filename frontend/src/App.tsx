@@ -60,6 +60,7 @@ import TDSPage from "@/pages/finance/TDSPage";
 import BudgetPage from "@/pages/finance/BudgetPage";
 import ReconciliationPage from "@/pages/finance/ReconciliationPage";
 import WebhooksPage from "@/pages/settings/WebhooksPage";
+import SecurityPage from "@/pages/settings/SecurityPage";
 import ITProjectsPage from "@/pages/projects/ITProjectsPage";
 import SprintBoardPage from "@/pages/projects/SprintBoardPage";
 import TeamDashboardPage from "@/pages/hr/TeamDashboardPage";
@@ -180,6 +181,7 @@ export default function App() {
           <Route path="/settings"     element={<SettingsPage />} />
           <Route path="/currency"     element={<CurrencyPage />} />
           <Route path="/webhooks"     element={<WebhooksPage />} />
+          <Route path="/security"     element={<SecurityPage />} />
           <Route path="/audit"        element={<AuditPage />} />
         </Route>
 

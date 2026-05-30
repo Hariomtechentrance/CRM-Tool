@@ -22,11 +22,17 @@ model User {
   twoFactorEnabled    Boolean              @default(false)
   lastLoginAt         DateTime?
   isActive            Boolean              @default(true)
+  loginAttempts       Int                  @default(0)
+  lockedUntil         DateTime?
+  lastPasswordChange  DateTime?
+  passwordHistory     String[]             @default([])
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   sentInvites         OrgInvite[]          @relation("InvitedBy")
   memberships         OrganizationMember[]
   refreshTokens       RefreshToken[]
+  sessions            UserSession[]
+  apiKeys             ApiKey[]
   communications      Communication[]
   moduleAccess        UserModuleAccess[]
   accessRequests      AccessRequest[]
@@ -146,6 +152,9 @@ model Organization {
   whatsappConfig    WhatsAppConfig?
   whatsappMessages  WhatsAppMessage[]
   leadForms         LeadForm[]
+  apiKeys           ApiKey[]
+  ipAllowlist       OrgIpAllowlist[]
+  orgPermissions    OrgPermission[]
 
   @@index([slug])
 }
@@ -2329,4 +2338,89 @@ model LeadFormSubmission {
 
   @@index([formId])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SECURITY — Session tracking
+// ─────────────────────────────────────────────────────────────
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  tokenId      String?  @unique
+  device       String?
+  browser      String?
+  os           String?
+  ipAddress    String?
+  city         String?
+  country      String?
+  isCurrent    Boolean  @default(false)
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  isActive     Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenId])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SECURITY — API Keys
+// ─────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  name           String
+  keyHash        String    @unique
+  keyPrefix      String
+  scopes         String[]  @default([])
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([keyHash])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SECURITY — IP Allowlist per Org
+// ─────────────────────────────────────────────────────────────
+
+model OrgIpAllowlist {
+  id             String   @id @default(cuid())
+  organizationId String
+  ipCidr         String
+  label          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SECURITY — Granular Action Permissions
+// ─────────────────────────────────────────────────────────────
+
+model OrgPermission {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  moduleKey      String
+  actions        String[] @default([])
+  grantedById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, moduleKey])
+  @@index([organizationId, userId])
 }

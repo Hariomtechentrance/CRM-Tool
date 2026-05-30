@@ -5,7 +5,7 @@ import {
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
-  MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle,
+  MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -313,6 +313,10 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           <NavLink to="/webhooks" onClick={onClose} className={navLinkClass}>
             <Webhook style={{ width: 14, height: 14 }} />
             <span className="truncate">Webhooks</span>
+          </NavLink>
+          <NavLink to="/security" onClick={onClose} className={navLinkClass}>
+            <ShieldAlert style={{ width: 14, height: 14 }} />
+            <span className="truncate">Security</span>
           </NavLink>
           <NavLink to="/settings" onClick={onClose} className={navLinkClass}>
             <Settings style={{ width: 14, height: 14 }} />
