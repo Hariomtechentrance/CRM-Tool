@@ -306,7 +306,7 @@ export async function resendInvite(req: OrgRequest, res: Response): Promise<void
       forbidden(res, "Only Owner or Admin can resend invites"); return;
     }
     const invite = await prisma.orgInvite.findFirst({
-      where: { id: req.params.inviteId, organizationId: req.organizationId!, status: "PENDING" },
+      where: { id: req.params.inviteId as string, organizationId: req.organizationId!, status: "PENDING" },
     });
     if (!invite) { notFound(res, "Invite not found"); return; }
 
@@ -334,7 +334,7 @@ export async function cancelInvite(req: OrgRequest, res: Response): Promise<void
       forbidden(res, "Only Owner or Admin can cancel invites"); return;
     }
     const deleted = await prisma.orgInvite.deleteMany({
-      where: { id: req.params.inviteId, organizationId: req.organizationId!, status: "PENDING" },
+      where: { id: req.params.inviteId as string, organizationId: req.organizationId!, status: "PENDING" },
     });
     if (!deleted.count) { notFound(res, "Invite not found"); return; }
     ok(res, null, "Invite cancelled");

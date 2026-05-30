@@ -356,6 +356,7 @@ async function _getImapInbox(account: any, folder: string, page: number, search:
     const end = Math.max(1, total - ((page - 1) * 20));
     if (start <= end) {
       for await (const msg of client.fetch(`${start}:${end}`, { envelope: true, flags: true })) {
+        if (!msg.envelope || !msg.flags) continue;
         messages.unshift({
           id: String(msg.uid), threadId: msg.envelope.messageId || String(msg.uid),
           snippet: "", subject: msg.envelope.subject || "(no subject)",
@@ -377,7 +378,8 @@ async function _getImapInbox(account: any, folder: string, page: number, search:
 
 export async function getMessage(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { accountId, messageId } = req.params;
+    const accountId = req.params.accountId as string;
+    const messageId = req.params.messageId as string;
     const account = await db().emailAccount.findFirst({ where: { id: accountId, userId: req.userId!, isActive: true } });
     if (!account) { notFound(res, "Account not found"); return; }
 
@@ -430,7 +432,7 @@ async function _getImapMessage(account: any, uid: string, res: Response) {
   const lock = await client.getMailboxLock("INBOX");
   try {
     const msg = await client.fetchOne(uid, { source: true, envelope: true });
-    if (!msg) { notFound(res, "Message not found"); return; }
+    if (!msg || !msg.source || !msg.envelope) { notFound(res, "Message not found"); return; }
     const raw = msg.source.toString("utf-8");
     const htmlMatch = raw.match(/Content-Type: text\/html[^]*?(?:\r?\n\r?\n)([\s\S]*?)(?=--boundary|$)/i);
     const textMatch = raw.match(/Content-Type: text\/plain[^]*?(?:\r?\n\r?\n)([\s\S]*?)(?=--boundary|$)/i);
@@ -544,7 +546,8 @@ export async function listFolders(req: AuthRequest, res: Response): Promise<void
 
 export async function trashMessage(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { accountId, messageId } = req.params;
+    const accountId = req.params.accountId as string;
+    const messageId = req.params.messageId as string;
     const account = await db().emailAccount.findFirst({ where: { id: accountId, userId: req.userId!, isActive: true } });
     if (!account) { notFound(res, "Account not found"); return; }
 
@@ -566,7 +569,7 @@ export async function trashMessage(req: AuthRequest, res: Response): Promise<voi
     const client = new ImapFlow({ host: account.imapHost, port: account.imapPort, secure: account.imapSecure, auth: { user: account.email, pass: account.smtpPassword }, logger: false });
     await client.connect();
     const lock = await client.getMailboxLock("INBOX");
-    try { await client.messageMove(messageId, "Trash"); } finally { lock.release(); }
+    try { await client.messageMove(messageId as string, "Trash"); } finally { lock.release(); }
     await client.logout();
     ok(res, null, "Message moved to trash");
   } catch (e) { serverError(res, e); }
