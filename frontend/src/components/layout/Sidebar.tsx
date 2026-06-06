@@ -6,6 +6,7 @@ import {
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
   MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
+  Phone, TrendingUp, Heart,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -254,6 +255,8 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             {[
               { href: "/it-projects",    tKey: "nav_it_projects",    Icon: MonitorCheck },
               { href: "/sprint-board",   tKey: "nav_sprint_board",   Icon: KanbanSquare },
+              { href: "/bugs",           tKey: "nav_bug_tracker",    Icon: ShieldAlert },
+              { href: "/time-tracking",  tKey: "nav_time_tracking",  Icon: ClipboardList },
               { href: "/my-work",        tKey: "nav_my_work",        Icon: ClipboardList },
               { href: "/team-dashboard", tKey: "nav_team_dashboard", Icon: UserCog },
             ].map(({ href, tKey, Icon }) => (
@@ -320,6 +323,21 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             ))}
           </CollapsibleSection>
         )}
+
+        {/* ── Industry Verticals ── */}
+        <CollapsibleSection label="Industry Verticals">
+          {[
+            { href: "/telecalling",  label: "Tele-calling",  Icon: Phone },
+            { href: "/services",     label: "Services",      Icon: Briefcase },
+            { href: "/stock-market", label: "Stock Market",  Icon: TrendingUp },
+            { href: "/health",       label: "Health",        Icon: Heart },
+          ].map(({ href, label, Icon }) => (
+            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+              <span className="truncate">{label}</span>
+            </NavLink>
+          ))}
+        </CollapsibleSection>
 
         {/* Settings — always visible */}
         <div style={{ marginTop: 4 }}>

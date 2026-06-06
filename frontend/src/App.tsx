@@ -65,6 +65,12 @@ import ITProjectsPage from "@/pages/projects/ITProjectsPage";
 import SprintBoardPage from "@/pages/projects/SprintBoardPage";
 import TeamDashboardPage from "@/pages/hr/TeamDashboardPage";
 import MyWorkPage from "@/pages/projects/MyWorkPage";
+import BugTrackerPage from "@/pages/projects/BugTrackerPage";
+import TimeTrackingPage from "@/pages/projects/TimeTrackingPage";
+import TelecallingPage from "@/pages/telecalling/TelecallingPage";
+import ServicesPage from "@/pages/services/ServicesPage";
+import StockMarketPage from "@/pages/stockmarket/StockMarketPage";
+import HealthPage from "@/pages/health/HealthPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
 import LandingPage from "@/pages/landing/LandingPage";
 import InvoicePortalPage from "@/pages/portal/InvoicePortalPage";
@@ -141,11 +147,17 @@ export default function App() {
           <Route path="/pos"          element={G("POS", RetailPage)} />
           <Route path="/warehouse"    element={G("WAREHOUSE", WarehousePage)} />
           <Route path="/hr"           element={G("HR", HRPage)} />
-          <Route path="/projects"      element={G("PROJECTS", ProjectsPage)} />
+          <Route path="/projects"       element={G("PROJECTS", ProjectsPage)} />
           <Route path="/it-projects"   element={G("PROJECTS", ITProjectsPage)} />
           <Route path="/sprint-board"  element={G("PROJECTS", SprintBoardPage)} />
           <Route path="/team-dashboard" element={G("HR", TeamDashboardPage)} />
           <Route path="/my-work"       element={G("PROJECTS", MyWorkPage)} />
+          <Route path="/bugs"          element={G("PROJECTS", BugTrackerPage)} />
+          <Route path="/time-tracking" element={G("PROJECTS", TimeTrackingPage)} />
+          <Route path="/telecalling"   element={<TelecallingPage />} />
+          <Route path="/services"      element={<ServicesPage />} />
+          <Route path="/stock-market"  element={<StockMarketPage />} />
+          <Route path="/health"        element={<HealthPage />} />
 
           {/* ── Growth ── */}
           <Route path="/marketing"    element={G("MARKETING", LeadsPage)} />

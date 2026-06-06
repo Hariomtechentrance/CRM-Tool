@@ -63,6 +63,12 @@ import leadFormRoutes from "./routes/leadForm.routes";
 import sessionRoutes from "./routes/session.routes";
 import apiKeyRoutes from "./routes/apiKey.routes";
 import securityRoutes from "./routes/security.routes";
+import bugsRoutes from "./routes/bugs.routes";
+import timeTrackingRoutes from "./routes/timeTracking.routes";
+import telecallingRoutes from "./routes/telecalling.routes";
+import servicesRoutes from "./routes/services.routes";
+import stockMarketRoutes from "./routes/stockMarket.routes";
+import healthRoutes from "./routes/health.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -272,6 +278,12 @@ app.use("/api/lead-forms",    leadFormRoutes);
 app.use("/api/sessions",      sessionRoutes);
 app.use("/api/api-keys",      apiKeyRoutes);
 app.use("/api/security",      securityRoutes);
+app.use("/api/bugs",          bugsRoutes);
+app.use("/api/time-tracking", timeTrackingRoutes);
+app.use("/api/telecalling",   telecallingRoutes);
+app.use("/api/services",      servicesRoutes);
+app.use("/api/stock-market",  stockMarketRoutes);
+app.use("/api/health",        healthRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {
