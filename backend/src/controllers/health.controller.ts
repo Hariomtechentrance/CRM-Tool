@@ -346,8 +346,8 @@ export async function getHealthStats(req: OrgRequest, res: Response): Promise<vo
       db().patientVisit.count({ where: { organizationId: orgId, visitDate: { gte: today, lt: tomorrow } } }),
       db().prescription.count({ where: { organizationId: orgId } }),
       db().patientVisit.count({
-        where: { organizationId: orgId, followUpDate: { gte: today }, followUpDate_lte: new Date(today.getTime() + 7 * 86400000) },
-      }).catch(() => 0),
+        where: { organizationId: orgId, followUpDate: { gte: today, lte: new Date(today.getTime() + 7 * 86400000) } },
+      }),
     ]);
 
     ok(res, { totalPatients, todayVisits, totalPrescriptions, pendingFollowUps });

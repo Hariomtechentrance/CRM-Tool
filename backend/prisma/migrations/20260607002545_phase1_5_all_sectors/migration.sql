@@ -37,7 +37,7 @@ CREATE TABLE "Bug" (
     "closedAt" TIMESTAMP(3),
     "dueDate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Bug_pkey" PRIMARY KEY ("id")
 );
 
@@ -66,7 +66,7 @@ CREATE TABLE "ProjectTimeEntry" (
     "approvedById" TEXT,
     "approvedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "ProjectTimeEntry_pkey" PRIMARY KEY ("id")
 );
 
@@ -98,7 +98,7 @@ CREATE TABLE "SLAPolicy" (
     "appliesTo" TEXT NOT NULL DEFAULT 'SUPPORT',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "SLAPolicy_pkey" PRIMARY KEY ("id")
 );
 
@@ -114,7 +114,7 @@ CREATE TABLE "ResourceAllocation" (
     "endDate" TIMESTAMP(3),
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "ResourceAllocation_pkey" PRIMARY KEY ("id")
 );
 
@@ -129,7 +129,7 @@ CREATE TABLE "ClientPortalUser" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "lastLoginAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "ClientPortalUser_pkey" PRIMARY KEY ("id")
 );
 
@@ -164,7 +164,7 @@ CREATE TABLE "CallScript" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "CallScript_pkey" PRIMARY KEY ("id")
 );
 
@@ -195,7 +195,7 @@ CREATE TABLE "DialerCampaign" (
     "endDate" TIMESTAMP(3),
     "createdById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "DialerCampaign_pkey" PRIMARY KEY ("id")
 );
 
@@ -212,7 +212,7 @@ CREATE TABLE "ServiceCatalogItem" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "ServiceCatalogItem_pkey" PRIMARY KEY ("id")
 );
 
@@ -235,7 +235,7 @@ CREATE TABLE "ServiceContract" (
     "assignedToId" TEXT,
     "createdById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "ServiceContract_pkey" PRIMARY KEY ("id")
 );
 
@@ -255,7 +255,7 @@ CREATE TABLE "KBArticle" (
     "authorId" TEXT,
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "KBArticle_pkey" PRIMARY KEY ("id")
 );
 
@@ -286,7 +286,7 @@ CREATE TABLE "AdvisoryPlan" (
     "maxAlerts" INTEGER,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "AdvisoryPlan_pkey" PRIMARY KEY ("id")
 );
 
@@ -302,7 +302,7 @@ CREATE TABLE "AdvisorySubscription" (
     "amount" DOUBLE PRECISION NOT NULL,
     "kycVerified" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "AdvisorySubscription_pkey" PRIMARY KEY ("id")
 );
 
@@ -328,7 +328,7 @@ CREATE TABLE "TradeCall" (
     "publishedAt" TIMESTAMP(3),
     "expiresAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "TradeCall_pkey" PRIMARY KEY ("id")
 );
 
@@ -349,7 +349,7 @@ CREATE TABLE "ResearchReport" (
     "authorId" TEXT,
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "ResearchReport_pkey" PRIMARY KEY ("id")
 );
 
@@ -371,7 +371,7 @@ CREATE TABLE "KYCRecord" (
     "verifiedAt" TIMESTAMP(3),
     "documents" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "KYCRecord_pkey" PRIMARY KEY ("id")
 );
 
@@ -410,7 +410,7 @@ CREATE TABLE "Patient" (
     "notes" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Patient_pkey" PRIMARY KEY ("id")
 );
 
@@ -433,7 +433,7 @@ CREATE TABLE "PatientVisit" (
     "notes" TEXT,
     "followUpDate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PatientVisit_pkey" PRIMARY KEY ("id")
 );
 
@@ -494,7 +494,7 @@ CREATE TABLE "CustomFieldValue" (
     "entityId" TEXT NOT NULL,
     "value" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "CustomFieldValue_pkey" PRIMARY KEY ("id")
 );
 

@@ -47,6 +47,10 @@ const ALL_MODULES = [
   { key: "REPORTS",             label: "Reports",        desc: "Analytics & reporting" },
   { key: "IMPORT_EXPORT_SUITE", label: "Import/Export",  desc: "Trade documentation" },
   { key: "RETAIL_FASHION",      label: "Retail/Fashion", desc: "Retail & fashion ops" },
+  { key: "TELECALLING",         label: "Tele-calling",   desc: "Call center operations" },
+  { key: "SERVICES",            label: "Services",       desc: "Service catalog & contracts" },
+  { key: "STOCK_MARKET",        label: "Stock Market",   desc: "Advisory & trade calls" },
+  { key: "HEALTH",              label: "Health",         desc: "Clinic & patient management" },
 ];
 
 interface Org {
