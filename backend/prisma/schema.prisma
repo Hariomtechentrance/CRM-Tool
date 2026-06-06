@@ -123,8 +123,10 @@ model Organization {
   gstStateCode String?
   iecCode      String?
   panNumber    String?
-  logo           String?
-  website        String?
+  logo             String?
+  website          String?
+  brandingColor    String?
+  complianceConfig Json?
   enabledModules String[]           @default([])
   isActive       Boolean            @default(true)
   plan           String             @default("FREE")
@@ -231,6 +233,7 @@ model Organization {
   // Universal
   customFields CustomField[]
   smsLogs      SMSLog[]
+  consentLogs  ConsentLog[]
 
   @@index([slug])
 }
@@ -3219,5 +3222,24 @@ model SMSLog {
 
   @@index([organizationId])
   @@index([phone])
+  @@index([createdAt])
+}
+
+model ConsentLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  entityType     String
+  entityId       String
+  consentType    String
+  consentGiven   Boolean  @default(true)
+  ipAddress      String?
+  userAgent      String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
   @@index([createdAt])
 }

@@ -69,6 +69,9 @@ import telecallingRoutes from "./routes/telecalling.routes";
 import servicesRoutes from "./routes/services.routes";
 import stockMarketRoutes from "./routes/stockMarket.routes";
 import healthRoutes from "./routes/health.routes";
+import customFieldRoutes from "./routes/customField.routes";
+import brandingRoutes from "./routes/branding.routes";
+import complianceRoutes from "./routes/compliance.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -284,6 +287,9 @@ app.use("/api/telecalling",   telecallingRoutes);
 app.use("/api/services",      servicesRoutes);
 app.use("/api/stock-market",  stockMarketRoutes);
 app.use("/api/health",        healthRoutes);
+app.use("/api/custom-fields", customFieldRoutes);
+app.use("/api/branding",      brandingRoutes);
+app.use("/api/compliance",    complianceRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

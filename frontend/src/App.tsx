@@ -72,6 +72,9 @@ import ServicesPage from "@/pages/services/ServicesPage";
 import StockMarketPage from "@/pages/stockmarket/StockMarketPage";
 import HealthPage from "@/pages/health/HealthPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
+import CustomFieldsPage from "@/pages/settings/CustomFieldsPage";
+import BrandingPage from "@/pages/settings/BrandingPage";
+import CompliancePage from "@/pages/settings/CompliancePage";
 import LandingPage from "@/pages/landing/LandingPage";
 import InvoicePortalPage from "@/pages/portal/InvoicePortalPage";
 import PublicProjectPage from "@/pages/public/PublicProjectPage";
@@ -190,11 +193,14 @@ export default function App() {
 
           {/* ── Utility (no gate needed) ── */}
           <Route path="/documents"    element={<DocumentsPage />} />
-          <Route path="/settings"     element={<SettingsPage />} />
-          <Route path="/currency"     element={<CurrencyPage />} />
-          <Route path="/webhooks"     element={<WebhooksPage />} />
-          <Route path="/security"     element={<SecurityPage />} />
-          <Route path="/audit"        element={<AuditPage />} />
+          <Route path="/settings"      element={<SettingsPage />} />
+          <Route path="/currency"      element={<CurrencyPage />} />
+          <Route path="/webhooks"      element={<WebhooksPage />} />
+          <Route path="/security"      element={<SecurityPage />} />
+          <Route path="/audit"         element={<AuditPage />} />
+          <Route path="/custom-fields" element={<CustomFieldsPage />} />
+          <Route path="/branding"      element={<BrandingPage />} />
+          <Route path="/compliance"    element={<CompliancePage />} />
         </Route>
 
         <Route path="/"  element={<PublicHome />} />

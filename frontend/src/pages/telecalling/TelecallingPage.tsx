@@ -135,6 +135,15 @@ export default function TelecallingPage() {
         </button>
       </div>
 
+      {/* TRAI Compliance Banner */}
+      <div style={{ background: "#f59e0b12", border: "1px solid #f59e0b30", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <Shield size={14} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div style={{ fontSize: 12, color: "#f59e0b" }}>
+          <strong>TRAI Compliance:</strong> Outbound commercial calls are permitted only between <strong>9:00 AM – 9:00 PM IST</strong>. Always scrub numbers against the NDNC registry before dialling. Calls to DNC-registered numbers attract ₹25,000+ penalty per complaint. Register SMS headers on TRAI DLT platform before sending bulk messages.
+          {" "}<a href="/compliance" style={{ color: "#818cf8", textDecoration: "underline" }}>Manage compliance settings →</a>
+        </div>
+      </div>
+
       <div style={S.kpiGrid}>
         {[
           { label: "Total Calls", value: callStats?.total ?? 0, color: "#818cf8", icon: PhoneCall },

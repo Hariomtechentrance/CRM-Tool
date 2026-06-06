@@ -6,7 +6,7 @@ import {
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
   MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
-  Phone, TrendingUp, Heart,
+  Phone, TrendingUp, Heart, Sliders, Palette, Scale,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -310,11 +310,14 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         {showAdmin && (
           <CollapsibleSection label={t("nav_admin_section")}>
             {[
-              { href: "/admin/dashboard", tKey: "nav_admin",    Icon: LayoutGrid },
-              { href: "/audit",           tKey: "nav_audit",    Icon: ShieldCheck },
-              { href: "/currency",        tKey: "nav_currency", Icon: DollarSign },
-              { href: "/webhooks",        tKey: "nav_webhooks", Icon: Webhook },
-              { href: "/security",        tKey: "nav_security", Icon: ShieldAlert },
+              { href: "/admin/dashboard", tKey: "nav_admin",       Icon: LayoutGrid },
+              { href: "/audit",           tKey: "nav_audit",       Icon: ShieldCheck },
+              { href: "/currency",        tKey: "nav_currency",    Icon: DollarSign },
+              { href: "/webhooks",        tKey: "nav_webhooks",    Icon: Webhook },
+              { href: "/security",        tKey: "nav_security",    Icon: ShieldAlert },
+              { href: "/custom-fields",   tKey: "nav_custom_fields", Icon: Sliders },
+              { href: "/branding",        tKey: "nav_branding",    Icon: Palette },
+              { href: "/compliance",      tKey: "nav_compliance",  Icon: Scale },
             ].map(({ href, tKey, Icon }) => (
               <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
                 <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />

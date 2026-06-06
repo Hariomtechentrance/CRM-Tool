@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { TrendingUp, Plus, X, BarChart2, Users, FileText, Bell, CheckCircle } from "lucide-react";
+import { TrendingUp, Plus, X, Users, FileText, Bell, CheckCircle } from "lucide-react";
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -125,6 +125,15 @@ export default function StockMarketPage() {
             {tab === "calls" ? "New Trade Call" : tab === "reports" ? "New Report" : "New Alert"}
           </button>
         )}
+      </div>
+
+      {/* SEBI Compliance Disclaimer */}
+      <div style={{ background: "#ef444412", border: "1px solid #ef444430", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+        <div style={{ fontSize: 12, color: "var(--text-sec)" }}>
+          <strong style={{ color: "#ef4444" }}>SEBI Disclaimer:</strong> Trade calls and research published here are for <strong>internal tracking only</strong> and do not constitute SEBI-registered investment advice. Providing investment recommendations to clients without SEBI Investment Advisor registration (IA Regulations 2013) is a criminal offence. Ensure all client-facing communications carry the required risk disclaimer.
+          {" "}<a href="/compliance" style={{ color: "#818cf8", textDecoration: "underline" }}>Configure SEBI settings →</a>
+        </div>
       </div>
 
       <div style={S.kpiGrid}>
