@@ -1,4 +1,4 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
@@ -306,7 +306,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                   <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-ghost)", fontSize: 13 }}>Loading...</div>
                 ) : alerts.length === 0 && notifications.length === 0 ? (
                   <div style={{ padding: "40px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><CheckCircle size={32} color="#10b981" /></div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-sec)", margin: 0 }}>All clear!</p>
                     <p style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 4 }}>No pending alerts or notifications.</p>
                   </div>

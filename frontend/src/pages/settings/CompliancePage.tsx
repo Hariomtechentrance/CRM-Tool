@@ -60,7 +60,7 @@ export default function CompliancePage() {
   }, []);
 
   const set = (key: keyof Config) => (val: any) => setCfg(p => ({ ...p, [key]: val }));
-  const toggle = (key: keyof Config) => () => setCfg(p => ({ ...p, [key]: !p[key as any] }));
+  const toggle = (key: keyof Config) => () => setCfg(p => ({ ...p, [key]: !(p[key] as boolean) }));
 
   const save = async () => {
     setSaving(true); setMsg("");
@@ -239,22 +239,24 @@ export default function CompliancePage() {
       <div style={{ ...S.card, border: "1px solid #6366f140" }}>
         <div style={S.section}><CheckCircle size={15} color="#10b981" /> Indian Compliance Checklist</div>
         {[
-          ["✅", "GST & E-Invoicing",     "IRN generation via IRP, E-way bills — already integrated"],
-          ["✅", "IT Act 2000",           "Data stored securely, audit logs maintained, no unauthorised access"],
-          ["✅", "DPDP Act 2023",         "Consent management, data export, right to erasure — enabled above"],
-          ["✅", "TRAI DND",              "DNC list in Tele-calling module, calling hours enforcement"],
-          ["⚠️", "SEBI IA Regulations",   "Add SEBI disclaimer to all trade calls if not registered"],
-          ["⚠️", "RBI KYC Guidelines",    "For financial advisory: ensure KYC documents are verified before advising"],
-          ["⚠️", "UIDAI — Aadhaar",       "Do NOT store full Aadhaar numbers. Store only last 4 digits per UIDAI circular"],
-          ["✅", "FSSAI",                 "Not applicable unless you are in food business — module not present"],
-          ["✅", "Companies Act 2013",    "Audit trail, document storage, and data retention covered"],
-          ["⚠️", "WhatsApp Business API", "Comply with Meta's Commerce Policy — no unsolicited bulk messages"],
-        ].map(([icon, law, note]) => (
-          <div key={law} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+          [true,  "GST & E-Invoicing",     "IRN generation via IRP, E-way bills — already integrated"],
+          [true,  "IT Act 2000",           "Data stored securely, audit logs maintained, no unauthorised access"],
+          [true,  "DPDP Act 2023",         "Consent management, data export, right to erasure — enabled above"],
+          [true,  "TRAI DND",              "DNC list in Tele-calling module, calling hours enforcement"],
+          [false, "SEBI IA Regulations",   "Add SEBI disclaimer to all trade calls if not registered"],
+          [false, "RBI KYC Guidelines",    "For financial advisory: ensure KYC documents are verified before advising"],
+          [false, "UIDAI — Aadhaar",       "Do NOT store full Aadhaar numbers. Store only last 4 digits per UIDAI circular"],
+          [true,  "FSSAI",                 "Not applicable unless you are in food business — module not present"],
+          [true,  "Companies Act 2013",    "Audit trail, document storage, and data retention covered"],
+          [false, "WhatsApp Business API", "Comply with Meta's Commerce Policy — no unsolicited bulk messages"],
+        ].map(([ok, law, note]) => (
+          <div key={String(law)} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+            <div style={{ flexShrink: 0, marginTop: 1 }}>
+              {ok ? <CheckCircle size={15} color="#10b981" /> : <AlertTriangle size={15} color="#f59e0b" />}
+            </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{law}</div>
-              <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{note}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{String(law)}</div>
+              <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{String(note)}</div>
             </div>
           </div>
         ))}

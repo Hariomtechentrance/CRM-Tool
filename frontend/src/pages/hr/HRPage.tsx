@@ -568,7 +568,7 @@ export default function HRPage() {
             <select style={S.fSel} value={payYear} onChange={e=>setPayYear(parseInt(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>
             <span style={{fontSize:12,color:"var(--text-ghost)"}}>{payrolls.length} payslips · Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))}</span>
             <button onClick={()=>{setAutoPayForm({month:String(payMonth),year:String(payYear),workingDays:"26"});setAutoPayResult(null);setShowAutoPayModal(true);}} style={{...S.btn,marginLeft:"auto",background:"linear-gradient(135deg,#10b981,#059669)",fontSize:12,padding:"6px 14px"}}>
-              ⚡ Auto-Generate All
+              Auto-Generate All
             </button>
           </div>
           {payLoading ? <div style={S.empty}>Loading...</div> : (
@@ -930,7 +930,7 @@ export default function HRPage() {
         <div style={S.modal} onClick={e=>e.target===e.currentTarget&&setShowAutoPayModal(false)}>
           <div className="modal-inner" style={{maxWidth:480}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>⚡ Auto-Generate Payroll</h3>
+              <h3 style={{color:"var(--text-primary)",margin:0,fontSize:16,fontWeight:700}}>Auto-Generate Payroll</h3>
               <button onClick={()=>setShowAutoPayModal(false)} style={{background:"none",border:"none",color:"var(--text-ghost)",cursor:"pointer"}}><X size={18}/></button>
             </div>
             {!autoPayResult ? (
