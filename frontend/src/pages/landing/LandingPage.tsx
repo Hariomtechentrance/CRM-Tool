@@ -4,7 +4,7 @@ import {
   Users, Package, ShoppingCart, Truck, Receipt, UserCheck, TrendingUp,
   Briefcase, FileText, Headphones, Warehouse, ShoppingBag, Kanban,
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
-  ChevronRight,
+  ChevronRight, Phone,
 } from "lucide-react";
 
 const MODULES = [
@@ -231,6 +231,25 @@ export default function LandingPage() {
           <button onClick={() => navigate("/login")} style={{ padding: "13px 26px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             Sign In
           </button>
+        </div>
+      </section>
+
+      {/* ── Contact / Support ── */}
+      <section style={{ padding: "40px clamp(16px,4vw,64px)", borderTop: "1px solid var(--border)", background: "var(--bg-main)" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Contact &amp; Support</h3>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 24 }}>Need help? Reach out to us on any of the channels below.</p>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 16 }}>
+            <a href="tel:9834134470" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Phone size={14} color="#6366f1" /> 98341 34470
+            </a>
+            <a href="tel:7397962433" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Phone size={14} color="#6366f1" /> 73979 62433
+            </a>
+            <a href="mailto:hariomvimal33333@gmail.com" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Mail size={14} color="#6366f1" /> hariomvimal33333@gmail.com
+            </a>
+          </div>
         </div>
       </section>
 
