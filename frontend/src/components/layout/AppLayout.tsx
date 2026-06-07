@@ -3,10 +3,21 @@ import { Outlet, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { useAuthStore } from "@/stores/authStore";
+import api from "@/lib/api";
 
 export default function AppLayout() {
   const { isAuthenticated, organizations, activeOrg, isOrgAdmin, syncModulesFromOrg, loadModuleAccess } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !activeOrg) return;
+    api.get("/branding").then(res => {
+      const color: string | undefined = res.data.data?.brandingColor;
+      if (color && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) {
+        document.documentElement.style.setProperty("--brand-color", color);
+      }
+    }).catch(() => {});
+  }, [isAuthenticated, activeOrg?.id]);
 
   useEffect(() => {
     if (!isAuthenticated || !activeOrg) return;

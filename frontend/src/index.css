@@ -11,6 +11,7 @@ html, body {
 
 /* ── CSS Design Tokens (Dark — default) ──────────────────────── */
 :root {
+  --brand-color:  #6366f1;
   --bg-main:      #07071A;
   --bg-card:      #0D0D1F;
   --bg-hover:     #131327;

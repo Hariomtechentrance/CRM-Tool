@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
+import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import {
   Phone, Mail, Plus, Search, X, Upload,
   User, Clock, CheckCircle, PhoneCall,
@@ -275,6 +276,7 @@ function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: { lead?
             <span className="text-xs" style={{ color: "#f87171" }}>Do Not Call (DNC)</span>
           </label>
         </div>
+        {lead?.id && <CustomFieldRenderer entity="LEAD" entityId={lead.id} />}
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
           <button onClick={save} disabled={saving || !form.name.trim()} style={S.btn}>{saving ? "Saving…" : lead ? "Update" : "Add Lead"}</button>

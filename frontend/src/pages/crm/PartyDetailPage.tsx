@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { PartyForm } from "@/components/crm/PartyForm";
 import DocumentsPanel from "@/components/DocumentsPanel";
 import RecordComments from "@/components/RecordComments";
+import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import api from "@/lib/api";
 import { getInitials, getApiError, formatDate } from "@/lib/utils";
 import type { Party, Contact, CommunicationType } from "@/types";
@@ -187,7 +188,7 @@ function PartyTagEditor({ partyId, initialTags, onUpdated }: { partyId: string; 
 }
 
 // ── Main Detail Page ──────────────────────────────────────────
-type DetailTab = "overview" | "contacts" | "communications" | "documents" | "comments";
+type DetailTab = "overview" | "contacts" | "communications" | "documents" | "comments" | "custom_fields";
 
 export default function PartyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -303,6 +304,7 @@ export default function PartyDetailPage() {
         </button>
         <button className={tabClass("documents")} onClick={() => setTab("documents")}>Documents</button>
         <button className={tabClass("comments")} onClick={() => setTab("comments")}>Comments</button>
+        <button className={tabClass("custom_fields")} onClick={() => setTab("custom_fields")}>Custom Fields</button>
       </div>
 
       {/* ── Overview ── */}
@@ -552,6 +554,15 @@ export default function PartyDetailPage() {
         <Card>
           <CardBody>
             <RecordComments entityType="PARTY" entityId={party.id} />
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ── Custom Fields ── */}
+      {tab === "custom_fields" && (
+        <Card>
+          <CardBody>
+            <CustomFieldRenderer entity="PARTY" entityId={party.id} />
           </CardBody>
         </Card>
       )}
