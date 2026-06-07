@@ -136,7 +136,7 @@ export default function StorePage() {
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : entries.length === 0 ? (
           <div style={{ padding: 60, textAlign: "center" }}>
-            <PackageOpen size={40} color=var(--border) style={{ margin: "0 auto 12px", display: "block" }} />
+            <PackageOpen size={40} color="var(--border)" style={{ margin: "0 auto 12px", display: "block" }} />
             <p style={{ color: "var(--text-ghost)", margin: 0 }}>No inward entries yet. Click "New Inward Entry" to record material receipt.</p>
           </div>
         ) : (

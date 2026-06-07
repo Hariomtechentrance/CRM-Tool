@@ -202,7 +202,7 @@ export default function SalesPage() {
           tab === "dispatch" ? (
             dispatches.length === 0 ? (
               <div style={{ padding: 60, textAlign: "center" }}>
-                <Truck size={40} color=var(--border) style={{ margin: "0 auto 12px", display: "block" }} />
+                <Truck size={40} color="var(--border)" style={{ margin: "0 auto 12px", display: "block" }} />
                 <p style={{ color: "var(--text-ghost)", margin: 0 }}>No dispatch entries yet. Click "New Dispatch" to record outgoing goods.</p>
               </div>
             ) : (

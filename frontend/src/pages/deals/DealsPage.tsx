@@ -104,8 +104,8 @@ export default function DealsPage() {
           <p style={S.subtitle}>Track your sales pipeline from prospect to close — Salesforce / HubSpot style</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setViewMode("kanban")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "kanban" ? "#6366f1" : var(--border)}`, background: viewMode === "kanban" ? "#6366f120" : "transparent", color: viewMode === "kanban" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }}><Kanban size={16} /></button>
-          <button onClick={() => setViewMode("table")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "table" ? "#6366f1" : var(--border)}`, background: viewMode === "table" ? "#6366f120" : "transparent", color: viewMode === "table" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }}><LayoutList size={16} /></button>
+          <button onClick={() => setViewMode("kanban")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "kanban" ? "#6366f1" : "var(--border)"}`, background: viewMode === "kanban" ? "#6366f120" : "transparent", color: viewMode === "kanban" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }}><Kanban size={16} /></button>
+          <button onClick={() => setViewMode("table")} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${viewMode === "table" ? "#6366f1" : "var(--border)"}`, background: viewMode === "table" ? "#6366f120" : "transparent", color: viewMode === "table" ? "#818CF8" : "var(--text-ghost)", cursor: "pointer" }}><LayoutList size={16} /></button>
           <button style={S.btn} onClick={() => { setEditId(null); setForm({ ...emptyForm }); setError(""); setShowModal(true); }}><Plus size={15} /> New Deal</button>
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function DealsPage() {
 
       {/* Stage filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
-        <button onClick={() => setStageFilter("")} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${!stageFilter ? "#6366f1" : var(--border)}`, background: !stageFilter ? "#6366f120" : "transparent", color: !stageFilter ? "#818CF8" : "var(--text-ghost)", cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>All ({deals.length})</button>
+        <button onClick={() => setStageFilter("")} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${!stageFilter ? "#6366f1" : "var(--border)"}`, background: !stageFilter ? "#6366f120" : "transparent", color: !stageFilter ? "#818CF8" : "var(--text-ghost)", cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>All ({deals.length})</button>
         {STAGES.map(s => {
           const count = deals.filter(d => d.stage === s.key).length;
           return (
@@ -166,7 +166,7 @@ export default function DealsPage() {
                     {stageDeals.map(d => (
                       <div key={d.id} onClick={() => openEdit(d)} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", cursor: "pointer" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = stage.color + "60")}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = var(--border))}>
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
                         {d.party && <div style={{ fontSize: 11, color: "#818CF8", marginBottom: 4 }}>{d.party.name}</div>}
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

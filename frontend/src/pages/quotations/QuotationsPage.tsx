@@ -289,7 +289,7 @@ export default function QuotationsPage() {
                 padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid",
                 ...(statusFilter === s
                   ? { background: "#6366f1", borderColor: "#6366f1", color: "white" }
-                  : { background: "transparent", borderColor: var(--border-input), color: "var(--text-ghost)" }),
+                  : { background: "transparent", borderColor: "var(--border-input)", color: "var(--text-ghost)" }),
               }}
             >
               {s || "All"}
@@ -304,7 +304,7 @@ export default function QuotationsPage() {
           <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : quotations.length === 0 ? (
           <div style={{ padding: "60px 24px", textAlign: "center" }}>
-            <FileText size={40} color=var(--border) style={{ margin: "0 auto 12px" }} />
+            <FileText size={40} color="var(--border)" style={{ margin: "0 auto 12px" }} />
             <p style={{ color: "var(--text-ghost)", margin: 0 }}>No quotations yet. Create your first proposal.</p>
           </div>
         ) : (

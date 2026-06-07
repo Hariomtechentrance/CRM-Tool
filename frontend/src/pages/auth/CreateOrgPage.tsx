@@ -200,7 +200,7 @@ export default function CreateOrgPage() {
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div style={{ width: 32, height: 2, margin: "0 10px", background: step > n ? "linear-gradient(90deg,#6366f1,#8b5cf6)" : var(--border), borderRadius: 2 }} />
+                  <div style={{ width: 32, height: 2, margin: "0 10px", background: step > n ? "linear-gradient(90deg,#6366f1,#8b5cf6)" : "var(--border)", borderRadius: 2 }} />
                 )}
               </div>
             );
@@ -306,7 +306,7 @@ export default function CreateOrgPage() {
                           onClick={() => toggleModule(mod.key)}
                           style={{
                             background: selected ? mod.accentBg : "var(--bg-card)",
-                            border: `1px solid ${selected ? mod.accentBorder : var(--border)}`,
+                            border: `1px solid ${selected ? mod.accentBorder : "var(--border)"}`,
                             borderRadius: 12, padding: "14px 14px", textAlign: "left", cursor: "pointer",
                             position: "relative", transition: "all 0.15s",
                             boxShadow: selected ? `0 0 0 1px ${mod.accentBorder}` : "none",

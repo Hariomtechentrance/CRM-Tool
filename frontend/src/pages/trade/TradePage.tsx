@@ -168,7 +168,7 @@ export default function TradePage() {
 
       {/* Type Filter Chips */}
       <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" as const }}>
-        <button onClick={() => setTypeFilter("")} style={{ padding:"5px 12px", borderRadius:7, border:`1px solid ${!typeFilter ? "#6366f1" : var(--border)}`, background:!typeFilter ? "#6366f120" : "transparent", color:!typeFilter ? "#818CF8" : "var(--text-ghost)", cursor:"pointer", fontSize:11, fontWeight:600 }}>All Types</button>
+        <button onClick={() => setTypeFilter("")} style={{ padding:"5px 12px", borderRadius:7, border:`1px solid ${!typeFilter ? "#6366f1" : "var(--border)"}`, background:!typeFilter ? "#6366f120" : "transparent", color:!typeFilter ? "#818CF8" : "var(--text-ghost)", cursor:"pointer", fontSize:11, fontWeight:600 }}>All Types</button>
         {DOC_TYPES.map(t => (
           <button key={t} onClick={() => setTypeFilter(typeFilter===t ? "" : t)} style={{ padding:"5px 12px", borderRadius:7, border:`1px solid ${typeFilter===t ? TYPE_COLORS[t] : TYPE_COLORS[t]+"40"}`, background:typeFilter===t ? TYPE_COLORS[t]+"25" : "transparent", color:typeFilter===t ? TYPE_COLORS[t] : TYPE_COLORS[t]+"cc", cursor:"pointer", fontSize:11, fontWeight:600 }}>
             <FileText size={11} style={{ display:"inline", marginRight:4 }}/>{TYPE_LABELS[t]}
@@ -317,7 +317,7 @@ export default function TradePage() {
               <div><label style={S.label}>Description / Notes</label><textarea style={{ ...S.input, minHeight:60, resize:"vertical" as const }} value={form.notes} onChange={e => f("notes", e.target.value)}/></div>
             </div>
             <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background:var(--border), color:"var(--text-sec)" }}>Cancel</button>
+              <button onClick={() => setShowModal(false)} style={{ ...S.btn, background:"var(--border)", color:"var(--text-sec)" }}>Cancel</button>
               <button onClick={save} style={S.btn} disabled={saving}>{saving ? "Saving..." : editId ? "Update" : "Create Document"}</button>
             </div>
           </div>

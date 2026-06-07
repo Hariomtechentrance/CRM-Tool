@@ -249,7 +249,7 @@ export default function OrgAdminPage() {
                             <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{m.user.email}</div>
                           </td>
                           <td style={{ textAlign: "center", padding: "10px 8px" }}>
-                            <span style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: isAdmin ? "#6366f120" : var(--border), color: isAdmin ? "#818cf8" : "var(--text-ghost)", fontWeight: 700 }}>{m.role}</span>
+                            <span style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: isAdmin ? "#6366f120" : "var(--border)", color: isAdmin ? "#818cf8" : "var(--text-ghost)", fontWeight: 700 }}>{m.role}</span>
                           </td>
                           {ALL_MODULES.map(mod => {
                             const has = isAdmin || grantedKeys.has(mod.key);
@@ -261,7 +261,7 @@ export default function OrgAdminPage() {
                                   style={{
                                     width: 26, height: 26, borderRadius: 6,
                                     background: has ? (isAdmin ? "#6366f130" : "#10b98130") : "var(--bg-hover)",
-                                    border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : var(--border)}`,
+                                    border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : "var(--border)"}`,
                                     cursor: isAdmin ? "default" : "pointer",
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                   }}>

@@ -227,7 +227,7 @@ export default function DashboardPage() {
                 <div style={{ padding: "16px 8px 12px" }}>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke=var(--border) />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                       <XAxis dataKey="month" tick={{ fill: "var(--text-ghost)", fontSize: 11 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: "var(--text-ghost)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} width={42} />
                       <Tooltip
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                 <div style={{ padding: "16px 8px 12px" }}>
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={leadStages} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke=var(--border) />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                       <XAxis dataKey="status" tick={{ fill: "var(--text-ghost)", fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: "var(--text-ghost)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
                       <Tooltip

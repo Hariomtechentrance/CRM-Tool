@@ -72,7 +72,7 @@ export default function AdminLogsPage() {
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : logs.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>
-            <ScrollText size={36} style={{ margin: "0 auto 12px", display: "block", color: var(--border) }} />
+            <ScrollText size={36} style={{ margin: "0 auto 12px", display: "block", color: "var(--border)" }} />
             No audit logs found.
           </div>
         ) : (

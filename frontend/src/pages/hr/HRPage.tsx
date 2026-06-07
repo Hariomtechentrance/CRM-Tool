@@ -65,7 +65,7 @@ function Stars({ value }: { value?: number }) {
   return <span style={{ color:"#f59e0b" }}>{Array.from({length:5},(_,i)=><Star key={i} size={12} fill={i<Math.round(value)?"#f59e0b":"none"} color="#f59e0b"/>)}</span>;
 }
 function ProgBar({ pct, color="#6366f1" }: { pct: number; color?: string }) {
-  return <div style={{ height:6, background:var(--border), borderRadius:3, overflow:"hidden" }}>
+  return <div style={{ height:6, background:"var(--border)", borderRadius:3, overflow:"hidden" }}>
     <div style={{ height:"100%", width:`${Math.min(pct,100)}%`, background:color, borderRadius:3, transition:"width 0.3s" }}/>
   </div>;
 }
@@ -854,7 +854,7 @@ export default function HRPage() {
             </div>
             {editId&&<div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--border)"}}><DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact/></div>}
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowEmpModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowEmpModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveEmployee} style={S.btn} disabled={saving}>{saving?"Saving...":editId?"Update":"Add Employee"}</button>
             </div>
           </div>
@@ -885,7 +885,7 @@ export default function HRPage() {
               <div><label style={S.label}>Notes</label><input style={S.input} value={attForm.notes} onChange={e=>af("notes",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowAttModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowAttModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveAttendance} style={S.btn} disabled={saving||!attForm.employeeId}>{saving?"Saving...":"Mark Attendance"}</button>
             </div>
           </div>
@@ -918,7 +918,7 @@ export default function HRPage() {
               <div><label style={S.label}>Other Deductions (₹)</label><input type="number" style={S.input} value={payForm.deductions} onChange={e=>pf("deductions",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowPayModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowPayModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={savePayroll} style={S.btn} disabled={saving||!payForm.employeeId}>{saving?"Generating...":"Generate Payroll"}</button>
             </div>
           </div>
@@ -947,7 +947,7 @@ export default function HRPage() {
                   <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={autoPayForm.workingDays} onChange={e=>setAutoPayForm(p=>({...p,workingDays:e.target.value}))}/></div>
                 </div>
                 <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-                  <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+                  <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
                   <button onClick={autoGeneratePayroll} style={{...S.btn,background:"linear-gradient(135deg,#10b981,#059669)"}} disabled={saving}>{saving?"Generating...":"Generate"}</button>
                 </div>
               </>
@@ -986,7 +986,7 @@ export default function HRPage() {
               <div><label style={S.label}>Reason</label><textarea style={{...S.input,height:70,resize:"none" as const}} value={leaveForm.reason} onChange={e=>lf("reason",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowLeaveModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowLeaveModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveLeave} style={S.btn} disabled={saving||!leaveForm.employeeId||!leaveForm.fromDate}>{saving?"Submitting...":"Submit"}</button>
             </div>
           </div>
@@ -1014,7 +1014,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowLbModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowLbModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveLeaveBalance} style={S.btn} disabled={saving||!lbForm.employeeId}>{saving?"Saving...":"Allocate"}</button>
             </div>
           </div>
@@ -1042,7 +1042,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowShiftModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowShiftModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveShift} style={S.btn} disabled={saving||!shiftForm.name}>{saving?"Saving...":editShiftId?"Update Shift":"Add Shift"}</button>
             </div>
           </div>
@@ -1076,7 +1076,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowGoalModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowGoalModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveGoal} style={S.btn} disabled={saving||!goalForm.employeeId||!goalForm.title}>{saving?"Saving...":editGoalId?"Update":"Add Goal"}</button>
             </div>
           </div>
@@ -1108,7 +1108,7 @@ export default function HRPage() {
               <div><label style={S.label}>Comments</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={reviewForm.comments} onChange={e=>setReviewForm(p=>({...p,comments:e.target.value}))}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowReviewModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowReviewModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveReview} style={S.btn} disabled={saving||!reviewForm.employeeId||!reviewForm.reviewPeriod}>{saving?"Saving...":editReviewId?"Update":"Add Review"}</button>
             </div>
           </div>
@@ -1138,7 +1138,7 @@ export default function HRPage() {
               <div><label style={S.label}>Notes</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={expForm.notes} onChange={e=>setExpForm(p=>({...p,notes:e.target.value}))}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowExpModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowExpModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveExpense} style={S.btn} disabled={saving||!expForm.employeeId||!expForm.title||!expForm.amount}>{saving?"Submitting...":"Submit Claim"}</button>
             </div>
           </div>

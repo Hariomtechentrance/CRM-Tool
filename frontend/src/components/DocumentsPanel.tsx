@@ -166,7 +166,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
           onDrop={handleDrop}
           onClick={() => !uploading && fileInputRef.current?.click()}
           style={{
-            border: `1px dashed ${dragOver ? "#6366f1" : var(--border-input)}`,
+            border: `1px dashed ${dragOver ? "#6366f1" : "var(--border-input)"}`,
             borderRadius: 8, padding: "10px 14px", textAlign: "center",
             cursor: uploading ? "not-allowed" : "pointer",
             background: dragOver ? "rgba(99,102,241,0.06)" : "transparent",
@@ -221,7 +221,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
         onDrop={handleDrop}
         onClick={() => !uploading && fileInputRef.current?.click()}
         style={{
-          border: `2px dashed ${dragOver ? "#6366f1" : var(--border-input)}`,
+          border: `2px dashed ${dragOver ? "#6366f1" : "var(--border-input)"}`,
           borderRadius: 12, padding: "32px 20px", textAlign: "center",
           cursor: uploading ? "not-allowed" : "pointer",
           background: dragOver ? "rgba(99,102,241,0.06)" : "#0A0A18",
@@ -262,7 +262,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
         <div style={{ textAlign: "center", color: "var(--text-ghost)", padding: "24px 0", fontSize: 13 }}>Loading…</div>
       ) : docs.length === 0 ? (
         <div style={{ textAlign: "center", padding: "32px 20px" }}>
-          <Paperclip size={36} color=var(--border) style={{ margin: "0 auto 10px" }} />
+          <Paperclip size={36} color="var(--border)" style={{ margin: "0 auto 10px" }} />
           <p style={{ color: "var(--text-ghost)", margin: 0, fontSize: 13 }}>No files uploaded yet</p>
           <p style={{ color: "var(--text-ghost)", margin: "4px 0 0", fontSize: 12 }}>Upload contracts, invoices, certificates, photos and more</p>
         </div>
@@ -273,7 +273,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
             return (
               <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, transition: "border-color 0.15s" }}
                 onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.borderColor = "#2D2D50")}
-                onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.borderColor = var(--border))}>
+                onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")}>
                 {/* Icon */}
                 <div style={{ width: 36, height: 36, borderRadius: 8, background: color + "18", border: `1px solid ${color}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   {getFileIcon(doc.mimeType)}
@@ -298,7 +298,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
                     onClick={() => handleDelete(doc.id)}
                     style={{ padding: "5px 8px", borderRadius: 6, cursor: "pointer", background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-ghost)" }}
                     onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.3)"; (e.currentTarget as HTMLButtonElement).style.color = "#ef4444"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = var(--border-input); (e.currentTarget as HTMLButtonElement).style.color = "var(--text-ghost)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-input)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-ghost)"; }}
                   >
                     <Trash2 size={13} />
                   </button>

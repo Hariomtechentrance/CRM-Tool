@@ -123,7 +123,7 @@ export default function WarehousePage() {
               {warehouses.length === 0 ? (
                 <div style={{ ...S.card, textAlign: "center", color: "var(--text-ghost)", padding: 40 }}>No warehouses yet. Add your first warehouse.</div>
               ) : warehouses.map(w => (
-                <div key={w.id} style={{ ...S.card, borderColor: w.isDefault ? "#6366f1" : var(--border) }}>
+                <div key={w.id} style={{ ...S.card, borderColor: w.isDefault ? "#6366f1" : "var(--border)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{w.name}</div>

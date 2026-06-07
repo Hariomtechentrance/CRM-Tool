@@ -106,7 +106,7 @@ export default function SupportPage() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" as const }}>
         {["", ...Object.keys(STATUS_COLORS)].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${s && STATUS_COLORS[s] ? STATUS_COLORS[s] + (statusFilter === s ? "" : "40") : var(--border)}`, background: statusFilter === s ? (s ? STATUS_COLORS[s] + "25" : var(--border)) : "transparent", color: s && STATUS_COLORS[s] ? STATUS_COLORS[s] : "var(--text-ghost)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${s && STATUS_COLORS[s] ? STATUS_COLORS[s] + (statusFilter === s ? "" : "40") : "var(--border)"}`, background: statusFilter === s ? (s ? STATUS_COLORS[s] + "25" : "var(--border)") : "transparent", color: s && STATUS_COLORS[s] ? STATUS_COLORS[s] : "var(--text-ghost)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
             {s || "All"}
           </button>
         ))}

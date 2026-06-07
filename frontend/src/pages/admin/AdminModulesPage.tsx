@@ -101,7 +101,7 @@ export default function AdminModulesPage() {
               onClick={() => toggle(mod.key)}
               style={{
                 background: "var(--bg-card)", borderRadius: 12, padding: "18px 20px",
-                border: `1px solid ${isOn ? "#6366f140" : var(--border)}`,
+                border: `1px solid ${isOn ? "#6366f140" : "var(--border)"}`,
                 cursor: locked ? "default" : "pointer",
                 transition: "border-color 0.15s, background 0.15s",
                 position: "relative" as const,
@@ -112,7 +112,7 @@ export default function AdminModulesPage() {
               <div style={{
                 position: "absolute", top: 16, right: 16,
                 width: 36, height: 20, borderRadius: 10,
-                background: isOn ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : var(--border),
+                background: isOn ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--border)",
                 transition: "background 0.2s", display: "flex", alignItems: "center",
                 padding: "0 3px", boxSizing: "border-box",
               }}>

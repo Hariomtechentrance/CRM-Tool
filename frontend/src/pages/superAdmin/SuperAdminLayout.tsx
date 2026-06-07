@@ -38,7 +38,7 @@ export default function SuperAdminLayout() {
             <NavLink key={to} to={to}
               style={({ isActive }) => ({
                 display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, marginBottom: 2,
-                color: isActive ? "var(--text-primary)" : "var(--text-ghost)", background: isActive ? var(--border) : "transparent",
+                color: isActive ? "var(--text-primary)" : "var(--text-ghost)", background: isActive ? "var(--border)" : "transparent",
                 textDecoration: "none", fontSize: 13, fontWeight: isActive ? 600 : 400, transition: "all 0.15s",
               })}>
               <Icon size={15} />

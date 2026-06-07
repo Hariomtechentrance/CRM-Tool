@@ -123,7 +123,7 @@ export default function ActivitiesPage() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {(["all", "upcoming"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
-            padding: "6px 14px", borderRadius: 8, border: `1px solid ${tab === t ? "#6366f1" : var(--border)}`,
+            padding: "6px 14px", borderRadius: 8, border: `1px solid ${tab === t ? "#6366f1" : "var(--border)"}`,
             background: tab === t ? "#6366f120" : "transparent", color: tab === t ? "#818CF8" : "var(--text-ghost)",
             cursor: "pointer", fontSize: 12, fontWeight: 600,
           }}>

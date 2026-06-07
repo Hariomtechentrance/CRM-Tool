@@ -252,7 +252,7 @@ export default function SettingsPage() {
                   {mods.map(m => {
                     const on = enabledModules.includes(m.key);
                     return (
-                      <label key={m.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: on ? "#6366f115" : "var(--bg-hover)", borderRadius: 8, border: `1px solid ${on ? "#6366f1" : var(--border)}`, cursor: "pointer" }}>
+                      <label key={m.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: on ? "#6366f115" : "var(--bg-hover)", borderRadius: 8, border: `1px solid ${on ? "#6366f1" : "var(--border)"}`, cursor: "pointer" }}>
                         <input type="checkbox" checked={on} onChange={() => toggleModule(m.key)} style={{ accentColor: "#6366f1" }} />
                         <div>
                           <div style={{ fontSize: 13, color: on ? "var(--text-primary)" : "var(--text-sec)", fontWeight: on ? 600 : 400 }}>{m.label}</div>
