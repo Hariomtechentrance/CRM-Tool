@@ -200,7 +200,7 @@ export async function getChartData(req: OrgRequest, res: Response): Promise<void
                COALESCE(SUM(total), 0) AS revenue
         FROM "Invoice"
         WHERE "organizationId" = ${orgId}
-          AND status IN ('PAID', 'DELIVERED')
+          AND status IN ('PAID', 'PARTIAL')
           AND "createdAt" >= ${sixMonthsAgo}
         GROUP BY DATE_TRUNC('month', "createdAt")
       `,
