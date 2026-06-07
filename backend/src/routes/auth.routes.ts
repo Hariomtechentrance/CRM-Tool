@@ -5,6 +5,7 @@ import {
   changePassword, unlockAccount,
 } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth";
+import { requireSuperAdmin } from "../middleware/superAdmin";
 
 const router = Router();
 
@@ -18,6 +19,6 @@ router.post("/reset-password",  resetPassword);
 router.get("/me",               authenticate, getMe);
 router.post("/change-password", authenticate, changePassword);
 router.post("/claim-super-admin", authenticate, claimSuperAdmin);
-router.post("/unlock/:userId",  authenticate, unlockAccount);
+router.post("/unlock/:userId",  authenticate, requireSuperAdmin, unlockAccount);
 
 export default router;

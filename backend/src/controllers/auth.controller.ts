@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
+import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
+
+// Hash a sensitive token before DB storage (SHA-256 one-way)
+function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
 import { prisma } from "../lib/prisma";
 import {
   signAccessToken,
@@ -25,6 +31,7 @@ import {
   notFound,
 } from "../utils/response";
 import { sendEmail, verifyEmailTemplate, resetPasswordTemplate } from "../utils/email";
+import { writeAuditLog, getIp } from "../utils/auditLog";
 import { AuthRequest } from "../middleware/auth";
 
 const MAX_FAIL  = 5;
@@ -179,10 +186,10 @@ export async function login(req: Request, res: Response): Promise<void> {
         ? { loginAttempts: 0, lockedUntil: new Date(Date.now() + LOCK_MS) }
         : { loginAttempts: attempts };
       await prisma.user.update({ where: { id: user.id }, data: lockData });
-      const remaining = MAX_FAIL - attempts;
-      unauthorized(res, remaining > 0
-        ? `Invalid email or password. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
-        : "Too many failed attempts. Account locked for 15 minutes."
+      writeAuditLog({ userEmail: user.email, userName: user.name, action: "LOGIN_FAILED", resource: "User", resourceId: user.id, description: attempts >= MAX_FAIL ? "Account locked after max failed attempts" : "Invalid password", ipAddress: getIp(req as any) });
+      unauthorized(res, attempts >= MAX_FAIL
+        ? "Too many failed attempts. Account locked for 15 minutes."
+        : "Invalid email or password."
       );
       return;
     }
@@ -208,7 +215,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     const refreshToken = signRefreshToken({ userId: user.id, tokenId });
 
     await prisma.refreshToken.create({
-      data: { id: tokenId, token: refreshToken, userId: user.id, expiresAt: getRefreshExpiryDate() },
+      data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
     });
 
     // ── Session tracking ─────────────────────────────────────
@@ -251,7 +258,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const stored = await prisma.refreshToken.findUnique({ where: { token } });
+    const stored = await prisma.refreshToken.findUnique({ where: { token: hashToken(token) } });
     if (!stored || stored.expiresAt < new Date()) {
       unauthorized(res, "Refresh token expired or revoked");
       return;
@@ -261,14 +268,14 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     if (!user || !user.isActive) { unauthorized(res); return; }
 
     // Rotate: delete old, issue new
-    await prisma.refreshToken.delete({ where: { token } });
+    await prisma.refreshToken.delete({ where: { token: hashToken(token) } });
 
     const newAccessToken = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
     const newTokenId = uuidv4();
     const newRefreshToken = signRefreshToken({ userId: user.id, tokenId: newTokenId });
 
     await prisma.refreshToken.create({
-      data: { id: newTokenId, token: newRefreshToken, userId: user.id, expiresAt: getRefreshExpiryDate() },
+      data: { id: newTokenId, token: hashToken(newRefreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
     });
 
     ok(res, { accessToken: newAccessToken, refreshToken: newRefreshToken });
@@ -281,7 +288,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
   try {
     const { refreshToken: token } = req.body;
     if (token) {
-      await prisma.refreshToken.deleteMany({ where: { token } });
+      await prisma.refreshToken.deleteMany({ where: { token: hashToken(token) } });
     }
     ok(res, null, "Logged out successfully");
   } catch (err) {
@@ -311,12 +318,12 @@ export async function forgotPassword(req: Request, res: Response): Promise<void>
     // Always return same message to prevent user enumeration
     if (!user) { ok(res, null, "If this email exists, a reset link has been sent."); return; }
 
-    const resetToken = uuidv4();
+    const resetToken = uuidv4(); // raw — sent in email only, never stored
     const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordResetToken: resetToken, passwordResetExpiry: expiry },
+      data: { passwordResetToken: hashToken(resetToken), passwordResetExpiry: expiry },
     });
 
     await sendEmail({
@@ -344,6 +351,7 @@ export async function claimSuperAdmin(req: AuthRequest, res: Response): Promise<
       data: { isSuperAdmin: true },
       select: { id: true, name: true, email: true, isSuperAdmin: true },
     });
+    writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "SUPER_ADMIN_CLAIMED", resource: "User", resourceId: req.userId, description: "Super admin role self-claimed (bootstrap)", ipAddress: getIp(req as any) });
     ok(res, { user: updated }, "You are now the Super Admin. Please log out and log back in.");
   } catch (err) {
     serverError(res, err);
@@ -357,7 +365,7 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
 
     const { token, password } = parsed.data;
     const user = await prisma.user.findFirst({
-      where: { passwordResetToken: token, passwordResetExpiry: { gt: new Date() } },
+      where: { passwordResetToken: hashToken(token), passwordResetExpiry: { gt: new Date() } },
     });
     if (!user) { badRequest(res, "Invalid or expired reset token"); return; }
 
@@ -424,6 +432,7 @@ export async function changePassword(req: AuthRequest, res: Response): Promise<v
       data: { password: hashed, lastPasswordChange: new Date(), passwordHistory: [...history.slice(-4), hashed] },
     });
 
+    writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "PASSWORD_CHANGED", resource: "User", resourceId: req.userId, description: "User changed their password", ipAddress: getIp(req as any) });
     ok(res, null, "Password changed successfully");
   } catch (err) { serverError(res, err); }
 }

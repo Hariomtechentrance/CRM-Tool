@@ -17,19 +17,19 @@ export interface RefreshTokenPayload {
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {
-  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES } as jwt.SignOptions);
+  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES, algorithm: "HS256" } as jwt.SignOptions);
 }
 
 export function signRefreshToken(payload: RefreshTokenPayload): string {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES } as jwt.SignOptions);
+  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES, algorithm: "HS256" } as jwt.SignOptions);
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
-  return jwt.verify(token, ACCESS_SECRET) as AccessTokenPayload;
+  return jwt.verify(token, ACCESS_SECRET, { algorithms: ["HS256"] }) as AccessTokenPayload;
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
-  return jwt.verify(token, REFRESH_SECRET) as RefreshTokenPayload;
+  return jwt.verify(token, REFRESH_SECRET, { algorithms: ["HS256"] }) as RefreshTokenPayload;
 }
 
 export function getRefreshExpiryDate(): Date {

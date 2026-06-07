@@ -26,7 +26,11 @@ export function errorHandler(
     }
   }
 
-  console.error("Unhandled error:", err);
+  if (process.env.NODE_ENV !== "production") {
+    console.error("Unhandled error:", err);
+  } else {
+    console.error("[error]", err.message);
+  }
   if (!res.headersSent) {
     res.status(500).json({ success: false, message: "Internal server error" });
   }

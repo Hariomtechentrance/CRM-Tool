@@ -188,6 +188,12 @@ export async function downloadDocument(req: OrgRequest, res: Response): Promise<
       return;
     }
 
+    // Guard against path traversal — reject any path containing ".." or an absolute prefix
+    if (doc.filePath.includes("..") || doc.filePath.startsWith("/") || doc.filePath.startsWith("\\")) {
+      res.status(400).json({ success: false, message: "Invalid file reference" });
+      return;
+    }
+
     // Local disk fallback
     const absolutePath = path.join(process.cwd(), doc.filePath);
     if (!fs.existsSync(absolutePath)) {

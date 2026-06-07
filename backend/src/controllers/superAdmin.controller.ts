@@ -1,7 +1,20 @@
 import { Response } from "express";
+import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
-import { ok, serverError } from "../utils/response";
+import { ok, serverError, badRequest } from "../utils/response";
+
+const updateOrgSchema = z.object({
+  isActive:       z.boolean().optional(),
+  plan:           z.enum(["FREE","PRO","ENTERPRISE","CUSTOM"]).optional(),
+  planExpiresAt:  z.string().datetime().nullable().optional(),
+  adminNotes:     z.string().max(500).optional(),
+  enabledModules: z.array(z.string().max(50)).max(50).optional(),
+});
+
+const superAdminFlagSchema = z.object({
+  isSuperAdmin: z.boolean(),
+});
 
 export async function getSuperAdminStats(req: AuthRequest, res: Response): Promise<void> {
   try {
@@ -71,7 +84,10 @@ export async function getOrganizationDetail(req: AuthRequest, res: Response): Pr
 export async function updateOrganization(req: AuthRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
-    const { isActive, plan, planExpiresAt, adminNotes, enabledModules } = req.body;
+    const parsed = updateOrgSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Invalid data", parsed.error.flatten().fieldErrors); return; }
+
+    const { isActive, plan, planExpiresAt, adminNotes, enabledModules } = parsed.data;
     const data: any = {};
     if (isActive !== undefined) data.isActive = isActive;
     if (plan !== undefined) data.plan = plan;
@@ -124,8 +140,15 @@ export async function toggleUserActive(req: AuthRequest, res: Response): Promise
 export async function makeSuperAdmin(req: AuthRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
-    const { isSuperAdmin } = req.body;
-    const updated = await prisma.user.update({ where: { id }, data: { isSuperAdmin } });
+    const parsed = superAdminFlagSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "isSuperAdmin must be a boolean"); return; }
+
+    // Prevent super-admin from revoking their own super-admin status
+    if (id === req.userId && !parsed.data.isSuperAdmin) {
+      badRequest(res, "You cannot revoke your own super admin status"); return;
+    }
+
+    const updated = await prisma.user.update({ where: { id }, data: { isSuperAdmin: parsed.data.isSuperAdmin } });
     ok(res, { user: updated });
   } catch (e) { serverError(res, e); }
 }

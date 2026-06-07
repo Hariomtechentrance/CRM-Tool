@@ -88,6 +88,17 @@ if (missing.length) {
   process.exit(1);
 }
 
+// ── HTTPS enforcement (production only) ──────────────────────
+if (isProd) {
+  app.use((req, res, next) => {
+    const proto = req.headers["x-forwarded-proto"] as string;
+    if (proto && proto !== "https") {
+      return res.redirect(301, `https://${req.get("host")}${req.url}`);
+    }
+    next();
+  });
+}
+
 // ── Gzip compression (60-80 % smaller responses) ─────────────
 app.use(compression());
 
@@ -131,6 +142,8 @@ const defaultOrigins = isProd ? "" : "http://localhost:5173,http://localhost:517
 const allowedOrigins = (process.env.FRONTEND_URL || defaultOrigins).split(",").map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
+    // In production, require an explicit origin (blocks curl/Postman without Origin header)
+    if (isProd && !origin) return cb(new Error("CORS: origin required"));
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
@@ -140,8 +153,8 @@ app.use(cors({
 }));
 
 // ── Body parsing ─────────────────────────────────────────────
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
 // ── Request logging ──────────────────────────────────────────
 app.use(morgan(isProd ? "combined" : "dev"));
