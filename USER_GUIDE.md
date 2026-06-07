@@ -42,6 +42,12 @@
 32. [Webhooks](#32-webhooks)
 33. [Super Admin (Platform Owner)](#33-super-admin-platform-owner)
 34. [Roles & Permissions Reference](#34-roles--permissions-reference)
+35. [Custom Fields — Add Your Own Data Fields](#35-custom-fields--add-your-own-data-fields)
+36. [Branding — Make It Look Like Your Business](#36-branding--make-it-look-like-your-business)
+37. [Compliance — Stay Legally Safe in India](#37-compliance--stay-legally-safe-in-india)
+38. [Tele-calling Centre](#38-tele-calling-centre)
+39. [Stock Market Advisory](#39-stock-market-advisory)
+40. [Health & Patient Management](#40-health--patient-management)
 
 ---
 
@@ -1124,7 +1130,359 @@ View all users across all organisations. Can deactivate accounts, reset password
 | Share a lead form | Lead Forms → Copy URL |
 | Create a budget | Budgets → + New Budget |
 | Reconcile bank | Reconciliation → Import Statement |
+| Add custom field | Custom Fields → select entity → + Add Field |
+| Change brand colour | Branding → pick colour → Save |
+| Enable TRAI compliance | Compliance → TRAI section → toggle ON |
+| Register patient | Health → + New Patient |
+| Log a trade call | Stock Market → Trade Calls → + New |
+| Start a call campaign | Tele-calling → Campaigns → + New |
 
 ---
 
-*FlowCRM — Built for Indian businesses. For support, contact your system administrator.*
+## 35. Custom Fields — Add Your Own Data Fields
+
+Every business has unique data it needs to track. Custom Fields let you add your own fields to any module — without changing anything in the system.
+
+### Examples of what businesses add
+
+- Vehicle dealer → adds "Car Registration Number" to customers
+- School → adds "Student Roll Number" to leads
+- Gym → adds "Membership Plan" to contacts
+- Pharma → adds "Drug License Number" to suppliers
+
+### Create a Custom Field
+
+1. Go to **Custom Fields** in the sidebar (under Settings section).
+2. Use the **Entity** dropdown to select which module to add the field to:
+   - Party (customers/suppliers), Lead, Invoice, Product, Employee, Ticket, Project, Patient, Purchase Order, Sales Order
+3. Click **+ Add Field**.
+4. Fill in:
+   - **Label** — the name shown to users (e.g., "Reg. Number")
+   - **Field Type** — choose from:
+     - **Text** — any text input
+     - **Number** — only numbers
+     - **Date** — a date picker
+     - **Yes/No** — a simple true/false dropdown
+     - **Dropdown** — pick one from a list you define (enter options separated by commas)
+     - **Multi-select** — pick multiple from a list
+     - **URL** — a website link
+     - **Email** — an email address
+   - **Required** — tick this if users must fill it before saving a record
+   - **Sort Order** — lower number = appears higher in the list
+5. Click **Save**.
+
+### Where Custom Fields Appear
+
+After creating them, custom fields appear automatically on the right record:
+
+- **Party (customer/supplier)** → open any party → go to the **Custom Fields** tab
+- **Lead** → click Edit on any lead → custom fields appear below the standard form
+
+Fill in values and click **Save Custom Fields**.
+
+### Edit or Remove a Field
+
+- Click the **pencil icon** on any field row to edit the label, options, or sort order.
+- Click the **delete icon** to permanently remove the field and all its stored values.
+- Toggle the **Active** switch to temporarily hide a field without deleting it.
+
+---
+
+## 36. Branding — Make It Look Like Your Business
+
+Change the visual appearance of the system to match your company's colours and add your logo.
+
+### Update Branding
+
+1. Go to **Branding** in the sidebar.
+2. **Brand Colour** — choose your company's primary colour:
+   - Click one of the 10 preset colour swatches, or
+   - Click the colour picker to choose any colour, or
+   - Type a hex code directly (e.g., `#1a73e8`)
+   - A preview shows how the colour looks on a button and logo badge
+3. **Logo** — paste a direct URL to your company logo image (must be a public image URL, e.g., from your website)
+4. **Invoice Settings** — these appear on every invoice you generate:
+   - **Header** — text at the top of invoices (e.g., company tagline)
+   - **Footer** — text at the bottom (e.g., "Goods once sold will not be taken back")
+   - **Notes** — standard notes (e.g., bank account details for payment)
+5. Click **Save Branding**.
+
+The brand colour takes effect immediately across the app for your organisation.
+
+---
+
+## 37. Compliance — Stay Legally Safe in India
+
+The Compliance module helps you follow key Indian regulations for data privacy, telecom, financial advisory, and healthcare.
+
+### Access Compliance Settings
+
+Go to **Compliance** in the sidebar.
+
+---
+
+### Section 1 — DPDP Act 2023 (Data Privacy)
+
+India's Digital Personal Data Protection Act, 2023 requires businesses to handle personal data responsibly.
+
+| Setting | What It Does |
+|---------|-------------|
+| **Consent Required** | Ask for explicit permission before saving someone's personal data |
+| **Data Retention Days** | Automatically flag data older than this many days for deletion review |
+| **Privacy Policy URL** | Link to your privacy policy page — shown to customers |
+| **Terms URL** | Link to your terms and conditions |
+| **Cookie Consent** | Show a cookie consent banner to website visitors |
+
+**Export All Data:** Click the **Export My Data** button to download a full JSON file of everything the system holds about your organisation — useful if a regulator or customer requests it.
+
+**Right to Erasure:** In the CRM, when a customer asks you to delete their data, open their party record and use the **Delete Personal Data** option. The system anonymises all their PII (name, phone, email, address, GSTIN, PAN) while keeping the invoice/transaction skeleton for audit purposes.
+
+---
+
+### Section 2 — TRAI (Telecom Regulatory Authority of India)
+
+For businesses that do outbound calling or SMS marketing.
+
+| Setting | What It Does |
+|---------|-------------|
+| **Restrict Calling Hours** | Prevents logging calls outside 9 AM–9 PM IST — mandatory under TRAI |
+| **NDNC/DND Check Reminder** | Reminds your team to check the National Do Not Call registry before calling |
+
+> You must also register on the **DLT platform** (Distributed Ledger Technology — required for bulk SMS). Register at your telecom operator's DLT portal (Airtel, Jio, Vodafone Idea, BSNL, or TRAI's own platform).
+
+---
+
+### Section 3 — SEBI (Financial Advisors Only)
+
+For businesses that provide stock market advice to clients.
+
+| Setting | What It Does |
+|---------|-------------|
+| **SEBI Registered** | Toggle ON if your firm holds a SEBI Investment Adviser (IA) licence |
+| **SEBI Reg. Number** | Enter your IA registration number (e.g., INA000012345) |
+| **Disclaimer Text** | Custom warning text shown on all stock advisory screens |
+
+> **Warning:** Providing investment advice to clients without a SEBI IA licence is a criminal offence under SEBI (Investment Advisers) Regulations, 2013. Keep this module for internal records only until you are properly registered.
+
+---
+
+### Section 4 — Health Data (Clinics & Hospitals)
+
+| Setting | What It Does |
+|---------|-------------|
+| **Health/HIPAA Mode** | Applies stricter access controls to patient records |
+| **Patient Consent Required** | Requires documenting patient consent before storing their health data |
+
+---
+
+### Indian Compliance Checklist
+
+At the bottom of the Compliance page, a table shows your status across 10 compliance areas:
+
+| Area | What to Check |
+|------|--------------|
+| DPDP Consent | Consent collection is enabled |
+| Data Retention | Retention policy is set |
+| Privacy Policy | URL is filled in |
+| TRAI Calling Hours | Calling hour restriction is ON |
+| NDNC Check | DNC check reminder is ON |
+| DLT Registration | Manual check (system cannot auto-verify) |
+| GSTIN | Your GSTIN is saved in Settings |
+| E-Invoicing | E-invoice module is active |
+| Employee PF/ESI | Payroll deductions are configured |
+| Data Export | Export feature is enabled |
+
+Green tick = done. Amber warning = action needed.
+
+---
+
+## 38. Tele-calling Centre
+
+For businesses with outbound sales or customer calling teams.
+
+> **TRAI Notice:** All calls must be made between **9 AM and 9 PM IST** only. The system enforces this automatically when TRAI mode is turned on in Compliance settings.
+
+### Your Daily Call Queue
+
+1. Go to **Tele-calling** from the sidebar.
+2. The top section shows today's stats: Total Calls, Connected, No Answer, Conversions.
+3. Below that, your **call queue** lists leads assigned to you for today.
+
+### Log a Call Result
+
+After every call:
+1. Find the lead in the queue and click **Log Call**.
+2. Select the **Outcome**:
+   - **Connected** — you spoke to them
+   - **No Answer** — phone rang but no one picked up
+   - **Busy** — line was busy
+   - **Interested** — they want to know more (follow up!)
+   - **Not Interested** — they said no
+   - **Callback Requested** — they asked you to call back later
+   - **Converted** — they agreed to buy / sign up
+3. Add notes about what was discussed.
+4. Set a **follow-up date** if they asked you to call back.
+5. Save.
+
+### Call Scripts
+
+Keep your team consistent with pre-written scripts.
+
+1. Click the **Scripts** tab.
+2. Click **+ New Script**.
+3. Write:
+   - Opening line
+   - Key points to cover
+   - Common objections and how to handle them
+   - Closing line / call to action
+4. Save.
+
+Scripts are visible to callers as a reference guide while they work through the queue.
+
+### Do Not Call (DNC) List
+
+The **DNC** tab shows all numbers marked as Do Not Call. Numbers are added here automatically when someone is marked DNC in the Leads module, or you can add numbers manually.
+
+Callers will never see a Call button for DNC numbers — this protects your business from TRAI violations.
+
+### Campaigns
+
+Organise your calling work into campaigns (e.g., "June Follow-up Drive", "New Product Launch"):
+
+1. Click **Campaigns** tab → **+ New Campaign**.
+2. Give it a name and description.
+3. Add leads to the campaign.
+4. Assign to team members.
+5. Track progress — how many called, how many connected, conversion rate.
+
+---
+
+## 39. Stock Market Advisory
+
+For financial advisory firms that publish trade calls and research to clients.
+
+> **SEBI Disclaimer:** Publishing trade recommendations to clients without a SEBI Investment Adviser licence is illegal in India. This module is for internal records only. Enable your registration details in Compliance settings.
+
+### Trade Calls
+
+1. Go to **Stock Market** from the sidebar.
+2. Click **+ New Trade Call**.
+3. Fill in:
+   - **Symbol** — stock ticker (e.g., RELIANCE, INFY, TATASTEEL)
+   - **Exchange** — NSE or BSE
+   - **Call Type** — BUY or SELL
+   - **Entry Price** — at what price to enter the trade
+   - **Target Price** — where you expect it to go
+   - **Stop-Loss** — where to exit if it goes wrong
+   - **Time Horizon** — Intraday, Short-term, Medium-term, Long-term
+   - **Rationale** — why you are recommending this trade
+4. Save.
+
+All trade calls are logged with date and time for your compliance records.
+
+### Research Reports
+
+Go to the **Research** tab:
+1. Click **+ New Report**.
+2. Enter:
+   - Company name and sector
+   - **Rating** — Strong Buy, Buy, Hold, Sell, Strong Sell
+   - **Target Price** and **CMP** (current market price)
+   - **Upside/Downside %**
+   - Full research write-up
+3. Save.
+
+### Client Subscriptions
+
+Go to the **Subscriptions** tab to track which clients are currently subscribed to your advisory service:
+- Client name and contact
+- Plan type and amount paid
+- Subscription start and end date
+- KYC status (verified / pending)
+
+### Market Alerts
+
+Go to the **Alerts** tab to set price-based alerts:
+1. Click **+ New Alert**.
+2. Enter the **Symbol** and **Trigger Price**.
+3. Write the **Alert Message** (what to tell the client when this price is hit).
+4. Save.
+
+When the stock crosses the trigger price, the alert fires and is recorded in the system.
+
+---
+
+## 40. Health & Patient Management
+
+For clinics, hospitals, dental offices, physiotherapy centres, and any healthcare provider.
+
+> **Consent Note:** Always get patient consent before recording their health data. Enable Patient Consent in Compliance → Health section.
+
+### Register a New Patient
+
+1. Go to **Health** from the sidebar.
+2. Click **+ New Patient**.
+3. Fill in:
+   - **Full Name** (required)
+   - **Date of Birth**
+   - **Gender**
+   - **Blood Group** — A+, A-, B+, B-, O+, O-, AB+, AB-
+   - **Known Allergies** — important for prescriptions
+   - **Phone number** (for follow-up reminders)
+   - **Emergency Contact** name and phone
+   - **Address**
+4. Click Save.
+
+Each patient gets a unique Patient ID automatically.
+
+### Search for a Patient
+
+Use the **Search bar** at the top of the Health page to find patients by name or phone number. Click their name to open their full record.
+
+### Log a Patient Visit
+
+Each time a patient comes in:
+
+1. Open the patient record.
+2. Click **+ New Visit**.
+3. Fill in:
+   - **Visit Type** — OPD (walks in) or IPD (admitted)
+   - **Date and Time**
+   - **Chief Complaint** — in their own words (e.g., "fever for 3 days")
+   - **Vital Signs:**
+     - Blood Pressure (e.g., 120/80)
+     - Pulse (beats per minute)
+     - Temperature (°F or °C)
+     - Weight (kg)
+   - **Diagnosis** — doctor's diagnosis
+   - **Next Follow-up Date** — when to come back
+4. Save.
+
+### Write a Prescription
+
+Inside a visit record:
+1. Click **+ Prescription**.
+2. Add medicines:
+   - Medicine name
+   - Dosage (e.g., 500mg)
+   - Frequency (e.g., Twice a day)
+   - Duration (e.g., 5 days)
+   - Instructions (e.g., "After food")
+3. Add doctor's advice notes.
+4. Click **Print** to print the prescription for the patient.
+
+### Record Lab Results
+
+Inside a visit record, click **+ Lab Report** to add test results:
+- Test name (e.g., CBC, Blood Sugar, HbA1c)
+- Result value and unit
+- Normal range (for reference)
+- Upload the lab report file if available
+
+### Patient History
+
+The patient's full visit history is visible on their profile — all visits, prescriptions, and lab reports in reverse chronological order.
+
+---
+
+*BL-CRM — Built for Indian businesses. For support, contact your system administrator.*
