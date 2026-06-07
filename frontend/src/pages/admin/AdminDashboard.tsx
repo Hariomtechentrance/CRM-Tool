@@ -100,7 +100,7 @@ export default function AdminDashboard() {
               const cfg = FEED_ICONS[item.type] || { icon: FileText, color: "#818cf8" };
               const color = STATUS_COLORS[item.meta] || "#818cf8";
               return (
-                <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid #131327", alignItems: "center" }}>
+                <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--bg-hover)", alignItems: "center" }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: cfg.color + "20", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <cfg.icon size={14} color={cfg.color} />
                   </div>

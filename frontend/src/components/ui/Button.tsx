@@ -11,27 +11,40 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export function Button({
   children, variant = "primary", size = "md", loading = false,
-  icon, className, disabled, ...props
+  icon, className, disabled, style, ...props
 }: ButtonProps) {
-  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-[#07071A] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 
-  const variants = {
-    primary:   "bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 focus-visible:ring-indigo-500 shadow-lg shadow-indigo-900/40",
-    secondary: "bg-[#1A1A33] text-[#CCCCEE] hover:bg-[#252545] active:bg-[#1A1A33] focus-visible:ring-[#2A2A48] border border-[#252545]",
-    ghost:     "text-[#9090B0] hover:bg-[#131327] hover:text-[#EEEEF5] active:bg-[#1A1A33] focus-visible:ring-[#2A2A48]",
-    danger:    "bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30 focus-visible:ring-red-500",
-    outline:   "border border-[#252545] bg-transparent text-[#CCCCEE] hover:bg-[#131327] hover:border-[#353560] focus-visible:ring-[#2A2A48]",
-  };
-
-  const sizes = {
+  const sizeMap = {
     xs: "px-2.5 py-1.5 text-xs",
     sm: "px-3 py-1.5 text-sm",
     md: "px-4 py-2 text-sm",
     lg: "px-5 py-2.5 text-sm",
   };
 
+  const variantStyles: Record<string, React.CSSProperties> = {
+    primary:   {},
+    secondary: { background: "var(--bg-hover)", color: "var(--text-sec)", border: "1px solid var(--border-input)" },
+    ghost:     { background: "transparent",      color: "var(--text-muted)" },
+    danger:    {},
+    outline:   { background: "transparent",      color: "var(--text-sec)", border: "1px solid var(--border-input)" },
+  };
+
+  const variantClasses: Record<string, string> = {
+    primary:   "bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 shadow-lg shadow-indigo-900/20 focus-visible:ring-indigo-500",
+    secondary: "hover:opacity-80 focus-visible:ring-indigo-400",
+    ghost:     "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:ring-indigo-400",
+    danger:    "bg-red-600/15 text-red-500 hover:bg-red-600/25 border border-red-500/30 focus-visible:ring-red-500",
+    outline:   "hover:bg-[var(--bg-hover)] focus-visible:ring-indigo-400",
+  };
+
   return (
-    <button className={cn(base, variants[variant], sizes[size], className)} disabled={disabled || loading} {...props}>
+    <button
+      className={cn(base, variantClasses[variant], sizeMap[size], className)}
+      style={{ ...variantStyles[variant], ...style }}
+      disabled={disabled || loading}
+      {...props}
+    >
       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : icon}
       {children}
     </button>

@@ -47,7 +47,7 @@ function OverviewTab() {
       .finally(() => setLoading(false));
   }, [token, activeOrg]);
 
-  if (loading) return <div style={{ color: "#7070A0", padding: 24 }}>Loading…</div>;
+  if (loading) return <div style={{ color: var(--text-faint), padding: 24 }}>Loading…</div>;
   if (!data) return null;
 
   const stats = [
@@ -68,7 +68,7 @@ function OverviewTab() {
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <Icon style={{ width: 16, height: 16, color }} />
-              <span style={{ fontSize: 12, color: "#7070A0" }}>{label}</span>
+              <span style={{ fontSize: 12, color: var(--text-faint) }}>{label}</span>
             </div>
             <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)" }}>{value}</div>
           </div>
@@ -77,7 +77,7 @@ function OverviewTab() {
 
       <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 14 }}>Recent Audit Events</div>
-        {data.recentAudit?.length === 0 && <div style={{ color: "#7070A0", fontSize: 13 }}>No recent events</div>}
+        {data.recentAudit?.length === 0 && <div style={{ color: var(--text-faint), fontSize: 13 }}>No recent events</div>}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {data.recentAudit?.map((log: any, i: number) => (
             <div key={i} style={{
@@ -86,10 +86,10 @@ function OverviewTab() {
             }}>
               <CheckCircle style={{ width: 13, height: 13, color: "#22c55e", flexShrink: 0 }} />
               <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>{log.action}</span>
-              <span style={{ color: "#7070A0" }}>{log.resource}</span>
-              <span style={{ color: "#7070A0" }}>by {log.userName}</span>
-              {log.ipAddress && <span style={{ color: "#7070A0", marginLeft: "auto" }}>{log.ipAddress}</span>}
-              <span style={{ color: "#7070A0", marginLeft: 8, flexShrink: 0 }}>{timeAgo(log.createdAt)}</span>
+              <span style={{ color: var(--text-faint) }}>{log.resource}</span>
+              <span style={{ color: var(--text-faint) }}>by {log.userName}</span>
+              {log.ipAddress && <span style={{ color: var(--text-faint), marginLeft: "auto" }}>{log.ipAddress}</span>}
+              <span style={{ color: var(--text-faint), marginLeft: 8, flexShrink: 0 }}>{timeAgo(log.createdAt)}</span>
             </div>
           ))}
         </div>
@@ -127,14 +127,14 @@ function SessionsTab() {
     load();
   };
 
-  if (loading) return <div style={{ color: "#7070A0", padding: 24 }}>Loading…</div>;
+  if (loading) return <div style={{ color: var(--text-faint), padding: 24 }}>Loading…</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Active Sessions</div>
-          <div style={{ fontSize: 12, color: "#7070A0", marginTop: 2 }}>{sessions.length} device(s) signed in</div>
+          <div style={{ fontSize: 12, color: var(--text-faint), marginTop: 2 }}>{sessions.length} device(s) signed in</div>
         </div>
         {sessions.filter(s => !s.isCurrent).length > 0 && (
           <button onClick={revokeAll} style={{
@@ -155,7 +155,7 @@ function SessionsTab() {
             background: "var(--bg-card)", border: `1px solid ${s.isCurrent ? "#6366f1" : "var(--border)"}`,
             borderRadius: 10,
           }}>
-            <MonitorSmartphone style={{ width: 18, height: 18, color: s.isCurrent ? "#6366f1" : "#7070A0", flexShrink: 0 }} />
+            <MonitorSmartphone style={{ width: 18, height: 18, color: s.isCurrent ? "#6366f1" : var(--text-faint), flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
@@ -168,7 +168,7 @@ function SessionsTab() {
                   }}>Current</span>
                 )}
               </div>
-              <div style={{ fontSize: 11, color: "#7070A0" }}>
+              <div style={{ fontSize: 11, color: var(--text-faint) }}>
                 {s.ipAddress && <span>{s.ipAddress} · </span>}
                 Last active {timeAgo(s.lastActiveAt)} · Since {fmtDate(s.createdAt)}
               </div>
@@ -188,7 +188,7 @@ function SessionsTab() {
             )}
           </div>
         ))}
-        {sessions.length === 0 && <div style={{ color: "#7070A0", fontSize: 13 }}>No active sessions found</div>}
+        {sessions.length === 0 && <div style={{ color: var(--text-faint), fontSize: 13 }}>No active sessions found</div>}
       </div>
     </div>
   );
@@ -242,7 +242,7 @@ function ApiKeysTab() {
     setForm(f => ({ ...f, scopes: f.scopes.includes(scope) ? f.scopes.filter(s => s !== scope) : [...f.scopes, scope] }));
   };
 
-  if (loading) return <div style={{ color: "#7070A0", padding: 24 }}>Loading…</div>;
+  if (loading) return <div style={{ color: var(--text-faint), padding: 24 }}>Loading…</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -257,11 +257,11 @@ function ApiKeysTab() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(0,0,0,0.3)", borderRadius: 7 }}>
             <code style={{ flex: 1, fontSize: 12, color: "#a5b4fc", fontFamily: "monospace", wordBreak: "break-all" }}>{newKey}</code>
-            <button onClick={copyKey} style={{ background: "none", border: "none", cursor: "pointer", color: "#7070A0" }}>
+            <button onClick={copyKey} style={{ background: "none", border: "none", cursor: "pointer", color: var(--text-faint) }}>
               {copied ? <Check style={{ width: 15, height: 15, color: "#22c55e" }} /> : <Copy style={{ width: 15, height: 15 }} />}
             </button>
           </div>
-          <button onClick={() => setNewKey(null)} style={{ alignSelf: "flex-end", fontSize: 12, color: "#7070A0", background: "none", border: "none", cursor: "pointer" }}>Dismiss</button>
+          <button onClick={() => setNewKey(null)} style={{ alignSelf: "flex-end", fontSize: 12, color: var(--text-faint), background: "none", border: "none", cursor: "pointer" }}>Dismiss</button>
         </div>
       )}
 
@@ -281,31 +281,31 @@ function ApiKeysTab() {
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Create API Key</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>Name *</label>
+              <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>Name *</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. My Integration" style={inputSt} />
             </div>
             <div>
-              <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>Expires in (days, optional)</label>
+              <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>Expires in (days, optional)</label>
               <input type="number" value={form.expiresInDays} onChange={e => setForm(f => ({ ...f, expiresInDays: e.target.value }))}
                 placeholder="e.g. 90" style={inputSt} min="1" max="365" />
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 6 }}>Scopes</label>
+            <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 6 }}>Scopes</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {SCOPES.map(s => (
                 <button key={s} onClick={() => toggleScope(s)} style={{
                   padding: "3px 10px", borderRadius: 9999, fontSize: 11, cursor: "pointer", fontFamily: "monospace",
                   background: form.scopes.includes(s) ? "rgba(99,102,241,0.15)" : "var(--bg-hover)",
                   border: `1px solid ${form.scopes.includes(s) ? "#6366f1" : "var(--border)"}`,
-                  color: form.scopes.includes(s) ? "#818cf8" : "#7070A0",
+                  color: form.scopes.includes(s) ? "#818cf8" : var(--text-faint),
                 }}>{s}</button>
               ))}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={() => setShowCreate(false)} style={{ ...btnSt, background: "transparent", color: "#7070A0" }}>Cancel</button>
+            <button onClick={() => setShowCreate(false)} style={{ ...btnSt, background: "transparent", color: var(--text-faint) }}>Cancel</button>
             <button onClick={create} disabled={creating} style={{ ...btnSt, background: "#6366f1", color: "#fff", border: "none" }}>
               {creating ? "Creating…" : "Create Key"}
             </button>
@@ -319,7 +319,7 @@ function ApiKeysTab() {
             <Key style={{ width: 16, height: 16, color: "#8b5cf6", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 2 }}>{k.name}</div>
-              <div style={{ fontSize: 11, color: "#7070A0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 11, color: var(--text-faint), display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <code style={{ color: "#a5b4fc" }}>{k.keyPrefix}…</code>
                 {k.scopes.map((s: string) => (
                   <span key={s} style={{ padding: "1px 6px", background: "#1e1b4b", color: "#a5b4fc", borderRadius: 9999, fontSize: 10, fontFamily: "monospace" }}>{s}</span>
@@ -335,7 +335,7 @@ function ApiKeysTab() {
             }}>Revoke</button>
           </div>
         ))}
-        {keys.length === 0 && <div style={{ color: "#7070A0", fontSize: 13 }}>No active API keys</div>}
+        {keys.length === 0 && <div style={{ color: var(--text-faint), fontSize: 13 }}>No active API keys</div>}
       </div>
     </div>
   );
@@ -381,7 +381,7 @@ function PasswordTab() {
   return (
     <div style={{ maxWidth: 440, display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Change Password</div>
-      <div style={{ fontSize: 12, color: "#7070A0" }}>Minimum 8 chars with uppercase, number, and special character.</div>
+      <div style={{ fontSize: 12, color: var(--text-faint) }}>Minimum 8 chars with uppercase, number, and special character.</div>
 
       {msg && (
         <div style={{
@@ -393,24 +393,24 @@ function PasswordTab() {
       )}
 
       <div>
-        <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>Current password</label>
+        <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>Current password</label>
         <div style={{ position: "relative" }}>
           <input type={showCurrent ? "text" : "password"} value={form.currentPassword}
             onChange={e => setForm(f => ({ ...f, currentPassword: e.target.value }))}
             style={{ ...inputSt, paddingRight: 36 }} />
-          <button onClick={() => setShowCurrent(v => !v)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#7070A0" }}>
+          <button onClick={() => setShowCurrent(v => !v)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: var(--text-faint) }}>
             {showCurrent ? <EyeOff style={{ width: 14, height: 14 }} /> : <Eye style={{ width: 14, height: 14 }} />}
           </button>
         </div>
       </div>
 
       <div>
-        <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>New password</label>
+        <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>New password</label>
         <div style={{ position: "relative" }}>
           <input type={showNew ? "text" : "password"} value={form.newPassword}
             onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))}
             style={{ ...inputSt, paddingRight: 36 }} />
-          <button onClick={() => setShowNew(v => !v)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#7070A0" }}>
+          <button onClick={() => setShowNew(v => !v)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: var(--text-faint) }}>
             {showNew ? <EyeOff style={{ width: 14, height: 14 }} /> : <Eye style={{ width: 14, height: 14 }} />}
           </button>
         </div>
@@ -421,11 +421,11 @@ function PasswordTab() {
                 <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= s ? strengthColors[s] : "var(--border)" }} />
               ))}
             </div>
-            <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#7070A0" }}>
-              <span style={{ color: s >= 1 ? "#22c55e" : "#7070A0" }}>8+ chars</span>
-              <span style={{ color: /[A-Z]/.test(form.newPassword) ? "#22c55e" : "#7070A0" }}>Uppercase</span>
-              <span style={{ color: /[0-9]/.test(form.newPassword) ? "#22c55e" : "#7070A0" }}>Number</span>
-              <span style={{ color: /[^A-Za-z0-9]/.test(form.newPassword) ? "#22c55e" : "#7070A0" }}>Special</span>
+            <div style={{ display: "flex", gap: 12, fontSize: 11, color: var(--text-faint) }}>
+              <span style={{ color: s >= 1 ? "#22c55e" : var(--text-faint) }}>8+ chars</span>
+              <span style={{ color: /[A-Z]/.test(form.newPassword) ? "#22c55e" : var(--text-faint) }}>Uppercase</span>
+              <span style={{ color: /[0-9]/.test(form.newPassword) ? "#22c55e" : var(--text-faint) }}>Number</span>
+              <span style={{ color: /[^A-Za-z0-9]/.test(form.newPassword) ? "#22c55e" : var(--text-faint) }}>Special</span>
               {form.newPassword && <span style={{ marginLeft: "auto", color: strengthColors[s] }}>{strengthLabels[s]}</span>}
             </div>
           </div>
@@ -433,7 +433,7 @@ function PasswordTab() {
       </div>
 
       <div>
-        <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>Confirm new password</label>
+        <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>Confirm new password</label>
         <input type="password" value={form.confirmPassword}
           onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
           style={{ ...inputSt, borderColor: form.confirmPassword && form.confirmPassword !== form.newPassword ? "#ef4444" : undefined }} />
@@ -482,7 +482,7 @@ function IpAllowlistTab() {
     load();
   };
 
-  if (loading) return <div style={{ color: "#7070A0", padding: 24 }}>Loading…</div>;
+  if (loading) return <div style={{ color: var(--text-faint), padding: 24 }}>Loading…</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -507,18 +507,18 @@ function IpAllowlistTab() {
         <div style={{ padding: 16, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>IP / CIDR *</label>
+              <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>IP / CIDR *</label>
               <input value={form.ipCidr} onChange={e => setForm(f => ({ ...f, ipCidr: e.target.value }))}
                 placeholder="e.g. 203.0.113.0/24 or 1.2.3.4" style={inputSt} />
             </div>
             <div>
-              <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>Label (optional)</label>
+              <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>Label (optional)</label>
               <input value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
                 placeholder="e.g. Office network" style={inputSt} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={() => setShowAdd(false)} style={{ ...btnSt, background: "transparent", color: "#7070A0" }}>Cancel</button>
+            <button onClick={() => setShowAdd(false)} style={{ ...btnSt, background: "transparent", color: var(--text-faint) }}>Cancel</button>
             <button onClick={add} disabled={adding} style={{ ...btnSt, background: "#6366f1", color: "#fff", border: "none" }}>
               {adding ? "Adding…" : "Add Rule"}
             </button>
@@ -532,8 +532,8 @@ function IpAllowlistTab() {
             <Wifi style={{ width: 16, height: 16, color: "#06b6d4", flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <code style={{ fontSize: 13, color: "var(--text-primary)", fontFamily: "monospace" }}>{e.ipCidr}</code>
-              {e.label && <span style={{ marginLeft: 10, fontSize: 12, color: "#7070A0" }}>{e.label}</span>}
-              <div style={{ fontSize: 11, color: "#7070A0", marginTop: 2 }}>Added {fmtDate(e.createdAt)}</div>
+              {e.label && <span style={{ marginLeft: 10, fontSize: 12, color: var(--text-faint) }}>{e.label}</span>}
+              <div style={{ fontSize: 11, color: var(--text-faint), marginTop: 2 }}>Added {fmtDate(e.createdAt)}</div>
             </div>
             <button onClick={() => remove(e.id)} style={{
               padding: "5px 12px", borderRadius: 7, fontSize: 12, cursor: "pointer",
@@ -593,11 +593,11 @@ function PermissionsTab() {
     setForm(f => ({ ...f, actions: f.actions.includes(a) ? f.actions.filter(x => x !== a) : [...f.actions, a] }));
   };
 
-  if (loading) return <div style={{ color: "#7070A0", padding: 24 }}>Loading…</div>;
+  if (loading) return <div style={{ color: var(--text-faint), padding: 24 }}>Loading…</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ fontSize: 12, color: "#7070A0" }}>
+      <div style={{ fontSize: 12, color: var(--text-faint) }}>
         OWNER and ADMIN roles have full access by default. These rules apply only to MEMBER-role users.
       </div>
 
@@ -616,7 +616,7 @@ function PermissionsTab() {
         <div style={{ padding: 16, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>User *</label>
+              <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>User *</label>
               <select value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} style={inputSt}>
                 <option value="">Select user…</option>
                 {members.map((m: any) => (
@@ -627,28 +627,28 @@ function PermissionsTab() {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 4 }}>Module *</label>
+              <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 4 }}>Module *</label>
               <select value={form.moduleKey} onChange={e => setForm(f => ({ ...f, moduleKey: e.target.value }))} style={inputSt}>
                 {MODULES.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 11, color: "#7070A0", display: "block", marginBottom: 6 }}>Allowed Actions</label>
+            <label style={{ fontSize: 11, color: var(--text-faint), display: "block", marginBottom: 6 }}>Allowed Actions</label>
             <div style={{ display: "flex", gap: 8 }}>
               {ACTIONS.map(a => (
                 <button key={a} onClick={() => toggleAction(a)} style={{
                   padding: "4px 12px", borderRadius: 7, fontSize: 12, cursor: "pointer",
                   background: form.actions.includes(a) ? "rgba(99,102,241,0.15)" : "var(--bg-hover)",
                   border: `1px solid ${form.actions.includes(a) ? "#6366f1" : "var(--border)"}`,
-                  color: form.actions.includes(a) ? "#818cf8" : "#7070A0",
+                  color: form.actions.includes(a) ? "#818cf8" : var(--text-faint),
                   textTransform: "capitalize",
                 }}>{a}</button>
               ))}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={() => setShowForm(false)} style={{ ...btnSt, background: "transparent", color: "#7070A0" }}>Cancel</button>
+            <button onClick={() => setShowForm(false)} style={{ ...btnSt, background: "transparent", color: var(--text-faint) }}>Cancel</button>
             <button onClick={save} disabled={saving} style={{ ...btnSt, background: "#6366f1", color: "#fff", border: "none" }}>
               {saving ? "Saving…" : "Save Rule"}
             </button>
@@ -670,7 +670,7 @@ function PermissionsTab() {
                 ))}
               </div>
             </div>
-            <div style={{ fontSize: 11, color: "#7070A0", marginRight: 12 }}>
+            <div style={{ fontSize: 11, color: var(--text-faint), marginRight: 12 }}>
               <Clock style={{ width: 11, height: 11, display: "inline", marginRight: 3 }} />
               {timeAgo(p.createdAt)}
             </div>
@@ -680,7 +680,7 @@ function PermissionsTab() {
             }}>Remove</button>
           </div>
         ))}
-        {perms.length === 0 && <div style={{ color: "#7070A0", fontSize: 13 }}>No custom rules — all members use role defaults</div>}
+        {perms.length === 0 && <div style={{ color: var(--text-faint), fontSize: 13 }}>No custom rules — all members use role defaults</div>}
       </div>
     </div>
   );
@@ -714,7 +714,7 @@ export default function SecurityPage() {
           <Shield style={{ width: 22, height: 22, color: "#6366f1" }} />
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>Security</h1>
         </div>
-        <p style={{ margin: 0, fontSize: 13, color: "#7070A0" }}>Manage sessions, API keys, password, IP restrictions and permissions.</p>
+        <p style={{ margin: 0, fontSize: 13, color: var(--text-faint) }}>Manage sessions, API keys, password, IP restrictions and permissions.</p>
       </div>
 
       {/* Tab bar */}
@@ -726,7 +726,7 @@ export default function SecurityPage() {
             style={{
               display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
               background: "none", border: "none", cursor: "pointer", fontSize: 13,
-              color: activeTab === id ? "#818cf8" : "#7070A0",
+              color: activeTab === id ? "#818cf8" : var(--text-faint),
               borderBottom: activeTab === id ? "2px solid #6366f1" : "2px solid transparent",
               marginBottom: -1, fontWeight: activeTab === id ? 600 : 400,
               transition: "color 0.15s",

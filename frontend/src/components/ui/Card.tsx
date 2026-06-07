@@ -5,7 +5,8 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> { children: Rea
 
 export function Card({ children, className, ...props }: CardProps) {
   return (
-    <div className={cn("bg-[#0D0D1F] rounded-xl border border-[#1C1C35]", className)} {...props}>
+    <div className={cn("rounded-xl border", className)}
+      style={{ background: "var(--bg-card)", borderColor: "var(--border)" }} {...props}>
       {children}
     </div>
   );
@@ -13,7 +14,8 @@ export function Card({ children, className, ...props }: CardProps) {
 
 export function CardHeader({ children, className, ...props }: CardProps) {
   return (
-    <div className={cn("px-5 py-4 border-b border-[#1C1C35] flex items-center justify-between", className)} {...props}>
+    <div className={cn("px-5 py-4 flex items-center justify-between", className)}
+      style={{ borderBottom: "1px solid var(--border)" }} {...props}>
       {children}
     </div>
   );

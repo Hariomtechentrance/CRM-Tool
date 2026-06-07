@@ -252,7 +252,7 @@ export default function SettingsPage() {
                   {mods.map(m => {
                     const on = enabledModules.includes(m.key);
                     return (
-                      <label key={m.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: on ? "#6366f115" : "var(--bg-hover)", borderRadius: 8, border: `1px solid ${on ? "#6366f1" : "#1C1C35"}`, cursor: "pointer" }}>
+                      <label key={m.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: on ? "#6366f115" : "var(--bg-hover)", borderRadius: 8, border: `1px solid ${on ? "#6366f1" : var(--border)}`, cursor: "pointer" }}>
                         <input type="checkbox" checked={on} onChange={() => toggleModule(m.key)} style={{ accentColor: "#6366f1" }} />
                         <div>
                           <div style={{ fontSize: 13, color: on ? "var(--text-primary)" : "var(--text-sec)", fontWeight: on ? 600 : 400 }}>{m.label}</div>
@@ -287,7 +287,7 @@ export default function SettingsPage() {
           {members.length === 0 ? (
             <div style={{ textAlign: "center", color: "var(--text-ghost)", padding: 32 }}>No team members yet.</div>
           ) : members.map(m => (
-            <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #131327" }}>
+            <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--bg-hover)" }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{m.name}</div>
                 <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>{m.email}</div>

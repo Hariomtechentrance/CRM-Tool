@@ -80,7 +80,7 @@ export default function SuperAdminDashboard() {
           {stats?.planCounts?.length === 0 ? (
             <div style={{ color: "var(--text-ghost)", fontSize: 13, textAlign: "center", padding: 20 }}>No data.</div>
           ) : stats?.planCounts?.map(p => (
-            <div key={p.plan} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #131327" }}>
+            <div key={p.plan} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--bg-hover)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: PLAN_COLORS[p.plan] || "#6b7280" }} />
                 <span style={{ fontSize: 13, color: "var(--text-sec)" }}>{p.plan}</span>

@@ -231,7 +231,7 @@ function BulkSendPanel() {
         <div className="max-h-64 overflow-y-auto">
           {leads.map(lead => (
             <div key={lead.id} onClick={() => toggle(lead.id)}
-              className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[#0f0f22]"
+              className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
               style={{ borderBottom: "1px solid var(--border)" }}>
               <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${selected.has(lead.id) ? "bg-indigo-600" : ""}`}
                 style={{ border: selected.has(lead.id) ? "none" : "1px solid var(--border-input)" }}>

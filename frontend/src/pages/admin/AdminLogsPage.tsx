@@ -9,7 +9,7 @@ const S = {
   sub: { fontSize: 13, color: "var(--text-ghost)", marginTop: 4, marginBottom: 28 } as React.CSSProperties,
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   th: { textAlign: "left" as const, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
-  td: { padding: "11px 14px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  td: { padding: "11px 14px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -72,7 +72,7 @@ export default function AdminLogsPage() {
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : logs.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>
-            <ScrollText size={36} style={{ margin: "0 auto 12px", display: "block", color: "#1C1C35" }} />
+            <ScrollText size={36} style={{ margin: "0 auto 12px", display: "block", color: var(--border) }} />
             No audit logs found.
           </div>
         ) : (

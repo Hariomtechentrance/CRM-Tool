@@ -13,7 +13,7 @@ const S = {
   cardTitle: { fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 } as React.CSSProperties,
   table: { width: "100%", borderCollapse: "collapse" as const },
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
-  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 480, maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
@@ -123,7 +123,7 @@ export default function WarehousePage() {
               {warehouses.length === 0 ? (
                 <div style={{ ...S.card, textAlign: "center", color: "var(--text-ghost)", padding: 40 }}>No warehouses yet. Add your first warehouse.</div>
               ) : warehouses.map(w => (
-                <div key={w.id} style={{ ...S.card, borderColor: w.isDefault ? "#6366f1" : "#1C1C35" }}>
+                <div key={w.id} style={{ ...S.card, borderColor: w.isDefault ? "#6366f1" : var(--border) }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{w.name}</div>

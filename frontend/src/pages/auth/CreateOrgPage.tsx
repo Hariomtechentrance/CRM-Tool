@@ -152,7 +152,7 @@ export default function CreateOrgPage() {
     wrap:    { width: "100%", maxWidth: step === 3 ? 760 : 500, position: "relative", zIndex: 1 } as React.CSSProperties,
     card:    { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" } as React.CSSProperties,
     btnPri:  { width: "100%", height: 44, borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, boxShadow: "0 4px 20px rgba(99,102,241,0.35)", transition: "opacity 0.15s" } as React.CSSProperties,
-    btnOut:  { flex: 1, height: 44, borderRadius: 10, border: "1px solid #252545", background: "transparent", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" } as React.CSSProperties,
+    btnOut:  { flex: 1, height: 44, borderRadius: 10, border: "1px solid var(--border-input)", background: "transparent", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" } as React.CSSProperties,
   };
 
   return (
@@ -189,7 +189,7 @@ export default function CreateOrgPage() {
                     fontSize: 12, fontWeight: 700,
                     background: done || active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-hover)",
                     color: done || active ? "white" : "var(--text-ghost)",
-                    border: active ? "3px solid rgba(99,102,241,0.3)" : "2px solid #1C1C35",
+                    border: active ? "3px solid rgba(99,102,241,0.3)" : "2px solid var(--border)",
                     boxShadow: done || active ? "0 4px 12px rgba(99,102,241,0.35)" : "none",
                     flexShrink: 0,
                   }}>
@@ -200,7 +200,7 @@ export default function CreateOrgPage() {
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div style={{ width: 32, height: 2, margin: "0 10px", background: step > n ? "linear-gradient(90deg,#6366f1,#8b5cf6)" : "#1C1C35", borderRadius: 2 }} />
+                  <div style={{ width: 32, height: 2, margin: "0 10px", background: step > n ? "linear-gradient(90deg,#6366f1,#8b5cf6)" : var(--border), borderRadius: 2 }} />
                 )}
               </div>
             );
@@ -306,7 +306,7 @@ export default function CreateOrgPage() {
                           onClick={() => toggleModule(mod.key)}
                           style={{
                             background: selected ? mod.accentBg : "var(--bg-card)",
-                            border: `1px solid ${selected ? mod.accentBorder : "#1C1C35"}`,
+                            border: `1px solid ${selected ? mod.accentBorder : var(--border)}`,
                             borderRadius: 12, padding: "14px 14px", textAlign: "left", cursor: "pointer",
                             position: "relative", transition: "all 0.15s",
                             boxShadow: selected ? `0 0 0 1px ${mod.accentBorder}` : "none",

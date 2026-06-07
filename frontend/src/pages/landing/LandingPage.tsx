@@ -213,7 +213,7 @@ export default function LandingPage() {
           {TAGS.map(t => (
             <button key={t} onClick={() => setFilter(t)} style={{
               padding: "7px 18px", borderRadius: 20, border: "1px solid",
-              borderColor: filter === t ? (TAG_COLORS[t] || "#6366f1") : "#1E1E38",
+              borderColor: filter === t ? (TAG_COLORS[t] || "#6366f1") : var(--border-input),
               background: filter === t ? (TAG_COLORS[t] || "#6366f1") + "20" : "transparent",
               color: filter === t ? (TAG_COLORS[t] || "#818CF8") : "var(--text-ghost)",
               fontSize: 13, fontWeight: 600, cursor: "pointer",
@@ -228,7 +228,7 @@ export default function LandingPage() {
               key={mod.name}
               onClick={() => setExpanded(expanded === mod.name ? null : mod.name)}
               style={{
-                background: "var(--bg-card)", border: `1px solid ${expanded === mod.name ? mod.color + "60" : "#1C1C35"}`,
+                background: "var(--bg-card)", border: `1px solid ${expanded === mod.name ? mod.color + "60" : var(--border)}`,
                 borderRadius: 14, padding: 20, cursor: "pointer",
                 transition: "border-color 0.2s, transform 0.15s",
                 boxShadow: expanded === mod.name ? `0 0 24px ${mod.color}20` : "none",
@@ -292,12 +292,12 @@ export default function LandingPage() {
         <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap", maxWidth: 900, marginInline: "auto" }}>
           {STEPS.map((s, i) => (
             <div key={s.n} style={{ flex: "1 1 240px", maxWidth: 280, textAlign: "center" }}>
-              <div style={{ fontSize: 48, fontWeight: 900, color: "#1C1C35", lineHeight: 1, marginBottom: 8 }}>{s.n}</div>
+              <div style={{ fontSize: 48, fontWeight: 900, color: var(--border), lineHeight: 1, marginBottom: 8 }}>{s.n}</div>
               <div style={{ width: 40, height: 3, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", borderRadius: 2, marginInline: "auto", marginBottom: 16 }} />
               <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{s.title}</div>
               <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{s.desc}</div>
               {i < STEPS.length - 1 && (
-                <div style={{ fontSize: 24, color: "#1C1C35", marginTop: 16 }}>↓</div>
+                <div style={{ fontSize: 24, color: var(--border), marginTop: 16 }}>↓</div>
               )}
             </div>
           ))}

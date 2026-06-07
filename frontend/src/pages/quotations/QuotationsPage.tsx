@@ -11,7 +11,7 @@ const S = {
   kpiValue: { fontSize: 26, fontWeight: 700, margin: "4px 0 0" } as React.CSSProperties,
   kpiLabel: { fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 } as React.CSSProperties,
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" as const },
-  td: { padding: "12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  td: { padding: "12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
   select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
@@ -289,7 +289,7 @@ export default function QuotationsPage() {
                 padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid",
                 ...(statusFilter === s
                   ? { background: "#6366f1", borderColor: "#6366f1", color: "white" }
-                  : { background: "transparent", borderColor: "#1E1E38", color: "var(--text-ghost)" }),
+                  : { background: "transparent", borderColor: var(--border-input), color: "var(--text-ghost)" }),
               }}
             >
               {s || "All"}
@@ -304,7 +304,7 @@ export default function QuotationsPage() {
           <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : quotations.length === 0 ? (
           <div style={{ padding: "60px 24px", textAlign: "center" }}>
-            <FileText size={40} color="#1C1C35" style={{ margin: "0 auto 12px" }} />
+            <FileText size={40} color=var(--border) style={{ margin: "0 auto 12px" }} />
             <p style={{ color: "var(--text-ghost)", margin: 0 }}>No quotations yet. Create your first proposal.</p>
           </div>
         ) : (
@@ -435,7 +435,7 @@ export default function QuotationsPage() {
                   </div>
 
                   {items.map((item, idx) => (
-                    <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr 0.8fr 0.8fr 80px", gap: 8, padding: "10px 12px", borderTop: "1px solid #131327", alignItems: "center" }}>
+                    <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr 0.8fr 0.8fr 80px", gap: 8, padding: "10px 12px", borderTop: "1px solid var(--bg-hover)", alignItems: "center" }}>
                       <input
                         style={{ ...S.input, padding: "7px 10px" }}
                         placeholder="Description"

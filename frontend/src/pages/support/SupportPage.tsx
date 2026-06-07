@@ -19,7 +19,7 @@ const S = {
   searchIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   table: { width: "100%", borderCollapse: "collapse" as const },
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
-  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 500, maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
@@ -106,7 +106,7 @@ export default function SupportPage() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" as const }}>
         {["", ...Object.keys(STATUS_COLORS)].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${s && STATUS_COLORS[s] ? STATUS_COLORS[s] + (statusFilter === s ? "" : "40") : "#1C1C35"}`, background: statusFilter === s ? (s ? STATUS_COLORS[s] + "25" : "#1C1C35") : "transparent", color: s && STATUS_COLORS[s] ? STATUS_COLORS[s] : "var(--text-ghost)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${s && STATUS_COLORS[s] ? STATUS_COLORS[s] + (statusFilter === s ? "" : "40") : var(--border)}`, background: statusFilter === s ? (s ? STATUS_COLORS[s] + "25" : var(--border)) : "transparent", color: s && STATUS_COLORS[s] ? STATUS_COLORS[s] : "var(--text-ghost)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
             {s || "All"}
           </button>
         ))}

@@ -16,7 +16,7 @@ const navLinks = [
 ];
 
 export default function AdminLayout() {
-  const { user, isAuthenticated, activeOrg, logout } = useAuthStore();
+  const { isAuthenticated, activeOrg, logout } = useAuthStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
@@ -43,7 +43,7 @@ export default function AdminLayout() {
       {/* ── Sidebar ─────────────────────────────────────────────── */}
       <div style={{
         width: 240,
-        background: "#050514",
+        background: "var(--bg-card)",
         borderRight: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
@@ -123,7 +123,7 @@ export default function AdminLayout() {
       {/* ── Main ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
         {/* Mobile top bar */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#050514", borderBottom: "1px solid var(--border)" }}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}
           className="mobile-menu-btn" >
           <button onClick={() => setSidebarOpen(p => !p)}
             style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", display: "flex", alignItems: "center" }}>

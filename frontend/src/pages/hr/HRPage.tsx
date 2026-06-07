@@ -27,7 +27,7 @@ const S = {
   si:    { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px 8px 34px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   sIcon: { position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" },
   th:    { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
-  td:    { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  td:    { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -65,7 +65,7 @@ function Stars({ value }: { value?: number }) {
   return <span style={{ color:"#f59e0b" }}>{Array.from({length:5},(_,i)=><Star key={i} size={12} fill={i<Math.round(value)?"#f59e0b":"none"} color="#f59e0b"/>)}</span>;
 }
 function ProgBar({ pct, color="#6366f1" }: { pct: number; color?: string }) {
-  return <div style={{ height:6, background:"#1C1C35", borderRadius:3, overflow:"hidden" }}>
+  return <div style={{ height:6, background:var(--border), borderRadius:3, overflow:"hidden" }}>
     <div style={{ height:"100%", width:`${Math.min(pct,100)}%`, background:color, borderRadius:3, transition:"width 0.3s" }}/>
   </div>;
 }
@@ -854,7 +854,7 @@ export default function HRPage() {
             </div>
             {editId&&<div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--border)"}}><DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact/></div>}
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowEmpModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowEmpModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveEmployee} style={S.btn} disabled={saving}>{saving?"Saving...":editId?"Update":"Add Employee"}</button>
             </div>
           </div>
@@ -885,7 +885,7 @@ export default function HRPage() {
               <div><label style={S.label}>Notes</label><input style={S.input} value={attForm.notes} onChange={e=>af("notes",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowAttModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowAttModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveAttendance} style={S.btn} disabled={saving||!attForm.employeeId}>{saving?"Saving...":"Mark Attendance"}</button>
             </div>
           </div>
@@ -918,7 +918,7 @@ export default function HRPage() {
               <div><label style={S.label}>Other Deductions (₹)</label><input type="number" style={S.input} value={payForm.deductions} onChange={e=>pf("deductions",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowPayModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={savePayroll} style={S.btn} disabled={saving||!payForm.employeeId}>{saving?"Generating...":"Generate Payroll"}</button>
             </div>
           </div>
@@ -947,7 +947,7 @@ export default function HRPage() {
                   <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={autoPayForm.workingDays} onChange={e=>setAutoPayForm(p=>({...p,workingDays:e.target.value}))}/></div>
                 </div>
                 <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-                  <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+                  <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
                   <button onClick={autoGeneratePayroll} style={{...S.btn,background:"linear-gradient(135deg,#10b981,#059669)"}} disabled={saving}>{saving?"Generating...":"Generate"}</button>
                 </div>
               </>
@@ -986,7 +986,7 @@ export default function HRPage() {
               <div><label style={S.label}>Reason</label><textarea style={{...S.input,height:70,resize:"none" as const}} value={leaveForm.reason} onChange={e=>lf("reason",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowLeaveModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowLeaveModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveLeave} style={S.btn} disabled={saving||!leaveForm.employeeId||!leaveForm.fromDate}>{saving?"Submitting...":"Submit"}</button>
             </div>
           </div>
@@ -1014,7 +1014,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowLbModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowLbModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveLeaveBalance} style={S.btn} disabled={saving||!lbForm.employeeId}>{saving?"Saving...":"Allocate"}</button>
             </div>
           </div>
@@ -1042,7 +1042,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowShiftModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowShiftModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveShift} style={S.btn} disabled={saving||!shiftForm.name}>{saving?"Saving...":editShiftId?"Update Shift":"Add Shift"}</button>
             </div>
           </div>
@@ -1076,7 +1076,7 @@ export default function HRPage() {
               </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowGoalModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowGoalModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveGoal} style={S.btn} disabled={saving||!goalForm.employeeId||!goalForm.title}>{saving?"Saving...":editGoalId?"Update":"Add Goal"}</button>
             </div>
           </div>
@@ -1108,7 +1108,7 @@ export default function HRPage() {
               <div><label style={S.label}>Comments</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={reviewForm.comments} onChange={e=>setReviewForm(p=>({...p,comments:e.target.value}))}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowReviewModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowReviewModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveReview} style={S.btn} disabled={saving||!reviewForm.employeeId||!reviewForm.reviewPeriod}>{saving?"Saving...":editReviewId?"Update":"Add Review"}</button>
             </div>
           </div>
@@ -1138,7 +1138,7 @@ export default function HRPage() {
               <div><label style={S.label}>Notes</label><textarea style={{...S.input,height:60,resize:"none" as const}} value={expForm.notes} onChange={e=>setExpForm(p=>({...p,notes:e.target.value}))}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
-              <button onClick={()=>setShowExpModal(false)} style={{...S.btn,background:"#1C1C35",color:"var(--text-sec)"}}>Cancel</button>
+              <button onClick={()=>setShowExpModal(false)} style={{...S.btn,background:var(--border),color:"var(--text-sec)"}}>Cancel</button>
               <button onClick={saveExpense} style={S.btn} disabled={saving||!expForm.employeeId||!expForm.title||!expForm.amount}>{saving?"Submitting...":"Submit Claim"}</button>
             </div>
           </div>
@@ -1157,7 +1157,7 @@ export default function HRPage() {
               </div>
             </div>
             {/* Company Header */}
-            <div style={{background:"linear-gradient(135deg,#1a1a3e,#1C1C35)",borderRadius:10,padding:"16px 20px",marginBottom:16}}>
+            <div style={{background:"linear-gradient(135deg,var(--bg-hover),var(--border))",borderRadius:10,padding:"16px 20px",marginBottom:16}}>
               <div style={{fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>{payslip.org.name}</div>
               <div style={{fontSize:12,color:"#818CF8",marginTop:2}}>{payslip.org.address}{payslip.org.city?`, ${payslip.org.city}`:""}{payslip.org.pan?` · PAN: ${payslip.org.pan}`:""}</div>
             </div>
@@ -1193,7 +1193,7 @@ export default function HRPage() {
               <div>
                 <div style={{fontSize:12,fontWeight:700,color:"#10b981",marginBottom:8}}>EARNINGS</div>
                 {[{l:"Basic Salary",v:payslip.earnings.basic},{l:"HRA",v:payslip.earnings.hra},{l:"Allowances",v:payslip.earnings.allowances}].map(r=>(
-                  <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131327",fontSize:13}}>
+                  <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--bg-hover)",fontSize:13}}>
                     <span style={{color:"var(--text-sec)"}}>{r.l}</span><span style={{color:"var(--text-primary)",fontWeight:500}}>{fmt(r.v)}</span>
                   </div>
                 ))}
@@ -1204,7 +1204,7 @@ export default function HRPage() {
               <div>
                 <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:8}}>DEDUCTIONS</div>
                 {[{l:"PF (Employee 12%)",v:payslip.deductions.pf},{l:"ESI (0.75%)",v:payslip.deductions.esi},{l:"Prof. Tax",v:payslip.deductions.pt},{l:"TDS",v:payslip.deductions.tds},{l:"Other",v:payslip.deductions.other}].filter(r=>r.v>0).map(r=>(
-                  <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131327",fontSize:13}}>
+                  <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid var(--bg-hover)",fontSize:13}}>
                     <span style={{color:"var(--text-sec)"}}>{r.l}</span><span style={{color:"#ef4444",fontWeight:500}}>− {fmt(r.v)}</span>
                   </div>
                 ))}

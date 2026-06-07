@@ -152,7 +152,7 @@ export default function OrgAdminPage() {
                 const cfg = FEED_ICONS[item.type] || { icon: FileText, color: "#818cf8" };
                 const color = STATUS_COLORS[item.meta] || "#818cf8";
                 return (
-                  <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid #131327", alignItems: "center" }}>
+                  <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--bg-hover)", alignItems: "center" }}>
                     <div style={{ width: 30, height: 30, borderRadius: 7, background: cfg.color + "20", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <cfg.icon size={13} color={cfg.color} />
                     </div>
@@ -182,7 +182,7 @@ export default function OrgAdminPage() {
               ) : requests.map(r => {
                 const mod = ALL_MODULES.find(m => m.key === r.moduleKey);
                 return (
-                  <div key={r.id} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid #131327", alignItems: "center" }}>
+                  <div key={r.id} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "1px solid var(--bg-hover)", alignItems: "center" }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{r.user.name}</div>
@@ -243,13 +243,13 @@ export default function OrgAdminPage() {
                       const isAdmin = ["OWNER", "ADMIN"].includes(m.role);
                       const grantedKeys = new Set(m.user.moduleAccess.map(a => a.moduleKey));
                       return (
-                        <tr key={m.id} style={{ borderBottom: "1px solid #131327" }}>
+                        <tr key={m.id} style={{ borderBottom: "1px solid var(--bg-hover)" }}>
                           <td style={{ padding: "10px 12px", position: "sticky", left: 0, background: "var(--bg-card)", zIndex: 1 }}>
                             <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{m.user.name}</div>
                             <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{m.user.email}</div>
                           </td>
                           <td style={{ textAlign: "center", padding: "10px 8px" }}>
-                            <span style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: isAdmin ? "#6366f120" : "#1C1C35", color: isAdmin ? "#818cf8" : "var(--text-ghost)", fontWeight: 700 }}>{m.role}</span>
+                            <span style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: isAdmin ? "#6366f120" : var(--border), color: isAdmin ? "#818cf8" : "var(--text-ghost)", fontWeight: 700 }}>{m.role}</span>
                           </td>
                           {ALL_MODULES.map(mod => {
                             const has = isAdmin || grantedKeys.has(mod.key);
@@ -261,7 +261,7 @@ export default function OrgAdminPage() {
                                   style={{
                                     width: 26, height: 26, borderRadius: 6,
                                     background: has ? (isAdmin ? "#6366f130" : "#10b98130") : "var(--bg-hover)",
-                                    border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : "#1C1C35"}`,
+                                    border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : var(--border)}`,
                                     cursor: isAdmin ? "default" : "pointer",
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                   }}>

@@ -62,7 +62,7 @@ export default function RegisterPage() {
             </p>
             <button
               onClick={() => navigate("/login")}
-              style={{ width: "100%", height: 44, borderRadius: 10, border: "1px solid #252545", background: "transparent", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+              style={{ width: "100%", height: 44, borderRadius: 10, border: "1px solid var(--border-input)", background: "transparent", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
             >
               Back to Sign In
             </button>

@@ -151,7 +151,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
   return (
     <header style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}
-      className="h-14 flex items-center justify-between px-6 flex-shrink-0">
+      className="h-14 flex items-center justify-between px-4 md:px-6 flex-shrink-0">
       {/* Left */}
       <div className="flex items-center gap-2.5">
         {/* Hamburger — mobile only */}
@@ -170,8 +170,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         )}
       </div>
 
-      {/* Global Search */}
-      <div ref={searchRef} style={{ position: "relative", flex: 1, maxWidth: 380, margin: "0 16px" }}>
+      {/* Global Search — hidden on mobile via CSS class */}
+      <div ref={searchRef} className="header-search" style={{ position: "relative", flex: 1, maxWidth: 380, margin: "0 12px" }}>
         <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)", pointerEvents: "none" }} />
         <input
           type="text"
@@ -268,7 +268,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 position: "absolute", top: 5, right: 5,
                 width: criticalCount > 0 ? "auto" : 8, minWidth: 8, height: 8,
                 background: criticalCount > 0 ? "#ef4444" : "#6366f1",
-                borderRadius: 99, border: "1px solid #0D0D1F",
+                borderRadius: 99, border: "1px solid var(--bg-card)",
                 fontSize: 9, fontWeight: 700, color: "white",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 padding: criticalCount > 0 ? "0 3px" : 0, lineHeight: 1,

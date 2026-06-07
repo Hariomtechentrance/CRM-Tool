@@ -9,7 +9,7 @@ const styles: Record<BadgeVariant, string> = {
   red:    "text-[#F87171]",
   purple: "text-[#C084FC]",
   orange: "text-[#FBBF24]",
-  slate:  "text-[#9090B0]",
+  slate:  "text-[var(--text-muted)]",
 };
 
 const bgs: Record<BadgeVariant, string> = {

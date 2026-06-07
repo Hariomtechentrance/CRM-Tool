@@ -38,7 +38,7 @@ function fmtSize(bytes: number): string {
 const S = {
   kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
   th: { textAlign: "left" as const, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
-  td: { padding: "12px 14px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327" },
+  td: { padding: "12px 14px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
 };
 
 export default function DocumentsPage() {
@@ -119,7 +119,7 @@ export default function DocumentsPage() {
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" as const }}>
         <button
           onClick={() => setEntityFilter("")}
-          style={{ padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", ...(entityFilter === "" ? { background: "#6366f1", borderColor: "#6366f1", color: "white" } : { background: "transparent", borderColor: "#1E1E38", color: "var(--text-ghost)" }) }}
+          style={{ padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid", ...(entityFilter === "" ? { background: "#6366f1", borderColor: "#6366f1", color: "white" } : { background: "transparent", borderColor: var(--border-input), color: "var(--text-ghost)" }) }}
         >
           All
         </button>
@@ -159,7 +159,7 @@ export default function DocumentsPage() {
           <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text-ghost)" }}>Loading...</div>
         ) : docs.length === 0 ? (
           <div style={{ padding: "60px 24px", textAlign: "center" }}>
-            <FolderOpen size={44} color="#1C1C35" style={{ margin: "0 auto 12px" }} />
+            <FolderOpen size={44} color=var(--border) style={{ margin: "0 auto 12px" }} />
             <p style={{ color: "var(--text-ghost)", margin: 0, fontSize: 14 }}>No documents uploaded yet</p>
             <p style={{ color: "var(--text-ghost)", margin: "4px 0 0", fontSize: 12 }}>Upload files from any module — Inventory, Purchase, HR, Finance, etc.</p>
           </div>

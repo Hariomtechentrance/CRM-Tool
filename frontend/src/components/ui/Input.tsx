@@ -9,28 +9,27 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   rightIcon?: React.ReactNode;
 }
 
-export function Input({ label, error, hint, leftIcon, rightIcon, className, id, ...props }: InputProps) {
+export function Input({ label, error, hint, leftIcon, rightIcon, className, id, style, ...props }: InputProps) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-[12px] font-semibold text-[#7070A0] uppercase tracking-wider leading-none">
+        <label htmlFor={inputId} className="text-[12px] font-semibold uppercase tracking-wider leading-none"
+          style={{ color: "var(--text-faint)" }}>
           {label}
         </label>
       )}
       <div className="relative">
         {leftIcon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#505070] pointer-events-none">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ color: "var(--text-ghost)" }}>
             {leftIcon}
           </span>
         )}
         <input
           id={inputId}
           className={cn(
-            "w-full h-11 rounded-lg border px-3 py-2 text-sm text-[#EEEEF5] placeholder:text-[#404060]",
-            "bg-[#131327] border-[#1E1E38]",
-            "transition-all duration-150",
-            "hover:border-[#2A2A48]",
+            "w-full h-11 rounded-lg border px-3 py-2 text-sm transition-all duration-150",
             "focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             error && "border-red-500/60 hover:border-red-500/80 focus:border-red-500 focus:ring-red-500/20",
@@ -38,16 +37,23 @@ export function Input({ label, error, hint, leftIcon, rightIcon, className, id, 
             rightIcon && "pr-10",
             className
           )}
+          style={{
+            background: "var(--bg-input)",
+            borderColor: error ? undefined : "var(--border-input)",
+            color: "var(--text-primary)",
+            ...style,
+          }}
+          placeholder={props.placeholder}
           {...props}
         />
         {rightIcon && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#505070]">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-ghost)" }}>
             {rightIcon}
           </span>
         )}
       </div>
-      {error && <p className="text-[12px] text-red-400">{error}</p>}
-      {hint && !error && <p className="text-[12px] text-[#505070]">{hint}</p>}
+      {error && <p className="text-[12px] text-red-500">{error}</p>}
+      {hint && !error && <p className="text-[12px]" style={{ color: "var(--text-ghost)" }}>{hint}</p>}
     </div>
   );
 }

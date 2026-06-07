@@ -9,7 +9,7 @@ const S = {
   btnSecondary: { background: "var(--bg-hover)", border: "none", color: "var(--text-sec)", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   btnIndig: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" as const },
-  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid #131327", verticalAlign: "top" as const },
+  td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)", verticalAlign: "top" as const },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -202,7 +202,7 @@ export default function SalesPage() {
           tab === "dispatch" ? (
             dispatches.length === 0 ? (
               <div style={{ padding: 60, textAlign: "center" }}>
-                <Truck size={40} color="#1C1C35" style={{ margin: "0 auto 12px", display: "block" }} />
+                <Truck size={40} color=var(--border) style={{ margin: "0 auto 12px", display: "block" }} />
                 <p style={{ color: "var(--text-ghost)", margin: 0 }}>No dispatch entries yet. Click "New Dispatch" to record outgoing goods.</p>
               </div>
             ) : (

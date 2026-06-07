@@ -459,7 +459,7 @@ export default function EmailPage() {
                         <div style={{ fontSize: 11, color: "var(--text-primary)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.email}</div>
                         {acc.isPrimary && <div style={{ fontSize: 9, color: "#6366f1" }}>Primary</div>}
                       </div>
-                      <button onClick={e => { e.stopPropagation(); disconnect(acc.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#7070A0" }}>
+                      <button onClick={e => { e.stopPropagation(); disconnect(acc.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: var(--text-faint) }}>
                         <X style={{ width: 11, height: 11 }} />
                       </button>
                     </div>

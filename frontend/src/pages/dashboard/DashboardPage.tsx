@@ -227,7 +227,7 @@ export default function DashboardPage() {
                 <div style={{ padding: "16px 8px 12px" }}>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1C1C35" />
+                      <CartesianGrid strokeDasharray="3 3" stroke=var(--border) />
                       <XAxis dataKey="month" tick={{ fill: "var(--text-ghost)", fontSize: 11 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: "var(--text-ghost)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} width={42} />
                       <Tooltip
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                 <div style={{ padding: "16px 8px 12px" }}>
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={leadStages} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1C1C35" />
+                      <CartesianGrid strokeDasharray="3 3" stroke=var(--border) />
                       <XAxis dataKey="status" tick={{ fill: "var(--text-ghost)", fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: "var(--text-ghost)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
                       <Tooltip
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                   const cfg = FEED_ICONS[item.type] || { icon: FileText, color: "#818cf8" };
                   const statusStyle = STATUS_COLORS[item.meta] || STATUS_COLORS[item.type] || { bg: "rgba(129,140,248,0.1)", color: "#818CF8", dot: "#6366F1" };
                   return (
-                    <div key={i} style={{ display: "flex", gap: 12, padding: "12px 20px", borderBottom: i < Math.min(feed.length, 10) - 1 ? "1px solid #131327" : "none", alignItems: "center" }}>
+                    <div key={i} style={{ display: "flex", gap: 12, padding: "12px 20px", borderBottom: i < Math.min(feed.length, 10) - 1 ? "1px solid var(--bg-hover)" : "none", alignItems: "center" }}>
                       <div style={{ width: 34, height: 34, borderRadius: 8, background: cfg.color + "20", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <cfg.icon size={15} color={cfg.color} />
                       </div>
@@ -347,7 +347,7 @@ export default function DashboardPage() {
                       { label: t("dash_purchases"), total: moduleStats.purchaseStats?.reduce((s, i) => s + i._count._all, 0) ?? 0, color: "#C084FC", show: canSee("PURCHASE") },
                       { label: t("dash_leads"),     total: moduleStats.leadStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,     color: "#FBBF24", show: canSee("MARKETING") },
                     ].filter(m => m.show && m.total > 0).map(m => (
-                      <div key={m.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #131327" }}>
+                      <div key={m.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--bg-hover)" }}>
                         <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{m.label}</span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{m.total}</span>
                       </div>

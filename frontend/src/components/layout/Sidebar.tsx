@@ -74,7 +74,7 @@ function OrgSwitcherDropdown() {
             <button
               key={org.id}
               onClick={() => { setActiveOrg(org); setOpen(false); }}
-              className={cn("w-full flex items-center gap-3 px-3 py-2 transition-colors cursor-pointer", activeOrg.id === org.id ? "bg-indigo-600/10" : "hover:bg-[#131327]")}
+              className={cn("w-full flex items-center gap-3 px-3 py-2 transition-colors cursor-pointer rounded-lg", activeOrg.id === org.id ? "bg-indigo-600/10" : "hover:bg-[var(--bg-hover)]")}
             >
               <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
                 style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
@@ -156,7 +156,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
     "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150",
     isActive
       ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
-      : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22]"
+      : "nav-link-inactive"
   );
 
   return (
@@ -216,7 +216,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                       "flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-center transition-all duration-150",
                       isActive
                         ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/20"
-                        : "text-[#7070A0] hover:text-[#CCCCEE] hover:bg-[#0F0F22] border border-transparent"
+                        : "nav-mod-inactive"
                     )}
                     style={{ textDecoration: "none" }}
                   >

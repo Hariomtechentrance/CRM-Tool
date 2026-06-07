@@ -9,7 +9,7 @@ const S = {
   kpi: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" } as React.CSSProperties,
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 } as React.CSSProperties,
   cardTitle: { fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 } as React.CSSProperties,
-  row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #131327" } as React.CSSProperties,
+  row: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--bg-hover)" } as React.CSSProperties,
 };
 
 function BarChart({ data, color = "#6366f1" }: { data: { label: string; value: number; raw?: number }[]; color?: string }) {
@@ -205,7 +205,7 @@ export default function ReportsPage() {
             <div style={S.card}>
               <div style={S.cardTitle}><DollarSign size={16} color="#10b981" /> Finance Overview</div>
               <BarChart data={financeChartData} color="#10b981" />
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #131327" }}>
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--bg-hover)" }}>
                 {[
                   { label: "Paid Invoices", value: finStats?.paidInvoices ?? 0, color: "#6366f1" },
                   { label: "Overdue", value: finStats?.overdueInvoices ?? 0, color: "#ef4444" },
@@ -222,7 +222,7 @@ export default function ReportsPage() {
             <div style={S.card}>
               <div style={S.cardTitle}><PieChart size={16} color="#a78bfa" /> Lead Conversion</div>
               {leadDonut.length > 0 ? <DonutChart segments={leadDonut} /> : <div style={{ color: "var(--text-ghost)", fontSize: 13, textAlign: "center", padding: "20px 0" }}>No lead data yet</div>}
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #131327" }}>
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--bg-hover)" }}>
                 <div style={S.row}>
                   <span style={{ fontSize: 13, color: "var(--text-sec)" }}>Pipeline Value</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b" }}>{fmt(leadStats?.pipeline)}</span>
@@ -234,7 +234,7 @@ export default function ReportsPage() {
             <div style={S.card}>
               <div style={S.cardTitle}><Package size={16} color="#f59e0b" /> Inventory Status</div>
               <BarChart data={inventoryChartData} color="#f59e0b" />
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #131327" }}>
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--bg-hover)" }}>
                 <div style={S.row}>
                   <span style={{ fontSize: 13, color: "var(--text-sec)" }}>Inventory Value</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981" }}>{fmt(invStats?.totalValue)}</span>

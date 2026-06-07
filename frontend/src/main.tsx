@@ -10,6 +10,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore(s => s.theme);
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.colorScheme = theme;
   }, [theme]);
   return <>{children}</>;
 }
