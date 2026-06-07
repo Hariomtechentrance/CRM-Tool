@@ -80,18 +80,14 @@ CREATE TABLE IF NOT EXISTS "ConsentLog" (
 );
 
 -- ── Unique constraints ───────────────────────────────────────
+-- Use CREATE UNIQUE INDEX IF NOT EXISTS — ALTER TABLE ADD CONSTRAINT raises 42P07
+-- (duplicate_table) not 42710 (duplicate_object) when the backing index already exists.
 
-DO $$ BEGIN
-  ALTER TABLE "CustomField" ADD CONSTRAINT "CustomField_organizationId_entity_fieldKey_key"
-    UNIQUE ("organizationId", "entity", "fieldKey");
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+CREATE UNIQUE INDEX IF NOT EXISTS "CustomField_organizationId_entity_fieldKey_key"
+  ON "CustomField"("organizationId", "entity", "fieldKey");
 
-DO $$ BEGIN
-  ALTER TABLE "CustomFieldValue" ADD CONSTRAINT "CustomFieldValue_customFieldId_entityId_key"
-    UNIQUE ("customFieldId", "entityId");
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+CREATE UNIQUE INDEX IF NOT EXISTS "CustomFieldValue_customFieldId_entityId_key"
+  ON "CustomFieldValue"("customFieldId", "entityId");
 
 -- ── Indexes ──────────────────────────────────────────────────
 
