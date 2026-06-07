@@ -1869,4 +1869,773 @@ Go to **Admin → Team** → click the role next to the person's name → select
 
 ---
 
+## Industry Guide — Which Modules to Use for Your Business
+
+This section tells you exactly which modules matter for your type of business. Turn ON only what you need. Everything else can be hidden from your sidebar.
+
+---
+
+### 1. Manufacturing Company
+
+**Examples:** Steel fabricators, garment factories, food processing units, pharma manufacturers, auto component makers, furniture makers, plastic moulding units.
+
+**Your daily operations involve:** buying raw materials → converting them into finished goods → selling to dealers/distributors → managing workers and machines.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **CRM** | Store your dealers, distributors, and raw material suppliers |
+| **Inventory** | Track raw materials, work-in-progress (WIP), and finished goods separately |
+| **Bill of Materials (BOM)** | Define which raw materials go into each finished product |
+| **Purchase** | Raise purchase orders to raw material suppliers |
+| **Sales / Dispatch** | Process customer orders and dispatch finished goods |
+| **Warehouse** | Manage multiple storage zones — raw material store, production floor, finished goods store |
+| **Accounts** | Invoice your buyers, record supplier payments, track cash flow |
+| **HR** | Manage factory workers — attendance, shifts, wages, PF/ESI |
+| **Projects / Tasks** | Track production jobs, machine maintenance tasks |
+| **GST / E-Invoice / E-Way Bill** | Mandatory for goods movement and billing above ₹5 Cr turnover |
+| **Reports** | Production output, raw material consumption, cost analysis |
+
+#### Modules You Probably Don't Need
+
+- Leads, Deals, Quotations — unless you have a B2B sales team prospecting new dealers
+- Tele-calling — unless you run an outbound sales operation
+- Health Module — unless you have a factory clinic
+- Stock Market — not relevant
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Product | Machine / Line Number |
+| Product | Batch Size |
+| Product | Quality Grade (A/B/C) |
+| Supplier | Lead Time (Days) |
+| Employee | Shift (Morning/Evening/Night) |
+| Employee | Machine Operator Skill |
+
+#### Typical Daily Workflow
+
+```
+Morning:
+  → Check low stock alerts in Inventory
+  → Raise Purchase Orders for raw materials needed
+  → Mark attendance for workers in HR
+
+During Day:
+  → Receive raw materials → Mark PO as Received (stock increases)
+  → Process customer orders in Sales/Dispatch
+  → Move orders: Confirmed → Processing → Dispatched
+
+End of Day:
+  → Log any stock adjustments (wastage, rework)
+  → Check dispatch entries — how many orders went out today
+  → Review tomorrow's production tasks in Projects
+```
+
+---
+
+### 2. Trading / Wholesale Business
+
+**Examples:** Hardware traders, chemical traders, textile wholesalers, FMCG distributors, electrical goods distributors, steel stockists, pharma wholesale, agricultural commodity traders.
+
+**Your daily operations involve:** buying goods from manufacturers → stocking them → selling to retailers/sub-dealers → managing a large product catalogue and credit terms.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **CRM** | Your most critical module — manage hundreds of customers and suppliers |
+| **Inventory** | Track stock of all products, reorder levels, HSN codes |
+| **Purchase** | Raise POs to manufacturers and importers |
+| **Sales / Dispatch** | Process dealer/retailer orders |
+| **Accounts** | Invoice customers, track credit limits, manage payables |
+| **Quotations** | Send price quotes to customers who ask "what's the rate?" |
+| **GST / E-Way Bill** | Every consignment needs an e-way bill |
+| **Reports** | Fast-moving vs slow-moving items, top customers by revenue |
+| **Batch Tracking** | If goods have expiry dates (food, pharma, agrochemicals) |
+| **Leads** | For adding new dealers or retailers to your network |
+
+#### Modules You Probably Don't Need
+
+- HR — unless you have 5+ employees
+- Projects — not typically needed in pure trading
+- Health / Stock Market / Tele-calling — not relevant
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Customer | Credit Limit (₹) |
+| Customer | Credit Days (30/45/60) |
+| Customer | Zone / Beat (e.g., North Mumbai) |
+| Product | Minimum Order Quantity |
+| Product | Brand Name |
+| Product | Country of Origin |
+
+#### Typical Daily Workflow
+
+```
+Morning:
+  → Review pending orders in Sales/Dispatch
+  → Check low stock items in Inventory
+  → Follow up on overdue payments in Accounts
+
+During Day:
+  → Take orders from dealers (phone/WhatsApp)
+  → Create Sales Orders → Print E-Way Bill → Dispatch
+  → Receive incoming goods → Mark POs as Received
+
+End of Day:
+  → Check total dispatches for the day
+  → Record any cash/bank receipts in Accounts
+  → Update CRM with calls made to dealers
+```
+
+---
+
+### 3. Import-Export Business
+
+**Examples:** Commodity exporters, apparel exporters, engineering goods exporters, food product exporters, importers of machinery/electronics, customs brokers, freight forwarders.
+
+**Your daily operations involve:** international shipments, customs documentation, foreign currency invoicing, compliance with DGFT/FSSAI/BIS regulations.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **CRM** | Manage international buyers (export) and overseas suppliers (import) |
+| **Import-Export Suite** | Shipping bills, bills of entry, LC tracking, customs documents |
+| **Inventory** | Track stock before and after customs clearance |
+| **Purchase** | Purchase orders to overseas suppliers |
+| **Sales / Dispatch** | Export orders, packing lists, commercial invoices |
+| **Accounts** | Multi-currency invoicing, forex P&L |
+| **Currency** | Manage USD, EUR, AED exchange rates |
+| **Documents** | Store all shipping documents digitally — BL, AWB, LC, insurance |
+| **GST / E-Invoice** | For domestic leg of imports/exports |
+| **Leads** | Find new international buyers |
+| **Email** | Professional email communication with international clients |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Customer | Country |
+| Customer | Incoterm (FOB/CIF/EXW) |
+| Customer | Payment Terms (LC/TT/DP) |
+| Order | HS Code |
+| Order | Port of Loading |
+| Order | Port of Discharge |
+| Order | Vessel / Flight Number |
+| Shipment | BL / AWB Number |
+| Shipment | ETD / ETA |
+
+#### Typical Daily Workflow
+
+```
+Morning:
+  → Check shipment status in Import-Export module
+  → Review LC / payment due dates in Accounts
+  → Check new enquiries from international buyers (Email)
+
+During Day:
+  → Create commercial invoices and packing lists in Accounts
+  → Upload shipping documents to Documents module
+  → Log communication with freight forwarders in CRM Activity Log
+
+End of Day:
+  → Update exchange rates in Currency settings
+  → Record any forex receipts or payments
+```
+
+---
+
+### 4. Service-Based Business
+
+**Examples:** IT companies, consulting firms, advertising agencies, event management, accounting firms, law firms, architecture firms, marketing agencies, recruitment agencies.
+
+**Your daily operations involve:** managing client projects, tracking time spent, billing for services rendered, handling client queries.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **CRM** | Client database — all communication history in one place |
+| **Leads** | New business development — track proposals and follow-ups |
+| **Deals** | Your sales pipeline — which clients are in final negotiation |
+| **Quotations** | Send proposals with service line items and payment milestones |
+| **Accounts** | Raise service invoices, track retainers, record payments |
+| **Projects** | Manage every client engagement as a project with tasks |
+| **Time Tracking** | Log hours per project — essential for billing clients hourly |
+| **HR** | Manage your team — leaves, appraisals, expenses |
+| **Support** | Handle client complaints and change requests formally |
+| **Email** | All client email communication in one place |
+| **Automations** | Auto-send follow-up emails after proposals |
+| **Reports** | Revenue by client, project profitability |
+
+#### Modules You Probably Don't Need
+
+- Inventory — unless you sell physical products alongside services
+- Purchase — unless you buy significant materials for projects
+- Warehouse / POS / Batch Tracking — not relevant
+- Import-Export Suite — unless you work internationally
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Customer | Industry Sector |
+| Customer | Annual Contract Value (₹) |
+| Lead | Service Required |
+| Lead | Budget Range |
+| Project | Contract Type (Fixed / T&M / Retainer) |
+| Project | Client PO Number |
+| Employee | Billable Rate per Hour (₹) |
+| Employee | Tech Stack / Skills |
+
+#### Typical Daily Workflow
+
+```
+Morning:
+  → Check today's tasks in My Work / Projects
+  → Review any new support tickets from clients
+
+During Day:
+  → Work on tasks → move to In Progress / Done on the Kanban board
+  → Log time against each task (Time Tracking)
+  → Update clients via Email or Activity Log in CRM
+
+End of Week:
+  → Total up hours logged
+  → Create invoices based on timesheet
+  → Update deal stages in Deals pipeline
+```
+
+---
+
+### 5. Retail Shop / Store
+
+**Examples:** Clothing shops, electronics retail, grocery stores, medical stores/pharmacies, hardware shops, shoe stores, jewellery shops, mobile phone shops.
+
+**Your daily operations involve:** selling directly to walk-in customers, managing stock of many SKUs, handling returns, running offers and discounts.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Retail / POS** | Your main module — quick billing at the counter |
+| **Inventory** | Track stock of every product you sell |
+| **Purchase** | Reorder from suppliers when stock runs low |
+| **Accounts** | Summary of daily sales, monthly revenue |
+| **CRM** | Store loyal/repeat customer details for offers |
+| **Batch Tracking** | If you sell items with expiry dates (medicines, food) |
+| **GST / E-Invoice** | Invoice compliance |
+| **Reports** | Best-selling products, slow-moving stock, daily sales report |
+
+#### Modules You Probably Don't Need
+
+- Projects, Leads, Deals — not relevant for walk-in retail
+- Tele-calling — unless you do outbound marketing
+- Import-Export — unless you import your products directly
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Product | Brand |
+| Product | Colour / Size |
+| Product | Shelf Location (e.g., Aisle 3, Rack B) |
+| Customer | Loyalty Points |
+| Customer | Birthday (for birthday offers) |
+
+#### Typical Daily Workflow
+
+```
+Morning:
+  → Open POS terminal
+  → Check low stock alerts — raise purchase orders for anything running low
+
+During Day:
+  → Process sales on POS → scan barcode → collect payment → print receipt
+  → Stock reduces automatically with each sale
+
+End of Day:
+  → Run Day Summary report on POS
+  → Reconcile cash collected
+  → Mark received goods from suppliers in Purchase module
+```
+
+---
+
+### 6. Healthcare — Clinic / Hospital / Diagnostic Centre
+
+**Examples:** General physician clinics, specialist hospitals, dental clinics, physiotherapy centres, ayurvedic centres, diagnostic labs, eye care centres, skin care clinics.
+
+**Your daily operations involve:** registering patients, recording visits and diagnoses, writing prescriptions, managing lab reports, billing for consultations.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Health** | Your main module — patient registration, visits, prescriptions, lab reports |
+| **Accounts** | Bill patients for consultations, procedures, lab tests |
+| **Inventory** | Track medicines, consumables, and equipment |
+| **Appointments** | Schedule patient appointments in advance |
+| **HR** | Manage doctors, nurses, lab technicians — attendance and payroll |
+| **Support** | Handle patient complaints formally |
+| **Compliance** | Enable Patient Consent and Health Mode — legally required |
+| **Documents** | Store patient consent forms, legal agreements |
+| **CRM** | Manage pharma company reps and medical equipment suppliers |
+
+#### Modules You Probably Don't Need
+
+- Leads / Deals — unless you have a corporate health package sales team
+- Import-Export, Warehouse, POS — not typically needed
+- Stock Market, Tele-calling — not relevant
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Patient | ABHA Number (Ayushman Bharat Health Account) |
+| Patient | Insurance Provider |
+| Patient | Insurance Policy Number |
+| Patient | Occupation |
+| Patient | Referred By (Doctor/Hospital) |
+| Visit | Doctor Name |
+| Visit | Consulting Room |
+| Visit | Referred for Test? (Yes/No) |
+
+#### Important Compliance for Healthcare
+
+1. Go to **Compliance** → enable **Patient Consent Required**
+2. Enable **Health / HIPAA Mode**
+3. Set **Data Retention Days** (suggested: 7 years for medical records as per MCI guidelines)
+4. Always get written consent before storing patient health data
+
+---
+
+### 7. Real Estate / Property Business
+
+**Examples:** Real estate brokers, property developers, housing societies, co-working space operators, property management companies, plot sellers.
+
+**Your daily operations involve:** tracking property enquiries, following up with potential buyers, managing site visits, closing deals.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Leads** | Every new enquiry is a lead — phone, website, 99acres, MagicBricks, etc. |
+| **CRM** | Store buyer and seller profiles |
+| **Deals** | Track which properties are in negotiation |
+| **Appointments** | Schedule site visits |
+| **Quotations** | Send property offers with payment schedules |
+| **Accounts** | Booking amounts, instalment tracking, final payments |
+| **Documents** | Store agreements, NOCs, title documents |
+| **WhatsApp** | Send property photos, location maps, updates |
+| **Email** | Formal communication with buyers |
+| **Automations** | Auto-send property details when a new enquiry comes in |
+| **Lead Capture Forms** | Collect leads from your website |
+| **Reports** | Leads by source, conversion rate, revenue |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Lead | Property Type Interested In (Flat/Villa/Plot/Commercial) |
+| Lead | Budget Range |
+| Lead | Location Preference |
+| Lead | Financing Type (Loan/Cash) |
+| Deal | Project Name |
+| Deal | Unit Number |
+| Deal | Carpet Area (sq ft) |
+| Deal | Floor |
+| Customer | PAN (required for property registration) |
+| Customer | Aadhaar Number |
+
+#### Typical Daily Workflow
+
+```
+Morning:
+  → Open Leads → check Queue → call all follow-ups for today
+
+During Day:
+  → Log every call outcome
+  → Book site visits via Appointments
+  → Send WhatsApp messages with project details to interested leads
+
+After Site Visit:
+  → Move lead from "Contacted" to "Qualified" in Leads
+  → Create a Deal if they're seriously interested
+  → Send a Quotation with payment schedule
+
+On Closure:
+  → Move Deal to "Won"
+  → Create invoice for booking amount
+  → Upload signed agreement to Documents
+```
+
+---
+
+### 8. Education — School / Coaching Centre / Ed-Tech
+
+**Examples:** Schools, colleges, coaching institutes, skill training centres, online tutoring, music/dance academies, driving schools.
+
+**Your daily operations involve:** admitting students, collecting fees, managing faculty, tracking attendance, handling parent queries.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **CRM** | Parents and students as "parties" |
+| **Leads** | New admissions pipeline — enquiries from parents |
+| **Accounts** | Fee collection, fee receipts, outstanding fees |
+| **HR** | Faculty management — salary, attendance, leave |
+| **Support** | Handle parent complaints formally |
+| **Lead Capture Forms** | Collect admission enquiries from website |
+| **WhatsApp** | Send fee reminders, updates, circulars to parents |
+| **Appointments** | Schedule counselling sessions, parent-teacher meetings |
+| **Automations** | Auto-send welcome message after admission enquiry |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Lead (Admission Enquiry) | Course / Class Interested In |
+| Lead | How Did You Hear About Us |
+| Lead | Preferred Batch (Morning/Evening) |
+| Customer (Student) | Student Roll Number |
+| Customer (Student) | Class / Batch |
+| Customer (Student) | Parent Name |
+| Customer (Student) | School / College Name |
+| Employee (Faculty) | Subject Specialisation |
+| Employee (Faculty) | Qualification |
+
+---
+
+### 9. Restaurant / Food & Beverage
+
+**Examples:** Restaurants, cafes, cloud kitchens, tiffin services, catering companies, bakeries, sweet shops.
+
+**Your daily operations involve:** taking orders, billing customers, managing kitchen inventory, tracking raw material usage.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Retail / POS** | Table billing and takeaway orders |
+| **Inventory** | Track raw materials (vegetables, spices, packaging) |
+| **Purchase** | Buy raw materials from vendors |
+| **Accounts** | Daily revenue, supplier payments |
+| **HR** | Cooks, waiters, delivery staff — attendance and wages |
+| **Batch Tracking** | If you have perishable ingredients with expiry |
+| **Reports** | Best-selling dishes, daily revenue, food cost % |
+| **CRM** | Corporate catering clients |
+| **Accounts** | GST invoices for corporate clients |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Product (Menu Item) | Category (Starter / Main / Dessert / Beverage) |
+| Product (Menu Item) | Veg / Non-Veg |
+| Product (Ingredient) | Storage Temp (Refrigerated / Frozen / Ambient) |
+| Customer | Table Number |
+| Customer | Dietary Preference (Jain / Vegan / Gluten-Free) |
+
+---
+
+### 10. Construction / Contracting
+
+**Examples:** Civil contractors, electrical contractors, plumbing contractors, building construction companies, interior designers, road construction, infrastructure companies.
+
+**Your daily operations involve:** managing project sites, procuring materials, tracking labour, billing clients by milestones.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Projects / Tasks** | Each construction project is a project — manage it with milestones and tasks |
+| **Inventory** | Track construction materials — cement, steel, bricks, wiring |
+| **Purchase** | Buy materials from vendors per project |
+| **CRM** | Clients who give you contracts, and your vendors |
+| **Quotations** | Send project cost estimates to clients |
+| **Accounts** | Bill clients by milestone (e.g., 30% on slab casting, 30% on finishing) |
+| **HR** | Daily labour management — attendance, wages |
+| **Documents** | Store drawings, approvals, BOQs (Bill of Quantities), contracts |
+| **Budget Planning** | Set project budget and track actuals vs planned |
+| **Leads** | New tender/project enquiries |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Project | Site Address |
+| Project | Client PO Number |
+| Project | Contract Value (₹) |
+| Project | Type (Residential / Commercial / Industrial) |
+| Customer | GST Number |
+| Purchase Order | Project / Site Name |
+| Employee | Trade (Mason / Carpenter / Electrician / Plumber) |
+
+---
+
+### 11. IT / Software / SaaS Company
+
+**Examples:** Software development companies, mobile app developers, web agencies, SaaS product companies, IT consulting firms, managed service providers.
+
+**Your daily operations involve:** managing client projects, tracking bugs, running sprints, billing clients, handling support tickets.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **IT Projects** | Sprint-based development, user stories, sprint board |
+| **Bug Tracker** | Log and track bugs with severity levels |
+| **Time Tracking** | Log hours per task — for client billing and productivity |
+| **CRM** | Manage clients and prospects |
+| **Leads** | New business development pipeline |
+| **Deals** | Track large enterprise deals in negotiation |
+| **Quotations** | Send project proposals and SoW (Statement of Work) |
+| **Accounts** | Invoice clients — fixed price or time & material |
+| **Support** | Handle client support tickets, bug reports |
+| **HR** | Developer and designer management |
+| **Email** | Client communication |
+| **My Work** | Every developer sees their own tasks |
+| **Webhooks** | Connect your CRM to Slack, Jira, GitHub, etc. |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Lead | Tech Stack Needed |
+| Lead | Project Type (Web / Mobile / API) |
+| Customer | Account Manager |
+| Project | GitHub / GitLab Repo URL |
+| Project | Staging URL |
+| Project | Production URL |
+| Project | Contract Type (Fixed / T&M / Retainer) |
+| Employee | Primary Skills |
+| Employee | GitHub Username |
+| Bug | Browser / Device |
+| Bug | Steps to Reproduce |
+
+---
+
+### 12. Financial Advisory / Wealth Management
+
+**Examples:** SEBI-registered investment advisers, mutual fund distributors, insurance brokers, stock brokers, tax consultants, CA firms providing investment advice.
+
+**Your daily operations involve:** managing client portfolios, publishing trade calls, tracking client subscriptions, ensuring SEBI compliance.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Stock Market** | Publish trade calls, research reports, manage client subscriptions |
+| **CRM** | Detailed client profiles — risk profile, investment goals |
+| **Leads** | Prospect clients, follow up for onboarding |
+| **Accounts** | Advisory fee invoices, renewal billing |
+| **Compliance** | SEBI registration details, required disclaimers |
+| **Documents** | Store KYC documents, signed agreements, risk profiling forms |
+| **Email** | Formal client communication, research reports delivery |
+| **WhatsApp** | Quick market updates, trade alerts to clients |
+| **Appointments** | Schedule review calls and portfolio discussions |
+
+#### Mandatory Compliance Setup
+
+1. **Compliance** → SEBI section → toggle **SEBI Registered: ON**
+2. Enter your **SEBI IA Registration Number**
+3. Customise the **Disclaimer Text** — must state that advice is for informational purposes only
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Customer | Risk Profile (Conservative / Moderate / Aggressive) |
+| Customer | Investment Goal (Wealth / Retirement / Education / Tax Saving) |
+| Customer | Annual Income Range |
+| Customer | KYC Status (Verified / Pending / Expired) |
+| Customer | SEBI Category (Non-Individual / Individual) |
+| Lead | AUM (Assets Under Management) |
+
+---
+
+### 13. Tele-calling / BPO / Call Centre
+
+**Examples:** Outbound sales call centres, lead generation agencies, insurance tele-marketing teams, bank tele-sales, telecom customer acquisition.
+
+**Your daily operations involve:** high-volume outbound calling, managing call scripts, TRAI compliance, tracking conversion rates.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Tele-calling** | Your main module — call queue, scripts, outcomes, DNC list |
+| **Leads** | All your calling targets are leads |
+| **CRM** | Clients for whom you run calling campaigns |
+| **HR** | Manage large calling teams — attendance, payroll, incentives |
+| **Reports** | Conversion rates, calls-per-agent, campaign performance |
+| **Automations** | Auto-assign new leads to agents, send follow-up WhatsApp |
+| **WhatsApp** | Send messages to interested leads post-call |
+| **Compliance** | TRAI compliance is mandatory — enable calling hour restriction and DNC check |
+
+#### Mandatory Compliance Setup
+
+1. **Compliance** → TRAI section:
+   - Enable **Restrict Calling Hours** (9 AM–9 PM IST)
+   - Enable **NDNC/DND Check Reminder**
+2. Register on the **DLT Platform** of your telecom operator (mandatory for bulk SMS)
+3. Ensure all calling agents are informed of TRAI rules
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Lead | Campaign Name |
+| Lead | Agent ID |
+| Lead | Best Time to Call |
+| Lead | Language Preferred |
+| Lead | Call Attempt Number |
+
+---
+
+### 14. NGO / Non-Profit Organisation
+
+**Examples:** Charitable trusts, educational NGOs, healthcare NGOs, social welfare organisations, religious trusts, foundations.
+
+**Your daily operations involve:** managing donors, tracking grants, running programmes, reporting impact.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **CRM** | Donors, volunteers, beneficiaries as parties |
+| **Leads** | Track potential donors and grant applications |
+| **Accounts** | Record donations received, expenses spent, grants utilised |
+| **Projects** | Each NGO programme is a project with tasks and milestones |
+| **HR** | Manage paid staff and track volunteer hours |
+| **Documents** | Store 80G certificates, FCRA documents, grant agreements |
+| **Reports** | Fund utilisation reports for donors and regulators |
+| **Email** | Donor communication, impact reports |
+| **WhatsApp** | Campaigns for fundraising |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Customer (Donor) | 80G Certificate Number |
+| Customer (Donor) | Donation Frequency (One-time / Monthly / Annual) |
+| Customer (Donor) | Preferred Cause |
+| Lead (Grant) | Funding Organisation |
+| Lead (Grant) | Grant Amount Applied (₹) |
+| Lead (Grant) | Application Deadline |
+| Project (Programme) | Beneficiaries Count |
+| Project (Programme) | Impact Area (Education / Health / Livelihood) |
+
+---
+
+### 15. Logistics / Transport Company
+
+**Examples:** Trucking companies, courier companies, last-mile delivery, warehousing and logistics, freight forwarding, cold chain logistics.
+
+**Your daily operations involve:** managing vehicles, drivers, deliveries, customer billing, route planning.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **CRM** | Customers who ship goods through you |
+| **Leads** | New clients who want regular shipping contracts |
+| **Sales / Dispatch** | Dispatch entries for each consignment |
+| **Accounts** | Bill customers per consignment, track freight income |
+| **Purchase** | Diesel, tyres, and maintenance parts procurement |
+| **HR** | Manage drivers and loading staff — attendance, wages |
+| **Projects / Tasks** | Vehicle maintenance schedules |
+| **Documents** | Store LR copies, delivery proofs, contracts |
+| **Reports** | Revenue per customer, consignment count, profitability |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Customer | Route (Mumbai–Pune / Delhi–Jaipur) |
+| Dispatch Entry | Vehicle Number |
+| Dispatch Entry | Driver Name |
+| Dispatch Entry | LR Number |
+| Dispatch Entry | Weight (Kg / Tonnes) |
+| Dispatch Entry | Freight Amount (₹) |
+| Dispatch Entry | Delivery Status |
+
+---
+
+### 16. Agriculture / Agribusiness
+
+**Examples:** Farms, agro-processing units, fertiliser/pesticide distributors, seed companies, cold storage operators, commodity traders in grains/pulses/spices.
+
+#### Modules to Enable
+
+| Module | Why You Need It |
+|--------|----------------|
+| **Inventory** | Track produce, seeds, fertilisers by batch/lot |
+| **Batch Tracking** | Seasonal batches — harvest date, quality grade |
+| **Purchase** | Buy inputs: seeds, fertilisers, pesticides |
+| **Sales / Dispatch** | Sell produce to mandis, processors, exporters |
+| **CRM** | Commission agents, buyers, input suppliers |
+| **Accounts** | Billing, mandi payments, input costs |
+| **HR** | Seasonal labour management |
+| **Warehouse** | Multiple cold storage or godown locations |
+
+#### Suggested Custom Fields to Add
+
+| Entity | Custom Field |
+|--------|-------------|
+| Product | Crop / Variety |
+| Product | Season (Kharif / Rabi / Summer) |
+| Batch | Harvest Date |
+| Batch | Farm / Field Name |
+| Batch | Quality Grade (FAQ / Best / Reject) |
+| Customer | Mandi / APMC |
+| Customer | Commission Agent Name |
+
+---
+
+### Summary — Module Recommendation Matrix
+
+Use this table to quickly see which modules are most important for your business type.
+
+| Module | Mfg | Trading | Import-Export | Services | Retail | Healthcare | Real Estate | IT | Finance Advisory | Tele-calling |
+|--------|:---:|:-------:|:-------------:|:--------:|:------:|:----------:|:-----------:|:--:|:----------------:|:------------:|
+| **CRM** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Leads** | — | ✅ | ✅ | ✅ | — | — | ✅ | ✅ | ✅ | ✅ |
+| **Deals** | — | — | ✅ | ✅ | — | — | ✅ | ✅ | ✅ | — |
+| **Quotations** | ✅ | ✅ | ✅ | ✅ | — | — | ✅ | ✅ | — | — |
+| **Accounts** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **Inventory** | ✅ | ✅ | ✅ | — | ✅ | ✅ | — | — | — | — |
+| **Purchase** | ✅ | ✅ | ✅ | — | ✅ | ✅ | — | — | — | — |
+| **Sales/Dispatch** | ✅ | ✅ | ✅ | — | — | — | — | — | — | — |
+| **Warehouse** | ✅ | ✅ | ✅ | — | — | — | — | — | — | — |
+| **HR** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | ✅ |
+| **Projects** | ✅ | — | — | ✅ | — | — | ✅ | ✅ | — | — |
+| **IT Projects / Bugs** | — | — | — | — | — | — | — | ✅ | — | — |
+| **Time Tracking** | — | — | — | ✅ | — | — | — | ✅ | — | — |
+| **Support** | — | ✅ | — | ✅ | ✅ | ✅ | — | ✅ | — | — |
+| **Email** | — | — | ✅ | ✅ | — | — | ✅ | ✅ | ✅ | — |
+| **WhatsApp** | — | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| **Retail / POS** | — | — | — | — | ✅ | — | — | — | — | — |
+| **Batch Tracking** | ✅ | ✅ | ✅ | — | ✅ | ✅ | — | — | — | — |
+| **GST / E-Invoice** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+| **Reports** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Tele-calling** | — | ✅ | — | — | — | — | ✅ | — | — | ✅ |
+| **Health Module** | — | — | — | — | — | ✅ | — | — | — | — |
+| **Stock Market** | — | — | — | — | — | — | — | — | ✅ | — |
+| **Automations** | — | ✅ | — | ✅ | — | — | ✅ | ✅ | — | ✅ |
+| **Lead Capture Forms** | — | — | — | ✅ | — | — | ✅ | ✅ | ✅ | — |
+| **Compliance** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+✅ = Highly recommended   —  = Not typically needed
+
+---
+
 *BL-CRM — Built for Indian businesses. For questions, contact your system administrator.*
