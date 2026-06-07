@@ -1,1488 +1,1872 @@
-# FlowCRM — Complete User Guide
+# BL-CRM — Complete User Guide
 
-> **Platform:** Multi-tenant SaaS CRM & ERP  
-> **Designed for:** Import-Export, Trading, Manufacturing, Service businesses  
-> **Version:** 2.0
+**For:** New users who want to learn how to use every feature step by step
+**Language:** Simple English — no technical terms
 
 ---
 
 ## Table of Contents
 
-1. [Getting Started](#1-getting-started)
-2. [Dashboard](#2-dashboard)
-3. [CRM — Contacts & Companies](#3-crm--contacts--companies)
-4. [Inventory](#4-inventory)
-5. [Purchase Orders](#5-purchase-orders)
-6. [Sales & Dispatch](#6-sales--dispatch)
-7. [Finance & Accounts](#7-finance--accounts)
-8. [HR & Payroll](#8-hr--payroll)
-9. [Projects](#9-projects)
-10. [Marketing & Leads](#10-marketing--leads)
-11. [Appointments](#11-appointments)
-12. [Automations](#12-automations)
-13. [Email](#13-email)
-14. [WhatsApp Business](#14-whatsapp-business)
-15. [Lead Capture Forms](#15-lead-capture-forms)
-16. [Support Tickets](#16-support-tickets)
-17. [Deals & Pipeline](#17-deals--pipeline)
-18. [Quotations](#18-quotations)
-19. [Documents](#19-documents)
-20. [GST, E-Invoice & E-Way Bill](#20-gst-e-invoice--e-way-bill)
-21. [TDS / TCS](#21-tds--tcs)
-22. [Budgets](#22-budgets)
-23. [Bank Reconciliation](#23-bank-reconciliation)
-24. [Reports & Analytics](#24-reports--analytics)
-25. [Trade / Import-Export Suite](#25-trade--import-export-suite)
-26. [Warehouse](#26-warehouse)
-27. [Retail & POS](#27-retail--pos)
-28. [Batch Tracking & BOM](#28-batch-tracking--bom)
-29. [Admin Panel](#29-admin-panel)
-30. [Security Center](#30-security-center)
-31. [Settings](#31-settings)
-32. [Webhooks](#32-webhooks)
-33. [Super Admin (Platform Owner)](#33-super-admin-platform-owner)
-34. [Roles & Permissions Reference](#34-roles--permissions-reference)
-35. [Custom Fields — Add Your Own Data Fields](#35-custom-fields--add-your-own-data-fields)
-36. [Branding — Make It Look Like Your Business](#36-branding--make-it-look-like-your-business)
-37. [Compliance — Stay Legally Safe in India](#37-compliance--stay-legally-safe-in-india)
-38. [Tele-calling Centre](#38-tele-calling-centre)
-39. [Stock Market Advisory](#39-stock-market-advisory)
-40. [Health & Patient Management](#40-health--patient-management)
+1. [Registration & First Setup](#1-registration--first-setup)
+2. [Login & Switching Organisations](#2-login--switching-organisations)
+3. [Dashboard — Your Home Screen](#3-dashboard)
+4. [CRM — Customers & Suppliers](#4-crm--customers--suppliers)
+5. [Leads — Track New Prospects](#5-leads)
+6. [Deals — Manage Your Sales Pipeline](#6-deals)
+7. [Quotations — Send Price Proposals](#7-quotations)
+8. [Invoices & Accounts — Billing & Payments](#8-invoices--accounts)
+9. [Inventory — Products & Stock](#9-inventory)
+10. [Purchase — Buy from Suppliers](#10-purchase)
+11. [Sales & Dispatch — Ship to Customers](#11-sales--dispatch)
+12. [HR & Payroll — Manage Your Team](#12-hr--payroll)
+13. [Projects & Tasks — Track Work](#13-projects--tasks)
+14. [Customer Support — Handle Complaints](#14-customer-support)
+15. [Email — Connect Your Inbox](#15-email)
+16. [WhatsApp — Message Customers](#16-whatsapp)
+17. [Activities — All Interactions in One Place](#17-activities)
+18. [Appointments — Schedule Meetings](#18-appointments)
+19. [Automations — Automate Repetitive Tasks](#19-automations)
+20. [Lead Capture Forms — Get Leads from Your Website](#20-lead-capture-forms)
+21. [Reports & Analytics](#21-reports--analytics)
+22. [GST Reports, E-Invoice & E-Way Bill](#22-gst-reports-e-invoice--e-way-bill)
+23. [TDS Management](#23-tds-management)
+24. [Budget Planning](#24-budget-planning)
+25. [Bank Reconciliation](#25-bank-reconciliation)
+26. [Documents — Store Files](#26-documents)
+27. [Tele-calling Centre](#27-tele-calling-centre)
+28. [Stock Market Advisory](#28-stock-market-advisory)
+29. [Health & Patient Management](#29-health--patient-management)
+30. [Import-Export (Trade) Suite](#30-import-export-trade-suite)
+31. [Retail & POS](#31-retail--pos)
+32. [Warehouse Management](#32-warehouse-management)
+33. [Custom Fields — Add Your Own Fields](#33-custom-fields)
+34. [Branding — Your Logo & Colours](#34-branding)
+35. [Compliance — Stay Legal in India](#35-compliance)
+36. [Settings — Your Account](#36-settings)
+37. [Admin Panel — Manage Your Organisation](#37-admin-panel)
+38. [Security Centre](#38-security-centre)
+39. [Super Admin (Platform Owner Only)](#39-super-admin)
+40. [Roles & What Each Role Can Do](#40-roles--permissions)
 
 ---
 
-## 1. Getting Started
+## 1. Registration & First Setup
 
-### 1.1 Register an Account
+This is the very first thing you do when you open the app for the first time.
 
-1. Open the app URL in your browser and click **Get Started** on the landing page.
-2. Click **Register** and fill in:
-   - Full Name
-   - Email address
-   - Password *(minimum 8 characters — must include uppercase letter, a number, and a special character)*
-3. Click **Create Account**.
-4. Check your inbox for a **verification email** and click the link inside to activate your account.
+### Step 1 — Open the App
 
-### 1.2 Log In
+Go to the app URL in your browser. You will see the Login page.
 
-1. Go to `/login`.
-2. Enter your **email** and **password**, then click **Sign In**.
-3. After 5 consecutive failed attempts your account is locked for 30 minutes. Contact your Admin to unlock it early via *Admin Panel → Team → Unlock*.
+### Step 2 — Click Register
 
-> **Tip:** If you log in from a new device or IP address, you will receive a security alert email. This is normal — just make sure it was you.
+Click the **Register** link or button. You will see a registration form.
 
-### 1.3 Forgot Password
+### Step 3 — Fill Your Details
 
-1. Click **Forgot password?** on the login page.
-2. Enter your email and click **Send Reset Link**.
-3. Open the email, click the reset link, and enter a new strong password.
-4. You cannot reuse your last 5 passwords.
+| Field | What to Enter |
+|-------|--------------|
+| Full Name | Your real name (e.g., Rajesh Kumar) |
+| Email Address | A valid email you check regularly |
+| Password | At least 8 characters, mix of letters and numbers |
+| Confirm Password | Type the same password again |
 
-### 1.4 Create an Organisation
+Click **Create Account**.
 
-After your first login you will be prompted to create an organisation:
+### Step 4 — Verify Your Email
 
-1. Enter your **Organisation Name** (e.g. "OM Import Export Ltd").
-2. Select your **Industry** and **Country**.
-3. Click **Create Organisation**.
+You will receive an email with a verification link. Open that email and click the link. This confirms your email address is real.
 
-You are automatically assigned the **OWNER** role. You can later invite team members.
+> If you don't see the email, check your Spam/Junk folder.
 
-### 1.5 Switch Organisations
+### Step 5 — Create Your Organisation
 
-If you belong to multiple organisations, click the **organisation name at the top-left** of the sidebar to open the switcher dropdown and select another organisation.
+After verification, you are taken to the **Create Organisation** screen.
 
----
+| Field | What to Enter |
+|-------|--------------|
+| Organisation Name | Your company name (e.g., "OM Import Export Ltd") |
+| Business Type | Choose what best describes your business |
 
-## 2. Dashboard
+Click **Create Organisation**.
 
-The Dashboard (`/dashboard`) is your real-time command centre.
+You are now the **Owner** of this workspace. This means you have full control over everything.
 
-| Section | What it shows |
-|---|---|
-| KPI Cards | Total parties, products, active orders, open leads, open tickets, team members |
-| Revenue Chart | Monthly revenue vs order volume (bar + line chart) |
-| Lead Pipeline | Count and total value per lead stage |
-| Order Status | Breakdown of sales order statuses |
-| Purchase Status | Breakdown of purchase order statuses |
-| Activity Feed | Latest 10 events across the platform (invoices, orders, leads, tickets, parties) |
+### Step 6 — You're In!
 
-**How to use:**
-- Click any KPI card to navigate directly to that module.
-- Hover over chart bars/lines for exact numbers.
-- The feed refreshes automatically. Click any feed item to jump to that record.
+You will be taken to your **Dashboard**. Your setup is complete. From here, you can start adding your data or invite your team.
 
 ---
 
-## 3. CRM — Contacts & Companies
+## 2. Login & Switching Organisations
 
-Path: **Sidebar → CRM** (`/crm`)
+### How to Log In
 
-The CRM stores all your business contacts — customers, suppliers, or both.
+1. Open the app URL.
+2. Enter your **email** and **password**.
+3. Click **Sign In**.
 
-### 3.1 Add a Party
+If you forgot your password, click **Forgot Password** → enter your email → you'll receive a reset link.
 
-1. Click **+ Add** (top-right).
-2. Fill in:
-   - **Name** (required)
-   - **Type**: Customer / Supplier / Both
-   - Phone, Email, City, State, GSTIN, PAN, Credit Limit, Payment Terms
-3. Click **Save**.
+### Switch Between Organisations
 
-### 3.2 Filter & Search
+If your account is part of more than one organisation (e.g., you own two businesses):
 
-- Use the **search bar** to find by name, phone, email, or GSTIN.
-- Click **All / Customers / Suppliers / Both** tabs to filter by type.
-- Pagination at the bottom loads the next 20 records.
+1. Look at the **top of the sidebar** where your organisation name appears.
+2. Click it to open the switcher.
+3. Select the organisation you want to work in.
 
-### 3.3 View Party Details
-
-Click any party row to open the **Party Detail Page** (`/crm/:id`) which shows:
-- Contact info & documents
-- Transaction history (invoices, payments, orders)
-- Activity timeline
-- Attached documents
-
-### 3.4 Edit a Party
-
-On the detail page, click **Edit** to update any field, then **Save**.
-
-### 3.5 Bulk Import
-
-1. Click **Import** (cloud icon, top-right).
-2. Download the **CSV template**.
-3. Fill in your contacts (one per row) and upload the file.
-4. Review the preview — green rows will be imported, red rows show validation errors.
-5. Click **Confirm Import**.
-
-### 3.6 Duplicate Detection
-
-Path: **Sidebar → Duplicates** (`/duplicates`)
-
-The system automatically flags parties with the same phone, email, or GSTIN. Review pairs and **Merge** or **Dismiss** each one.
+Everything — customers, invoices, employees — is completely separate between organisations.
 
 ---
 
-## 4. Inventory
+## 3. Dashboard
 
-Path: **Sidebar → Inventory** (`/inventory`)
+The Dashboard is the first screen you see after logging in. It gives you a summary of your entire business at a glance.
 
-### 4.1 Add a Product
+### What You See on the Dashboard
 
-1. Click **+ Add Product**.
-2. Fill in:
-   - **SKU** (auto-generated or custom)
-   - **Name**, Unit (PCS/KG/MTR/BOX/LTR/SET)
-   - Cost Price, Selling Price, MRP
-   - Tax Rate (GST %), HSN Code
-   - Reorder Level, Category, Barcode
-3. Click **Save Product**.
+**KPI Cards (top row):**
+- Total Customers & Suppliers
+- Total Invoices
+- Total Leads
+- Open Support Tickets
+- Products in Inventory
+- Active Tasks
 
-### 4.2 Stock Movement
+**Financial Summary:**
+- Total Revenue Collected
+- Outstanding Amount (money customers owe you)
+- Open Purchase Orders
 
-To adjust stock (receive goods, wastage, etc.):
-1. Click **Stock Movement** button.
-2. Select product, movement type (*Adjustment In / Adjustment Out / Damage / Return*), quantity, and add a note.
-3. Click **Save**.
+**Charts:**
+- Revenue trend — last 6 months bar chart
+- Lead pipeline — how many leads in each stage
 
-### 4.3 Barcode Scanner
+**Recent Activity Feed:**
+- Who did what recently (e.g., "Priya created Invoice #1045", "Amit added a new lead")
 
-Click the **camera icon** (Scan) to activate your device camera and scan a barcode to look up or add a product instantly.
+**Quick Action Buttons:**
+- + Add Customer
+- + Create Invoice
+- + Add Lead
+- + New Purchase Order
 
-### 4.4 Low Stock Alerts
-
-The KPI bar shows **Low Stock** and **Out of Stock** counts in red/amber. Click the count to filter the table to only those products.
-
-### 4.5 Categories
-
-Manage categories from inside the Add/Edit product form's category dropdown. Type a new category name and press Enter to create it on the fly.
-
-### 4.6 Bulk Import
-
-Same as CRM — download template, fill, upload, confirm.
+> **Tip:** Click any Quick Action button to go directly to that section without navigating through the sidebar.
 
 ---
 
-## 5. Purchase Orders
+## 4. CRM — Customers & Suppliers
 
-Path: **Sidebar → Purchase** (`/purchase`)
+CRM stands for Customer Relationship Management. This is where you store all information about the people and businesses you deal with — your customers, suppliers, or anyone who is both.
 
-### 5.1 Create a Purchase Order
+### How to Add a New Customer or Supplier
 
-1. Click **+ New Purchase Order**.
-2. Select **Supplier** from your CRM.
-3. Add line items: choose product from inventory (auto-fills price/HSN), enter quantity.
-4. Set **Expected Delivery Date**, payment terms.
-5. Click **Save as Draft** or **Submit**.
+1. Click **CRM** in the left sidebar.
+2. Click the **+ Add Party** button (top right).
+3. Fill in the form:
 
-### 5.2 Approve a Purchase Order
+| Field | Description |
+|-------|-------------|
+| Name | Company name or person's name (required) |
+| Type | Customer / Supplier / Both |
+| Phone | Primary contact number |
+| Email | Business email |
+| Website | Company website (optional) |
+| GSTIN | 15-digit GST number for Indian tax |
+| PAN | PAN card number |
+| City, State, Country | Business address |
+| Credit Limit | Maximum credit you extend to them (₹) |
+| Notes | Any important notes about this party |
 
-Org Admins can approve orders:
-1. Open the PO.
-2. Click **Approve** → status changes to *Confirmed*.
+4. Click **Save**.
 
-### 5.3 Receive Goods
+The party now appears in your CRM list.
 
-When goods arrive:
-1. Open the approved PO.
-2. Click **Mark Received** — stock is automatically added to inventory.
+### How to Search for a Party
 
-### 5.4 Track Status
+- Use the **Search bar** at the top — type name, phone, email, or GSTIN.
+- Use the **Type filter** buttons to show only Customers, only Suppliers, or Both.
 
-Statuses flow: `DRAFT → SUBMITTED → APPROVED → RECEIVED → CANCELLED`
+### Opening a Party's Full Profile
 
----
+Click on any party's name to open their detail page. This page has multiple tabs:
 
-## 6. Sales & Dispatch
+**Overview tab:**
+- All contact information
+- Stats: how many invoices, orders, outstanding balance
 
-Path: **Sidebar → Dispatch** (`/dispatch`)
+**Contacts tab:**
+- People within that company (e.g., the purchase manager, accounts person)
+- Click **+ Add Contact** to add a person:
+  - Name, Designation, Phone, Email
+  - Check **Primary Contact** if this is the main person to reach
 
-### 6.1 Create a Sales Order / Invoice
+**Activity Log tab:**
+- Every interaction you have had with this party — calls, meetings, emails, WhatsApp messages
+- Click **+ Add Log Entry** to record a new interaction:
+  - Type: Call / Email / Meeting / Note / WhatsApp
+  - Subject (brief title)
+  - Description (what happened)
+  - Follow-up date (when to contact again)
 
-1. Click **+ New Order**.
-2. Select **Customer** from CRM.
-3. Add products (price and tax auto-fill from inventory).
-4. Set dispatch date, payment terms, shipping address.
-5. **Save as Draft** → **Confirm** → **Dispatch** → **Delivered**.
+**Documents tab:**
+- Upload files related to this party (contracts, KYC documents, agreements)
+- Click **Upload Document** → select file → it's stored and attached to this party
 
-### 6.2 Record Payment
+**Comments tab:**
+- Internal notes your team leaves about this party
+- Not visible to the party — only for your team
 
-On an open invoice:
-1. Click **Record Payment**.
-2. Enter amount, payment mode (Cash/Bank/UPI/Cheque), and date.
-3. Save — the invoice status updates to *Paid* when fully settled.
+**Custom Fields tab:**
+- Extra data fields your admin has set up (see Custom Fields section)
 
-### 6.3 Generate PDF
+### How to Import Many Parties at Once (Bulk Import)
 
-Click the **PDF** icon on any invoice to download a formatted invoice PDF.
+If you have an existing Excel/CSV file with customer data:
 
-### 6.4 Share via Invoice Portal
+1. Click the **Import** button on the CRM page.
+2. Download the **sample CSV** to see the required format (columns: name, phone, email, gstin, city, state, type).
+3. Fill your data into that format.
+4. Upload the filled CSV file.
+5. Click **Import** — the system creates all parties at once.
 
-Click **Share Portal** to generate a public link your customer can use to view and download their invoice without logging in.
+### Finding Duplicate Records
 
----
+Over time you may accidentally add the same person twice. Go to **Duplicates** in the sidebar to see pairs of possibly duplicate records. Review each pair and merge them.
 
-## 7. Finance & Accounts
+### Editing a Party
 
-Path: **Sidebar → Accounts** (`/accounts`)
+From the party detail page, click the **Edit** button (pencil icon). Update any field and Save.
 
-Manages income/expense ledger, journal entries, and payment tracking.
+### Deleting / Archiving a Party
 
-### 7.1 Add a Transaction
-
-1. Click **+ Add Transaction**.
-2. Select type: **Income** or **Expense**.
-3. Fill in category, amount, date, party, reference number, notes.
-4. Save.
-
-### 7.2 Recurring Invoices
-
-Path: `/recurring`
-
-1. Click **+ New Recurring Invoice**.
-2. Set customer, line items, and **recurrence** (Weekly/Monthly/Quarterly/Yearly).
-3. Set start date and end date (optional).
-4. The system auto-generates the next invoice on each cycle.
-
-### 7.3 Payments Module
-
-Path: **Sidebar → Accounts → Payments**
-
-Track all outgoing and incoming payments, link them to invoices or purchase orders.
-
----
-
-## 8. HR & Payroll
-
-Path: **Sidebar → HR** (`/hr`)
-
-### 8.1 Add an Employee
-
-1. Click **+ Add Employee**.
-2. Fill in: Name, Designation, Department, Phone, Email, Date of Joining, Basic Salary.
-3. Save.
-
-### 8.2 Attendance
-
-1. Open the employee record.
-2. Click **Mark Attendance** → select Present / Absent / Half Day / Leave.
-
-### 8.3 Payroll
-
-1. Click **Generate Payroll** for the current month.
-2. Review deductions and additions.
-3. Click **Approve & Finalize** to lock the payroll.
-
-### 8.4 Team Dashboard
-
-Path: `/team-dashboard` — Shows attendance summary, task load, and leave balance for all team members at a glance.
+From the party detail page, click **Edit** → toggle **Active** to OFF to hide them without deleting. This preserves all their history.
 
 ---
 
-## 9. Projects
+## 5. Leads
 
-Path: **Sidebar → Projects** (`/projects`)
+A Lead is someone who has shown interest in your product or service but has not yet purchased. Leads come from phone calls, websites, exhibitions, referrals, and social media.
 
-### 9.1 Create a Project
+### How to Add a Lead
 
-1. Click **+ New Project**.
-2. Enter: Name, Description, Client (optional), Start Date, Due Date, Status.
-3. Assign team members.
-4. Save.
+1. Click **Leads** in the sidebar.
+2. Click **+ Add Lead**.
+3. Fill in the form:
 
-### 9.2 Add Tasks
+| Field | Description |
+|-------|-------------|
+| Name | Lead's full name (required) |
+| Company | Their company name |
+| Phone | Primary phone number |
+| Alt Phone | Second number if available |
+| Email | Email address |
+| City | Their city |
+| Source | Where this lead came from: Website / Facebook / JustDial / IndiaMart / Referral / Exhibition / WhatsApp / etc. |
+| Status | Current stage: New / Contacted / Qualified / Proposal / Negotiation / Won / Lost |
+| Deal Value | Estimated business value in ₹ |
+| Grade | A (hottest) → B → C → D (coldest) |
+| Assign To | Which team member should follow up |
+| Next Follow-up | Date and time for the next call/meeting |
+| Tags | Labels like "hot", "vip", "enterprise" |
+| Notes | Anything important to know |
+| Do Not Call | Tick if this person does not want to be called |
 
-Inside a project:
-1. Click **+ Add Task**.
-2. Set title, description, assignee, priority (Low/Medium/High/Critical), due date.
-3. Save.
+4. Click **Add Lead**.
 
-### 9.3 IT Projects & Sprint Board
+### Three Views to Work With Leads
 
-Path: `/it-projects` and `/sprint-board`
+Use the tabs at the top to switch views:
 
-For software/IT teams:
-1. Create an **IT Project** and link it to GitHub or Jira (optional).
-2. Create **Sprints** inside the project with a start/end date.
-3. Use the **Sprint Board** (Kanban view) to drag tasks across columns: *To Do → In Progress → In Review → Done*.
+**Queue view** — Shows only leads that need follow-up TODAY or are OVERDUE. This is what your sales team should open every morning. It answers: "Who should I call today?"
 
-### 9.4 My Work
+**All Leads view** — Complete list of every lead. You can filter by:
+- Status (New, Contacted, Qualified, etc.)
+- Source (Facebook, Website, etc.)
+- Grade (A, B, C, D)
+- Search by name or phone
 
-Path: `/my-work` — Shows all tasks assigned to **you** across all projects, sorted by due date.
+**Kanban view** — Visual board with columns for each status. Each lead is a card. You can see the full pipeline at a glance.
 
-### 9.5 Public Project Page
+### What to Do With Each Lead Card
 
-Share a read-only project status page with a client via **Share → Generate Public Link**.
+Each lead card has action buttons:
+
+| Button | What It Does |
+|--------|-------------|
+| **Call** | Opens your phone app to call them directly |
+| **WA** | Opens WhatsApp for their number |
+| **Log** | Record what happened in this interaction |
+| **Book** | Schedule an appointment/meeting |
+| **Edit** | Change any lead details |
+
+### Logging an Activity (What Happened on the Call)
+
+Click **Log** on any lead card:
+- Choose activity type: Call / Email / Meeting / WhatsApp
+- Choose the outcome: Interested / Not Interested / No Answer / Callback Requested / etc.
+- Write notes about the conversation
+- Set the next follow-up date
+- Click Save
+
+### Converting a Lead to a Deal
+
+When a lead is serious (status: Qualified or Proposal), you will see an **→ Deal** button on their card. Click it to automatically create a Deal from this lead — no need to re-enter data.
+
+### Importing Leads in Bulk
+
+Click **Import** → paste or upload a CSV with columns: name, phone, email, company, city. Works with exports from Facebook Lead Ads, JustDial, IndiaMart.
 
 ---
 
-## 10. Marketing & Leads
+## 6. Deals
 
-Path: **Sidebar → Marketing** (`/marketing`)
+Deals are serious sales opportunities — leads that have been qualified and are in active negotiation. Think of it as your sales pipeline.
 
-### 10.1 Add a Lead
+### How to Add a Deal
 
-1. Click **+ Add Lead**.
-2. Fill in: Name, Company, Phone, Email, City, Industry.
-3. Set **Source** (Website / IndiaMart / JustDial / WhatsApp / Facebook / Instagram / Referral, etc.).
-4. Assign to a team member, set next follow-up date.
-5. Save.
+1. Click **Deals** in the sidebar.
+2. Click **+ New Deal**.
+3. Fill in:
 
-### 10.2 Lead Statuses
+| Field | Description |
+|-------|-------------|
+| Deal Title | Name for this opportunity (e.g., "Tata Motors — Spare Parts Supply") |
+| Stage | Prospecting / Qualification / Proposal / Negotiation / Closing / Won / Lost |
+| Customer | Select from your CRM |
+| Value | Deal value in ₹ |
+| Probability | How likely to close? (0–100%) |
+| Expected Close Date | When do you expect to win/lose this? |
+| Notes | Any relevant details |
 
-Move leads through the pipeline by clicking the **Status** chip on any lead card:
+4. Click Save.
 
-`NEW → CONTACTED → QUALIFIED → PROPOSAL → NEGOTIATION → WON / LOST`
+### Kanban Board
 
-### 10.3 Lead Score & Grade
+The default view is a **Kanban board** — 7 columns, one per stage. Each deal is a card. To move a deal to the next stage, click the card → edit Stage → save. Or drag the card across columns.
 
-- **Score** (0-100): Auto-calculated based on activities, recency, and engagement. Edit manually if needed.
-- **Grade** (A/B/C/D): A = hottest lead. Set manually or let automations update it.
+### Table View
 
-### 10.4 Log an Activity
+Click the **Table** icon (top right) to switch to a list view — better when you have many deals.
 
-1. Click the **clock icon** on a lead card or open the lead and click **Log Activity**.
-2. Select type: Call / Email / WhatsApp / Meeting / Note.
-3. Fill in subject, description, outcome.
-4. For calls: select call outcome (Answered / No Answer / Callback Requested, etc.) and duration.
-5. Set a **follow-up date** to schedule the next touchpoint.
+### Pipeline Summary (top of page)
+
+- **Total Pipeline** — sum of all open deals
+- **Forecasted Value** — weighted by probability
+- **Won This Month** — revenue already closed
+
+---
+
+## 7. Quotations
+
+A Quotation is a formal price document you send to a customer before they place an order. It says: "This is what we'll supply, and this is what it will cost."
+
+### How to Create a Quotation
+
+1. Click **Quotations** in the sidebar.
+2. Click **+ New Quotation**.
+3. Select the **Customer** from your CRM.
+4. Set the **Valid Until** date — after this date the quote expires automatically.
+5. Add line items by clicking **+ Add Item**:
+   - Select **Product** from inventory (or type a description)
+   - Enter **Quantity**
+   - Enter **Unit Price** (₹)
+   - Set **GST Rate** (%)
+   - Apply **Discount** (%) if any
+   - The system calculates subtotal, GST, and total automatically
+6. Add **Terms & Conditions** at the bottom (e.g., "Payment within 30 days", "Goods not returnable").
+7. Add any **Notes** (e.g., "Price valid for 15 days").
+8. Click **Save as Draft** (to finish later) or **Send** (ready to share).
+
+### Quotation Statuses Explained
+
+| Status | Meaning | What to Do Next |
+|--------|---------|----------------|
+| Draft | You're still editing it | Keep editing, then Send |
+| Sent | Customer has received it | Wait for their response |
+| Accepted | Customer said yes | Convert to Invoice |
+| Rejected | Customer said no | Note the reason, follow up later |
+| Expired | Valid Until date passed | Create a new quotation with updated prices |
+
+### Printing / Sharing a Quotation
+
+Open any quotation → click **Print / PDF**. A formatted document opens. Use **Ctrl+P** (or Cmd+P on Mac) to print or save as PDF. Email the PDF to your customer.
+
+### Converting a Quotation to an Invoice
+
+When a customer accepts, open the quotation and click **Convert to Invoice**. All items, prices, and customer details copy over automatically.
+
+---
+
+## 8. Invoices & Accounts
+
+This module handles all money movement — bills you send to customers (sales invoices) and bills you receive from suppliers (purchase bills).
+
+### How to Create a Sales Invoice
+
+1. Click **Accounts** in the sidebar.
+2. Click **+ New Invoice**.
+3. Choose **Invoice Type**:
+   - **Sales Invoice** — you are billing a customer
+   - **Purchase Bill** — a supplier has billed you
+   - **Credit Note** — you are giving a refund to a customer
+   - **Debit Note** — you are deducting from a supplier bill
+4. Select the **Customer/Supplier** from CRM.
+5. Set **Invoice Date** and **Due Date**.
+6. Add line items (same as Quotations).
+7. Add **Notes** if needed.
+8. Click **Save**.
+
+### Invoice Statuses
+
+| Status | Meaning |
+|--------|---------|
+| Draft | Still being prepared |
+| Sent | Shared with customer |
+| Partially Paid | Some payment received |
+| Paid | Full payment received |
+| Overdue | Due date passed, not paid |
+| Cancelled | Invoice voided |
+
+### How to Record a Payment
+
+When you receive money:
+
+1. Open the invoice.
+2. Click **Record Payment**.
+3. Fill in:
+   - Amount received (can be partial)
+   - Date of payment
+   - Payment method: Cash / Bank Transfer / Cheque / UPI / Card
+   - Reference number (UTR, cheque number, etc.)
+4. Click Save.
+
+The invoice status automatically updates to Partially Paid or Paid.
+
+### Generate a Payment Link for Online Payment
+
+1. Open the invoice.
+2. Click **Payment Link** — this creates a Razorpay link.
+3. Copy the link and send it to your customer via WhatsApp or email.
+4. The customer clicks the link, pays online (UPI, card, netbanking).
+5. Payment confirmation comes back to the system automatically.
+
+### Share Invoice with Customer (without email)
+
+Open the invoice → click **Portal Link**. Copy the URL. Your customer can open this link in any browser to view and download the invoice. No login required on their side.
+
+### Download Invoice as PDF
+
+Open any invoice → click **Print**. A formatted invoice with your company details opens. Press Ctrl+P → Save as PDF.
+
+### Check Who Owes You Money
+
+At the top of the Accounts page:
+- **Receivable** — total money customers owe you
+- **Payable** — total money you owe suppliers
+- **Overdue** — receivables past their due date
+
+Click **Overdue** to see exactly which invoices need follow-up.
+
+---
+
+## 9. Inventory
+
+Inventory is where you manage your products and how much stock you have.
+
+### How to Add a Product
+
+1. Click **Inventory** in the sidebar.
+2. Click **+ Add Product**.
+3. Fill in:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| SKU | Unique product code | BOLT-M10-STL |
+| Product Name | Full name | M10 Steel Bolt |
+| Category | Product category | Hardware |
+| Unit | Unit of measurement | Pcs / Kg / Litre / Box |
+| Cost Price | What you pay to buy it | ₹5.00 |
+| Selling Price | What you charge customers | ₹8.00 |
+| GST Rate | GST % for this product | 18% |
+| HSN Code | 8-digit GST code for this product type | 73181600 |
+| Reorder Level | Alert when stock falls below this | 100 |
+| Opening Stock | How much you have right now | 500 |
+
+4. Click Save.
+
+### Understanding Stock Status Colours
+
+Each product has a coloured dot:
+- 🟢 **Green** — stock is fine, above reorder level
+- 🟡 **Yellow** — stock is low, below reorder level (order more soon)
+- 🔴 **Red** — out of stock
+
+### How to Update Stock (Stock Adjustment)
+
+When you receive goods, do a manual count, or need to correct stock:
+
+1. Find the product in the list.
+2. Click the **Adjust** button.
+3. Choose the type:
+   - **Stock In** — goods received (increases stock)
+   - **Stock Out** — goods issued/sold (decreases stock)
+   - **Opening Balance** — initial entry when setting up
+4. Enter the quantity.
+5. Write a reason (e.g., "Received from supplier PO-101", "Damaged goods written off").
 6. Save.
 
-### 10.5 Do Not Call (DNC)
+Stock is also updated automatically when Purchase Orders are received and Sales Orders are dispatched.
 
-Toggle the **DNC** flag on a lead to prevent bulk WhatsApp/call actions from targeting them.
+### Import Products from Excel
 
-### 10.6 Bulk Import Leads
-
-Click **Import** → download the CSV template → fill and upload.
-
-### 10.7 Kanban View
-
-Click the **Kanban** toggle (top-right of leads page) to switch from table to Kanban board view, where each column is a pipeline stage. Drag cards between columns to update status.
-
-### 10.8 Activities Feed
-
-Path: **Sidebar → Activities** (`/activities`) — A chronological feed of all activities logged across all leads, filterable by type and date range.
+Click **Import** → download the sample CSV → fill in your product list → upload. Saves hours of manual entry.
 
 ---
 
-## 11. Appointments
+## 10. Purchase
 
-Path: **Sidebar → Appointments** (`/appointments`)
+Use this to raise formal purchase orders when you want to buy goods from a supplier.
 
-### 11.1 Book an Appointment
+### How to Create a Purchase Order
 
-1. Click **+ New Appointment**.
-2. Set: Title, Lead (link to a lead), Assigned Staff, Date & Time, Duration, Location or Meeting Link.
-3. Add notes.
+1. Click **Purchase** in the sidebar.
+2. Click **+ New Purchase Order**.
+3. Fill in:
+   - **Supplier** — select from your CRM
+   - **PO Date** — today or whenever you want it dated
+   - **Expected Delivery Date** — when you need the goods
+4. Add items by clicking **+ Add Item**:
+   - Select Product
+   - Enter Quantity
+   - Enter Unit Price
+   - Select GST Rate
+5. Add any **Remarks** for the supplier.
+6. Click **Save as Draft** or **Send to Supplier**.
+
+### Purchase Order Workflow
+
+```
+Draft → Sent to Supplier → Received
+```
+
+**When goods arrive:**
+1. Open the Purchase Order.
+2. Click **Mark as Received**.
+3. The system automatically adds the received quantity to your inventory.
+
+### View All Purchase Orders
+
+The Purchase page lists all POs with their status. Filter by:
+- Status (Draft / Sent / Received)
+- Supplier name
+- Date range
+
+---
+
+## 11. Sales & Dispatch
+
+This module is for processing customer orders and managing outgoing shipments.
+
+### How to Create a Sales Order
+
+1. Click **Sales / Dispatch** in the sidebar.
+2. Click **+ New Sales Order**.
+3. Fill in:
+   - **Customer** — select from CRM
+   - **Order Date**
+   - Add products with quantity and price
+   - **Shipping Address** — where to deliver
+   - **Shipping Charges** (₹) if applicable
 4. Save.
 
-### 11.2 Views
+### Sales Order Workflow
 
-Toggle between **List**, **Calendar Day**, and **Calendar Week** views using the buttons at the top-right.
+Move the order through these stages:
 
-### 11.3 Update Status
+```
+Draft → Confirmed → Processing → Dispatched → Delivered
+```
 
-Click an appointment and change status to: *Scheduled → Completed / Cancelled / No Show*.
+Open the order → click the current status → select the next stage → Save.
 
----
+- **Confirmed** — customer has agreed, order is locked
+- **Processing** — being packed or manufactured
+- **Dispatched** — goods have left your warehouse (enter tracking/LR number here)
+- **Delivered** — customer has received goods
 
-## 12. Automations
+### Log a Quick Dispatch Entry
 
-Path: **Sidebar → Automations** (`/automations`)
+For simple outward movements without a full sales order:
 
-Automations let you create **IF-THEN rules** that run automatically on your leads.
-
-### 12.1 Create an Automation Rule
-
-1. Click **+ New Rule**.
-2. Set the **Trigger** (WHEN):
-   - Lead status changes to a specific value
-   - New lead is created
-   - Tag is added
-   - Lead score goes above a threshold
-   - Follow-up date is due
-3. Set the **Action** (THEN):
-   - Create a follow-up activity
-   - Add a tag to the lead
-   - Update the lead grade
-   - Assign lead to a specific user
-4. Name the rule and click **Save Rule**.
-
-### 12.2 Enable / Disable Rules
-
-Use the toggle on each rule card to turn it on or off without deleting it.
-
-### 12.3 Delete a Rule
-
-Click the **trash icon** on the rule card.
-
----
-
-## 13. Email
-
-Path: **Sidebar → Email** (`/email`)
-
-### 13.1 Compose & Send
-
-1. Click **+ Compose**.
-2. Enter To, Subject, and message body.
-3. Click **Send**.
-
-### 13.2 Email Templates
-
-Create reusable templates for common emails (follow-ups, quotes, greetings).
-
-### 13.3 Inbox
-
-View all emails sent and received through your connected mailbox.
-
----
-
-## 14. WhatsApp Business
-
-Path: **Sidebar → WhatsApp** (`/whatsapp`)
-
-### 14.1 Connect WhatsApp (First-time Setup)
-
-1. Go to [developers.facebook.com](https://developers.facebook.com) and create a **Meta Business App**.
-2. Add the **WhatsApp** product to your app.
-3. In **API Setup**, copy your **Phone Number ID** and generate a **System User Access Token** (permanent token).
-4. Back in FlowCRM → WhatsApp → enter:
-   - Phone Number ID
-   - Access Token
-   - WABA ID (WhatsApp Business Account ID)
-   - Your WhatsApp phone number
-5. Click **Save Configuration**.
-
-### 14.2 Send a Message to a Lead
-
-1. Go to the **Send** tab.
-2. Search and select a lead.
-3. Type your message.
-4. Click **Send Message**.
-
-### 14.3 Send a Template Message
-
-1. Go to the **Templates** tab.
-2. Select an approved Meta template.
-3. Fill in template variables (e.g. customer name, order number).
-4. Select a lead and click **Send Template**.
-
-### 14.4 Bulk Send
-
-1. Go to the **Bulk Send** tab.
-2. Select multiple leads from the list (DNC leads are automatically excluded).
-3. Type your message.
-4. Click **Send to All** — a summary shows sent/failed/skipped counts.
-
-### 14.5 Message History
-
-The **History** tab shows all outgoing and incoming WhatsApp messages with status icons:
-- ✓ Sent  
-- ✓✓ Delivered (blue ticks)  
-- ⚠ Failed
-
-### 14.6 Incoming Messages (Webhook)
-
-When a customer replies on WhatsApp, the message is automatically matched to their lead record and appears in the history.
-
----
-
-## 15. Lead Capture Forms
-
-Path: **Sidebar → Lead Forms** (`/lead-forms`)
-
-Create public web forms that auto-create leads when submitted — no login required for visitors.
-
-### 15.1 Create a Form
-
-1. Click **+ New Form**.
-2. Enter a **Form Name**.
-3. Choose a **Lead Source** to tag all submissions (e.g. Website, IndiaMART).
-4. **Add Fields**:
-   - Click **+ Add Field**
-   - Set field label, type (text/email/phone/textarea/select/checkbox), and mark as required if needed
-   - Drag to reorder fields
-5. Write a **Success Message** shown after submission.
-6. Click **Save Form**.
-
-### 15.2 Share the Form
-
-Each form has a unique public URL in the format `/forms/<id>`. Copy the URL and:
-- Paste it in your website
-- Share it on social media
-- Use it in email campaigns
-- Embed it via an iframe
-
-### 15.3 View Submissions
-
-Click **Submissions** on the form card to see all leads captured, including submitted data and timestamp.
-
-### 15.4 Toggle Active/Inactive
-
-Use the toggle on the form card to stop accepting new submissions without deleting the form.
-
----
-
-## 16. Support Tickets
-
-Path: **Sidebar → Support** (`/support`)
-
-### 16.1 Create a Ticket
-
-1. Click **+ New Ticket**.
-2. Enter: Subject, Description, Priority (Low/Medium/High/Critical), Party (customer).
-3. Assign to a support staff member.
-4. Save.
-
-### 16.2 Update a Ticket
-
-Open a ticket and:
-- Add replies/comments
-- Change status: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`
-- Escalate priority
-
-### 16.3 SLA Tracking
-
-Tickets past their response SLA show a red indicator. Filter by **Overdue** to prioritise.
-
----
-
-## 17. Deals & Pipeline
-
-Path: **Sidebar → Deals** (`/deals`)
-
-Track large B2B sales opportunities with a deal value and close date.
-
-### 17.1 Create a Deal
-
-1. Click **+ New Deal**.
-2. Enter: Deal Name, Party (customer), Value (₹), Stage, Expected Close Date.
-3. Assign to a sales rep.
-4. Save.
-
-### 17.2 Move Deal Stages
-
-Drag the deal card across Kanban columns or change the stage dropdown:
-
-`PROSPECTING → QUALIFICATION → PROPOSAL → NEGOTIATION → CLOSED WON / CLOSED LOST`
-
-### 17.3 Link to Quotation
-
-Open a deal → click **Link Quotation** to connect a formal quotation document to the deal.
-
----
-
-## 18. Quotations
-
-Path: **Sidebar → Quotations** (`/quotations`)
-
-### 18.1 Create a Quotation
-
-1. Click **+ New Quotation**.
-2. Select customer, validity date.
-3. Add line items (product + qty + rate — taxes auto-fill from inventory).
-4. Add terms & conditions.
-5. Click **Save** → status is *Draft*.
-
-### 18.2 Send to Customer
-
-1. Open the quotation.
-2. Click **Send** to email it directly to the customer.
-3. Or click **PDF** to download and share manually.
-
-### 18.3 Convert to Order
-
-Once the customer approves:
-1. Open the quotation.
-2. Click **Convert to Sales Order** — creates a linked sales order automatically.
-
----
-
-## 19. Documents
-
-Path: **Sidebar → Documents** (`/documents`)
-
-A central document repository for your organisation.
-
-1. Click **Upload Document**.
-2. Set name, category (Invoice/Contract/Certificate/Other), and optionally link to a Party or Order.
-3. Upload the file (PDF, image, Excel, etc.).
-4. All team members with document access can search and download.
-
----
-
-## 20. GST, E-Invoice & E-Way Bill
-
-### 20.1 GST Reports
-
-Path: **Sidebar → GST Reports** (`/gst`)
-
-- View GSTR-1 (outward supplies), GSTR-2 (inward supplies), and GSTR-3B summaries.
-- Filter by period (month/quarter).
-- Download as CSV for filing.
-
-### 20.2 E-Invoice IRN
-
-Path: **Sidebar → E-Invoice IRN** (`/einvoice`)
-
-1. Open a confirmed sales invoice.
-2. Click **Generate IRN** — the system calls the IRP API and stores the IRN + QR code.
-3. Download the **e-Invoice PDF** with embedded QR code.
-
-> **Prerequisite:** Configure your GSP credentials in Settings → GST Setup.
-
-### 20.3 E-Way Bill
-
-Path: **Sidebar → E-Way Bill** (`/ewaybill`)
-
-1. Select an invoice/delivery challan.
-2. Fill in transporter details, vehicle number, distance.
-3. Click **Generate E-Way Bill** — EWB number is returned and stored.
-4. Print or download the EWB.
-
----
-
-## 21. TDS / TCS
-
-Path: **Sidebar → TDS / TCS** (`/tds`)
-
-- Record TDS deductions on vendor payments.
-- Record TCS collected on customer sales.
-- View section-wise summary for quarterly returns.
-- Download Form 26Q data.
-
----
-
-## 22. Budgets
-
-Path: **Sidebar → Budgets** (`/budgets`)
-
-1. Click **+ New Budget**.
-2. Enter: Budget Name, Period (monthly/quarterly/annual), Start Date.
-3. Add line items: Category → Planned Amount.
-4. Save.
-5. As transactions are recorded in Accounts, the budget tracker shows **Actual vs Planned** with variance.
-
----
-
-## 23. Bank Reconciliation
-
-Path: **Sidebar → Reconciliation** (`/reconciliation`)
-
-1. Import your **bank statement** (CSV format).
-2. The system auto-matches statement lines to recorded transactions.
-3. Review unmatched items:
-   - **Match manually** — link to an existing transaction.
-   - **Create transaction** — add a new record for it.
-4. Click **Mark Reconciled** when balanced.
-
----
-
-## 24. Reports & Analytics
-
-Path: **Sidebar → Reports** (`/reports`)
-
-### Available Reports
-
-| Report | Description |
-|---|---|
-| Sales Summary | Revenue, order count, average order value by period |
-| Purchase Summary | Total procurement spend by supplier/period |
-| Lead Conversion | Lead-to-customer conversion rate by source/stage |
-| Inventory Valuation | Current stock value at cost price |
-| Party Ledger | Statement of account for any customer/supplier |
-| Outstanding Payments | Unpaid invoices and aging buckets |
-| Expense Analysis | Category-wise expense breakdown |
-| Team Performance | Tasks completed, leads closed per team member |
-
-**To export any report:** Click the **Download CSV** or **Download PDF** button at the top-right of the report.
-
----
-
-## 25. Trade / Import-Export Suite
-
-Path: **Sidebar → Import/Export** (`/import-export`)
-
-Designed specifically for import-export businesses. Tracks:
-- Shipments (BL number, vessel, ETA)
-- LC (Letter of Credit) tracking
-- Custom duty and clearance status
-- Port-wise movement
-- Currency-wise invoice tracking
-
-### 25.1 Create a Trade Record
-
-1. Click **+ New Shipment**.
-2. Fill in: BL/AWB number, Supplier/Customer, Country, Port of Loading, Port of Discharge, ETA.
-3. Add line items with HS code, quantity, unit, rate, currency.
-4. Save.
-
-### 25.2 Track Status
-
-Update shipment status: `BOOKING → SAILING → ARRIVED → CUSTOMS → CLEARED → DELIVERED`
-
----
-
-## 26. Warehouse
-
-Path: **Sidebar → Warehouse** (`/warehouse`)
-
-### 26.1 Create a Warehouse
-
-1. Click **+ New Warehouse**.
-2. Enter Name and Location.
+1. Click **+ Dispatch Entry**.
+2. Enter:
+   - Material name and description
+   - Quantity and unit
+   - Customer name
+   - Vehicle number and driver name
+   - LR number (lorry receipt from transport)
 3. Save.
 
-### 26.2 Goods Entry / Inward
+---
 
-Path: **Sidebar → Goods Entry**
+## 12. HR & Payroll
 
-Record incoming stock directly to a specific warehouse, linked to a purchase order.
+Manage your employees, their attendance, salaries, leaves, and performance.
 
-### 26.3 Stock Transfer
+### Add an Employee
 
-Transfer stock between warehouses:
-1. Select source and destination warehouse.
-2. Select product and quantity.
-3. Save — stock is deducted from source and added to destination.
+1. Click **HR** in the sidebar.
+2. Click **+ Add Employee**.
+3. Fill in:
+
+| Field | Description |
+|-------|-------------|
+| Employee Code | Unique ID (e.g., EMP001) |
+| Full Name | Employee's name |
+| Designation | Job title (e.g., Sales Manager) |
+| Department | Which department they belong to |
+| Date of Joining | When they joined |
+| Basic Salary | Monthly basic salary (₹) |
+| Phone | Contact number |
+| Email | Work email |
+
+4. Click Save.
+
+### Mark Attendance
+
+1. Click the **Attendance** tab in HR.
+2. Select the **Month** and **Year**.
+3. For each employee, for each day, click to mark:
+   - **P** — Present
+   - **A** — Absent
+   - **H** — Half Day
+   - **L** — Leave
+4. You can also enter **Check-in** and **Check-out** times.
+5. The system counts working days automatically for payroll.
+
+### Process Payroll
+
+1. Click the **Payroll** tab.
+2. Select the month.
+3. Click **Generate Payroll** — this creates payroll records for all employees based on:
+   - Their basic salary
+   - Number of days worked (from attendance)
+   - HRA and allowances
+   - Deductions: PF (12%), ESI (0.75%), TDS (if applicable)
+4. Review each employee's payslip.
+5. Click **View Payslip** to open the printable version.
+6. Mark as **Paid** once salaries are transferred.
+
+### Leave Management
+
+**For employees applying for leave:**
+1. Click **Leave** tab.
+2. Click **+ Apply Leave**.
+3. Choose leave type: Annual / Sick / Casual / Maternity / etc.
+4. Select start date and end date.
+5. Write reason.
+6. Submit — it goes to the manager for approval.
+
+**For managers approving leave:**
+1. Go to **Leave** tab — pending requests appear.
+2. Click **Approve** or **Reject** on each request.
+3. Write a note if rejecting (reason for the employee).
+
+**Leave balances** show:
+- Total allocated
+- Used so far
+- Remaining available
+- Carried forward from last year
+
+### Performance Management
+
+**Setting Goals (OKRs):**
+1. Click **Performance** tab.
+2. Click **+ New Goal** for an employee.
+3. Write the goal title and description.
+4. Set target date.
+5. Update **Progress %** over time as they work toward it.
+
+**Conducting Performance Reviews:**
+1. Click **+ New Review**.
+2. Select the employee and review period.
+3. Give ratings (1–5) for different areas.
+4. Write strengths and areas for improvement.
+5. Save — the employee can see their review.
+
+### Employee Expenses
+
+**Employee submitting expense:**
+1. Click **Expenses** tab.
+2. Click **+ New Expense**.
+3. Fill in category, amount, date, description.
+4. Attach receipt photo if available.
+5. Submit for approval.
+
+**Manager approving:**
+1. Go to **Expenses** tab — pending approvals appear.
+2. Click **Approve** or **Reject**.
 
 ---
 
-## 27. Retail & POS
+## 13. Projects & Tasks
 
-Path: **Sidebar → POS** (`/pos`)
+Manage work — what needs to be done, who is doing it, and when it's due.
 
-### 27.1 Make a Sale
+### Create a Project
 
-1. Scan or search products.
-2. Adjust quantities.
-3. Apply discount if needed.
-4. Select payment method: Cash / Card / UPI.
-5. Click **Charge** — receipt is generated instantly.
+1. Click **Projects** in the sidebar.
+2. Click **+ New Project**.
+3. Fill in:
+   - Project Name
+   - Status: Planning / Active / On Hold / Completed
+   - Start Date and End Date
+   - Budget (₹)
+   - Description
+4. Save.
 
-### 27.2 End of Day Summary
+### Add Tasks to a Project
 
-Click **EOD Report** to see total sales, cash collected, and transaction count for the day.
+Open any project → click **+ Add Task**:
 
----
+| Field | Description |
+|-------|-------------|
+| Task Title | What needs to be done |
+| Priority | Low / Medium / High / Urgent |
+| Assigned To | Which team member |
+| Due Date | When it should be finished |
+| Description | Detailed instructions |
 
-## 28. Batch Tracking & BOM
+### Kanban Task Board
 
-### 28.1 Batch Tracking
+Click **Board** view to see tasks as cards across four columns:
 
-Path: **Sidebar → Batch Tracking** (`/batches`)
+```
+To Do  →  In Progress  →  In Review  →  Done
+```
 
-For products with expiry dates or lot numbers (pharmaceuticals, food, chemicals):
-1. Create a **Batch** with lot number, manufacturing date, expiry date.
-2. Link batches to inventory movements.
-3. Get alerts for expiring batches.
+When a task is being worked on, drag its card to **In Progress**. When finished, drag to **Done**.
 
-### 28.2 Bill of Materials (BOM)
+Or click the task → change its Status → Save.
 
-Path: **Sidebar → BOM / Work Orders** (`/bom`)
+### My Work
 
-For manufacturing:
-1. Click **+ New BOM**.
-2. Select the **finished product**.
-3. Add **raw materials** with quantities.
-4. Save the BOM.
+Click **My Work** in the sidebar to see all tasks assigned specifically to you — across all projects. Great for individuals to see what they need to do today.
 
-**To raise a Work Order:**
-1. Open the BOM.
-2. Click **Raise Work Order**.
-3. Enter quantity to produce and target date.
-4. Raw materials are auto-reserved from inventory.
+### IT Projects & Sprint Board
 
----
-
-## 29. Admin Panel
-
-Path: **Sidebar → Admin Panel** (`/admin/dashboard`)
-
-Only **OWNER** and **ADMIN** roles can access this.
-
-### 29.1 Team Management
-
-Path: `/admin/team`
-
-**Invite a Team Member:**
-1. Click **+ Invite Member**.
-2. Enter their email.
-3. Select a **Role**: Owner / Admin / Manager / Staff / Accountant / Viewer.
-4. Choose a **Department Preset** (e.g. "Sales & CRM" auto-selects CRM, Dispatch, Accounts modules) — or manually pick individual modules.
-5. Click **Send Invite**.
-6. The user receives an email with an invitation link. Once they accept and register, they appear in the team list.
-
-**Roles explained:**
-- **OWNER** — Full access to everything, including billing
-- **ADMIN** — All module access + team management
-- **MANAGER** — Assigned modules + can approve requests
-- **STAFF** — Assigned modules only
-- **ACCOUNTANT** — Accounts + Finance modules
-- **VIEWER** — Read-only on assigned modules
-
-**Change a Member's Role or Modules:**
-1. Click the member row.
-2. Edit role or toggle individual module access.
-3. Save changes.
-
-**Remove a Member:**
-Click the member → **Remove from Organisation**.
-
-**Unlock a Locked Account:**
-If a user's account is locked due to too many failed logins, click their row → **Unlock Account**.
-
-### 29.2 Module Management
-
-Path: `/admin/modules`
-
-Enable or disable entire modules for your organisation. Disabled modules are hidden from the sidebar for all users.
-
-### 29.3 Approval Queue
-
-Path: `/admin/approvals`
-
-Some actions (e.g. large purchase orders, payment requests) require admin approval. Review and approve/reject from this queue.
-
-### 29.4 Organisation Settings
-
-Path: `/admin/settings`
-
-- Company Name, Logo, Address, GSTIN, PAN
-- Currency, Timezone, Date Format
-- Invoice prefix and number series
-
-### 29.5 Audit Logs
-
-Path: `/admin/logs`
-
-Every action in the system is logged: who did what, when, from which IP. Use the search to filter by user, action type, or date range.
+For software development teams:
+- **IT Projects** — organise work in sprints
+- **Sprint Board** — like a Jira board: create sprints, add user stories, track progress
+- **Bug Tracker** — log bugs with severity (Critical / High / Medium / Low), assign to developers, track resolution
+- **Time Tracking** — log hours worked on tasks (useful for billing clients or measuring productivity)
 
 ---
 
-## 30. Security Center
+## 14. Customer Support
 
-Path: **Sidebar → Security** (`/security`)
+When customers have problems, complaints, or questions, create support tickets to track and resolve them.
 
-### 30.1 Overview Tab
+### Create a Support Ticket
 
-Shows a security dashboard with:
-- Active member count
-- Locked account count (with warning if any)
-- Active API keys
-- IP allowlist rule count
-- Recent audit events
+1. Click **Support** in the sidebar.
+2. Click **+ New Ticket**.
+3. Fill in:
 
-### 30.2 Sessions Tab
+| Field | Description |
+|-------|-------------|
+| Subject | Brief title (e.g., "Invoice not received") |
+| Description | Full details of the issue |
+| Priority | Low / Medium / High / Urgent |
+| Customer | Select from CRM |
 
-Lists all devices where your account is currently signed in.
+4. Click Save.
 
-**Revoke a session:**
-Click **Revoke** next to any session to sign out that specific device immediately.
+The ticket is now in **Open** status and will appear in your support queue.
 
-**Logout all other devices:**
-Click **Logout all other devices** to revoke every session except your current one. Use this if you suspect your account was accessed by someone else.
+### Ticket Workflow
 
-### 30.3 API Keys Tab
+```
+Open → In Progress → Waiting → Resolved → Closed
+```
 
-API keys allow external applications to connect to your FlowCRM data programmatically.
+- **Open** — new, not yet picked up
+- **In Progress** — your team is working on it
+- **Waiting** — waiting for the customer to reply
+- **Resolved** — the problem is fixed
+- **Closed** — done, archived
 
-**Create an API Key:**
+Open any ticket → click **Update Status** → select next stage.
+
+### Reply to a Ticket
+
+Open the ticket → scroll to the bottom → type your reply → click **Send Reply**.
+
+All messages are stored in a thread so you can see the full conversation history in order.
+
+### Filter Tickets by Status
+
+Use the filter buttons at the top of the Support page:
+- **Open** — new issues needing attention
+- **In Progress** — being worked on
+- **Urgent** — high priority, needs immediate action
+- **Resolved** — issues fixed recently
+
+### Stats Bar
+
+At the top of the page you can see:
+- Total open tickets
+- In-progress tickets
+- Resolved today
+- Urgent/critical tickets
+
+---
+
+## 15. Email
+
+Connect your existing email accounts so you can read and send emails directly inside the CRM — without switching apps.
+
+### Connect an Email Account
+
+1. Click **Email** in the sidebar.
+2. Click **+ Connect Account**.
+3. Choose your email provider:
+   - **Gmail** — click and sign in with Google
+   - **Outlook / Hotmail** — click and sign in with Microsoft
+   - **Yahoo, Zoho, iCloud** — enter your email and password
+   - **Custom (IMAP)** — enter server settings manually
+4. Follow the login steps for your provider.
+5. Your inbox loads automatically once connected.
+
+### Reading Emails
+
+- Your **Inbox** loads when you first open the Email page.
+- Click any email to read it.
+- Use the **left panel** to switch folders: Inbox / Sent / Drafts / Trash / Spam.
+
+### Writing a New Email
+
+1. Click **Compose** (top right).
+2. In the **To** field, type the recipient's email address.
+3. Add **CC** or **BCC** recipients if needed.
+4. Write the **Subject**.
+5. Write your message.
+6. Click **Send**.
+
+### Replying to an Email
+
+Open any email → click **Reply** → type your response → click **Send**.
+
+### Using Multiple Email Accounts
+
+If you've connected multiple accounts (e.g., your personal and company email):
+- Use the **account switcher** at the top of the Email page to toggle between them.
+- Each account shows its own inbox and folders separately.
+
+---
+
+## 16. WhatsApp
+
+Send WhatsApp messages to customers and run bulk messaging campaigns — all from inside the CRM.
+
+### First-Time Setup (One-Time)
+
+You need a Meta (Facebook) Business account with WhatsApp Business API access.
+
+1. Click **WhatsApp** in the sidebar.
+2. Click **Configure**.
+3. Enter:
+   - **Phone Number ID** (from Meta Business Manager)
+   - **WhatsApp Business Account ID**
+   - **Permanent Access Token**
+4. Click Save.
+
+> If you don't have WhatsApp Business API, apply at business.facebook.com. Your telecom provider or a BSP (Business Service Provider) can help set it up.
+
+### Send a Single Message
+
+1. Click **New Message**.
+2. Enter the phone number with country code (e.g., 919876543210 for India).
+3. Type your message.
+4. Click **Send**.
+
+### Run a Bulk Campaign
+
+1. Click the **Campaigns** tab.
+2. Click **+ New Campaign**.
+3. Give the campaign a name.
+4. Select which leads/customers to message.
+5. Write the message text.
+6. Click **Send Campaign**.
+
+You will see delivery statistics:
+- **Sent** — messages dispatched
+- **Delivered** — reached the phone
+- **Failed** — could not be delivered (wrong number, blocked, etc.)
+
+---
+
+## 17. Activities
+
+The Activities page shows a single unified timeline of every interaction logged in the system — calls, meetings, emails, WhatsApp messages, and notes — for all customers.
+
+### What You Can Do
+
+- **Filter by Date** — see activity for a specific week or month
+- **Filter by Type** — show only calls, or only meetings, etc.
+- **Filter by Team Member** — see what one specific salesperson has been doing
+- **Search** — find activities related to a specific customer
+
+This page is useful for managers to review their team's work, or for anyone who wants to see the full picture of what's been happening in the business.
+
+---
+
+## 18. Appointments
+
+Schedule and track meetings, demos, site visits, and calls with customers.
+
+### Book an Appointment
+
+1. Click **Appointments** in the sidebar.
+2. Click **+ New Appointment**.
+3. Fill in:
+
+| Field | Description |
+|-------|-------------|
+| Title | What the meeting is about (e.g., "Product Demo for Raj Enterprises") |
+| Date & Time | When |
+| Duration | How long (in minutes) |
+| Type | Call / Meeting / Demo / Site Visit / Video Call |
+| Link to Lead/Party | Connect it to a CRM record |
+| Assigned To | Which team member attends |
+| Notes / Agenda | What will be discussed |
+
+4. Save.
+
+### View Appointments
+
+Appointments appear in a calendar/list view. You can see:
+- Today's appointments
+- Upcoming appointments
+- Past appointments with notes
+
+### Mark as Done / Cancelled
+
+Open any appointment → click **Mark Complete** (if it happened) or **Cancel** (if it didn't happen).
+
+---
+
+## 19. Automations
+
+Automations let you set rules so the system takes action automatically — like sending a WhatsApp message when a new lead comes in, or assigning a task when an invoice is created.
+
+### Create an Automation Rule
+
+1. Click **Automations** in the sidebar.
+2. Click **+ New Rule**.
+3. Give it a name (e.g., "Welcome message for new Facebook leads").
+4. Set the **Trigger** — what event starts this:
+   - New Lead Created
+   - Lead Status Changed
+   - Invoice Created
+   - Ticket Opened
+   - Appointment Booked
+5. Set a **Condition** (optional) — to narrow down when it runs:
+   - e.g., "Only when Lead Source = Facebook"
+   - e.g., "Only when Invoice Total > ₹10,000"
+6. Set the **Action** — what the system does automatically:
+   - Send a WhatsApp message
+   - Send an email
+   - Assign lead to a team member
+   - Create a task
+   - Move lead to a different status
+7. Toggle the automation **ON**.
+8. Click Save.
+
+### Example Automations
+
+| Trigger | Condition | Action |
+|---------|-----------|--------|
+| New lead created | Source = Facebook | Send WhatsApp: "Hi! Thanks for your enquiry. We'll call you shortly." |
+| Lead status changed | Status = Won | Create task: "Send welcome kit to new customer" |
+| Invoice created | Amount > ₹50,000 | Notify manager via email |
+| Ticket opened | Priority = Urgent | Assign to senior support agent |
+
+---
+
+## 20. Lead Capture Forms
+
+Create online forms that you embed on your website or share as a link. When someone fills the form, they automatically become a lead in your CRM.
+
+### Create a Form
+
+1. Click **Lead Forms** in the sidebar.
+2. Click **+ New Form**.
+3. Give it a name (e.g., "Contact Us Form", "Free Quote Request").
+4. Choose which fields to include:
+   - Name, Phone, Email, City, Company, Message
+   - Toggle each field ON or OFF
+   - Mark fields as **Required** if they must be filled
+5. Set the **Source** label — this appears on every lead created through this form (e.g., "Website - Contact Page").
+6. Set a **Thank You Message** — what the person sees after submitting.
+7. Click Save.
+
+### Share or Embed the Form
+
+After creating a form, click **Get Link/Embed**:
+
+- **Direct Link** — a URL you can share on WhatsApp, Instagram bio, etc.
+- **Embed Code** — HTML code to paste into your website so the form appears on your web page.
+
+Every submission goes straight into your Leads list under the source you specified.
+
+---
+
+## 21. Reports & Analytics
+
+See how your business is performing with charts and downloadable data.
+
+### What the Reports Page Shows
+
+| Section | What You See |
+|---------|-------------|
+| Business KPIs | Total customers, invoices, products, leads |
+| Revenue | Collected vs outstanding, month-by-month chart |
+| Lead Pipeline | Breakdown by status (New, Won, Lost, In Progress) |
+| Inventory | Total products, low stock count, out-of-stock count |
+| Receivable vs Payable | Side-by-side comparison of what's owed to you vs what you owe |
+
+### Download Reports as CSV (Excel-compatible)
+
+Click the **Export** button next to any section to download raw data:
+- **Parties** — all your customers and suppliers
+- **Inventory** — all products with current stock levels
+- **Invoices** — all billing records
+- **Leads** — all lead records with status and value
+
+Open the CSV in Excel or Google Sheets to sort, filter, and analyse.
+
+---
+
+## 22. GST Reports, E-Invoice & E-Way Bill
+
+For Indian businesses that file GST returns and generate e-invoices.
+
+### GST Reports
+
+1. Click **GST Reports** in the sidebar.
+2. Select the **Month** and **Year**.
+3. See:
+   - GSTR-1 summary (your sales, output GST)
+   - GSTR-2A/3B data (your purchases, input GST credit)
+   - GST payable calculation
+4. Click **Export** to download data for uploading to the GST portal (gstin.gov.in).
+
+### E-Invoice (For businesses with turnover above ₹5 Crore)
+
+The government requires these businesses to generate an IRN (Invoice Reference Number) for every B2B invoice.
+
+1. Click **E-Invoice** in the sidebar.
+2. Select an invoice that needs e-invoicing.
+3. Click **Generate E-Invoice**.
+4. The system connects to the IRP (Invoice Registration Portal) and returns the IRN + QR code.
+5. The IRN and QR code print automatically on the invoice PDF.
+
+### E-Way Bill (For goods movement above ₹50,000 in value)
+
+1. Click **E-Way Bill** in the sidebar.
+2. Select the invoice or sales order.
+3. Fill in transport details:
+   - Vehicle number
+   - Transporter name
+   - Distance (km)
+4. Click **Generate E-Way Bill**.
+5. The system returns the EWB number. Print it and send with the goods.
+
+---
+
+## 23. TDS Management
+
+For recording and tracking Tax Deducted at Source — required when paying contractors, rent, professional fees, etc.
+
+### Add a TDS Entry
+
+1. Click **TDS** in the sidebar.
+2. Click **+ New TDS Entry**.
+3. Fill in:
+   - Party name
+   - Nature of payment (e.g., Professional Services, Rent, Contract)
+   - Gross amount paid
+   - TDS rate (%)
+   - Date
+4. Save.
+
+The system calculates the TDS amount and net payment automatically.
+
+### Download TDS Summary
+
+Click **Export** to download a TDS report — useful for filing quarterly TDS returns (Form 26Q / 24Q) with the income tax department.
+
+---
+
+## 24. Budget Planning
+
+Set monthly or yearly budgets for different expense categories and compare how much you actually spent.
+
+### Create a Budget
+
+1. Click **Budgets** in the sidebar.
+2. Click **+ New Budget**.
+3. Choose:
+   - Budget Name (e.g., "FY 2025-26 Marketing")
+   - Period (monthly or annual)
+   - Start and End dates
+4. Add budget items by category:
+   - Category (e.g., Marketing, Salaries, Raw Materials, Travel)
+   - Budgeted Amount (₹)
+5. Save.
+
+### Track Budget vs Actual
+
+Once invoices and expenses are recorded, the Budget page shows:
+- **Budgeted** — how much you planned to spend
+- **Actual** — how much you actually spent
+- **Variance** — the difference (over budget = red, under budget = green)
+
+---
+
+## 25. Bank Reconciliation
+
+Match your bank statement with the transactions recorded in the system. This helps you find missing entries or mistakes.
+
+### How to Reconcile
+
+1. Click **Reconciliation** in the sidebar.
+2. Select your **Bank Account**.
+3. Click **Import Statement** and upload your bank statement as a CSV (most banks let you download this from netbanking).
+4. The system automatically matches bank transactions with recorded payments/receipts.
+5. **Matched** entries are shown in green — nothing to do.
+6. **Unmatched** entries need attention — click each to either:
+   - Link it to an existing transaction in the system, or
+   - Create a new entry (e.g., you forgot to record a bank charge)
+7. When all entries are matched, the statement balance and system balance should match. Click **Mark Reconciled**.
+
+---
+
+## 26. Documents
+
+Store and access files related to any record in the system — invoices, agreements, KYC documents, product photos, etc.
+
+### Upload a Document
+
+Documents can be uploaded from several places:
+- **Party detail page** → Documents tab
+- **Invoice** → Attachments section
+- **Documents page** in the sidebar (general document store)
+
+To upload:
+1. Go to the relevant record or the Documents page.
+2. Click **Upload Document**.
+3. Select the file from your computer.
+4. The file is saved and linked to that record.
+
+### View and Download Documents
+
+Open any document from the list to view it. Click **Download** to save a copy.
+
+---
+
+## 27. Tele-calling Centre
+
+For businesses with outbound calling teams — manage your calling activity, scripts, DNC list, and campaigns.
+
+> **TRAI Rule:** You can only make marketing calls between **9 AM and 9 PM IST**. The system enforces this when TRAI mode is on.
+
+### Your Daily Call Queue
+
+1. Click **Tele-calling** in the sidebar.
+2. The top strip shows today's stats:
+   - Total calls made today
+   - Connected calls
+   - No-answer count
+   - Conversions
+3. Below this, your **call queue** lists all leads assigned to you.
+
+### Log a Call Result
+
+After every call, record what happened:
+1. Find the lead in the queue.
+2. Click **Log Call**.
+3. Select the **Outcome**:
+
+| Outcome | When to Use |
+|---------|-------------|
+| Connected | You spoke to the person |
+| No Answer | Phone rang but nobody picked up |
+| Busy | Line was engaged |
+| Interested | They want to know more — follow up! |
+| Not Interested | They said no |
+| Callback Requested | They asked you to call at a specific time |
+| Converted | They agreed to buy / sign up |
+
+4. Add notes about the conversation.
+5. Set the **next follow-up date** if needed.
+6. Click Save.
+
+### Call Scripts
+
+Keep your team consistent with prepared scripts.
+
+1. Click **Scripts** tab.
+2. Click **+ New Script**.
+3. Write:
+   - Opening greeting
+   - Key points about your product/service
+   - Common objections and how to respond
+   - Closing / next steps
+4. Save.
+
+Your callers can see the script while calling — it's shown on the same screen as the call log form.
+
+### DNC (Do Not Call) List
+
+Click **DNC** tab to see all numbers marked as Do Not Call. These are automatically hidden from calling queues.
+
+To add a number manually:
+1. Click **+ Add to DNC**.
+2. Enter the phone number and reason.
+3. Save.
+
+### Calling Campaigns
+
+Organise calling work into campaigns (e.g., "June Follow-up Drive"):
+1. Click **Campaigns** tab.
+2. Click **+ New Campaign**.
+3. Enter campaign name and description.
+4. Add leads to this campaign.
+5. Assign to team members.
+6. Track progress — calls made, connected, converted.
+
+---
+
+## 28. Stock Market Advisory
+
+For SEBI-registered investment advisers and financial advisory businesses.
+
+> **SEBI Warning:** Providing investment advice to clients without a SEBI Investment Adviser licence is a criminal offence under the Securities and Exchange Board of India (Investment Advisers) Regulations, 2013. This module is for internal records only until your registration is in order.
+
+### Publish Trade Calls
+
+1. Click **Stock Market** in the sidebar.
+2. Click **+ New Trade Call**.
+3. Fill in:
+
+| Field | Description |
+|-------|-------------|
+| Symbol | Stock ticker (e.g., RELIANCE, INFY) |
+| Exchange | NSE or BSE |
+| Type | BUY or SELL |
+| Entry Price | At what price to enter (₹) |
+| Target Price | Where you expect it to go (₹) |
+| Stop-Loss | Where to exit to limit losses (₹) |
+| Time Horizon | Intraday / Short-term / Medium-term / Long-term |
+| Rationale | Why this call — your analysis |
+
+4. Save.
+
+### Publish Research Reports
+
+Click **Research** tab → **+ New Report**:
+- Company name and sector
+- Rating: Strong Buy / Buy / Hold / Sell / Strong Sell
+- Current Market Price and Target Price
+- Upside/Downside %
+- Full research write-up
+- Save.
+
+### Track Client Subscriptions
+
+Click **Subscriptions** tab:
+- View which clients have active subscriptions
+- See subscription expiry dates
+- See KYC verification status (verified / pending)
+
+To add a client subscription:
+1. Click **+ New Subscription**.
+2. Select client from CRM.
+3. Enter plan name, amount paid, start and end date.
+4. Mark KYC as Verified or Pending.
+5. Save.
+
+### Set Market Alerts
+
+Click **Alerts** tab → **+ New Alert**:
+- Symbol (e.g., NIFTY50)
+- Trigger price — when to fire the alert
+- Alert message — what to note when this price is hit
+- Save.
+
+---
+
+## 29. Health & Patient Management
+
+For clinics, hospitals, dental offices, physiotherapy centres, diagnostic labs, and any healthcare provider.
+
+> **Consent:** Always get patient consent before recording their health data. Enable Patient Consent in Compliance Settings.
+
+### Register a New Patient
+
+1. Click **Health** in the sidebar.
+2. Click **+ New Patient**.
+3. Fill in:
+
+| Field | Description |
+|-------|-------------|
+| Full Name | Patient's complete name |
+| Date of Birth | For age calculation |
+| Gender | Male / Female / Other |
+| Blood Group | A+ / A- / B+ / B- / O+ / O- / AB+ / AB- |
+| Known Allergies | Important! List all known allergies |
+| Phone | For follow-up reminders and appointment calls |
+| Emergency Contact | Name and phone of a family member |
+| Address | Home address |
+
+4. Click Save.
+
+A unique **Patient ID** is assigned automatically.
+
+### Search for an Existing Patient
+
+Type the patient's name or phone number in the search bar at the top. Click their name to open their record.
+
+### Log a Patient Visit
+
+Each time a patient comes in for consultation:
+
+1. Open the patient record.
+2. Click **+ New Visit**.
+3. Fill in:
+
+| Field | Description |
+|-------|-------------|
+| Visit Type | OPD (outpatient, walks in) or IPD (inpatient, admitted) |
+| Date & Time | When they visited |
+| Chief Complaint | What the patient says is wrong (in their words) |
+| Blood Pressure | e.g., 120/80 mmHg |
+| Pulse | Beats per minute |
+| Temperature | °F or °C |
+| Weight | In kg |
+| Diagnosis | Doctor's diagnosis |
+| Next Follow-up | When they should come back |
+
+4. Save.
+
+### Write a Prescription
+
+Inside a visit record, click **+ Add Prescription**:
+
+For each medicine, add:
+- Medicine name
+- Dosage (e.g., 500mg)
+- Route (Oral / Topical / Injection)
+- Frequency (e.g., Twice daily / Three times a day)
+- Duration (e.g., 5 days / 2 weeks)
+- Instructions (e.g., "After food", "At bedtime")
+
+Add doctor's notes and advice at the bottom.
+
+Click **Print Prescription** to print it for the patient.
+
+### Record Lab Results
+
+Inside a visit record, click **+ Lab Report**:
+- Test name (e.g., Blood Sugar Fasting, CBC, HbA1c)
+- Result value and unit (e.g., 95 mg/dL)
+- Normal range (e.g., 70–100 mg/dL)
+- Notes
+- Attach the lab report file if available
+
+### Patient History
+
+Open any patient's record to see their complete history:
+- All past visits in reverse date order
+- Each visit shows vitals, diagnosis, prescription, and lab reports
+
+---
+
+## 30. Import-Export (Trade) Suite
+
+For businesses that import or export goods internationally.
+
+### What This Module Manages
+
+- Shipping Bills (for exports)
+- Bills of Entry (for imports)
+- Customs documentation
+- LC (Letter of Credit) tracking
+- Freight and shipping records
+- International shipment tracking
+
+### Create a Shipping Bill (Export)
+
+1. Click **Import-Export** in the sidebar.
+2. Click **+ New Shipping Bill**.
+3. Fill in the exporter details, goods description, FOB value, HS codes, port of export.
+4. Save.
+
+### Track Shipments
+
+Each record shows:
+- Current status (At factory / In transit / At port / Cleared customs / Delivered)
+- Vessel/flight details and ETD/ETA
+- Container/AWB number
+
+---
+
+## 31. Retail & POS
+
+For retail shops and businesses that sell directly to walk-in customers.
+
+### Process a Sale at POS
+
+1. Click **Retail/POS** in the sidebar.
+2. Scan the product barcode or search by name.
+3. The product appears in the cart with its price.
+4. Adjust quantity if needed.
+5. Apply a discount if applicable.
+6. Select payment method: Cash / UPI / Card.
+7. Click **Charge / Bill**.
+8. A receipt is generated — print it or share via WhatsApp.
+
+Stock is automatically deducted from inventory.
+
+### End-of-Day Summary
+
+At the end of the day, click **Day Summary** to see:
+- Total sales
+- Cash collected
+- Card payments
+- UPI payments
+- Number of transactions
+
+---
+
+## 32. Warehouse Management
+
+For businesses with physical warehouses, multiple storage locations, or complex stock movements.
+
+### What This Module Handles
+
+- **Storage Locations** — define bins, racks, zones, and floors
+- **Stock Transfers** — move goods from one location to another
+- **Inward** — record stock received from suppliers
+- **Outward** — record stock sent to customers or other locations
+- **Stock Count** — conduct physical inventory counts and reconcile with system
+
+### Transfer Stock Between Locations
+
+1. Click **Warehouse** in the sidebar.
+2. Click **+ New Transfer**.
+3. Select:
+   - From Location
+   - To Location
+   - Product and Quantity
+4. Save.
+
+---
+
+## 33. Custom Fields
+
+Add your own data fields to any module — because every business has unique data it needs to track.
+
+### What Are Custom Fields?
+
+Examples of what different businesses add:
+
+| Business | Module | Custom Field |
+|----------|--------|-------------|
+| Vehicle dealer | Customer | Car Registration Number |
+| School | Lead | Student Grade |
+| Real estate agent | Lead | Property Type Required |
+| Pharma distributor | Supplier | Drug License Number |
+| Gym | Member | Membership Plan |
+| Doctor's clinic | Patient | Insurance Policy Number |
+
+### Create a Custom Field
+
+1. Click **Custom Fields** in the sidebar (under Settings section).
+2. Use the **Entity** dropdown to choose which module to add it to:
+   - Party / Lead / Invoice / Product / Employee / Ticket / Project / Patient / Purchase Order / Sales Order
+3. Click **+ Add Field**.
+4. Fill in:
+
+| Field | Description |
+|-------|-------------|
+| Label | The name users will see (e.g., "Vehicle Reg Number") |
+| Field Type | How data is entered — see types below |
+| Required | Must users fill this before saving? |
+| Sort Order | Controls position (lower = higher up) |
+
+**Field Types Explained:**
+
+| Type | What It Is | Example |
+|------|-----------|---------|
+| Text | Any text input | Model Name: Swift Dzire |
+| Number | Numbers only | Year: 2022 |
+| Date | Date picker | Expiry Date: 31/12/2025 |
+| Yes/No | True or False dropdown | Verified: Yes |
+| Dropdown | Pick one from a list | Category: Sedan / SUV / Hatchback |
+| Multi-select | Pick several from a list | Features: AC, Power Windows, ABS |
+| URL | A website link | Listing URL: https://... |
+| Email | An email address | Dealer Email: dealer@... |
+
+5. For Dropdown and Multi-select fields, enter the options separated by commas (e.g., "Sedan, SUV, Hatchback, MUV").
+6. Click **Save**.
+
+### Using Custom Fields
+
+After creating them, the fields appear automatically:
+- **Party custom fields** → open any party detail → go to the **Custom Fields** tab
+- **Lead custom fields** → click Edit on any lead → custom fields appear at the bottom
+
+Fill in the values and click **Save Custom Fields**.
+
+### Managing Fields
+
+- **Edit** — click the pencil icon to change label, options, or sort order
+- **Toggle Active** — hide a field temporarily without deleting it
+- **Delete** — permanently removes the field AND all stored values
+
+---
+
+## 34. Branding
+
+Change the visual appearance of the system to match your company.
+
+### What You Can Change
+
+1. Click **Branding** in the sidebar.
+
+**Brand Colour:**
+- Click one of the 10 preset colour swatches, OR
+- Click the colour wheel to pick any custom colour, OR
+- Type a hex code (e.g., `#1a73e8` for blue)
+- A live preview shows how it looks on buttons and the logo badge
+
+**Logo:**
+- Paste the direct URL of your company logo (e.g., from your website or Google Drive shared link)
+- Preview appears instantly
+
+**Invoice Customisation:**
+- **Header** — text at the top of all invoices (e.g., company tagline or bank details)
+- **Footer** — text at the bottom (e.g., "Thank you for your business")
+- **Notes** — standard notes on every invoice (e.g., payment terms)
+
+2. Click **Save Branding**.
+
+The brand colour takes effect immediately across the whole app for your organisation.
+
+---
+
+## 35. Compliance
+
+Stay legally compliant with Indian regulations. This section explains each setting in plain English.
+
+### Open Compliance Settings
+
+Click **Compliance** in the sidebar.
+
+---
+
+### DPDP Act 2023 — Data Privacy
+
+India's Digital Personal Data Protection Act requires responsible handling of personal information.
+
+| Setting | What It Does | Recommended |
+|---------|-------------|-------------|
+| Consent Required | Ask for explicit permission before storing someone's personal data | ON |
+| Data Retention Days | How long to keep customer data (after which it should be reviewed for deletion) | 365 days |
+| Privacy Policy URL | Link to your website's privacy policy page | Fill in |
+| Terms URL | Link to your terms and conditions | Fill in |
+| Cookie Consent | Show a cookie consent banner | ON |
+
+**Export All Data:**
+Click **Export My Data** to download a complete file of all data your system holds. Keep this if a regulator or customer asks for it.
+
+**Erase a Customer's Data (Right to Erasure):**
+If a customer asks you to delete their personal data:
+1. Go to CRM → open that customer.
+2. Click the options menu → **Delete Personal Data**.
+3. The system replaces all PII (name, phone, email, address, GSTIN, PAN) with anonymised placeholders.
+4. Transaction history is kept for accounting compliance, but the personal details are gone.
+
+---
+
+### TRAI — Telecom Rules
+
+| Setting | What It Does | Required By Law |
+|---------|-------------|----------------|
+| Restrict Calling Hours | Only allow calls to be logged between 9 AM–9 PM IST | Yes |
+| NDNC/DND Check Reminder | Remind callers to check the Do Not Call registry | Yes |
+
+**DLT Registration:** You must also register your company on the DLT (Distributed Ledger Technology) platform before sending bulk SMS in India. Register at your telecom operator's website.
+
+---
+
+### SEBI — For Financial Advisors
+
+| Setting | What It Does |
+|---------|-------------|
+| SEBI Registered | Toggle ON if you hold a SEBI Investment Adviser (IA) licence |
+| Registration Number | Enter your IA registration number (e.g., INA000012345) |
+| Disclaimer Text | The warning that appears on all stock advisory screens |
+
+> **Critical:** Do not give trade recommendations to clients before getting your SEBI IA registration. Penalties include up to ₹25 crore fine or criminal prosecution.
+
+---
+
+### Health Data
+
+| Setting | What It Does |
+|---------|-------------|
+| Health Mode | Stricter access controls for patient records |
+| Patient Consent Required | Must document consent before storing health data |
+
+---
+
+### Compliance Checklist
+
+At the bottom of the Compliance page, a table shows:
+- ✅ Green tick = this requirement is met
+- ⚠️ Amber warning = action needed
+
+Review this regularly to make sure your business stays compliant.
+
+---
+
+## 36. Settings
+
+Update your personal profile and organisation details.
+
+### Personal Profile
+
+Click **Settings** in the sidebar:
+- Update your name and email
+- Change your profile photo
+- Change your password
+
+### Organisation Details
+
+In Settings, scroll to Organisation:
+- Company Name
+- GST Number (GSTIN)
+- PAN Number
+- Phone and Email
+- Website
+- Address
+- **Currency** — default is INR (₹), can be changed for foreign currency businesses
+
+Click **Save Changes**.
+
+### Currency Settings
+
+Click **Currency** in the sidebar to:
+- Set default currency for invoices
+- Add exchange rates for currencies you deal in (USD, EUR, AED, GBP, etc.)
+
+### Webhooks
+
+Click **Webhooks** to connect external services. A webhook sends data to your own system or to Zapier/Make when something happens in the CRM (new lead, invoice paid, ticket created, etc.).
+
+---
+
+## 37. Admin Panel
+
+The Admin Panel is for **Owners and Admins only**. Regular staff cannot access this. Click **Admin** in the sidebar.
+
+### Team Management
+
+**Invite a new team member:**
+1. Go to **Admin → Team**.
+2. Click **+ Invite Member**.
+3. Enter their email address.
+4. Choose their role (see Role Guide below).
+5. Optionally, choose which specific modules they can access.
+6. Click **Send Invite**.
+
+The person gets an email with a magic link. They click it, set a password, and are added to your organisation.
+
+**Change someone's role:**
+In the Team list, click the person's role dropdown → select new role → Save.
+
+**Remove a team member:**
+Click the **Remove** button next to their name. They lose access immediately.
+
+### Module Management
+
+1. Go to **Admin → Modules**.
+2. See all available modules with toggle switches.
+3. Toggle **ON** the modules your business uses.
+4. Toggle **OFF** modules you don't use — they disappear from everyone's sidebar.
+5. Click **Save**.
+
+> Example: If you don't do manufacturing, turn off Warehouse and BOM. If you don't have a retail counter, turn off POS.
+
+### Approval Queue
+
+Go to **Admin → Approvals** to see all pending approvals:
+- Employee expense claims
+- Leave requests
+- Any action requiring manager sign-off
+
+Click **Approve** ✅ or **Reject** ❌ on each item.
+
+### Activity Logs (Audit Trail)
+
+Go to **Admin → Logs** to see a complete history of who did what:
+- Who created, edited, or deleted each record
+- Date and time of each action
+- From which IP address
+
+Useful for investigations, compliance audits, and catching mistakes.
+
+---
+
+## 38. Security Centre
+
+Protect your account with advanced security features.
+
+### Enable Two-Factor Authentication (2FA)
+
+1. Click **Security** in the sidebar.
+2. Go to **Two-Factor Authentication** tab.
+3. Click **Enable 2FA**.
+4. Install **Google Authenticator** or **Authy** on your phone.
+5. Scan the QR code shown on screen with the app.
+6. Enter the 6-digit code from the app to confirm.
+7. Save your **backup codes** (printed or stored safely) — use these if you lose your phone.
+
+From now on, every time you log in, you enter your password first, then the 6-digit code from the app.
+
+### View Active Sessions
+
+Click **Sessions** tab to see all devices and browsers currently logged into your account:
+- Device type (phone/laptop)
+- Browser
+- IP address
+- Last active time
+
+If you see an unfamiliar session, click **Revoke** to log it out immediately.
+
+### API Keys
+
+Click **API Keys** tab if you want to connect external apps (your own software, integrations) to the CRM:
 1. Click **+ New API Key**.
-2. Enter a name (e.g. "Zapier Integration").
-3. Select **Scopes** — only grant the minimum permissions needed:
-   - `leads:read` — read leads
-   - `leads:write` — create/update leads
-   - `crm:read` — read CRM contacts
-   - `crm:write` — create/update contacts
-   - `inventory:read` — read products/stock
-   - `finance:read` — read invoices/payments
-   - `all:read` — read-only access to everything
-4. Set an optional **expiry** (recommended: 90 days).
-5. Click **Create Key**.
-6. **Copy the key immediately** — it is shown only once and never stored in plain text.
-
-**Revoke a Key:**
-Click **Revoke** next to the key. This immediately invalidates it.
-
-**Using an API Key:**
-Add the `Authorization: ApiKey <your-key>` header to your HTTP requests.
-
-### 30.4 Password Tab
-
-Change your password at any time:
-1. Enter your **current password**.
-2. Enter a **new password** — the strength meter shows real-time feedback.
-   - Requirements: 8+ characters, 1 uppercase, 1 number, 1 special character.
-3. **Confirm** the new password.
-4. Click **Change Password**.
-
-> You cannot reuse any of your last 5 passwords.
-
-### 30.5 IP Allowlist Tab
-
-Restrict which IP addresses can access your organisation.
-
-> **Warning:** Once you add any rule, ALL other IPs are blocked. Always add your own current IP first.
-
-**Add an IP Rule:**
-1. Click **+ Add IP / CIDR**.
-2. Enter an IP address (e.g. `203.0.113.45`) or CIDR range (e.g. `203.0.113.0/24`).
-3. Add an optional label (e.g. "Office network").
-4. Click **Add Rule**.
-
-**Remove a Rule:**
-Click **Remove** next to the rule to delete it.
-
-### 30.6 Permissions Tab
-
-Fine-grained control over what MEMBER-role users can do within each module.
-
-> OWNER and ADMIN bypass all permission rules.
-
-**Add a Permission Rule:**
-1. Click **+ Add Rule**.
-2. Select the **User** (from your team members).
-3. Select the **Module** (CRM, Inventory, Accounts, etc.).
-4. Check the allowed **Actions**: View / Edit / Delete / Export.
-5. Click **Save Rule**.
-
-**Example:** Give your accountant *view-only* access to Inventory:
-- User: Accountant's name
-- Module: INVENTORY
-- Actions: View ✓ (Edit ✗, Delete ✗, Export ✗)
+2. Give it a name (e.g., "Website Integration").
+3. Set permissions (read-only or full access).
+4. Copy the key — it's shown only once.
+5. Store it securely and use it in your integration.
 
 ---
 
-## 31. Settings
+## 39. Super Admin (Platform Owner Only)
 
-Path: **Sidebar → Settings** (`/settings`)
+This is a completely separate panel, accessible only to the platform owner (the person who owns the BL-CRM business itself).
 
-### 31.1 Organisation Profile
-Update company name, logo, address, GSTIN, PAN, email, and phone.
+### Access
 
-### 31.2 SMTP Email Setup
-Configure your outgoing email server:
-- Host, Port, Username, Password
-- From Name and From Email
-- Click **Test Connection** to verify before saving.
+Go to `/super-admin/login` and log in with the Super Admin credentials.
 
-### 31.3 GST Setup
-Enter your GST credentials for e-Invoice and e-Way Bill generation.
+> This is NOT your regular account. These are separate credentials known only to the platform owner.
 
-### 31.4 Theme
-Toggle between **Dark** and **Light** mode.
+### What Super Admin Can Do
 
-### 31.5 Currency
+**Organisations:**
+- View all organisations on the platform
+- See how many users each org has
+- Enable or disable specific modules for any organisation
+- Add notes about an organisation
 
-Path: **Sidebar → Currency** (`/currency`)
+**Users:**
+- View all registered users across all organisations
+- See login history
+- Disable accounts if needed
 
-- Set your **base currency** (default: INR).
-- Add other currencies with exchange rates for multi-currency invoicing.
-- Rates can be updated manually or fetched automatically.
-
----
-
-## 32. Webhooks
-
-Path: **Sidebar → Webhooks** (`/webhooks`)
-
-Webhooks let external systems (Zapier, n8n, custom apps) receive real-time notifications when events happen in FlowCRM.
-
-### 32.1 Create a Webhook
-
-1. Click **+ Add Webhook**.
-2. Enter the **Endpoint URL** where events should be sent.
-3. Enter a **Secret** (used to sign payloads — verify on your server with HMAC-SHA256).
-4. Select **Events** to subscribe to:
-   - `invoice.created`, `invoice.paid`, `invoice.cancelled`
-   - `payment.received`
-   - `contact.created`, `contact.updated`
-   - `purchase_order.created`, `purchase_order.approved`
-   - `lead.created`, `lead.converted`
-   - `stock.low`
-   - `work_order.completed`
-5. Add an optional description.
-6. Click **Save Webhook**.
-
-### 32.2 Test a Webhook
-
-Click **Test** on any webhook to fire a test payload to your endpoint.
-
-### 32.3 Delivery History
-
-Expand a webhook row to see all recent deliveries — HTTP status code, success/failure, and the full request/response payload.
-
-### 32.4 Retry a Failed Delivery
-
-Click the **retry icon** next to any failed delivery to resend it.
+**Platform Management:**
+- Monitor system health
+- View platform-wide statistics
 
 ---
 
-## 33. Super Admin (Platform Owner)
+## 40. Roles & Permissions
 
-Path: `/super-admin` — Only accessible to the platform owner (the person who deployed FlowCRM).
+When you invite someone to your organisation, you assign them a role. Here is what each role can do:
 
-Login at `/super-admin/login` with the super admin credentials set via environment variable.
+| Role | Who It's For | What They Can Do |
+|------|-------------|-----------------|
+| **Owner** | Business owner | Everything — full control, Admin Panel, can delete the org |
+| **Admin** | Trusted manager or partner | Everything except billing; full Admin Panel access |
+| **Staff** | Regular employees | Use all modules assigned to them; cannot access Admin Panel |
+| **Viewer** | Auditors, investors, silent partners | Read-only access to assigned modules; cannot create or edit anything |
 
-### 33.1 Dashboard
-Platform-wide metrics: total organisations, users, revenue, sign-ups over time.
+### Module-Level Permissions
 
-### 33.2 Organisations
-View all organisations on the platform. Click into any org to see their details, module usage, and member count. Can suspend or activate an org.
+Beyond roles, an Admin can also restrict which modules a specific person can see. For example:
+- Your accountant can only see Finance/Accounts
+- Your warehouse person can only see Inventory and Warehouse
+- Your salesperson can only see CRM and Leads
 
-### 33.3 Users
-View all users across all organisations. Can deactivate accounts, reset passwords, or unlock accounts.
+Set this up when inviting: **Admin → Team → Invite Member → Allowed Modules**.
 
----
+### What Staff Cannot Do
 
-## 34. Roles & Permissions Reference
+Staff members cannot:
+- Access the Admin Panel
+- Invite or remove team members
+- Enable or disable modules
+- View audit logs
+- Change organisation settings
 
-| Role | Who should have it | Access summary |
-|---|---|---|
-| OWNER | Business owner | Everything including billing and super settings |
-| ADMIN | Trusted manager/partner | Everything except platform billing |
-| MANAGER | Department head | Assigned modules + team approvals |
-| STAFF | Regular employee | Assigned modules only |
-| ACCOUNTANT | Finance staff | Accounts, Finance, Reports |
-| VIEWER | Auditor, investor, client | Read-only on assigned modules |
+### Changing Someone's Role
 
-### Module Keys Reference
-
-| Module Key | Page |
-|---|---|
-| CRM | Contacts & Companies |
-| INVENTORY | Products & Stock |
-| PURCHASE | Purchase Orders |
-| STORE | Goods Entry (Inward) |
-| DISPATCH | Sales Orders & Invoices |
-| ACCOUNTS | Finance & Payments |
-| POS | Retail / Point of Sale |
-| WAREHOUSE | Warehouse Management |
-| HR | HR & Payroll |
-| PROJECTS | Projects & Tasks |
-| MARKETING | Leads & CRM Pipeline |
-| SUPPORT | Support Tickets |
-| REPORTS | Analytics & Reports |
-| IMPORT_EXPORT_SUITE | Trade / Import-Export |
-| RETAIL_FASHION | Retail Operations |
+Go to **Admin → Team** → click the role next to the person's name → select new role → Save. Takes effect immediately.
 
 ---
 
 ## Quick Reference — Common Tasks
 
-| Task | Path |
-|---|---|
-| Add a customer | CRM → + Add → Type: Customer |
-| Create an invoice | Dispatch → + New Order |
-| Add a lead | Marketing → + Add Lead |
-| Log a call | Marketing → Lead → Log Activity → CALL |
-| Send WhatsApp | WhatsApp → Send tab |
-| Generate GST report | Sidebar → GST Reports |
-| Generate e-Invoice | Sidebar → E-Invoice IRN |
+| What You Want to Do | Where to Go |
+|---------------------|------------|
+| Add a customer | CRM → + Add Party → Type: Customer |
+| Add a supplier | CRM → + Add Party → Type: Supplier |
+| Create an invoice | Accounts → + New Invoice |
+| Record a payment | Accounts → Open invoice → Record Payment |
+| Add a lead | Leads → + Add Lead |
+| Log a call | Leads → Lead card → Log |
+| Convert lead to deal | Leads → Lead card → → Deal (appears when Qualified) |
+| Create a quotation | Quotations → + New Quotation |
+| Raise a purchase order | Purchase → + New Purchase Order |
+| Receive goods | Purchase → Open PO → Mark as Received |
+| Dispatch goods to customer | Sales/Dispatch → + New Sales Order → Dispatch |
+| Add an employee | HR → + Add Employee |
+| Generate payroll | HR → Payroll tab → Generate |
+| Create a project | Projects → + New Project |
+| Create a task | Projects → Open project → + Add Task |
+| Log a support ticket | Support → + New Ticket |
+| Send a WhatsApp message | WhatsApp → New Message |
 | Invite a team member | Admin Panel → Team → + Invite |
-| Change password | Security → Password tab |
-| View active sessions | Security → Sessions tab |
-| Create API key | Security → API Keys → + New |
-| Set up automation | Automations → + New Rule |
-| Share a lead form | Lead Forms → Copy URL |
-| Create a budget | Budgets → + New Budget |
-| Reconcile bank | Reconciliation → Import Statement |
-| Add custom field | Custom Fields → select entity → + Add Field |
+| Enable/disable a module | Admin Panel → Modules → toggle |
+| Add a custom field | Custom Fields → select entity → + Add Field |
 | Change brand colour | Branding → pick colour → Save |
-| Enable TRAI compliance | Compliance → TRAI section → toggle ON |
-| Register patient | Health → + New Patient |
-| Log a trade call | Stock Market → Trade Calls → + New |
-| Start a call campaign | Tele-calling → Campaigns → + New |
+| Export all data | Compliance → Export My Data |
+| Generate GST report | GST Reports → select month → Export |
+| Generate E-Invoice | E-Invoice → select invoice → Generate |
+| Generate E-Way Bill | E-Way Bill → select shipment → Generate |
+| Enable 2FA | Security → 2FA tab → Enable |
+| Change password | Settings → Password section |
 
 ---
 
-## 35. Custom Fields — Add Your Own Data Fields
-
-Every business has unique data it needs to track. Custom Fields let you add your own fields to any module — without changing anything in the system.
-
-### Examples of what businesses add
-
-- Vehicle dealer → adds "Car Registration Number" to customers
-- School → adds "Student Roll Number" to leads
-- Gym → adds "Membership Plan" to contacts
-- Pharma → adds "Drug License Number" to suppliers
-
-### Create a Custom Field
-
-1. Go to **Custom Fields** in the sidebar (under Settings section).
-2. Use the **Entity** dropdown to select which module to add the field to:
-   - Party (customers/suppliers), Lead, Invoice, Product, Employee, Ticket, Project, Patient, Purchase Order, Sales Order
-3. Click **+ Add Field**.
-4. Fill in:
-   - **Label** — the name shown to users (e.g., "Reg. Number")
-   - **Field Type** — choose from:
-     - **Text** — any text input
-     - **Number** — only numbers
-     - **Date** — a date picker
-     - **Yes/No** — a simple true/false dropdown
-     - **Dropdown** — pick one from a list you define (enter options separated by commas)
-     - **Multi-select** — pick multiple from a list
-     - **URL** — a website link
-     - **Email** — an email address
-   - **Required** — tick this if users must fill it before saving a record
-   - **Sort Order** — lower number = appears higher in the list
-5. Click **Save**.
-
-### Where Custom Fields Appear
-
-After creating them, custom fields appear automatically on the right record:
-
-- **Party (customer/supplier)** → open any party → go to the **Custom Fields** tab
-- **Lead** → click Edit on any lead → custom fields appear below the standard form
-
-Fill in values and click **Save Custom Fields**.
-
-### Edit or Remove a Field
-
-- Click the **pencil icon** on any field row to edit the label, options, or sort order.
-- Click the **delete icon** to permanently remove the field and all its stored values.
-- Toggle the **Active** switch to temporarily hide a field without deleting it.
-
----
-
-## 36. Branding — Make It Look Like Your Business
-
-Change the visual appearance of the system to match your company's colours and add your logo.
-
-### Update Branding
-
-1. Go to **Branding** in the sidebar.
-2. **Brand Colour** — choose your company's primary colour:
-   - Click one of the 10 preset colour swatches, or
-   - Click the colour picker to choose any colour, or
-   - Type a hex code directly (e.g., `#1a73e8`)
-   - A preview shows how the colour looks on a button and logo badge
-3. **Logo** — paste a direct URL to your company logo image (must be a public image URL, e.g., from your website)
-4. **Invoice Settings** — these appear on every invoice you generate:
-   - **Header** — text at the top of invoices (e.g., company tagline)
-   - **Footer** — text at the bottom (e.g., "Goods once sold will not be taken back")
-   - **Notes** — standard notes (e.g., bank account details for payment)
-5. Click **Save Branding**.
-
-The brand colour takes effect immediately across the app for your organisation.
-
----
-
-## 37. Compliance — Stay Legally Safe in India
-
-The Compliance module helps you follow key Indian regulations for data privacy, telecom, financial advisory, and healthcare.
-
-### Access Compliance Settings
-
-Go to **Compliance** in the sidebar.
-
----
-
-### Section 1 — DPDP Act 2023 (Data Privacy)
-
-India's Digital Personal Data Protection Act, 2023 requires businesses to handle personal data responsibly.
-
-| Setting | What It Does |
-|---------|-------------|
-| **Consent Required** | Ask for explicit permission before saving someone's personal data |
-| **Data Retention Days** | Automatically flag data older than this many days for deletion review |
-| **Privacy Policy URL** | Link to your privacy policy page — shown to customers |
-| **Terms URL** | Link to your terms and conditions |
-| **Cookie Consent** | Show a cookie consent banner to website visitors |
-
-**Export All Data:** Click the **Export My Data** button to download a full JSON file of everything the system holds about your organisation — useful if a regulator or customer requests it.
-
-**Right to Erasure:** In the CRM, when a customer asks you to delete their data, open their party record and use the **Delete Personal Data** option. The system anonymises all their PII (name, phone, email, address, GSTIN, PAN) while keeping the invoice/transaction skeleton for audit purposes.
-
----
-
-### Section 2 — TRAI (Telecom Regulatory Authority of India)
-
-For businesses that do outbound calling or SMS marketing.
-
-| Setting | What It Does |
-|---------|-------------|
-| **Restrict Calling Hours** | Prevents logging calls outside 9 AM–9 PM IST — mandatory under TRAI |
-| **NDNC/DND Check Reminder** | Reminds your team to check the National Do Not Call registry before calling |
-
-> You must also register on the **DLT platform** (Distributed Ledger Technology — required for bulk SMS). Register at your telecom operator's DLT portal (Airtel, Jio, Vodafone Idea, BSNL, or TRAI's own platform).
-
----
-
-### Section 3 — SEBI (Financial Advisors Only)
-
-For businesses that provide stock market advice to clients.
-
-| Setting | What It Does |
-|---------|-------------|
-| **SEBI Registered** | Toggle ON if your firm holds a SEBI Investment Adviser (IA) licence |
-| **SEBI Reg. Number** | Enter your IA registration number (e.g., INA000012345) |
-| **Disclaimer Text** | Custom warning text shown on all stock advisory screens |
-
-> **Warning:** Providing investment advice to clients without a SEBI IA licence is a criminal offence under SEBI (Investment Advisers) Regulations, 2013. Keep this module for internal records only until you are properly registered.
-
----
-
-### Section 4 — Health Data (Clinics & Hospitals)
-
-| Setting | What It Does |
-|---------|-------------|
-| **Health/HIPAA Mode** | Applies stricter access controls to patient records |
-| **Patient Consent Required** | Requires documenting patient consent before storing their health data |
-
----
-
-### Indian Compliance Checklist
-
-At the bottom of the Compliance page, a table shows your status across 10 compliance areas:
-
-| Area | What to Check |
-|------|--------------|
-| DPDP Consent | Consent collection is enabled |
-| Data Retention | Retention policy is set |
-| Privacy Policy | URL is filled in |
-| TRAI Calling Hours | Calling hour restriction is ON |
-| NDNC Check | DNC check reminder is ON |
-| DLT Registration | Manual check (system cannot auto-verify) |
-| GSTIN | Your GSTIN is saved in Settings |
-| E-Invoicing | E-invoice module is active |
-| Employee PF/ESI | Payroll deductions are configured |
-| Data Export | Export feature is enabled |
-
-Green tick = done. Amber warning = action needed.
-
----
-
-## 38. Tele-calling Centre
-
-For businesses with outbound sales or customer calling teams.
-
-> **TRAI Notice:** All calls must be made between **9 AM and 9 PM IST** only. The system enforces this automatically when TRAI mode is turned on in Compliance settings.
-
-### Your Daily Call Queue
-
-1. Go to **Tele-calling** from the sidebar.
-2. The top section shows today's stats: Total Calls, Connected, No Answer, Conversions.
-3. Below that, your **call queue** lists leads assigned to you for today.
-
-### Log a Call Result
-
-After every call:
-1. Find the lead in the queue and click **Log Call**.
-2. Select the **Outcome**:
-   - **Connected** — you spoke to them
-   - **No Answer** — phone rang but no one picked up
-   - **Busy** — line was busy
-   - **Interested** — they want to know more (follow up!)
-   - **Not Interested** — they said no
-   - **Callback Requested** — they asked you to call back later
-   - **Converted** — they agreed to buy / sign up
-3. Add notes about what was discussed.
-4. Set a **follow-up date** if they asked you to call back.
-5. Save.
-
-### Call Scripts
-
-Keep your team consistent with pre-written scripts.
-
-1. Click the **Scripts** tab.
-2. Click **+ New Script**.
-3. Write:
-   - Opening line
-   - Key points to cover
-   - Common objections and how to handle them
-   - Closing line / call to action
-4. Save.
-
-Scripts are visible to callers as a reference guide while they work through the queue.
-
-### Do Not Call (DNC) List
-
-The **DNC** tab shows all numbers marked as Do Not Call. Numbers are added here automatically when someone is marked DNC in the Leads module, or you can add numbers manually.
-
-Callers will never see a Call button for DNC numbers — this protects your business from TRAI violations.
-
-### Campaigns
-
-Organise your calling work into campaigns (e.g., "June Follow-up Drive", "New Product Launch"):
-
-1. Click **Campaigns** tab → **+ New Campaign**.
-2. Give it a name and description.
-3. Add leads to the campaign.
-4. Assign to team members.
-5. Track progress — how many called, how many connected, conversion rate.
-
----
-
-## 39. Stock Market Advisory
-
-For financial advisory firms that publish trade calls and research to clients.
-
-> **SEBI Disclaimer:** Publishing trade recommendations to clients without a SEBI Investment Adviser licence is illegal in India. This module is for internal records only. Enable your registration details in Compliance settings.
-
-### Trade Calls
-
-1. Go to **Stock Market** from the sidebar.
-2. Click **+ New Trade Call**.
-3. Fill in:
-   - **Symbol** — stock ticker (e.g., RELIANCE, INFY, TATASTEEL)
-   - **Exchange** — NSE or BSE
-   - **Call Type** — BUY or SELL
-   - **Entry Price** — at what price to enter the trade
-   - **Target Price** — where you expect it to go
-   - **Stop-Loss** — where to exit if it goes wrong
-   - **Time Horizon** — Intraday, Short-term, Medium-term, Long-term
-   - **Rationale** — why you are recommending this trade
-4. Save.
-
-All trade calls are logged with date and time for your compliance records.
-
-### Research Reports
-
-Go to the **Research** tab:
-1. Click **+ New Report**.
-2. Enter:
-   - Company name and sector
-   - **Rating** — Strong Buy, Buy, Hold, Sell, Strong Sell
-   - **Target Price** and **CMP** (current market price)
-   - **Upside/Downside %**
-   - Full research write-up
-3. Save.
-
-### Client Subscriptions
-
-Go to the **Subscriptions** tab to track which clients are currently subscribed to your advisory service:
-- Client name and contact
-- Plan type and amount paid
-- Subscription start and end date
-- KYC status (verified / pending)
-
-### Market Alerts
-
-Go to the **Alerts** tab to set price-based alerts:
-1. Click **+ New Alert**.
-2. Enter the **Symbol** and **Trigger Price**.
-3. Write the **Alert Message** (what to tell the client when this price is hit).
-4. Save.
-
-When the stock crosses the trigger price, the alert fires and is recorded in the system.
-
----
-
-## 40. Health & Patient Management
-
-For clinics, hospitals, dental offices, physiotherapy centres, and any healthcare provider.
-
-> **Consent Note:** Always get patient consent before recording their health data. Enable Patient Consent in Compliance → Health section.
-
-### Register a New Patient
-
-1. Go to **Health** from the sidebar.
-2. Click **+ New Patient**.
-3. Fill in:
-   - **Full Name** (required)
-   - **Date of Birth**
-   - **Gender**
-   - **Blood Group** — A+, A-, B+, B-, O+, O-, AB+, AB-
-   - **Known Allergies** — important for prescriptions
-   - **Phone number** (for follow-up reminders)
-   - **Emergency Contact** name and phone
-   - **Address**
-4. Click Save.
-
-Each patient gets a unique Patient ID automatically.
-
-### Search for a Patient
-
-Use the **Search bar** at the top of the Health page to find patients by name or phone number. Click their name to open their full record.
-
-### Log a Patient Visit
-
-Each time a patient comes in:
-
-1. Open the patient record.
-2. Click **+ New Visit**.
-3. Fill in:
-   - **Visit Type** — OPD (walks in) or IPD (admitted)
-   - **Date and Time**
-   - **Chief Complaint** — in their own words (e.g., "fever for 3 days")
-   - **Vital Signs:**
-     - Blood Pressure (e.g., 120/80)
-     - Pulse (beats per minute)
-     - Temperature (°F or °C)
-     - Weight (kg)
-   - **Diagnosis** — doctor's diagnosis
-   - **Next Follow-up Date** — when to come back
-4. Save.
-
-### Write a Prescription
-
-Inside a visit record:
-1. Click **+ Prescription**.
-2. Add medicines:
-   - Medicine name
-   - Dosage (e.g., 500mg)
-   - Frequency (e.g., Twice a day)
-   - Duration (e.g., 5 days)
-   - Instructions (e.g., "After food")
-3. Add doctor's advice notes.
-4. Click **Print** to print the prescription for the patient.
-
-### Record Lab Results
-
-Inside a visit record, click **+ Lab Report** to add test results:
-- Test name (e.g., CBC, Blood Sugar, HbA1c)
-- Result value and unit
-- Normal range (for reference)
-- Upload the lab report file if available
-
-### Patient History
-
-The patient's full visit history is visible on their profile — all visits, prescriptions, and lab reports in reverse chronological order.
-
----
-
-*BL-CRM — Built for Indian businesses. For support, contact your system administrator.*
+*BL-CRM — Built for Indian businesses. For questions, contact your system administrator.*
