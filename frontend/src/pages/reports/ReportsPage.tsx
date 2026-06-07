@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
-import { BarChart3, TrendingUp, Package, Users, ShoppingCart, DollarSign, Download, PieChart, Activity } from "lucide-react";
+import { BarChart3, TrendingUp, Package, Users, ShoppingCart, DollarSign, Download, PieChart, Activity, FileText } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -168,11 +169,11 @@ export default function ReportsPage() {
     { label: "Pipeline", value: (leadStats?.total || 0) - (leadStats?.won || 0) - (leadStats?.lost || 0), color: "#818cf8" },
   ].filter(d => d.value > 0);
 
-  const exports = [
-    { key: "parties", label: "Party / Customer List", note: "All CRM contacts with details", icon: "👥" },
-    { key: "inventory", label: "Inventory Stock Report", note: "Products, quantities & prices", icon: "📦" },
-    { key: "invoices", label: "Outstanding Invoices", note: "All invoices with balance due", icon: "🧾" },
-    { key: "leads", label: "Lead Pipeline Report", note: "All leads with status & value", icon: "📈" },
+  const exports: { key: string; label: string; note: string; Icon: LucideIcon }[] = [
+    { key: "parties",   label: "Party / Customer List",   note: "All CRM contacts with details",       Icon: Users      },
+    { key: "inventory", label: "Inventory Stock Report",  note: "Products, quantities & prices",       Icon: Package    },
+    { key: "invoices",  label: "Outstanding Invoices",    note: "All invoices with balance due",       Icon: FileText   },
+    { key: "leads",     label: "Lead Pipeline Report",    note: "All leads with status & value",       Icon: TrendingUp },
   ];
 
   return (
@@ -278,7 +279,7 @@ export default function ReportsPage() {
                 <div key={e.key} style={{ ...S.row, cursor: "pointer" }} onClick={() => handleExport(e.key)}>
                   <div>
                     <div style={{ fontSize: 13, color: "var(--text-sec)", display: "flex", alignItems: "center", gap: 6 }}>
-                      <span>{e.icon}</span>{e.label}
+                      <e.Icon size={14} color="#818cf8" />{e.label}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{e.note}</div>
                   </div>

@@ -161,8 +161,8 @@ export default function DealsPage() {
                     {stageValue > 0 && <div style={{ fontSize: 11, color: "#10b981", marginTop: 2 }}>{fmtL(stageValue)}</div>}
                     <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 2 }}>{stage.prob}% probability</div>
                   </div>
-                  <div style={{ background: "#0A0A1A", border: `1px solid ${stage.color}20`, borderTop: "none", borderRadius: "0 0 10px 10px", minHeight: 160, padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-                    {stageDeals.length === 0 && <div style={{ padding: "20px 0", textAlign: "center", color: "#252540", fontSize: 12 }}>No deals</div>}
+                  <div style={{ background: "var(--bg-hover)", border: `1px solid ${stage.color}20`, borderTop: "none", borderRadius: "0 0 10px 10px", minHeight: 160, padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {stageDeals.length === 0 && <div style={{ padding: "20px 0", textAlign: "center", color: "var(--text-ghost)", fontSize: 12 }}>No deals</div>}
                     {stageDeals.map(d => (
                       <div key={d.id} onClick={() => openEdit(d)} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", cursor: "pointer" }}
                         onMouseEnter={e => (e.currentTarget.style.borderColor = stage.color + "60")}

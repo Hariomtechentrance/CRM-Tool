@@ -131,7 +131,7 @@ function openInvoicePrint(inv: Invoice, org: OrgDetail) {
   </style>
 </head>
 <body>
-<button class="print-btn no-print" onclick="window.print()">🖨 Print / Save PDF</button>
+<button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
 <div class="page">
   <div class="header">
     <div>
