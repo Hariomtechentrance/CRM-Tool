@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
+import jwt from "jsonwebtoken";
 
 // Hash a sensitive token before DB storage (SHA-256 one-way)
 function hashToken(raw: string): string {
@@ -14,6 +15,7 @@ import {
   verifyRefreshToken,
   getRefreshExpiryDate,
 } from "../lib/jwt";
+import { verifyFirebaseIdToken, isFirebaseConfigured } from "../lib/firebaseAdmin";
 import {
   registerSchema,
   loginSchema,
@@ -94,7 +96,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors);
       return;
     }
-    const { name, email, password } = parsed.data;
+    const { name, email, password, phone, firebaseEmailVerified } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -102,16 +104,25 @@ export async function register(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Check phone uniqueness if provided
+    if (phone) {
+      const existingPhone = await (prisma as any).user.findUnique({ where: { phone } });
+      if (existingPhone) { conflict(res, "This phone number is already registered"); return; }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
-    // In dev mode never require email verification — sendEmail() is a no-op so the catch never fires
-    const smtpConfigured = process.env.NODE_ENV === "production" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+    // Firebase-verified registration skips SMTP email flow
+    const firebaseVerified = !!firebaseEmailVerified;
+    const smtpConfigured = !firebaseVerified && process.env.NODE_ENV === "production" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     const emailVerifyToken = smtpConfigured ? uuidv4() : null;
 
-    const user = await prisma.user.create({
+    const user = await (prisma as any).user.create({
       data: {
         name, email, password: hashedPassword,
         emailVerifyToken,
-        isEmailVerified: !smtpConfigured, // auto-verify if SMTP not configured
+        isEmailVerified: firebaseVerified || !smtpConfigured,
+        phone:         phone || null,
+        phoneVerified: !!phone, // phone is only sent after Firebase OTP verification
       },
     });
 
@@ -196,6 +207,18 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     // Clear lockout on success
     await prisma.user.update({ where: { id: user.id }, data: { loginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() } });
+
+    // ── Phone 2FA challenge ──────────────────────────────────
+    if (user.phone && user.phoneVerified) {
+      const tempToken = jwt.sign(
+        { userId: user.id, phone: user.phone, action: "phone_2fa" },
+        process.env.JWT_ACCESS_SECRET!,
+        { expiresIn: "5m", algorithm: "HS256" }
+      );
+      const hint = user.phone.slice(0, 3) + "****" + user.phone.slice(-4);
+      res.json({ success: true, data: { requiresPhone2FA: true, tempToken, phoneHint: hint } });
+      return;
+    }
 
     if (!user.isEmailVerified && process.env.NODE_ENV === "production") {
       unauthorized(res, "Please verify your email before logging in");
@@ -434,6 +457,119 @@ export async function changePassword(req: AuthRequest, res: Response): Promise<v
 
     writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "PASSWORD_CHANGED", resource: "User", resourceId: req.userId, description: "User changed their password", ipAddress: getIp(req as any) });
     ok(res, null, "Password changed successfully");
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Google OAuth login / register ────────────────────────────
+export async function googleLogin(req: Request, res: Response): Promise<void> {
+  try {
+    if (!isFirebaseConfigured()) { badRequest(res, "Google sign-in is not enabled on this server"); return; }
+    const { idToken } = req.body;
+    if (!idToken) { badRequest(res, "idToken is required"); return; }
+
+    let decoded;
+    try {
+      decoded = await verifyFirebaseIdToken(idToken);
+    } catch {
+      unauthorized(res, "Invalid or expired Google token. Please sign in again.");
+      return;
+    }
+
+    const { uid, email, name, picture } = decoded as any;
+    if (!email) { badRequest(res, "Google account has no email address"); return; }
+
+    let user: any = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      const fakePassword = await bcrypt.hash(uuidv4(), 12);
+      user = await (prisma as any).user.create({
+        data: {
+          name: name || email.split("@")[0],
+          email,
+          password: fakePassword,
+          firebaseUid: uid,
+          avatar: picture || null,
+          isEmailVerified: true,
+        },
+      });
+    } else if (!user.firebaseUid) {
+      await (prisma as any).user.update({
+        where: { id: user.id },
+        data: { firebaseUid: uid, isEmailVerified: true },
+      });
+    }
+
+    if (!user.isActive) { unauthorized(res, "Account is disabled. Contact support."); return; }
+
+    const accessToken  = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
+    const tokenId      = uuidv4();
+    const refreshToken = signRefreshToken({ userId: user.id, tokenId });
+    await prisma.refreshToken.create({
+      data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
+    });
+
+    const memberships = await prisma.organizationMember.findMany({
+      where: { userId: user.id, isActive: true },
+      include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
+    });
+
+    ok(res, {
+      accessToken, refreshToken,
+      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
+      organizations: memberships.map((m: any) => ({ ...m.organization, role: m.role })),
+    });
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Verify phone 2FA and issue full tokens ────────────────────
+export async function verifyPhone2FA(req: Request, res: Response): Promise<void> {
+  try {
+    const { tempToken, firebaseIdToken } = req.body;
+    if (!tempToken || !firebaseIdToken) { badRequest(res, "tempToken and firebaseIdToken are required"); return; }
+
+    // Verify our own short-lived temp token
+    let payload: any;
+    try {
+      payload = jwt.verify(tempToken, process.env.JWT_ACCESS_SECRET!, { algorithms: ["HS256"] });
+    } catch {
+      unauthorized(res, "Session expired. Please log in again.");
+      return;
+    }
+    if (payload.action !== "phone_2fa") { unauthorized(res, "Invalid token type"); return; }
+
+    // Verify Firebase phone credential
+    let decoded: any;
+    try {
+      decoded = await verifyFirebaseIdToken(firebaseIdToken);
+    } catch {
+      unauthorized(res, "Phone verification failed. Please try again.");
+      return;
+    }
+    // Ensure the phone Firebase verified matches what we issued the challenge for
+    if (decoded.phone_number !== payload.phone) {
+      unauthorized(res, "Phone number mismatch. Verification failed.");
+      return;
+    }
+
+    const user: any = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user || !user.isActive) { unauthorized(res, "Account not found or disabled"); return; }
+
+    const accessToken  = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
+    const tokenId      = uuidv4();
+    const refreshToken = signRefreshToken({ userId: user.id, tokenId });
+    await prisma.refreshToken.create({
+      data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
+    });
+
+    const memberships = await prisma.organizationMember.findMany({
+      where: { userId: user.id, isActive: true },
+      include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
+    });
+
+    ok(res, {
+      accessToken, refreshToken,
+      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
+      organizations: memberships.map((m: any) => ({ ...m.organization, role: m.role })),
+    });
   } catch (err) { serverError(res, err); }
 }
 

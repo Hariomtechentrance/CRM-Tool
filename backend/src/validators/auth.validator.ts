@@ -10,6 +10,9 @@ export const registerSchema = z.object({
     .max(72, "Password must be 72 characters or fewer")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
     .regex(/[0-9]/, "Password must contain at least one number"),
+  // Optional Firebase-verified fields
+  phone:                 z.string().max(20).optional(),
+  firebaseEmailVerified: z.boolean().optional(),
 });
 
 export const loginSchema = z.object({

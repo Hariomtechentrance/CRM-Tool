@@ -19,6 +19,7 @@
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "axios": "^1.16.1",
+    "firebase": "^10.14.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "i18next": "^26.3.0",
