@@ -71,6 +71,8 @@ import TelecallingPage from "@/pages/telecalling/TelecallingPage";
 import ServicesPage from "@/pages/services/ServicesPage";
 import StockMarketPage from "@/pages/stockmarket/StockMarketPage";
 import HealthPage from "@/pages/health/HealthPage";
+import RestaurantPage from "@/pages/restaurant/RestaurantPage";
+import HotelPage from "@/pages/hotel/HotelPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
 import CustomFieldsPage from "@/pages/settings/CustomFieldsPage";
 import BrandingPage from "@/pages/settings/BrandingPage";
@@ -177,6 +179,8 @@ export default function App() {
           {/* ── Industry ── */}
           <Route path="/import-export" element={G("IMPORT_EXPORT_SUITE", TradePage)} />
           <Route path="/retail"        element={G("RETAIL_FASHION", RetailPage)} />
+          <Route path="/restaurant"    element={<RestaurantPage />} />
+          <Route path="/hotel"         element={<HotelPage />} />
 
           {/* ── Sales ── */}
           <Route path="/deals"        element={<DealsPage />} />

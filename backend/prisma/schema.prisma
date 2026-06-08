@@ -233,6 +233,18 @@ model Organization {
   prescriptions Prescription[]
   labReports   LabReport[]
 
+  // Phase 6 — Food & Hospitality
+  restaurantTables  RestaurantTable[]
+  menuCategories    MenuCategory[]
+  menuItems         MenuItem[]
+  kots              KOT[]
+  restaurantBills   RestaurantBill[]
+  tableReservations TableReservation[]
+  roomTypes         RoomType[]
+  hotelRooms        HotelRoom[]
+  guestProfiles     GuestProfile[]
+  hotelBookings     HotelBooking[]
+
   // Universal
   customFields CustomField[]
   smsLogs      SMSLog[]
@@ -3245,4 +3257,345 @@ model ConsentLog {
   @@index([organizationId])
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PHASE 6 — FOOD & HOSPITALITY
+//  Restaurant / Café / Hotel / Resort
+// ─────────────────────────────────────────────────────────────
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+}
+
+enum FoodOrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+  ROOM_SERVICE
+}
+
+enum KOTStatus {
+  PENDING
+  PREPARING
+  READY
+  SERVED
+  CANCELLED
+}
+
+enum FoodType {
+  VEG
+  NON_VEG
+  VEGAN
+  EGG
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+  MAINTENANCE
+  OUT_OF_ORDER
+}
+
+enum HotelBookingStatus {
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+}
+
+// ── Restaurant Tables ─────────────────────────────────────────
+
+model RestaurantTable {
+  id             String      @id @default(cuid())
+  organizationId String
+  tableNumber    String
+  section        String?
+  capacity       Int         @default(4)
+  status         TableStatus @default(AVAILABLE)
+  posX           Int?
+  posY           Int?
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  kots         KOT[]
+  reservations TableReservation[]
+
+  @@unique([organizationId, tableNumber])
+  @@index([organizationId])
+}
+
+// ── Menu ─────────────────────────────────────────────────────
+
+model MenuCategory {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  image          String?
+  sortOrder      Int       @default(0)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+
+  @@index([organizationId])
+}
+
+model MenuItem {
+  id              String    @id @default(cuid())
+  organizationId  String
+  categoryId      String
+  name            String
+  description     String?
+  price           Decimal   @default(0) @db.Decimal(10, 2)
+  costPrice       Decimal   @default(0) @db.Decimal(10, 2)
+  foodType        FoodType  @default(VEG)
+  image           String?
+  taxRate         Decimal   @default(0) @db.Decimal(5, 2)
+  preparationTime Int?
+  isAvailable     Boolean   @default(true)
+  isFeatured      Boolean   @default(false)
+  sortOrder       Int       @default(0)
+  tags            String[]  @default([])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     MenuCategory    @relation(fields: [categoryId], references: [id])
+  variants     MenuItemVariant[]
+  addons       MenuItemAddon[]
+  kotItems     KOTItem[]
+
+  @@index([organizationId, categoryId])
+  @@index([organizationId])
+}
+
+model MenuItemVariant {
+  id         String  @id @default(cuid())
+  menuItemId String
+  name       String
+  price      Decimal @db.Decimal(10, 2)
+  isDefault  Boolean @default(false)
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+}
+
+model MenuItemAddon {
+  id         String  @id @default(cuid())
+  menuItemId String
+  name       String
+  price      Decimal @default(0) @db.Decimal(10, 2)
+  isRequired Boolean @default(false)
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+}
+
+// ── KOT (Kitchen Order Ticket) ────────────────────────────────
+
+model KOT {
+  id             String        @id @default(cuid())
+  organizationId String
+  tableId        String?
+  kotNumber      String
+  orderType      FoodOrderType @default(DINE_IN)
+  status         KOTStatus     @default(PENDING)
+  customerName   String?
+  customerPhone  String?
+  notes          String?
+  subtotal       Decimal       @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @default(0) @db.Decimal(10, 2)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  table        RestaurantTable? @relation(fields: [tableId], references: [id])
+  items        KOTItem[]
+  bills        RestaurantBill[]
+
+  @@index([organizationId])
+  @@index([tableId])
+  @@index([createdAt])
+}
+
+model KOTItem {
+  id          String    @id @default(cuid())
+  kotId       String
+  menuItemId  String
+  itemName    String
+  quantity    Int       @default(1)
+  price       Decimal   @db.Decimal(10, 2)
+  variantName String?
+  addons      Json?     @default("[]")
+  notes       String?
+  status      KOTStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+
+  kot      KOT      @relation(fields: [kotId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@index([kotId])
+}
+
+// ── Restaurant Bill ───────────────────────────────────────────
+
+model RestaurantBill {
+  id             String        @id @default(cuid())
+  organizationId String
+  kotId          String?
+  billNumber     String
+  orderType      FoodOrderType @default(DINE_IN)
+  subtotal       Decimal       @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal       @default(0) @db.Decimal(10, 2)
+  discount       Decimal       @default(0) @db.Decimal(10, 2)
+  roundOff       Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @default(0) @db.Decimal(10, 2)
+  paymentMethod  String        @default("CASH")
+  paymentStatus  String        @default("PAID")
+  customerName   String?
+  customerPhone  String?
+  notes          String?
+  items          Json          @default("[]")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  kot          KOT?         @relation(fields: [kotId], references: [id])
+
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+// ── Table Reservations ────────────────────────────────────────
+
+model TableReservation {
+  id             String    @id @default(cuid())
+  organizationId String
+  tableId        String?
+  guestName      String
+  guestPhone     String
+  guestEmail     String?
+  partySize      Int       @default(2)
+  reservedAt     DateTime
+  notes          String?
+  status         String    @default("CONFIRMED")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  table        RestaurantTable?  @relation(fields: [tableId], references: [id])
+
+  @@index([organizationId])
+  @@index([reservedAt])
+}
+
+// ── Hotel / Resort ────────────────────────────────────────────
+
+model RoomType {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  basePrice      Decimal  @db.Decimal(10, 2)
+  capacity       Int      @default(2)
+  bedType        String?
+  amenities      String[] @default([])
+  images         String[] @default([])
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rooms        HotelRoom[]
+
+  @@index([organizationId])
+}
+
+model HotelRoom {
+  id             String     @id @default(cuid())
+  organizationId String
+  roomTypeId     String
+  roomNumber     String
+  floor          Int        @default(1)
+  status         RoomStatus @default(AVAILABLE)
+  notes          String?
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roomType     RoomType     @relation(fields: [roomTypeId], references: [id])
+  bookings     HotelBooking[]
+
+  @@unique([organizationId, roomNumber])
+  @@index([organizationId])
+}
+
+model GuestProfile {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  phone          String
+  email          String?
+  idType         String?
+  idNumber       String?
+  address        String?
+  city           String?
+  nationality    String   @default("Indian")
+  notes          String?
+  totalStays     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bookings     HotelBooking[]
+
+  @@index([organizationId])
+  @@index([phone])
+}
+
+model HotelBooking {
+  id              String             @id @default(cuid())
+  organizationId  String
+  bookingNumber   String
+  roomId          String
+  guestId         String
+  checkIn         DateTime
+  checkOut        DateTime
+  adults          Int                @default(1)
+  children        Int                @default(0)
+  ratePerNight    Decimal            @db.Decimal(10, 2)
+  totalNights     Int                @default(1)
+  subtotal        Decimal            @default(0) @db.Decimal(10, 2)
+  taxAmount       Decimal            @default(0) @db.Decimal(10, 2)
+  discount        Decimal            @default(0) @db.Decimal(10, 2)
+  total           Decimal            @default(0) @db.Decimal(10, 2)
+  advancePaid     Decimal            @default(0) @db.Decimal(10, 2)
+  balanceDue      Decimal            @default(0) @db.Decimal(10, 2)
+  status          HotelBookingStatus @default(CONFIRMED)
+  paymentMethod   String?
+  source          String?
+  specialRequests String?
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  room         HotelRoom    @relation(fields: [roomId], references: [id])
+  guest        GuestProfile @relation(fields: [guestId], references: [id])
+
+  @@index([organizationId])
+  @@index([checkIn, checkOut])
+  @@index([status])
 }

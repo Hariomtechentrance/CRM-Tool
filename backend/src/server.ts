@@ -72,6 +72,8 @@ import healthRoutes from "./routes/health.routes";
 import customFieldRoutes from "./routes/customField.routes";
 import brandingRoutes from "./routes/branding.routes";
 import complianceRoutes from "./routes/compliance.routes";
+import restaurantRoutes from "./routes/restaurant.routes";
+import hotelRoutes from "./routes/hotel.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -303,6 +305,8 @@ app.use("/api/health",        healthRoutes);
 app.use("/api/custom-fields", customFieldRoutes);
 app.use("/api/branding",      brandingRoutes);
 app.use("/api/compliance",    complianceRoutes);
+app.use("/api/restaurant",    restaurantRoutes);
+app.use("/api/hotel",         hotelRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

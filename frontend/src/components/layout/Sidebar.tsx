@@ -7,6 +7,7 @@ import {
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
   MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
   Phone, TrendingUp, Heart, Sliders, Palette, Scale,
+  UtensilsCrossed, Hotel,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -334,6 +335,19 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             { href: "/services",     label: "Services",      Icon: Briefcase },
             { href: "/stock-market", label: "Stock Market",  Icon: TrendingUp },
             { href: "/health",       label: "Health",        Icon: Heart },
+          ].map(({ href, label, Icon }) => (
+            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
+              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
+              <span className="truncate">{label}</span>
+            </NavLink>
+          ))}
+        </CollapsibleSection>
+
+        {/* ── Food & Hospitality ── */}
+        <CollapsibleSection label="Food & Hospitality">
+          {[
+            { href: "/restaurant", label: "Restaurant POS",     Icon: UtensilsCrossed },
+            { href: "/hotel",      label: "Hotel / Resort",     Icon: Hotel },
           ].map(({ href, label, Icon }) => (
             <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
               <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
