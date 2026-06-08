@@ -140,13 +140,14 @@ app.use(helmet({
 app.disable("x-powered-by");
 
 // ── CORS ─────────────────────────────────────────────────────
-const defaultOrigins = isProd ? "" : "http://localhost:5173,http://localhost:5174,http://localhost:5175";
-const allowedOrigins = (process.env.FRONTEND_URL || defaultOrigins).split(",").map(s => s.trim()).filter(Boolean);
+const prodOrigins = (process.env.FRONTEND_URL || "").split(",").map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
     // No Origin = server-to-server request (health checks, keep-alive pings) — always allow
     if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin)) return cb(null, true);
+    // In dev allow any localhost port (Vite picks whatever port is free)
+    if (!isProd && /^http:\/\/localhost:\d+$/.test(origin)) return cb(null, true);
+    if (prodOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
