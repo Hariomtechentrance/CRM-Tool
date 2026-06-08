@@ -142,9 +142,9 @@ const defaultOrigins = isProd ? "" : "http://localhost:5173,http://localhost:517
 const allowedOrigins = (process.env.FRONTEND_URL || defaultOrigins).split(",").map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
-    // In production, require an explicit origin (blocks curl/Postman without Origin header)
-    if (isProd && !origin) return cb(new Error("CORS: origin required"));
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    // No Origin = server-to-server request (health checks, keep-alive pings) — always allow
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,

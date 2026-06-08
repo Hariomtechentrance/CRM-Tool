@@ -1,4 +1,6 @@
 import cron from "node-cron";
+import https from "https";
+import http from "http";
 import { prisma } from "../lib/prisma";
 import { sendEmail } from "../utils/email";
 import { createNotification } from "../controllers/notifications.controller";
@@ -346,8 +348,26 @@ async function runAppointmentReminders() {
   }
 }
 
+// ── Keep-alive ping ───────────────────────────────────────────
+// Prevents Render free tier from sleeping (spins down after 15 min idle).
+// Runs every 13 min so there's always activity before the 15 min cutoff.
+function runKeepAlive() {
+  const base = process.env.RENDER_EXTERNAL_URL || `http://localhost:${process.env.PORT || 10000}`;
+  const url  = `${base}/api/health`;
+  const mod  = url.startsWith("https") ? https : http;
+  mod.get(url, (res) => {
+    res.resume(); // drain so socket is released
+    console.log(`[CRON] Keep-alive ping → ${res.statusCode}`);
+  }).on("error", (e) => {
+    console.warn("[CRON] Keep-alive ping failed:", e.message);
+  });
+}
+
 // ── Register all cron jobs ────────────────────────────────────
 export function startCronJobs() {
+  // Keep-alive — every 13 min to prevent Render free tier sleep
+  cron.schedule("*/13 * * * *", runKeepAlive);
+
   // Payment reminders — daily at 9:00 AM
   cron.schedule("0 9 * * *", runPaymentReminders, { timezone: "Asia/Kolkata" });
 
@@ -366,5 +386,5 @@ export function startCronJobs() {
   // Appointment reminders — every 15 min
   cron.schedule("*/15 * * * *", runAppointmentReminders, { timezone: "Asia/Kolkata" });
 
-  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts, expiry alerts, lead follow-ups, appointment reminders");
+  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts, expiry alerts, lead follow-ups, appointment reminders, keep-alive");
 }
