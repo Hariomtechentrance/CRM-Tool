@@ -5,9 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Mail, Lock, Eye, EyeOff, TrendingUp, Users, Globe, ShieldCheck, ArrowLeft } from "lucide-react";
 import {
-  RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult,
+  RecaptchaVerifier, signInWithPhoneNumber,
   GoogleAuthProvider, signInWithPopup,
 } from "firebase/auth";
+import type { ConfirmationResult } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/stores/authStore";

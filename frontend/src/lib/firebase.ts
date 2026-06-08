@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
+import { getAuth } from "firebase/auth";
+import type { Auth } from "firebase/auth";
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY as string | undefined;
 

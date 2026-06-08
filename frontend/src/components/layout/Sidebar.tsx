@@ -344,7 +344,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         </CollapsibleSection>
 
         {/* ── Food & Hospitality ── */}
-        <CollapsibleSection label="Food & Hospitality">
+        <CollapsibleSection label="Food & Hospitality" defaultOpen={true}>
           {[
             { href: "/restaurant", label: "Restaurant POS",     Icon: UtensilsCrossed },
             { href: "/hotel",      label: "Hotel / Resort",     Icon: Hotel },

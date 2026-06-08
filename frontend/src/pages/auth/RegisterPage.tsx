@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult,
+  RecaptchaVerifier, signInWithPhoneNumber,
   createUserWithEmailAndPassword, sendEmailVerification, deleteUser,
 } from "firebase/auth";
+import type { ConfirmationResult } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { User, Mail, Lock, Eye, EyeOff, Phone, CheckCircle, ShieldCheck, ArrowLeft } from "lucide-react";
 import api from "@/lib/api";
