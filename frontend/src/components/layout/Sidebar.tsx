@@ -23,6 +23,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
   PackageOpen,
   HeadphonesIcon: Headphones,
+  UtensilsCrossed, Hotel,
+  Phone, TrendingUp, Heart, Briefcase,
 };
 
 const MOD_I18N_KEY: Record<string, string> = {
@@ -42,6 +44,12 @@ const MOD_I18N_KEY: Record<string, string> = {
   REPORTS: "mod_reports",
   IMPORT_EXPORT_SUITE: "mod_import_export",
   RETAIL_FASHION: "mod_retail",
+  TELECALLING: "mod_telecalling",
+  SERVICES: "mod_services",
+  STOCK_MARKET: "mod_stock_market",
+  HEALTH: "mod_health",
+  RESTAURANT: "mod_restaurant",
+  HOTEL: "mod_hotel",
 };
 
 function OrgSwitcherDropdown() {
@@ -327,34 +335,6 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             ))}
           </CollapsibleSection>
         )}
-
-        {/* ── Industry Verticals ── */}
-        <CollapsibleSection label="Industry Verticals">
-          {[
-            { href: "/telecalling",  label: "Tele-calling",  Icon: Phone },
-            { href: "/services",     label: "Services",      Icon: Briefcase },
-            { href: "/stock-market", label: "Stock Market",  Icon: TrendingUp },
-            { href: "/health",       label: "Health",        Icon: Heart },
-          ].map(({ href, label, Icon }) => (
-            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
-              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
-              <span className="truncate">{label}</span>
-            </NavLink>
-          ))}
-        </CollapsibleSection>
-
-        {/* ── Food & Hospitality ── */}
-        <CollapsibleSection label="Food & Hospitality" defaultOpen={true}>
-          {[
-            { href: "/restaurant", label: "Restaurant POS",     Icon: UtensilsCrossed },
-            { href: "/hotel",      label: "Hotel / Resort",     Icon: Hotel },
-          ].map(({ href, label, Icon }) => (
-            <NavLink key={href} to={href} onClick={onClose} className={navLinkClass}>
-              <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
-              <span className="truncate">{label}</span>
-            </NavLink>
-          ))}
-        </CollapsibleSection>
 
         {/* Settings — always visible */}
         <div style={{ marginTop: 4 }}>

@@ -135,10 +135,11 @@ export default function SettingsPage() {
   });
 
   const CATEGORIES = [
-    { key: "core", label: "Core Business" },
-    { key: "operations", label: "Operations" },
-    { key: "growth", label: "Growth & Support" },
-    { key: "industry", label: "Industry Specific" },
+    { key: "core",        label: "Core Business" },
+    { key: "operations",  label: "Operations" },
+    { key: "growth",      label: "Growth & Support" },
+    { key: "industry",    label: "Industry Specific" },
+    { key: "hospitality", label: "Food & Hospitality" },
   ] as const;
 
   return (

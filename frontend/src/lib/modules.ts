@@ -6,7 +6,7 @@ export interface ModuleDefinition {
   label: string;
   description: string;
   href: string;
-  category: "core" | "operations" | "growth" | "industry";
+  category: "core" | "operations" | "growth" | "industry" | "hospitality";
   iconName: string;        // lucide icon name (used as label for dynamic import)
   accentColor: string;     // CSS color for icon
   accentBg: string;        // rgba bg
@@ -259,13 +259,39 @@ export const ALL_MODULES: ModuleDefinition[] = [
     accentBorder: "rgba(239,68,68,0.2)",
     defaultFor: ["HEALTHCARE"],
   },
+  // ── FOOD & HOSPITALITY ────────────────────────────────────────
+  {
+    key: "RESTAURANT",
+    label: "Restaurant POS",
+    description: "Table management, KOT, billing, menu builder, raw material tracking and food supplier management.",
+    href: "/restaurant",
+    category: "hospitality",
+    iconName: "UtensilsCrossed",
+    accentColor: "#F97316",
+    accentBg: "rgba(249,115,22,0.1)",
+    accentBorder: "rgba(249,115,22,0.2)",
+    defaultFor: ["FOOD_BEVERAGE", "HOSPITALITY"],
+  },
+  {
+    key: "HOTEL",
+    label: "Hotel / Resort",
+    description: "Room management, guest profiles, bookings, check-in/out, housekeeping and revenue tracking.",
+    href: "/hotel",
+    category: "hospitality",
+    iconName: "Hotel",
+    accentColor: "#0EA5E9",
+    accentBg: "rgba(14,165,233,0.1)",
+    accentBorder: "rgba(14,165,233,0.2)",
+    defaultFor: ["HOSPITALITY"],
+  },
 ];
 
 export const MODULE_CATEGORIES = [
-  { key: "core",      label: "Core Business",       desc: "Essential modules for day-to-day operations" },
-  { key: "operations", label: "Operations",          desc: "Advanced operational management" },
-  { key: "growth",    label: "Growth & Support",     desc: "Scale your business and serve customers better" },
-  { key: "industry",  label: "Industry Specific",    desc: "Tailored for your business type" },
+  { key: "core",        label: "Core Business",       desc: "Essential modules for day-to-day operations" },
+  { key: "operations",  label: "Operations",          desc: "Advanced operational management" },
+  { key: "growth",      label: "Growth & Support",    desc: "Scale your business and serve customers better" },
+  { key: "industry",    label: "Industry Specific",   desc: "Tailored for your business type" },
+  { key: "hospitality", label: "Food & Hospitality",  desc: "Restaurant POS, hotel & resort management" },
 ] as const;
 
 // Returns the default modules for a given businessType

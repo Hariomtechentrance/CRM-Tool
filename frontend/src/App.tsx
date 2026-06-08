@@ -179,8 +179,8 @@ export default function App() {
           {/* ── Industry ── */}
           <Route path="/import-export" element={G("IMPORT_EXPORT_SUITE", TradePage)} />
           <Route path="/retail"        element={G("RETAIL_FASHION", RetailPage)} />
-          <Route path="/restaurant"    element={<RestaurantPage />} />
-          <Route path="/hotel"         element={<HotelPage />} />
+          <Route path="/restaurant"    element={G("RESTAURANT", RestaurantPage)} />
+          <Route path="/hotel"         element={G("HOTEL", HotelPage)} />
 
           {/* ── Sales ── */}
           <Route path="/deals"        element={<DealsPage />} />
