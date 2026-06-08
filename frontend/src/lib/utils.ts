@@ -23,9 +23,26 @@ export function formatDate(dateStr: string): string {
 }
 
 export function getApiError(error: unknown): string {
-  if (error && typeof error === "object" && "response" in error) {
-    const res = (error as { response?: { data?: { message?: string } } }).response;
-    return res?.data?.message || "Something went wrong";
+  if (error && typeof error === "object") {
+    if ("response" in error) {
+      const res = (error as { response?: { data?: { message?: string }; status?: number } }).response;
+      if (res?.data?.message) return res.data.message;
+      const s = res?.status;
+      if (s === 401) return "Invalid credentials";
+      if (s === 403) return "Access denied";
+      if (s === 429) return "Too many requests. Please wait and try again.";
+      if (s === 503) return "Service unavailable. Please try again shortly.";
+      return `Server error (${s ?? "unknown"})`;
+    }
+    if ("code" in error) {
+      const code = (error as { code?: string }).code;
+      if (code === "ECONNABORTED") return "Request timed out — server may be starting up. Please wait 30 s and try again.";
+      if (code === "ERR_NETWORK")  return "Cannot reach server. Check your connection or wait for the server to wake up.";
+    }
+    if ("message" in error) {
+      const msg = (error as { message?: string }).message;
+      if (msg && !msg.includes("<!DOCTYPE")) return msg;
+    }
   }
-  return "Something went wrong";
+  return "Something went wrong. Please try again.";
 }

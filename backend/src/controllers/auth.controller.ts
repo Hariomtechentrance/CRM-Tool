@@ -216,7 +216,7 @@ export async function login(req: Request, res: Response): Promise<void> {
         { expiresIn: "5m", algorithm: "HS256" }
       );
       const hint = user.phone.slice(0, 3) + "****" + user.phone.slice(-4);
-      res.json({ success: true, data: { requiresPhone2FA: true, tempToken, phoneHint: hint } });
+      res.json({ success: true, data: { requiresPhone2FA: true, tempToken, phone: user.phone, phoneHint: hint } });
       return;
     }
 
