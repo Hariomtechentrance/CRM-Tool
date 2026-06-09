@@ -1,5 +1,6 @@
-// LRU TTL cache — single-threaded per Node worker, so no locking needed.
-// For multi-instance deployments set REDIS_URL and swap this for an ioredis adapter.
+// LRU TTL cache — single-threaded per Node worker.
+// When REDIS_URL is set, CacheService uses Redis as the primary store and
+// falls back to this LRU so every cluster worker shares the same cache.
 
 interface Entry {
   v: unknown;
@@ -54,3 +55,47 @@ class LRUCache {
 
 // 5 000 entries — ~50 MB worst-case at 10 KB/response
 export const apiCache = new LRUCache(5_000);
+
+// ── Async cache service ───────────────────────────────────────
+// Redis is primary (shared across workers); in-memory LRU is the fallback.
+// Both are always written so a Redis miss never causes a cold LRU lookup.
+import { redis } from "./redisClient";
+
+class CacheService {
+  async get<T>(key: string): Promise<T | undefined> {
+    if (redis?.isReady) {
+      try {
+        const val = await redis.get(key);
+        if (val !== null) return JSON.parse(val) as T;
+      } catch (_) { /* fall through to LRU */ }
+    }
+    return apiCache.get<T>(key);
+  }
+
+  async set(key: string, value: unknown, ttlMs: number): Promise<void> {
+    apiCache.set(key, value, ttlMs);
+    if (redis?.isReady) {
+      try {
+        await redis.set(key, JSON.stringify(value), { PX: ttlMs });
+      } catch (_) { /* LRU already written above */ }
+    }
+  }
+
+  del(key: string): void {
+    apiCache.del(key);
+    if (redis?.isReady) {
+      redis.del(key).catch(() => {});
+    }
+  }
+
+  invalidatePrefix(prefix: string): void {
+    apiCache.invalidatePrefix(prefix);
+    if (redis?.isReady) {
+      redis.keys(`${prefix}*`)
+        .then((keys) => { if (keys.length) redis!.del(keys).catch(() => {}); })
+        .catch(() => {});
+    }
+  }
+}
+
+export const cacheService = new CacheService();

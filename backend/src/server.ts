@@ -10,6 +10,8 @@ import { requestTimeout } from "./middleware/requestTimeout";
 import { withCache } from "./middleware/cacheMiddleware";
 import { dbBreaker } from "./lib/circuitBreaker";
 import { apiCache } from "./lib/cache";
+import { redis } from "./lib/redisClient";
+import { RedisStore } from "rate-limit-redis";
 import { v4 as uuidv4 } from "uuid";
 import authRoutes from "./routes/auth.routes";
 import orgRoutes from "./routes/org.routes";
@@ -163,10 +165,24 @@ app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(morgan(isProd ? "combined" : "dev"));
 
 // ── Rate limits ───────────────────────────────────────────────
+// When REDIS_URL is set, counters are stored in Redis so all cluster
+// workers share the same window — preventing per-worker bypass.
+// passOnStoreError: true means if Redis is temporarily unavailable the
+// request passes through rather than returning 500.
+function makeRLStore(prefix: string) {
+  if (!redis) return undefined;
+  return new RedisStore({
+    sendCommand: (...args: string[]) => (redis as any).sendCommand(args),
+    prefix,
+  });
+}
+
 // Strict limit for auth — prevents brute force
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 20,
+  store: makeRLStore("rl_auth:"),
+  passOnStoreError: true,
   message: { success: false, message: "Too many requests. Please try again in 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -174,8 +190,10 @@ const authLimiter = rateLimit({
 
 // General API limit — generous but stops abuse
 const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   max: 300,
+  store: makeRLStore("rl_api:"),
+  passOnStoreError: true,
   message: { success: false, message: "Rate limit exceeded. Please slow down." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -186,6 +204,8 @@ const apiLimiter = rateLimit({
 const heavyLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 15,
+  store: makeRLStore("rl_heavy:"),
+  passOnStoreError: true,
   message: { success: false, message: "Too many export/report requests. Wait 1 minute." },
   standardHeaders: true,
   legacyHeaders: false,

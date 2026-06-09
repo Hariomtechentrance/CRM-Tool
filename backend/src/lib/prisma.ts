@@ -6,7 +6,8 @@ function addPoolParams(base: string): string {
   // Prisma reads connection_limit and pool_timeout from the connection string.
   // Keep per-worker pool small — total connections = workers × pool.
   // Neon free tier allows ≤ 20 simultaneous connections.
-  const poolLimit = parseInt(process.env.DB_POOL_LIMIT ?? "5", 10);
+  // 10 connections per worker. With 4 workers = 40 total; Neon/Supabase support ≥100.
+  const poolLimit = parseInt(process.env.DB_POOL_LIMIT ?? "10", 10);
   const sep = base.includes("?") ? "&" : "?";
   let url = base;
   if (!url.includes("connection_limit=")) url += `${sep}connection_limit=${poolLimit}`;
@@ -36,9 +37,15 @@ export async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T
       return await fn();
     } catch (err) {
       lastErr = err;
+      const msg = err instanceof Error ? err.message.toLowerCase() : "";
       const isConnErr =
         err instanceof Prisma.PrismaClientInitializationError ||
-        (err instanceof Error && err.message.includes("Can't reach database"));
+        msg.includes("can't reach database") ||
+        msg.includes("connection closed") ||
+        msg.includes("kind: closed") ||
+        msg.includes("connection reset") ||
+        msg.includes("econnreset") ||
+        msg.includes("server has closed the connection");
       if (isConnErr && i < retries - 1) {
         await new Promise((r) => setTimeout(r, (i + 1) * 3_000));
         continue;

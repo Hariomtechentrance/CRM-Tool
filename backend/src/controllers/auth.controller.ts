@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
-import { prisma } from "../lib/prisma";
+import { prisma, withRetry } from "../lib/prisma";
 import {
   signAccessToken,
   signRefreshToken,
@@ -98,7 +98,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
     const { name, email, password, phone, firebaseEmailVerified } = parsed.data;
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await withRetry<any>(() => prisma.user.findUnique({ where: { email } }));
     if (existing) {
       conflict(res, "An account with this email already exists");
       return;
@@ -106,7 +106,7 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     // Check phone uniqueness if provided
     if (phone) {
-      const existingPhone = await (prisma as any).user.findUnique({ where: { phone } });
+      const existingPhone = await withRetry<any>(() => (prisma as any).user.findUnique({ where: { phone } }));
       if (existingPhone) { conflict(res, "This phone number is already registered"); return; }
     }
 
@@ -116,15 +116,16 @@ export async function register(req: Request, res: Response): Promise<void> {
     const smtpConfigured = !firebaseVerified && process.env.NODE_ENV === "production" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     const emailVerifyToken = smtpConfigured ? uuidv4() : null;
 
-    const user = await (prisma as any).user.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user: any = await withRetry<any>(() => (prisma as any).user.create({
       data: {
         name, email, password: hashedPassword,
         emailVerifyToken,
         isEmailVerified: firebaseVerified || !smtpConfigured,
         phone:         phone || null,
-        phoneVerified: !!phone, // phone is only sent after Firebase OTP verification
+        phoneVerified: !!phone,
       },
-    });
+    }));
 
     if (smtpConfigured) {
       try {
@@ -177,7 +178,8 @@ export async function login(req: Request, res: Response): Promise<void> {
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const { email, password } = parsed.data;
 
-    const user = await (prisma as any).user.findUnique({ where: { email } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user: any = await withRetry<any>(() => (prisma as any).user.findUnique({ where: { email } }));
     if (!user || !user.isActive) {
       unauthorized(res, "Invalid email or password");
       return;
