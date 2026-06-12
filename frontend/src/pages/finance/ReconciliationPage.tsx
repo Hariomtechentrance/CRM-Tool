@@ -47,7 +47,6 @@ function parseCSV(text: string): { txnDate: string; description: string; amount:
   return lines.slice(1).map(line => {
     const cols = line.split(",").map(c => c.trim().replace(/"/g, ""));
     const get = (keys: string[]) => {
-  const { t } = useTranslation();
       for (const k of keys) {
         const idx = header.indexOf(k);
         if (idx >= 0 && cols[idx]) return cols[idx];
@@ -137,6 +136,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
 }
 
 export default function ReconciliationPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [txns, setTxns] = useState<BankTxn[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);

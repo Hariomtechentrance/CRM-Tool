@@ -57,7 +57,6 @@ function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClo
   const toggle = (e: string) => setSelected(p => p.includes(e) ? p.filter(x => x !== e) : [...p, e]);
 
   async function save() {
-  const { t } = useTranslation();
     if (!url.trim()) { setErr("URL is required"); return; }
     if (!selected.length) { setErr("Select at least one event"); return; }
     setSaving(true);
@@ -277,6 +276,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
 }
 
 export default function WebhooksPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [allEvents, setAllEvents] = useState<string[]>(ALL_EVENTS);

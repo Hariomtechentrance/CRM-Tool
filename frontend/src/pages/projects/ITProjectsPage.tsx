@@ -73,7 +73,7 @@ function CreateProjectModal({ employees, onClose, onCreated }: { employees: any[
   });
   const [saving, setSaving] = useState(false);
   const f = (k: string) => (v: string) => setForm(p => ({
-  const { t } = useTranslation(); ...p, [k]: v }));
+...p, [k]: v }));
 
   async function save() {
     if (!form.name.trim()) return;
@@ -478,6 +478,7 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
 }
 
 export default function ITProjectsPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);

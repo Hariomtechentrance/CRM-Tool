@@ -103,7 +103,7 @@ function CreateTaskModal({ sprintId, projectId, employees, onClose, onCreated }:
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", assignedToId: "", storyPoints: "", estimatedHours: "", dueDate: "", tags: "" });
   const [saving, setSaving] = useState(false);
   const f = (k: string) => (v: string) => setForm(p => ({
-  const { t } = useTranslation(); ...p, [k]: v }));
+...p, [k]: v }));
   const inp = { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 6, padding: "7px 10px", color: "var(--text-primary)", fontSize: 12 };
 
   async function save() {
@@ -183,6 +183,7 @@ function CreateTaskModal({ sprintId, projectId, employees, onClose, onCreated }:
 }
 
 export default function SprintBoardPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [projects, setProjects] = useState<any[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);

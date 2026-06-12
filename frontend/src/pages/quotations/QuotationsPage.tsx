@@ -47,7 +47,7 @@ interface Quotation {
 interface Stats { total: number; accepted: number; sent: number; draft: number; acceptedValue: number; }
 
 const emptyItem = (): QItem => ({
-  const { t } = useTranslation(); description: "", quantity: "1", unitPrice: "0", taxRate: "0", discount: "0", productId: "" });
+description: "", quantity: "1", unitPrice: "0", taxRate: "0", discount: "0", productId: "" });
 
 function calcItem(i: QItem) {
   const qty = parseFloat(i.quantity) || 0;
@@ -68,6 +68,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function QuotationsPage() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<Stats | null>(null);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [parties, setParties] = useState<Party[]>([]);

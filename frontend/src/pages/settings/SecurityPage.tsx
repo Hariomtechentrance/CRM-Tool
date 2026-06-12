@@ -109,7 +109,6 @@ function SessionsTab() {
   const [revoking, setRevoking] = useState<string | null>(null);
 
   const load = () => {
-  const { t } = useTranslation();
     if (!token || !activeOrg) return;
     fetch(`${API}/api/sessions`, { headers: authH(token, activeOrg.id) })
       .then(r => r.json()).then(r => { if (r.success) setSessions(r.data); })
@@ -706,6 +705,7 @@ const btnSt: React.CSSProperties = {
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────────
 export default function SecurityPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
 
   return (

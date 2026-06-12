@@ -47,7 +47,7 @@ function LogActivityModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () 
   const [form, setForm] = useState({ type: "CALL", subject: "", description: "", outcome: "", callOutcome: "", duration: "", followUpDate: "" });
   const [saving, setSaving] = useState(false);
   const f = (k: string) => (v: string) => setForm(p => ({
-  const { t } = useTranslation(); ...p, [k]: v }));
+...p, [k]: v }));
 
   async function save() {
     if (!form.description.trim()) return;
@@ -457,6 +457,7 @@ function LeadCard({ lead, employees, onLog, onBook, onEdit, onRefresh }: {
 
 // ── Main Page ─────────────────────────────────────────────────
 export default function LeadsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"queue"|"all"|"kanban">("queue");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);

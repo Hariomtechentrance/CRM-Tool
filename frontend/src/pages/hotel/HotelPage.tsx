@@ -32,8 +32,7 @@ const BOOKING_COLOR: Record<string, string> = {
   CANCELLED: "#ef4444", NO_SHOW: "#f59e0b",
 };
 const TAB_STYLE = (active: boolean): React.CSSProperties => ({
-  const { t } = useTranslation();
-  padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
   background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-hover)",
   color: active ? "white" : "var(--text-sec)",
 });
@@ -55,6 +54,7 @@ const BTN_PRIMARY: React.CSSProperties = {
 // ── Main Component ────────────────────────────────────────────
 
 export default function HotelPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"dashboard" | "rooms" | "bookings" | "guests">("dashboard");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);

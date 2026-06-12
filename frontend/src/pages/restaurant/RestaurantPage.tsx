@@ -26,8 +26,7 @@ const KOT_COLOR: Record<string, string> = {
 };
 
 const TAB_STYLE = (active: boolean): React.CSSProperties => ({
-  const { t } = useTranslation();
-  padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
   background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-hover)",
   color: active ? "white" : "var(--text-sec)", transition: "all 0.15s",
 });
@@ -39,6 +38,7 @@ const CARD: React.CSSProperties = {
 // ── Main Component ────────────────────────────────────────────
 
 export default function RestaurantPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"pos" | "kot" | "menu" | "tables">("pos");
   const [tables, setTables] = useState<Table[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

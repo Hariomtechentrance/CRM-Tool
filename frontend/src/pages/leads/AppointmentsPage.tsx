@@ -35,7 +35,7 @@ function AppointmentFormModal({ appt, onClose, onSaved }: { appt?: Appointment |
   });
   const [saving, setSaving] = useState(false);
   const f = (k: string) => (v: string) => setForm(p => ({
-  const { t } = useTranslation(); ...p, [k]: v }));
+...p, [k]: v }));
 
   async function save() {
     if (!form.title || !form.scheduledAt) return;
@@ -109,6 +109,7 @@ function AppointmentFormModal({ appt, onClose, onSaved }: { appt?: Appointment |
 }
 
 export default function AppointmentsPage() {
+  const { t } = useTranslation();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [todayAppts, setTodayAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);

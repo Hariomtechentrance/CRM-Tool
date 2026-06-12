@@ -60,7 +60,7 @@ function openInvoicePrint(inv: Invoice, org: OrgDetail) {
   const f = (n: number) => fmt(n, symbol);
 
   const typeLabel: Record<string, string> = {
-  const { t } = useTranslation(); SALES: "TAX INVOICE", PURCHASE: "PURCHASE BILL", CREDIT_NOTE: "CREDIT NOTE", DEBIT_NOTE: "DEBIT NOTE" };
+SALES: "TAX INVOICE", PURCHASE: "PURCHASE BILL", CREDIT_NOTE: "CREDIT NOTE", DEBIT_NOTE: "DEBIT NOTE" };
 
   const itemRows = (inv.items || []).map((it, i) => `
     <tr>
@@ -234,6 +234,7 @@ function openInvoicePrint(inv: Invoice, org: OrgDetail) {
 }
 
 export default function FinancePage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"invoices" | "payments">("invoices");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
