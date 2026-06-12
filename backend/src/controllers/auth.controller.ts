@@ -210,17 +210,6 @@ export async function login(req: Request, res: Response): Promise<void> {
     // Clear lockout on success
     await prisma.user.update({ where: { id: user.id }, data: { loginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() } });
 
-    // ── Phone 2FA challenge ──────────────────────────────────
-    if (user.phone && user.phoneVerified) {
-      const tempToken = jwt.sign(
-        { userId: user.id, phone: user.phone, action: "phone_2fa" },
-        process.env.JWT_ACCESS_SECRET!,
-        { expiresIn: "5m", algorithm: "HS256" }
-      );
-      const hint = user.phone.slice(0, 3) + "****" + user.phone.slice(-4);
-      res.json({ success: true, data: { requiresPhone2FA: true, tempToken, phone: user.phone, phoneHint: hint } });
-      return;
-    }
 
     if (!user.isEmailVerified && process.env.NODE_ENV === "production") {
       unauthorized(res, "Please verify your email before logging in");

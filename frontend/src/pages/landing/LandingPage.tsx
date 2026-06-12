@@ -4,8 +4,96 @@ import {
   Users, Package, ShoppingCart, Truck, Receipt, UserCheck, TrendingUp,
   Briefcase, FileText, Headphones, Warehouse, ShoppingBag, Kanban,
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
-  ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon,
+  ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon, Check, Zap,
 } from "lucide-react";
+
+const PLANS = [
+  {
+    key: "FREE",
+    name: "Free",
+    price: 0,
+    priceLabel: "₹0",
+    period: "forever",
+    color: "#6b7280",
+    gradient: "linear-gradient(135deg,#6b728020,#6b728008)",
+    badge: null,
+    tagline: "Try before you buy",
+    pitch: "Perfect for freelancers, solo traders and startups. Start managing customers and invoices with zero commitment.",
+    users: "2 users",
+    modules: ["CRM & Parties", "Finance & Invoicing", "Basic Documents", "Activity Log"],
+    support: "Community support",
+    cta: "Start Free",
+    ctaStyle: { background: "transparent", border: "1px solid #6b7280", color: "#6b7280" },
+  },
+  {
+    key: "STARTER",
+    name: "Starter",
+    price: 299,
+    priceLabel: "₹299",
+    period: "per month",
+    color: "#6366f1",
+    gradient: "linear-gradient(135deg,#6366f120,#6366f108)",
+    badge: null,
+    tagline: "Small business essentials",
+    pitch: "Everything a small shop or trading firm needs — manage stock, raise purchase orders, dispatch goods and invoice customers.",
+    users: "5 users",
+    modules: ["Everything in Free", "Inventory & Stock", "Purchase Orders", "Sales & Dispatch", "Store Management", "Deals & Quotations"],
+    support: "Email support",
+    cta: "Get Starter",
+    ctaStyle: { background: "#6366f1", border: "none", color: "white" },
+  },
+  {
+    key: "PRO",
+    name: "Pro",
+    price: 999,
+    priceLabel: "₹999",
+    period: "per month",
+    color: "#f59e0b",
+    gradient: "linear-gradient(135deg,#f59e0b20,#f59e0b08)",
+    badge: "Most Popular",
+    tagline: "Growing business suite",
+    pitch: "Your full operation — HR, projects, warehouse, leads, POS, GST reports — from one dashboard your whole team can use.",
+    users: "15 users",
+    modules: ["Everything in Starter", "HR & Payroll", "Projects & Tasks", "Leads & Pipeline", "Marketing / Campaigns", "POS & Retail", "Warehouse Management", "Reports & GST", "Recurring Invoices", "Tele-calling"],
+    support: "Priority email support",
+    cta: "Get Pro",
+    ctaStyle: { background: "linear-gradient(135deg,#f59e0b,#d97706)", border: "none", color: "white" },
+  },
+  {
+    key: "ENTERPRISE",
+    name: "Enterprise",
+    price: 1499,
+    priceLabel: "₹1,499",
+    period: "per month",
+    color: "#10b981",
+    gradient: "linear-gradient(135deg,#10b98120,#10b98108)",
+    badge: "Best Value",
+    tagline: "Full platform control",
+    pitch: "Unlimited users, custom branding, API access, e-commerce sync, Import/Export suite and a dedicated account manager.",
+    users: "Unlimited users",
+    modules: ["Everything in Pro", "Support / Help Desk", "Import-Export Suite", "E-commerce Integration", "API & Webhooks", "Custom Branding", "Audit Logs", "Multi-location Warehouse"],
+    support: "Dedicated account manager",
+    cta: "Get Enterprise",
+    ctaStyle: { background: "linear-gradient(135deg,#10b981,#059669)", border: "none", color: "white" },
+  },
+  {
+    key: "CUSTOM",
+    name: "Custom",
+    price: 1999,
+    priceLabel: "₹1,999+",
+    period: "starting price",
+    color: "#8b5cf6",
+    gradient: "linear-gradient(135deg,#8b5cf620,#8b5cf608)",
+    badge: "Industry Specific",
+    tagline: "Your business, your rules",
+    pitch: "Hospitals, hotels, restaurants, stock brokers — activate only the industry modules you need, priced for your scale.",
+    users: "Unlimited users",
+    modules: ["Everything in Enterprise", "Restaurant POS & KOT", "Hotel / Resort PMS", "Health & Clinic", "Stock Market Advisory", "Dedicated onboarding", "Custom module setup", "SLA-backed support"],
+    support: "Dedicated SLA support",
+    cta: "Contact Sales",
+    ctaStyle: { background: "linear-gradient(135deg,#8b5cf6,#7c3aed)", border: "none", color: "white" },
+  },
+];
 
 const MODULES = [
   { Icon: Users,       name: "CRM & Parties",        tag: "Core",          color: "#6366f1", desc: "Manage customers, suppliers, contacts and their full communication history in one place.", features: ["Customer & supplier profiles", "Contact management", "Communication log", "Credit limits & payment terms", "GSTIN / PAN / IEC tracking"] },
@@ -65,7 +153,13 @@ export default function LandingPage() {
           </div>
           <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.3px" }}>FlowCRM</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <a href="#pricing" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-ghost)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
+            Pricing
+          </a>
+          <a href="#features" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-ghost)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
+            Features
+          </a>
           <button onClick={() => navigate("/login")} style={{ padding: "8px 18px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             Login
           </button>
@@ -217,6 +311,104 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" style={{ padding: "80px clamp(16px,4vw,64px)", background: "var(--bg-main)" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: "#6366f115", border: "1px solid #6366f130", fontSize: 12, fontWeight: 600, color: "#818CF8", marginBottom: 16 }}>
+            Simple, transparent pricing
+          </div>
+          <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, margin: "0 0 12px", color: "var(--text-primary)" }}>
+            Pick a Plan. Grow Without Limits.
+          </h2>
+          <p style={{ fontSize: 15, color: "var(--text-ghost)", maxWidth: 520, marginInline: "auto", lineHeight: 1.7 }}>
+            Start free, upgrade when you need more. No hidden charges, no per-module fees — one flat price unlocks everything in that tier.
+          </p>
+        </div>
+
+        {/* Plan cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: 16, maxWidth: 1200, marginInline: "auto", alignItems: "start" }}>
+          {PLANS.map(plan => (
+            <div
+              key={plan.key}
+              style={{
+                background: plan.badge === "Most Popular" ? "var(--bg-card)" : "var(--bg-card)",
+                border: plan.badge === "Most Popular" ? `2px solid ${plan.color}` : "1px solid var(--border)",
+                borderRadius: 14,
+                overflow: "hidden",
+                position: "relative",
+                boxShadow: plan.badge === "Most Popular" ? `0 8px 32px ${plan.color}25` : "none",
+                transform: plan.badge === "Most Popular" ? "translateY(-6px)" : "none",
+              }}
+            >
+              {/* Badge */}
+              {plan.badge && (
+                <div style={{ background: plan.color, color: "white", fontSize: 10, fontWeight: 800, textAlign: "center", padding: "5px 0", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  {plan.badge === "Most Popular" && <Zap size={10} style={{ marginRight: 4, verticalAlign: "middle" }} />}
+                  {plan.badge}
+                </div>
+              )}
+
+              {/* Header */}
+              <div style={{ padding: "22px 20px 18px", background: plan.gradient, borderBottom: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: plan.color, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{plan.name}</div>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 4 }}>
+                  <span style={{ fontSize: "clamp(28px,3vw,36px)", fontWeight: 900, color: "var(--text-primary)", lineHeight: 1 }}>{plan.priceLabel}</span>
+                  {plan.price > 0 && <span style={{ fontSize: 12, color: "var(--text-ghost)", paddingBottom: 4 }}>/{plan.period}</span>}
+                  {plan.price === 0 && <span style={{ fontSize: 12, color: "var(--text-ghost)", paddingBottom: 4 }}>{plan.period}</span>}
+                </div>
+                <div style={{ fontSize: 12, color: plan.color, fontWeight: 600, marginBottom: 10 }}>{plan.tagline}</div>
+                <p style={{ fontSize: 12, color: "var(--text-faint)", margin: 0, lineHeight: 1.6 }}>{plan.pitch}</p>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding: "18px 20px 20px" }}>
+                {/* Users badge */}
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 6, background: plan.color + "15", marginBottom: 16 }}>
+                  <Users size={11} color={plan.color} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: plan.color }}>{plan.users}</span>
+                </div>
+
+                {/* Module list */}
+                <ul style={{ margin: "0 0 16px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 7 }}>
+                  {plan.modules.map(m => (
+                    <li key={m} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--text-sec)", lineHeight: 1.4 }}>
+                      <Check size={13} color={plan.color} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span style={{ fontWeight: m.startsWith("Everything") ? 700 : 400, color: m.startsWith("Everything") ? plan.color : "var(--text-sec)" }}>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Support */}
+                <div style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 16, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Shield size={11} color="var(--text-ghost)" />
+                  {plan.support}
+                </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => navigate(plan.key === "CUSTOM" ? "#pricing" : "/register")}
+                  style={{
+                    width: "100%", padding: "11px 0", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    cursor: "pointer", transition: "opacity 0.15s", fontFamily: "inherit",
+                    ...plan.ctaStyle,
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+                >
+                  {plan.cta}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom note */}
+        <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-ghost)", marginTop: 36 }}>
+          All plans include GST compliance, role-based access, audit logs and mobile-responsive UI.
+          Prices shown are exclusive of GST. <strong style={{ color: "var(--text-sec)" }}>Annual billing available — save 2 months free.</strong>
+        </p>
       </section>
 
       {/* ── CTA Banner ── */}

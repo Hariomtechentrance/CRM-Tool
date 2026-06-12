@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Shield, Mail, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
@@ -30,8 +30,7 @@ export default function SuperAdminLoginPage() {
   const [error,    setError]    = useState("");
 
   if (isAuthenticated && user?.isSuperAdmin) {
-    navigate("/super-admin/dashboard", { replace: true });
-    return null;
+    return <Navigate to="/super-admin/dashboard" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

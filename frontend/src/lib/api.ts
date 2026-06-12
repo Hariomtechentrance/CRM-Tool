@@ -52,7 +52,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem("refreshToken");
       if (!refreshToken) {
         clearAuthStorage();
-        window.location.href = "/login";
+        window.location.href = loginRedirectUrl();
         return Promise.reject(error);
       }
       if (isRefreshing) {
@@ -75,7 +75,7 @@ api.interceptors.response.use(
         return api(original);
       } catch {
         clearAuthStorage();
-        window.location.href = "/login";
+        window.location.href = loginRedirectUrl();
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
@@ -89,6 +89,10 @@ function clearAuthStorage() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("activeOrgId");
+}
+
+function loginRedirectUrl() {
+  return window.location.pathname.startsWith("/super-admin") ? "/super-admin/login" : "/login";
 }
 
 export default api;

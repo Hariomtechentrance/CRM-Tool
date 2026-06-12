@@ -57,6 +57,11 @@ export async function listAllOrganizations(req: AuthRequest, res: Response): Pro
           isActive: true, plan: true, planExpiresAt: true, adminNotes: true,
           enabledModules: true, createdAt: true, updatedAt: true,
           _count: { select: { members: true, parties: true, invoices: true } },
+          members: {
+            where: { role: "OWNER" },
+            take: 1,
+            select: { user: { select: { id: true, name: true, email: true } } },
+          },
         },
       }),
       prisma.organization.count({ where }),
@@ -117,7 +122,20 @@ export async function listAllUsers(req: AuthRequest, res: Response): Promise<voi
         select: {
           id: true, name: true, email: true, isActive: true, isSuperAdmin: true,
           lastLoginAt: true, createdAt: true,
-          memberships: { select: { role: true, organization: { select: { id: true, name: true, slug: true } } } },
+          memberships: {
+            select: {
+              role: true,
+              isActive: true,
+              joinedAt: true,
+              organization: {
+                select: {
+                  id: true, name: true, slug: true,
+                  enabledModules: true,
+                  _count: { select: { members: true } },
+                },
+              },
+            },
+          },
         },
       }),
       prisma.user.count({ where }),

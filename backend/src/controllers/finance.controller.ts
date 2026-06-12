@@ -289,3 +289,53 @@ export async function deleteRecurringInvoice(req: OrgRequest, res: Response): Pr
   } catch (e) { serverError(res, e); }
 }
 
+export async function updateInvoice(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.invoice.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Invoice not found"); return; }
+    const { status, dueDate, notes, terms } = req.body as Record<string, string>;
+    const inv = await prisma.invoice.update({
+      where: { id },
+      data: {
+        ...(status   ? { status: status as never }        : {}),
+        ...(dueDate  ? { dueDate: new Date(dueDate) }     : {}),
+        ...(notes    ? { notes }                          : {}),
+        ...(terms    ? { terms }                          : {}),
+      },
+      include: { items: true, payments: true },
+    });
+    ok(res, inv);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deleteInvoice(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const existing = await prisma.invoice.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Invoice not found"); return; }
+    await prisma.invoice.delete({ where: { id } });
+    ok(res, { deleted: true });
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deletePayment(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const payment = await prisma.payment.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!payment) { notFound(res, "Payment not found"); return; }
+    await prisma.payment.delete({ where: { id } });
+    // Reverse the balance on the linked invoice if any
+    if (payment.invoiceId) {
+      const inv = await prisma.invoice.findUnique({ where: { id: payment.invoiceId } });
+      if (inv) {
+        const paidAmount = Math.max(0, inv.paidAmount - payment.amount);
+        const balanceDue = Math.max(0, inv.total - paidAmount);
+        const status = paidAmount === 0 ? "UNPAID" : "PARTIAL";
+        await prisma.invoice.update({ where: { id: payment.invoiceId }, data: { paidAmount, balanceDue, status: status as never } });
+      }
+    }
+    ok(res, { deleted: true });
+  } catch (e) { serverError(res, e); }
+}
+
