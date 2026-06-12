@@ -115,32 +115,60 @@ function OrgSwitcherDropdown() {
 
 interface CollapsibleSectionProps {
   label: string;
+  storageKey: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }
 
-function CollapsibleSection({ label, children, defaultOpen = false }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
+function CollapsibleSection({ label, storageKey, children, defaultOpen = true }: CollapsibleSectionProps) {
+  const [open, setOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`sidebar_sec_${storageKey}`);
+      return saved !== null ? saved === "1" : defaultOpen;
+    } catch {
+      return defaultOpen;
+    }
+  });
+
+  const toggle = () => {
+    setOpen(prev => {
+      const next = !prev;
+      try { localStorage.setItem(`sidebar_sec_${storageKey}`, next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
+
   return (
     <div style={{ marginBottom: 2 }}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "6px 8px", borderRadius: 8, background: "none", border: "none", cursor: "pointer",
           color: "var(--text-ghost)",
         }}
+        onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "none")}
       >
         <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</span>
         <ChevronDown
           style={{
             width: 12, height: 12, color: "var(--text-ghost)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.2s",
+            transition: "transform 0.2s ease",
           }}
         />
       </button>
-      {open && <div style={{ marginTop: 2 }}>{children}</div>}
+      {/* Animated expand/collapse */}
+      <div style={{
+        overflow: "hidden",
+        maxHeight: open ? "600px" : "0",
+        opacity: open ? 1 : 0,
+        transition: "max-height 0.25s ease, opacity 0.2s ease",
+        marginTop: open ? 2 : 0,
+      }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -242,7 +270,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         <div style={{ height: 1, background: "var(--border)", margin: "4px 0 8px" }} />
 
         {/* ── Communication — always visible ── */}
-        <CollapsibleSection label={t("nav_communication")}>
+        <CollapsibleSection label={t("nav_communication")} storageKey="comm">
           {[
             { href: "/email",        tKey: "nav_email",        Icon: Mail },
             { href: "/activities",   tKey: "nav_activities",   Icon: Calendar },
@@ -260,7 +288,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
         {/* ── IT & Projects — only if has PROJECTS access ── */}
         {showIT && (
-          <CollapsibleSection label={t("nav_it_section")}>
+          <CollapsibleSection label={t("nav_it_section")} storageKey="it">
             {[
               { href: "/it-projects",    tKey: "nav_it_projects",    Icon: MonitorCheck },
               { href: "/sprint-board",   tKey: "nav_sprint_board",   Icon: KanbanSquare },
@@ -279,7 +307,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
         {/* ── Sales — only if has CRM / Dispatch / Marketing access ── */}
         {showSales && (
-          <CollapsibleSection label={t("nav_sales_section")}>
+          <CollapsibleSection label={t("nav_sales_section")} storageKey="sales">
             {[
               { href: "/deals",      tKey: "nav_deals",      Icon: Briefcase },
               { href: "/quotations", tKey: "nav_quotations", Icon: FileText },
@@ -297,7 +325,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
         {/* ── Finance & Tax — only if has Accounts access ── */}
         {showFinance && (
-          <CollapsibleSection label={t("nav_finance_section")}>
+          <CollapsibleSection label={t("nav_finance_section")} storageKey="finance">
             {[
               { href: "/gst",            tKey: "nav_gst",            Icon: IndianRupee },
               { href: "/einvoice",       tKey: "nav_einvoice",       Icon: Stamp },
@@ -317,7 +345,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
         {/* ── Admin & Tools — only for OWNER / ADMIN ── */}
         {showAdmin && (
-          <CollapsibleSection label={t("nav_admin_section")}>
+          <CollapsibleSection label={t("nav_admin_section")} storageKey="admin">
             {[
               { href: "/admin/dashboard", tKey: "nav_admin",       Icon: LayoutGrid },
               { href: "/audit",           tKey: "nav_audit",       Icon: ShieldCheck },
