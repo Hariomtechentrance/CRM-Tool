@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { FileText, Download, CheckCircle, Clock, AlertCircle, Copy, RefreshCw, X } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -141,6 +142,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingIRN, onClose, on
 }
 
 export default function EInvoicePage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [invoices, setInvoices] = useState<PendingInvoice[]>([]);
   const [loading, setLoading] = useState(false);
@@ -188,7 +190,7 @@ export default function EInvoicePage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>E-Invoice (IRN)</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_einvoice') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-ghost)" }}>
             Generate GSTN-compliant e-invoice JSON for IRP submission
           </p>

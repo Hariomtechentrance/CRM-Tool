@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Timer, Plus, X, Clock, TrendingUp, DollarSign, Users } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -32,6 +33,7 @@ interface Summary { totalHours: number; billableHours: number; byProject: Record
 const EMPTY_ENTRY = { projectId: "", taskId: "", userId: "", description: "", hours: "", date: new Date().toISOString().split("T")[0], billable: true };
 
 export default function TimeTrackingPage() {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -126,7 +128,7 @@ export default function TimeTrackingPage() {
     <div style={S.page}>
       <div style={S.header}>
         <div>
-          <h1 style={S.title}><Timer size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />Time Tracking & Resources</h1>
+          <h1 style={S.title}><Timer size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />{ t('page_time_tracking') }</h1>
           <p style={S.subtitle}>Track billable hours, manage SLA policies, and allocate team resources</p>
         </div>
         {tab === "entries" && <button style={S.btn} onClick={() => setShowModal(true)}><Plus size={15} /> Log Time</button>}

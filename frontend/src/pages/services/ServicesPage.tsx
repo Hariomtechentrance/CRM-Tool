@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Briefcase, Plus, X, Book, MessageSquare, FileText, Grid } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -26,6 +27,7 @@ const CONTRACT_STATUS_COLOR: Record<string, string> = { ACTIVE: "#10b981", DRAFT
 type TabType = "catalog" | "contracts" | "kb" | "chat";
 
 export default function ServicesPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabType>("catalog");
   const [catalog, setCatalog] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
@@ -110,7 +112,7 @@ export default function ServicesPage() {
     <div style={S.page}>
       <div style={S.header}>
         <div>
-          <h1 style={S.title}><Briefcase size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />Services Management</h1>
+          <h1 style={S.title}><Briefcase size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />{ t('page_services') }</h1>
           <p style={S.subtitle}>Service catalog, recurring contracts, knowledge base, and team chat</p>
         </div>
         {tab !== "chat" && <button style={S.btn} onClick={() => setShowModal(true)}><Plus size={15} />

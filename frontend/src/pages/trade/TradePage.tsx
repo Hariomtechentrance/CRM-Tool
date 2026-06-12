@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Globe, Plus, Search, X, FileText, Package, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -47,6 +48,7 @@ function Badge({ text, color }: { text: string; color: string }) {
 }
 
 export default function TradePage() {
+  const { t } = useTranslation();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
   const [summary, setSummary] = useState<Summary|null>(null);

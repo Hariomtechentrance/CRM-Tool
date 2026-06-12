@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Kanban, Plus, Search, X } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -38,6 +39,7 @@ interface Task { id: string; title: string; status: string; priority: string; du
 const TASK_COLS = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"] as const;
 
 export default function ProjectsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"projects" | "tasks">("projects");
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -91,7 +93,7 @@ export default function ProjectsPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Projects & Tasks</h1>
+          <h1 style={S.title}>{ t('page_projects') }</h1>
           <p style={S.subtitle}>Track projects, assign tasks, and monitor progress</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>

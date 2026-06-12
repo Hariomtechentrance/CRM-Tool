@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
+import { useTranslation } from 'react-i18next';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ const BOOKING_COLOR: Record<string, string> = {
   CANCELLED: "#ef4444", NO_SHOW: "#f59e0b",
 };
 const TAB_STYLE = (active: boolean): React.CSSProperties => ({
+  const { t } = useTranslation();
   padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
   background: active ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--bg-hover)",
   color: active ? "white" : "var(--text-sec)",
@@ -215,7 +217,7 @@ export default function HotelPage() {
             <Hotel size={18} color="white" />
           </div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Hotel & Resort Management</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_hotel') }</h1>
             <p style={{ fontSize: 12, color: "var(--text-ghost)", margin: 0 }}>Room booking, check-in / check-out, guest profiles</p>
           </div>
         </div>

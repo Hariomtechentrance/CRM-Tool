@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { Save, ShieldCheck, Phone, TrendingUp, Heart, Download, Trash2, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page:    { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -49,6 +50,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 }
 
 export default function CompliancePage() {
+  const { t } = useTranslation();
   const [cfg, setCfg]     = useState<Config>(defaults);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg]       = useState("");
@@ -86,7 +88,7 @@ export default function CompliancePage() {
 
   return (
     <div style={S.page}>
-      <h1 style={S.title}>Compliance & Legal</h1>
+      <h1 style={S.title}>{ t('page_compliance') }</h1>
       <p style={S.sub}>Configure data privacy, TRAI telemarketing rules, SEBI disclaimers and health data handling to stay legally compliant in India.</p>
 
       {/* ── DPDP Act 2023 ── */}

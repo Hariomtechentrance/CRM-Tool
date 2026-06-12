@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { DollarSign, Plus, Trash2, RefreshCw, ArrowRight, X } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -165,6 +166,7 @@ function ConvertPanel({ currencies, token, orgId }: { currencies: Currency[]; to
 }
 
 export default function CurrencyPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [rates, setRates] = useState<Rate[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
@@ -203,7 +205,7 @@ export default function CurrencyPage() {
     <div style={{ padding: "24px 28px", maxWidth: 860, margin: "0 auto" }}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Multi-Currency</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_currency') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-ghost)" }}>Manage exchange rates for foreign currency transactions</p>
         </div>
         <div className="flex gap-2">

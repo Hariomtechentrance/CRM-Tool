@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { CheckCircle, XCircle, Clock, ShoppingCart, Receipt, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { apiClient } from "@/lib/apiClient";
+import { useTranslation } from 'react-i18next';
 
 interface PO {
   id: string;
@@ -32,6 +33,7 @@ function fmt(n: number) {
 }
 
 export default function ApprovalQueuePage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [tab, setTab] = useState<Tab>("po");
   const [data, setData] = useState<Pending>({ purchaseOrders: [], expenses: [] });
@@ -71,7 +73,7 @@ export default function ApprovalQueuePage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Approval Queue</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_admin') }</h1>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-ghost)" }}>
             Review and approve purchase orders and expense claims
           </p>

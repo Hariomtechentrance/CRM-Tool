@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
 import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -26,6 +27,7 @@ type Tab = "organization" | "modules" | "team" | "security";
 interface Member { id: string; name: string; email: string; role: string; joinedAt: string }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { activeOrg, updateActiveOrgModules, loadModuleAccess, user, logout, updateUser } = useAuthStore();
   const navigate = useNavigate();
   const [claimingAdmin, setClaimingAdmin] = useState(false);
@@ -146,7 +148,7 @@ export default function SettingsPage() {
     <div className="page-pad">
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
         <Settings size={20} color="#6366f1" />
-        <h1 style={S.title}>Settings</h1>
+        <h1 style={S.title}>{ t('page_settings') }</h1>
       </div>
       <p style={S.subtitle}>Organization profile, modules, team members and preferences</p>
 

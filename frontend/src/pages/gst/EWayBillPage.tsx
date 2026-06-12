@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Truck, Download, CheckCircle, Copy, RefreshCw, X, AlertCircle } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -124,6 +125,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingEWB, onClose, on
 }
 
 export default function EWayBillPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [invoices, setInvoices] = useState<PendingInvoice[]>([]);
   const [loading, setLoading] = useState(false);
@@ -166,7 +168,7 @@ export default function EWayBillPage() {
     <div style={{ padding: "24px 28px", maxWidth: 960, margin: "0 auto" }}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>E-Way Bill</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_ewaybill') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-ghost)" }}>
             Generate NIC-format e-way bill JSON for consignments ≥ ₹50,000
           </p>

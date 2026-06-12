@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { Building2, Save } from "lucide-react";
 import { kDigits, kAlphaNum, kPhone, kName, kAlpha } from "@/lib/fieldRules";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "28px 32px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -22,6 +23,7 @@ const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "SGD"];
 const BUSINESS_TYPES = ["IMPORT_EXPORT","IMPORT","EXPORT","TRADING","MANUFACTURING","RETAIL","ECOMMERCE","IT_SOFTWARE","IT_SERVICES","LOGISTICS","CONSULTING","OTHER"];
 
 export default function AdminSettingsPage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [form, setForm] = useState({
     name: "", email: "", phone: "", website: "",
@@ -85,7 +87,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="page-pad">
-      <h1 style={S.title}>Organisation Settings</h1>
+      <h1 style={S.title}>{ t('page_settings') }</h1>
       <p style={S.sub}>Update your company profile, tax details, and banking information</p>
 
       {/* Basic Info */}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Link2, Copy, Check, Trash2, ToggleLeft, ToggleRight, Eye, Users, FileText, GripVertical, X } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { useTranslation } from 'react-i18next';
 
 interface FormField {
   id: string;
@@ -260,6 +261,7 @@ function FormCard({ form, onEdit, onDelete, onToggle }: {
 
 // ── Main page ─────────────────────────────────────────────────
 export default function LeadFormsPage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [forms, setForms] = useState<LeadForm[]>([]);
   const [loading, setLoading] = useState(true);

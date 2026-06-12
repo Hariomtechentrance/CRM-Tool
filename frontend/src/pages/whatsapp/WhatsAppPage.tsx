@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { MessageCircle, Settings, Send, CheckCheck, Clock, AlertCircle, Users, Zap, ExternalLink, Copy, Check } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { useTranslation } from 'react-i18next';
 
 interface WAConfig { connected: boolean; phoneNumber?: string; displayName?: string; isActive?: boolean; }
 interface WAMessage { id: string; direction: string; toPhone: string; fromPhone?: string; content: string; templateName?: string; status: string; createdAt: string; lead?: { name: string } | null; }
@@ -302,6 +303,7 @@ function MessageHistory({ refresh }: { refresh: number }) {
 
 // ── Main page ─────────────────────────────────────────────────
 export default function WhatsAppPage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [config, setConfig] = useState<WAConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -347,7 +349,7 @@ export default function WhatsAppPage() {
             <MessageCircle className="w-5 h-5" style={{ color: "#25d366" }} />
           </div>
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>WhatsApp Business</h1>
+            <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_whatsapp') }</h1>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <p className="text-xs" style={{ color: "var(--text-secondary)" }}>

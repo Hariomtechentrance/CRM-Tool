@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Layers, Plus, Trash2, RefreshCw, PlayCircle, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, X } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -179,6 +180,7 @@ function CreateWOModal({ bom, onClose, onCreated }: { bom: BOM; onClose: () => v
 }
 
 export default function BOMPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [tab, setTab] = useState<"boms" | "workorders">("boms");
   const [boms, setBoms] = useState<BOM[]>([]);

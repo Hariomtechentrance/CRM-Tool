@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { RefreshCw, Upload, CheckCircle, XCircle, Clock, Zap, Trash2, X, AlertCircle } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -46,6 +47,7 @@ function parseCSV(text: string): { txnDate: string; description: string; amount:
   return lines.slice(1).map(line => {
     const cols = line.split(",").map(c => c.trim().replace(/"/g, ""));
     const get = (keys: string[]) => {
+  const { t } = useTranslation();
       for (const k of keys) {
         const idx = header.indexOf(k);
         if (idx >= 0 && cols[idx]) return cols[idx];
@@ -187,7 +189,7 @@ export default function ReconciliationPage() {
     <div style={{ padding: "24px 28px", maxWidth: 1080, margin: "0 auto" }}>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Bank Reconciliation</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_reconciliation') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-ghost)" }}>Match bank transactions against invoices and payments</p>
         </div>
         <div className="flex gap-2 flex-wrap">

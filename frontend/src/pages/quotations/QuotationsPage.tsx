@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { FileText, Plus, Search, X, Eye, Trash2, CheckCircle, Send, Clock, XCircle, Printer } from "lucide-react";
 import { kDecimal } from "@/lib/fieldRules";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -45,7 +46,8 @@ interface Quotation {
 }
 interface Stats { total: number; accepted: number; sent: number; draft: number; acceptedValue: number; }
 
-const emptyItem = (): QItem => ({ description: "", quantity: "1", unitPrice: "0", taxRate: "0", discount: "0", productId: "" });
+const emptyItem = (): QItem => ({
+  const { t } = useTranslation(); description: "", quantity: "1", unitPrice: "0", taxRate: "0", discount: "0", productId: "" });
 
 function calcItem(i: QItem) {
   const qty = parseFloat(i.quantity) || 0;
@@ -238,7 +240,7 @@ export default function QuotationsPage() {
             <FileText size={20} color="#818CF8" />
           </div>
           <div>
-            <h1 style={S.title}>Quotations</h1>
+            <h1 style={S.title}>{ t('page_quotations') }</h1>
             <p style={S.subtitle}>Create and manage proposals for your customers</p>
           </div>
         </div>

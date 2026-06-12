@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { PackageOpen, Plus, Search, X, Check, Clock, Truck } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   btn: { background: "linear-gradient(135deg,#10b981,#059669)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -33,6 +34,7 @@ const emptyForm = {
 };
 
 export default function StorePage() {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<GoodsEntry[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ export default function StorePage() {
             <PackageOpen size={20} color="#10b981" />
           </div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Store — Inward Register</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_store') }</h1>
             <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Record all incoming materials and goods received at store</p>
           </div>
         </div>

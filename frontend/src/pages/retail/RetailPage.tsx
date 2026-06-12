@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Shirt, Plus, ShoppingCart, X, Package } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -30,6 +31,7 @@ interface Product { id: string; name: string; sku: string; }
 interface POSSession { id: string; status: string; openedAt: string; totalSales: number; }
 
 export default function RetailPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"collections" | "variants" | "pos">("collections");
   const [collections, setCollections] = useState<Collection[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
@@ -130,7 +132,7 @@ export default function RetailPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Retail & Fashion</h1>
+          <h1 style={S.title}>{ t('page_retail') }</h1>
           <p style={S.subtitle}>Collections, size/color variants, and boutique POS</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>

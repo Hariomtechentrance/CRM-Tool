@@ -7,6 +7,7 @@ import {
   Plug, Wifi, ChevronDown,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 
 // ── Styles ───────────────────────────────────────────────────
 const S = {
@@ -57,6 +58,7 @@ function ConnectModal({ onClose, onConnected }: { onClose: () => void; onConnect
   const [err, setErr] = useState("");
 
   const applyPreset = (key: string) => {
+  const { t } = useTranslation();
     const p = IMAP_PRESETS[key];
     setImapPreset(key);
     setForm(f => ({ ...f, ...p, provider: key === "CUSTOM" ? "IMAP" : key === "YAHOO" ? "YAHOO" : "IMAP", label: f.label || p.label }));

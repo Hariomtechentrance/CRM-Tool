@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Heart, Plus, X, User, Activity, Clipboard, TestTube } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -31,6 +32,7 @@ const EMPTY_PATIENT = { name: "", phone: "", email: "", dob: "", gender: "", blo
 const EMPTY_VISIT = { patientId: "", visitType: "OPD", chiefComplaint: "", diagnosis: "", vitalsBP: "", vitalsPulse: "", vitalsTemp: "", vitalsWeight: "", notes: "", followUpDate: "" };
 
 export default function HealthPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabType>("patients");
   const [patients, setPatients] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
@@ -114,7 +116,7 @@ export default function HealthPage() {
     <div style={S.page}>
       <div style={S.header}>
         <div>
-          <h1 style={S.title}><Heart size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />Health Management</h1>
+          <h1 style={S.title}><Heart size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />{ t('page_health') }</h1>
           <p style={S.subtitle}>Patients, visits, prescriptions, and lab reports</p>
         </div>
         <button style={S.btn} onClick={() => setShowModal(true)}><Plus size={15} />

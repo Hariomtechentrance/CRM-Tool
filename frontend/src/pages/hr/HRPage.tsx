@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import { Users, Plus, Search, X, Calendar, DollarSign, UserCheck, Check, XCircle, Clock, Target, TrendingUp, Receipt, Briefcase, ChevronRight, Download, Star } from "lucide-react";
 import DocumentsPanel from "@/components/DocumentsPanel";
 import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone } from "@/lib/fieldRules";
+import { useTranslation } from 'react-i18next';
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const now = new Date();
@@ -84,6 +85,7 @@ const reviewEmpty = { employeeId:"", reviewType:"ANNUAL", reviewPeriod:"", ratin
 const expenseEmpty = { employeeId:"", expenseDate:now.toISOString().slice(0,10), category:"Travel", title:"", amount:"", receiptUrl:"", notes:"" };
 
 export default function HRPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("overview");
   const [summary, setSummary] = useState<Summary|null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -394,8 +396,8 @@ export default function HRPage() {
       {/* Header */}
       <div className="page-hdr" style={{marginBottom:20}}>
         <div>
-          <h1 style={S.title}>HR & People</h1>
-          <p style={S.subtitle}>Employees, attendance, payroll, leaves, performance and expenses</p>
+          <h1 style={S.title}>{ t('page_hr') }</h1>
+          <p style={S.subtitle}>{ t('page_hr_sub') }</p>
         </div>
         <div style={{display:"flex",gap:8}}>
           {tab==="employees" && <button style={S.btn} onClick={openAdd}><Plus size={15}/> Add Employee</button>}

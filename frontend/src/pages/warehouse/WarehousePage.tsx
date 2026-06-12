@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Warehouse, Plus, Search, X, ArrowRightLeft } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -33,6 +34,7 @@ interface Transfer { id: string; transferNumber: string; status: string; created
 interface Product { id: string; name: string; sku: string; }
 
 export default function WarehousePage() {
+  const { t } = useTranslation();
   const [warehouses, setWarehouses] = useState<WH[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -94,7 +96,7 @@ export default function WarehousePage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Warehouse Management</h1>
+          <h1 style={S.title}>{ t('page_warehouse') }</h1>
           <p style={S.subtitle}>Multi-location inventory, stock transfers and audits</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>

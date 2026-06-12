@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { useTranslation } from 'react-i18next';
 import {
   Shield, MonitorSmartphone, Key, Lock, Globe, Users,
   Trash2, Plus, Eye, EyeOff, Copy, Check, LogOut,
@@ -108,6 +109,7 @@ function SessionsTab() {
   const [revoking, setRevoking] = useState<string | null>(null);
 
   const load = () => {
+  const { t } = useTranslation();
     if (!token || !activeOrg) return;
     fetch(`${API}/api/sessions`, { headers: authH(token, activeOrg.id) })
       .then(r => r.json()).then(r => { if (r.success) setSessions(r.data); })
@@ -712,7 +714,7 @@ export default function SecurityPage() {
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <Shield style={{ width: 22, height: 22, color: "#6366f1" }} />
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>Security</h1>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{ t('page_security') }</h1>
         </div>
         <p style={{ margin: 0, fontSize: 13, color: "var(--text-faint)" }}>Manage sessions, API keys, password, IP restrictions and permissions.</p>
       </div>

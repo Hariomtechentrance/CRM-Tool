@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { FolderOpen, Search, FileText, FileSpreadsheet, File, Image, Download, Trash2, X } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const ENTITY_LABELS: Record<string, string> = {
   PRODUCT: "Inventory", PURCHASE_ORDER: "Purchase", SALES_ORDER: "Sales Orders",
@@ -42,6 +43,7 @@ const S = {
 };
 
 export default function DocumentsPage() {
+  const { t } = useTranslation();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,7 @@ export default function DocumentsPage() {
             <FolderOpen size={20} color="#818CF8" />
           </div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Documents</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_documents') }</h1>
             <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>All uploaded files across your organization</p>
           </div>
         </div>

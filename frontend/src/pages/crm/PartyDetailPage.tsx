@@ -22,6 +22,7 @@ import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import api from "@/lib/api";
 import { getInitials, getApiError, formatDate } from "@/lib/utils";
 import type { Party, Contact, CommunicationType } from "@/types";
+import { useTranslation } from 'react-i18next';
 
 // ── Comm type meta ────────────────────────────────────────────
 const COMM_META: Record<CommunicationType, { icon: React.ReactNode; label: string; color: string }> = {
@@ -158,6 +159,7 @@ function PartyTagEditor({ partyId, initialTags, onUpdated }: { partyId: string; 
   };
 
   const add = () => {
+  const { t } = useTranslation();
     const val = input.trim().toLowerCase();
     if (!val || tags.includes(val)) { setInput(""); return; }
     const next = [...tags, val];

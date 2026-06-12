@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ShieldCheck, Search, Filter } from "lucide-react";
 import api from "@/lib/api";
 import ExportButton from "@/components/ui/ExportButton";
+import { useTranslation } from 'react-i18next';
 
 interface AuditLog {
   id: string;
@@ -21,6 +22,7 @@ const ACTION_COLOR: Record<string, string> = {
 };
 
 export default function AuditPage() {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -49,9 +51,7 @@ export default function AuditPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-            Audit Trail
-          </h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_audit') }</h1>
           <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 4 }}>
             Full history of every action taken in your organization
           </p>

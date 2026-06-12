@@ -3,6 +3,7 @@ import DocumentsButton from "@/components/DocumentsButton";
 import api from "@/lib/api";
 import { Truck, Plus, Search, X, Check, Clock, Package, ClipboardList } from "lucide-react";
 import { kDecimal } from "@/lib/fieldRules";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   btnPrimary: { background: "linear-gradient(135deg,#f59e0b,#d97706)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -42,6 +43,7 @@ const emptyDispatchForm = {
 const emptySOItem = { description: "", productId: "", quantity: "1", unitPrice: "", taxRate: "18", discount: "0" };
 
 export default function SalesPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"dispatch" | "orders" | "shipments">("dispatch");
   const [dispatches, setDispatches] = useState<GoodsEntry[]>([]);
   const [orders, setOrders] = useState<SO[]>([]);

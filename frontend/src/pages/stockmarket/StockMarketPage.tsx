@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { TrendingUp, Plus, X, Users, FileText, Bell, CheckCircle } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -29,6 +30,7 @@ const CALL_STATUS_COLORS: Record<string, string> = { ACTIVE: "#10b981", TARGET_H
 type TabType = "calls" | "reports" | "subscriptions" | "kyc" | "alerts";
 
 export default function StockMarketPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabType>("calls");
   const [tradeCalls, setTradeCalls] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
@@ -117,7 +119,7 @@ export default function StockMarketPage() {
     <div style={S.page}>
       <div style={S.header}>
         <div>
-          <h1 style={S.title}><TrendingUp size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />Stock Market Advisory</h1>
+          <h1 style={S.title}><TrendingUp size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />{ t('page_stock_market') }</h1>
           <p style={S.subtitle}>Trade calls, research reports, client subscriptions, KYC, and market alerts</p>
         </div>
         {tab !== "subscriptions" && tab !== "kyc" && (

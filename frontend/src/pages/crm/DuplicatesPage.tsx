@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Copy, Merge, Users, Package, RefreshCw, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -239,6 +240,7 @@ function ProductGroupCard({ group }: { group: ProductGroup }) {
 }
 
 export default function DuplicatesPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [tab, setTab] = useState<Tab>("parties");
   const [partyGroups, setPartyGroups] = useState<PartyGroup[]>([]);
@@ -293,7 +295,7 @@ export default function DuplicatesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Duplicate Detection</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_duplicates') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-ghost)" }}>
             Find and merge duplicate contacts, vendors, and products
           </p>

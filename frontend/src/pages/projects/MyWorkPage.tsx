@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { CheckCircle, Clock, AlertCircle, Plus, Timer, ListTodo } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -139,6 +140,7 @@ function TaskCard({ task, onStatusChange, onLogTime }: { task: Task; onStatusCha
 }
 
 export default function MyWorkPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [employees, setEmployees] = useState<any[]>([]);
   const [selEmpId, setSelEmpId] = useState("");
@@ -184,7 +186,7 @@ export default function MyWorkPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>My Work</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_my_work') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>Task board &amp; time tracking per employee</p>
         </div>
         <select value={selEmpId} onChange={e => setSelEmpId(e.target.value)}

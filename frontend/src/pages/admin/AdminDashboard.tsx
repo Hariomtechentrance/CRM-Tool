@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { useTranslation } from 'react-i18next';
 import {
   Users, DollarSign, ShoppingCart, TrendingUp, Headphones, Package,
   FileText, Activity, BarChart3,
@@ -36,6 +37,7 @@ interface Stats { members: number; parties: number; invoices: number; orders: nu
 interface FeedItem { type: string; id: string; title: string; subtitle: string; meta: string; createdAt: string; }
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [stats, setStats] = useState<Stats | null>(null);
   const [feed, setFeed] = useState<FeedItem[]>([]);

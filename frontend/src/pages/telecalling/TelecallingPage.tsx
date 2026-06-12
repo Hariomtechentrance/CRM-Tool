@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Phone, Plus, X, PhoneCall, PhoneOff, BarChart2, List, Shield, Megaphone } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -33,6 +34,7 @@ const OUTCOME_COLORS: Record<string, string> = {
 type TabType = "calls" | "scripts" | "dnc" | "campaigns";
 
 export default function TelecallingPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabType>("calls");
   const [callLogs, setCallLogs] = useState<any[]>([]);
   const [callStats, setCallStats] = useState<any>(null);

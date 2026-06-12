@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, RefreshCw, Pause, Play, Trash2, Calendar, X } from "lucide-react";
 import api from "@/lib/api";
+import { useTranslation } from 'react-i18next';
 
 interface RecurringItem { description: string; quantity: number; unitPrice: number; taxRate: number; discount: number; }
 interface Party { id: string; name: string; }
@@ -48,6 +49,7 @@ const S = {
 };
 
 export default function RecurringInvoicesPage() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<RecurringInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -106,7 +108,7 @@ export default function RecurringInvoicesPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Recurring Invoices</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_recurring') }</h1>
           <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 4 }}>Auto-generate invoices on a schedule</p>
         </div>
         <button style={S.btn("primary")} onClick={() => setShowForm(true)}>

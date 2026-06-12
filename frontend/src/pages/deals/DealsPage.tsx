@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Briefcase, Plus, Search, X, TrendingUp, LayoutList, Kanban, Target, DollarSign } from "lucide-react";
 import DocumentsPanel from "@/components/DocumentsPanel";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -36,6 +37,7 @@ interface Party { id: string; name: string; }
 const emptyForm = { title: "", stage: "PROSPECTING", value: "", probability: "20", partyId: "", expectedCloseDate: "", description: "", notes: "" };
 
 export default function DealsPage() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<Stats | null>(null);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
@@ -100,7 +102,7 @@ export default function DealsPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Deals & Opportunities</h1>
+          <h1 style={S.title}>{ t('page_deals') }</h1>
           <p style={S.subtitle}>Track your sales pipeline from prospect to close — Salesforce / HubSpot style</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>

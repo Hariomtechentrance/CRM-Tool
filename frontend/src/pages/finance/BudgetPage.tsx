@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { PiggyBank, Plus, Trash2, RefreshCw, TrendingUp, AlertTriangle, CheckCircle, X } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -164,6 +165,7 @@ function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated
 }
 
 export default function BudgetPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [fy, setFy] = useState("2025-2026");
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -208,7 +210,7 @@ export default function BudgetPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Budget Planning</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_budget') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-ghost)" }}>Department budgets vs actual spend tracking</p>
         </div>
         <div className="flex items-center gap-2">

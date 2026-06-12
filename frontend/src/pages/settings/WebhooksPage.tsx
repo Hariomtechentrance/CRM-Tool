@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Plus, Trash2, RotateCw, Send, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, Zap } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -56,6 +57,7 @@ function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClo
   const toggle = (e: string) => setSelected(p => p.includes(e) ? p.filter(x => x !== e) : [...p, e]);
 
   async function save() {
+  const { t } = useTranslation();
     if (!url.trim()) { setErr("URL is required"); return; }
     if (!selected.length) { setErr("Select at least one event"); return; }
     setSaving(true);
@@ -301,7 +303,7 @@ export default function WebhooksPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Webhooks</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_webhooks') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
             Send real-time event notifications to your external systems
           </p>

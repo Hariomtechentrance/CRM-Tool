@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Plus, Users, Calendar, GitBranch, ExternalLink, ChevronRight, Target, Code2, Briefcase, Search, Filter, Share2, Copy, Check, Trash2 } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -71,7 +72,8 @@ function CreateProjectModal({ employees, onClose, onCreated }: { employees: any[
     techStack: "", repoUrl: "", description: "",
   });
   const [saving, setSaving] = useState(false);
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]: v }));
+  const f = (k: string) => (v: string) => setForm(p => ({
+  const { t } = useTranslation(); ...p, [k]: v }));
 
   async function save() {
     if (!form.name.trim()) return;
@@ -522,7 +524,7 @@ export default function ITProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>IT Projects</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_it_projects') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
             {stats.active} active · {stats.completed} completed · {stats.onHold} on hold
           </p>

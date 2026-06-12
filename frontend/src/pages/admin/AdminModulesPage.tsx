@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
 import { Puzzle, Check, Lock } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "28px 32px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -14,6 +15,7 @@ const S = {
 const ALWAYS_ON = ["DASHBOARD"]; // modules that can't be disabled
 
 export default function AdminModulesPage() {
+  const { t } = useTranslation();
   const { activeOrg, updateActiveOrgModules, loadModuleAccess } = useAuthStore();
   const [enabled, setEnabled] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -72,7 +74,7 @@ export default function AdminModulesPage() {
     <div className="page-pad">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div>
-          <h1 style={S.title}>Module Management</h1>
+          <h1 style={S.title}>{ t('page_admin') }</h1>
           <p style={S.sub}>Enable or disable features for your organisation. Changes take effect immediately.</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

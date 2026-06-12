@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Headphones, Plus, Search, X, MessageSquare } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -36,6 +37,7 @@ interface Ticket { id: string; ticketNumber: string; subject: string; status: st
 interface Party { id: string; name: string; }
 
 export default function SupportPage() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<Stats | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
@@ -81,7 +83,7 @@ export default function SupportPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Customer Support</h1>
+          <h1 style={S.title}>{ t('page_support') }</h1>
           <p style={S.subtitle}>Helpdesk tickets, SLA tracking, and issue resolution</p>
         </div>
         <button style={S.btn} onClick={() => { setForm({ subject: "", description: "", priority: "MEDIUM", partyId: "" }); setError(""); setShowModal(true); }}>

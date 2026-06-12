@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Plus, X, Calendar, Clock, MapPin, Video, CheckCircle, XCircle, RefreshCw, Phone } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   inp: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", color: "var(--text-primary)", fontSize: 12, outline: "none" } as React.CSSProperties,
@@ -33,7 +34,8 @@ function AppointmentFormModal({ appt, onClose, onSaved }: { appt?: Appointment |
     status: appt?.status ?? "SCHEDULED", outcome: appt?.outcome ?? "",
   });
   const [saving, setSaving] = useState(false);
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]: v }));
+  const f = (k: string) => (v: string) => setForm(p => ({
+  const { t } = useTranslation(); ...p, [k]: v }));
 
   async function save() {
     if (!form.title || !form.scheduledAt) return;
@@ -167,7 +169,7 @@ export default function AppointmentsPage() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h1 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Appointments</h1>
+          <h1 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_appointments') }</h1>
           <p className="text-xs" style={{ color: "var(--text-ghost)" }}>Schedule & track client meetings</p>
         </div>
         <div className="flex items-center gap-2">

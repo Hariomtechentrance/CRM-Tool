@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Plus, Pencil, Trash2, GripVertical, X, Save, ToggleLeft, ToggleRight, ChevronDown } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const ENTITIES = [
   { key: "PARTY",          label: "Parties / Contacts" },
@@ -55,6 +56,7 @@ interface FormState { label: string; fieldType: string; options: string; isRequi
 const emptyForm: FormState = { label: "", fieldType: "TEXT", options: "", isRequired: false, sortOrder: 0 };
 
 export default function CustomFieldsPage() {
+  const { t } = useTranslation();
   const [entity, setEntity]       = useState("PARTY");
   const [fields, setFields]       = useState<Field[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -120,7 +122,7 @@ export default function CustomFieldsPage() {
 
   return (
     <div style={S.page}>
-      <h1 style={S.title}>Custom Fields</h1>
+      <h1 style={S.title}>{ t('page_custom_fields') }</h1>
       <p style={S.sub}>Add extra fields to any entity — your data your way. These appear in forms across the CRM.</p>
 
       <div style={S.card}>

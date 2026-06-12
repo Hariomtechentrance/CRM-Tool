@@ -5,6 +5,7 @@ import DocumentsPanel from "@/components/DocumentsPanel";
 import { kDigits, kDecimal, kAlphaNum, kName } from "@/lib/fieldRules";
 import BulkImportModal from "@/components/ui/BulkImportModal";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -28,6 +29,7 @@ interface Category { id: string; name: string; }
 const emptyForm = { sku: "", name: "", description: "", unit: "PCS", categoryId: "", costPrice: "", sellingPrice: "", mrp: "", taxRate: "0", hsnCode: "", reorderLevel: "0", barcode: "", notes: "" };
 
 export default function InventoryPage() {
+  const { t } = useTranslation();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -109,7 +111,7 @@ export default function InventoryPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Inventory & Stock</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_inventory') }</h1>
           <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Manage products, categories, and stock levels</p>
         </div>
         <div className="hdr-actions">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { FileText, Download, TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -41,6 +42,7 @@ function exportCSV(rows: any[], filename: string, headers: string[], keys: strin
 }
 
 export default function GSTReportsPage() {
+  const { t } = useTranslation();
   const now = new Date();
   const [tab, setTab] = useState<"gstr1" | "gstr3b" | "itc" | "annual">("gstr3b");
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -92,7 +94,7 @@ export default function GSTReportsPage() {
     <div className="page-pad">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={S.title}>GST Reports</h1>
+          <h1 style={S.title}>{ t('page_gst') }</h1>
           <p style={S.sub}>GSTR-1, GSTR-3B, ITC Ledger and Annual Summary for GST compliance filing</p>
         </div>
         <button onClick={load} disabled={loading} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text-sec)", cursor: "pointer", fontSize: 13 }}>

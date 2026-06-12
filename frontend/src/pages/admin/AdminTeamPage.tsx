@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
 import { Users, Shield, Check, X, Clock, CheckCircle, XCircle, Mail, UserPlus, ChevronDown, ChevronUp, Send, Trash2, AlertCircle } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -57,6 +58,7 @@ interface PendingInvite {
 }
 
 export default function AdminTeamPage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [members, setMembers] = useState<MemberAccess[]>([]);
   const [requests, setRequests] = useState<AccessReq[]>([]);
@@ -154,7 +156,7 @@ export default function AdminTeamPage() {
 
   return (
     <div className="page-pad">
-      <h1 style={S.title}>Team & Access</h1>
+      <h1 style={S.title}>{ t('page_admin') }</h1>
       <p style={S.sub}>Manage team members, module access, and pending requests</p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>

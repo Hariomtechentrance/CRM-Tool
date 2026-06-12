@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Zap, Trash2, ToggleLeft, ToggleRight, ChevronRight, Activity, Tag, Star, UserPlus, CalendarClock } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { useTranslation } from 'react-i18next';
 
 interface AutomationRule {
   id: string;
@@ -408,6 +409,7 @@ function RuleCard({ rule, onToggle, onDelete }: {
 }
 
 export default function AutomationPage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -453,7 +455,7 @@ export default function AutomationPage() {
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <Zap className="w-5 h-5" style={{ color: "#f59e0b" }} />
-            <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Automation Rules</h1>
+            <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_automations') }</h1>
           </div>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             Auto-trigger actions when lead events happen — follow-ups, tags, grading, and assignment.

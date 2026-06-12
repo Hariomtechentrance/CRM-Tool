@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Plus, Clock, User, ChevronDown, Play, CheckCircle, Timer } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -101,7 +102,8 @@ function CreateTaskModal({ sprintId, projectId, employees, onClose, onCreated }:
   const { accessToken: token, activeOrg } = useAuthStore();
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", assignedToId: "", storyPoints: "", estimatedHours: "", dueDate: "", tags: "" });
   const [saving, setSaving] = useState(false);
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]: v }));
+  const f = (k: string) => (v: string) => setForm(p => ({
+  const { t } = useTranslation(); ...p, [k]: v }));
   const inp = { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 6, padding: "7px 10px", color: "var(--text-primary)", fontSize: 12 };
 
   async function save() {
@@ -259,7 +261,7 @@ export default function SprintBoardPage() {
     <div className="flex flex-col h-full" style={{ minHeight: "calc(100vh - 60px)" }}>
       {/* Top bar */}
       <div className="p-4 flex-shrink-0 flex items-center gap-3 flex-wrap" style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-card)" }}>
-        <h1 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Sprint Board</h1>
+        <h1 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_sprint_board') }</h1>
 
         <select value={selProjectId} onChange={e => setSelProjectId(e.target.value)} style={{ ...inp, minWidth: 160 }}>
           {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}

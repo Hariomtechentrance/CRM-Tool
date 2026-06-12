@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Calendar, Phone, Mail, MessageSquare, Users, Plus, X, Search, Clock, CheckCircle } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -34,6 +35,7 @@ interface Party { id: string; name: string; }
 const emptyForm = { type: "NOTE", partyId: "", subject: "", description: "", outcome: "", followUpDate: "" };
 
 export default function ActivitiesPage() {
+  const { t } = useTranslation();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +98,7 @@ export default function ActivitiesPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Activities & Follow-ups</h1>
+          <h1 style={S.title}>{ t('page_activities') }</h1>
           <p style={S.subtitle}>Track calls, meetings, emails, notes and scheduled follow-ups</p>
         </div>
         <button style={S.btn} onClick={() => { setForm({ ...emptyForm }); setError(""); setShowModal(true); }}>

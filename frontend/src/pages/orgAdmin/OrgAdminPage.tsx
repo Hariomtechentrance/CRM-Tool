@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
 import { Activity, Users, BarChart3, Shield, Check, X, Clock, CheckCircle, XCircle, DollarSign, ShoppingCart, TrendingUp, Headphones, Package, FileText } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -37,6 +38,7 @@ interface AccessReq { id: string; moduleKey: string; status: string; message?: s
 type Tab = "activity" | "access" | "team";
 
 export default function OrgAdminPage() {
+  const { t } = useTranslation();
   const { activeOrg, isOrgAdmin } = useAuthStore();
   const activeOrgId = activeOrg?.id;
   const [tab, setTab] = useState<Tab>("activity");
@@ -115,7 +117,7 @@ export default function OrgAdminPage() {
     <div style={S.page}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
         <BarChart3 size={20} color="#6366f1" />
-        <h1 style={S.title}>Admin Panel — {activeOrg?.name}</h1>
+        <h1 style={S.title}>{ t('page_admin') }</h1>
         {isOrgAdmin && <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 5, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>ADMIN</span>}
       </div>
       <p style={S.subtitle}>Track all departments, manage team access and monitor business activity</p>

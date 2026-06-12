@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Package, Plus, AlertTriangle, X, CalendarDays } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -46,6 +47,7 @@ function fmtDate(d: string) {
 }
 
 export default function BatchTrackingPage() {
+  const { t } = useTranslation();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<"all" | "expiring">("all");
@@ -103,7 +105,7 @@ export default function BatchTrackingPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Batch & Expiry Tracking</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_batch_tracking') }</h1>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-ghost)" }}>Track product batches, lot numbers, and expiry dates (FIFO)</p>
         </div>
         <button style={S.btn} onClick={() => { setShowModal(true); setForm(emptyForm); setError(""); }}>

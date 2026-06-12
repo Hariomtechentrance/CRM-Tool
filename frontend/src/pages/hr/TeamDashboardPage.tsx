@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { Users, CheckCircle, Clock, AlertCircle, Activity, Layers, Search } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -40,6 +41,7 @@ interface EmpRow {
 }
 
 export default function TeamDashboardPage() {
+  const { t } = useTranslation();
   const { accessToken: token, activeOrg } = useAuthStore();
   const [employees, setEmployees] = useState<EmpRow[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -81,7 +83,7 @@ export default function TeamDashboardPage() {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Team Dashboard</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>{ t('page_team_dashboard') }</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>HR view — all employees, projects &amp; task progress</p>
         </div>
         <button onClick={load} style={{ padding: "8px 16px", borderRadius: 10, background: "var(--bg-hover)", color: "var(--text-secondary)", border: "1px solid var(--border)", cursor: "pointer", fontSize: 13 }}>

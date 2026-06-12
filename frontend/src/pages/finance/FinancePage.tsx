@@ -4,6 +4,7 @@ import { Receipt, Plus, Search, X, TrendingUp, TrendingDown, Clock, CheckCircle,
 import { generateInvoicePDF } from "@/lib/generatePDF";
 import DocumentsButton from "@/components/DocumentsButton";
 import { kDecimal } from "@/lib/fieldRules";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -58,7 +59,8 @@ function openInvoicePrint(inv: Invoice, org: OrgDetail) {
   const symbol = org.currency === "INR" ? "₹" : org.currency || "₹";
   const f = (n: number) => fmt(n, symbol);
 
-  const typeLabel: Record<string, string> = { SALES: "TAX INVOICE", PURCHASE: "PURCHASE BILL", CREDIT_NOTE: "CREDIT NOTE", DEBIT_NOTE: "DEBIT NOTE" };
+  const typeLabel: Record<string, string> = {
+  const { t } = useTranslation(); SALES: "TAX INVOICE", PURCHASE: "PURCHASE BILL", CREDIT_NOTE: "CREDIT NOTE", DEBIT_NOTE: "DEBIT NOTE" };
 
   const itemRows = (inv.items || []).map((it, i) => `
     <tr>
@@ -371,7 +373,7 @@ export default function FinancePage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Accounts & Finance</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{ t('page_finance') }</h1>
           <p style={{ fontSize: 13, color: "var(--text-ghost)", marginTop: 2 }}>Invoices, payments, and financial tracking</p>
         </div>
         <div className="hdr-actions">

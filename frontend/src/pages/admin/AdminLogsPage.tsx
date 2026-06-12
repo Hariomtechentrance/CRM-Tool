@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ScrollText, Search } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "28px 32px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -24,6 +25,7 @@ interface Log {
 }
 
 export default function AdminLogsPage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ export default function AdminLogsPage() {
 
   return (
     <div className="page-pad">
-      <h1 style={S.title}>Audit Logs</h1>
+      <h1 style={S.title}>{ t('page_audit') }</h1>
       <p style={S.sub}>Complete history of all actions performed in your organisation</p>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>

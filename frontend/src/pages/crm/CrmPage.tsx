@@ -9,6 +9,7 @@ import { PartyForm } from "@/components/crm/PartyForm";
 import api from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 import type { Party, CrmStats, PartyType } from "@/types";
+import { useTranslation } from 'react-i18next';
 
 const TYPE_TABS: { key: PartyType | "ALL"; label: string }[] = [
   { key: "ALL", label: "All" },
@@ -24,6 +25,7 @@ const TYPE_BADGE: Record<PartyType, { label: string; variant: "blue" | "green" |
 };
 
 export default function CrmPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab]   = useState<PartyType | "ALL">("ALL");
   const [search, setSearch]         = useState("");
@@ -71,7 +73,7 @@ export default function CrmPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">CRM</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{ t('page_crm') }</h1>
           <p className="text-slate-500 text-sm mt-0.5">Manage customers, suppliers and contacts</p>
         </div>
         <div className="flex gap-2">

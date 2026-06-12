@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { Save, Palette, Building2, Image, FileText } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const PRESET_COLORS = [
   "#6366f1","#8b5cf6","#ec4899","#ef4444","#f59e0b","#10b981","#06b6d4","#3b82f6","#1d4ed8","#000000",
@@ -23,6 +24,7 @@ interface BrandingForm {
 }
 
 export default function BrandingPage() {
+  const { t } = useTranslation();
   const [form, setForm]   = useState<BrandingForm>({ logo: "", brandingColor: "#6366f1", invoiceHeader: "", invoiceFooter: "", invoiceNotes: "" });
   const [orgName, setOrgName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -61,7 +63,7 @@ export default function BrandingPage() {
 
   return (
     <div style={S.page}>
-      <h1 style={S.title}>Branding & White-label</h1>
+      <h1 style={S.title}>{ t('page_branding') }</h1>
       <p style={S.sub}>Customise how your platform looks to your team and appears on invoices, documents and emails.</p>
 
       {/* Logo & Color */}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
+import { useTranslation } from 'react-i18next';
 import {
   Phone, Mail, Plus, Search, X, Upload,
   User, Clock, CheckCircle, PhoneCall,
@@ -45,7 +46,8 @@ interface Employee { id: string; name: string; designation?: string; }
 function LogActivityModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({ type: "CALL", subject: "", description: "", outcome: "", callOutcome: "", duration: "", followUpDate: "" });
   const [saving, setSaving] = useState(false);
-  const f = (k: string) => (v: string) => setForm(p => ({ ...p, [k]: v }));
+  const f = (k: string) => (v: string) => setForm(p => ({
+  const { t } = useTranslation(); ...p, [k]: v }));
 
   async function save() {
     if (!form.description.trim()) return;

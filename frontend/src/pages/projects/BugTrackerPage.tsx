@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Bug, Plus, Search, X, MessageSquare, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -37,6 +38,7 @@ interface Project { id: string; name: string; }
 const EMPTY = { title: "", description: "", projectId: "", severity: "MEDIUM", priority: "MEDIUM", stepsToRepro: "", expectedResult: "", actualResult: "", environment: "", assignedToId: "" };
 
 export default function BugTrackerPage() {
+  const { t } = useTranslation();
   const [bugs, setBugs] = useState<BugItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -100,7 +102,7 @@ export default function BugTrackerPage() {
     <div style={S.page}>
       <div style={S.header}>
         <div>
-          <h1 style={S.title}><Bug size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />Bug Tracker</h1>
+          <h1 style={S.title}><Bug size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />{ t('page_bug_tracker') }</h1>
           <p style={S.subtitle}>Track issues, bugs, and defects across all projects</p>
         </div>
         <button style={S.btn} onClick={() => { setShowModal(true); setForm(EMPTY); }}>

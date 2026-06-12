@@ -3,6 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 import { BarChart3, TrendingUp, Package, Users, ShoppingCart, DollarSign, Download, PieChart, Activity, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -78,6 +79,7 @@ function downloadCsv(filename: string, rows: string[][], headers: string[]) {
 }
 
 export default function ReportsPage() {
+  const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const activeOrgId = activeOrg?.id;
 
@@ -180,7 +182,7 @@ export default function ReportsPage() {
     <div className="page-pad">
       <div className="page-hdr">
         <div>
-          <h1 style={S.title}>Reports & Analytics</h1>
+          <h1 style={S.title}>{ t('page_reports') }</h1>
           <p style={S.subtitle}>Business overview, charts, financial summaries and performance metrics</p>
         </div>
       </div>

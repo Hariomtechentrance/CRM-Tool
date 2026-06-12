@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import DocumentsButton from "@/components/DocumentsButton";
 import { ShoppingBag, Plus, Search, X, ChevronDown } from "lucide-react";
 import { kDecimal } from "@/lib/fieldRules";
+import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -33,6 +34,7 @@ interface Party { id: string; name: string; }
 const emptyItem = { description: "", productId: "", quantity: "1", unitPrice: "", taxRate: "18" };
 
 export default function PurchasePage() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<PO[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
