@@ -124,7 +124,7 @@ export default function SuperAdminUsersPage() {
                         <div>
                           <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13, display: "flex", alignItems: "center", gap: 5 }}>
                             {u.name}
-                            {u.isSuperAdmin && <Shield size={11} color="#ef4444" title="Super Admin" />}
+                            {u.isSuperAdmin && <Shield size={11} color="#ef4444" aria-label="Super Admin" />}
                           </div>
                           <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{u.email}</div>
                         </div>
