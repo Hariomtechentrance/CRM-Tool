@@ -24,6 +24,31 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
+// Magic bytes to verify actual file content matches declared MIME type
+// Prevents "image.php.jpg" attacks where a malicious file lies about its type
+const MAGIC_BYTES: Record<string, (buf: Buffer) => boolean> = {
+  "application/pdf":   b => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46,  // %PDF
+  "image/jpeg":        b => b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF,
+  "image/png":         b => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47,  // PNG
+  "image/webp":        b => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50,  // RIFF....WEBP
+  // DOCX, XLSX are ZIP files internally
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":  b => b[0] === 0x50 && b[1] === 0x4B,  // PK
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": b => b[0] === 0x50 && b[1] === 0x4B,
+  // Legacy DOC/XLS: OLE2 compound document
+  "application/msword":        b => b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0,
+  "application/vnd.ms-excel":  b => b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0,
+  // CSV and plain text have no magic bytes — skip check
+  "text/csv":    () => true,
+  "text/plain":  () => true,
+};
+
+function verifyMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  const checker = MAGIC_BYTES[mimeType];
+  if (!checker) return false;        // unknown type — reject
+  if (buffer.length < 12) return false; // too short to be a real file
+  return checker(buffer);
+}
+
 const useCloudinary = !!(
   process.env.CLOUDINARY_CLOUD_NAME &&
   process.env.CLOUDINARY_API_KEY &&
@@ -97,6 +122,11 @@ export async function uploadDocuments(req: OrgRequest, res: Response): Promise<v
     }
 
     const documents = await Promise.all(files.map(async (file) => {
+      // Verify actual file content matches declared MIME type (prevents spoofing)
+      if (!verifyMagicBytes(file.buffer, file.mimetype)) {
+        throw Object.assign(new Error(`File content does not match declared type: ${file.originalname}`), { status: 400 });
+      }
+
       let filePath: string;
       let fileName: string;
 

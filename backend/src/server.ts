@@ -5,6 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
+import hpp from "hpp";
 import { prisma } from "./lib/prisma";
 import { requestTimeout } from "./middleware/requestTimeout";
 import { withCache } from "./middleware/cacheMiddleware";
@@ -13,6 +14,7 @@ import { apiCache } from "./lib/cache";
 import { redis } from "./lib/redisClient";
 import { RedisStore } from "rate-limit-redis";
 import { v4 as uuidv4 } from "uuid";
+import { sanitizeInputs, enforceContentType } from "./middleware/sanitize";
 import authRoutes from "./routes/auth.routes";
 import orgRoutes from "./routes/org.routes";
 import partyRoutes from "./routes/party.routes";
@@ -129,17 +131,56 @@ app.use("/api", (req, res, next) => {
 
 // ── Security headers ─────────────────────────────────────────
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: isProd ? undefined : false,
+  crossOriginResourcePolicy: { policy: "same-origin" },
+  contentSecurityPolicy: isProd ? {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'"],
+      styleSrc:       ["'self'", "'unsafe-inline'"],  // inline styles needed for PDF/email
+      imgSrc:         ["'self'", "data:", "https:"],
+      connectSrc:     ["'self'"],
+      fontSrc:        ["'self'", "https:", "data:"],
+      objectSrc:      ["'none'"],
+      mediaSrc:       ["'none'"],
+      frameSrc:       ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri:        ["'self'"],
+      formAction:     ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  } : false,
   hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   permittedCrossDomainPolicies: { permittedPolicies: "none" },
   noSniff: true,
   frameguard: { action: "deny" },
+  xssFilter: true,
+  hidePoweredBy: true,
 }));
 
-// ── Remove fingerprinting header ──────────────────────────────
+// ── Remove fingerprinting headers ─────────────────────────────
 app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  // Block dangerous browser features via Permissions-Policy
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)"
+  );
+  // Prevent MIME-type sniffing attacks
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // Prevent clickjacking (belt-and-suspenders with frameguard)
+  res.setHeader("X-Frame-Options", "DENY");
+  // Cache-Control: never cache API responses that may contain sensitive data
+  if (_req.path.startsWith("/api/") && _req.method !== "GET") {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+  }
+  // Cross-Origin Opener Policy — isolate browsing context
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  // Cross-Origin Embedder Policy
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  next();
+});
 
 // ── CORS ─────────────────────────────────────────────────────
 const prodOrigins = (process.env.FRONTEND_URL || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -159,7 +200,20 @@ app.use(cors({
 
 // ── Body parsing ─────────────────────────────────────────────
 app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+app.use(express.urlencoded({ extended: false, limit: "2mb" }));  // extended:false prevents prototype pollution
+
+// ── HTTP Parameter Pollution protection ──────────────────────
+// Prevents attacks that send duplicate query params (?role=user&role=admin)
+app.use(hpp({ whitelist: ["tags", "status", "type", "ids"] }));
+
+// ── Input sanitization (XSS + NoSQL injection) ────────────────
+// Strips <script> tags, event handlers, javascript: URIs, null bytes
+// and NoSQL operators ($gt, $where, etc.) from ALL incoming data
+app.use(sanitizeInputs);
+
+// ── Content-Type enforcement ──────────────────────────────────
+// Reject POST/PUT/PATCH that don't declare a proper media type
+app.use("/api", enforceContentType);
 
 // ── Request logging ──────────────────────────────────────────
 app.use(morgan(isProd ? "combined" : "dev"));
@@ -211,11 +265,24 @@ const heavyLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Ultra-strict: 5 attempts per 15 min for OTP/2FA and password reset
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  store: makeRLStore("rl_strict:"),
+  passOnStoreError: true,
+  message: { success: false, message: "Too many attempts. Please wait 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
+
 app.use("/api/auth/login",          authLimiter);
 app.use("/api/auth/register",       authLimiter);
-app.use("/api/auth/forgot-password",authLimiter);
+app.use("/api/auth/forgot-password",strictLimiter);
+app.use("/api/auth/reset-password", strictLimiter);
 app.use("/api/auth/refresh",        authLimiter);
-app.use("/api/auth/reset-password", authLimiter);
+app.use("/api/2fa",                 strictLimiter);
 app.use("/api/gst",                 heavyLimiter);
 app.use("/api",                     apiLimiter);
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import DOMPurify from "dompurify";
 import api from "@/lib/api";
 import {
   Mail, Send, Plus, Search, X, Trash2, RefreshCw,
@@ -320,7 +321,7 @@ function MessageView({ accountId, messageId, onBack, onReply }: { accountId: str
       {/* Body */}
       <div style={{ flex: 1, overflow: "auto", padding: "20px 24px" }}>
         {msg.html
-          ? <div dangerouslySetInnerHTML={{ __html: msg.html }} style={{ fontSize: 14, lineHeight: 1.7, color: "var(--text-primary)" }} />
+          ? <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.html) }} style={{ fontSize: 14, lineHeight: 1.7, color: "var(--text-primary)" }} />
           : <pre style={{ fontFamily: "inherit", whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.7, color: "var(--text-primary)" }}>{msg.text}</pre>}
       </div>
     </div>
