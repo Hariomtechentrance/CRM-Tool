@@ -112,6 +112,7 @@ export default function RegisterPage() {
   // ── Step 1 → send phone OTP ──────────────────────────────────
   async function handleDetails() {
     if (!validate()) return;
+    if (!auth) { setError("Registration is unavailable: Firebase is not configured."); return; }
     setLoading(true); setError("");
     try {
       // Ensure phone has country code
@@ -119,9 +120,9 @@ export default function RegisterPage() {
       setForm(f => ({ ...f, phone }));
 
       if (!verifierRef.current) {
-        verifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current!, { size: "invisible" });
+        verifierRef.current = new RecaptchaVerifier(auth!, recaptchaRef.current!, { size: "invisible" });
       }
-      confirmResultRef.current = await signInWithPhoneNumber(auth, phone, verifierRef.current);
+      confirmResultRef.current = await signInWithPhoneNumber(auth!, phone, verifierRef.current);
       setStep("phone-otp");
       setResendCountdown(60);
     } catch (e: any) {
@@ -135,11 +136,11 @@ export default function RegisterPage() {
   // ── Step 2 → verify OTP → create Firebase email user ────────
   async function handleVerifyOtp() {
     if (otp.length !== 6) { setError("Enter the 6-digit OTP"); return; }
+    if (!auth) { setError("Registration unavailable: Firebase not configured."); return; }
     setLoading(true); setError("");
     try {
       await confirmResultRef.current!.confirm(otp);
-      // Phone verified. Now create Firebase email/password user & send verification
-      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+      const cred = await createUserWithEmailAndPassword(auth!, form.email, form.password);
       await sendEmailVerification(cred.user);
       setStep("email-verify");
       startEmailPolling();
@@ -156,8 +157,8 @@ export default function RegisterPage() {
   function startEmailPolling() {
     setEmailPolling(true);
     emailPollRef.current = setInterval(async () => {
-      await auth.currentUser?.reload();
-      if (auth.currentUser?.emailVerified) {
+      await auth?.currentUser?.reload();
+      if (auth?.currentUser?.emailVerified) {
         clearInterval(emailPollRef.current!);
         setEmailPolling(false);
         await completeRegistration();
@@ -176,31 +177,29 @@ export default function RegisterPage() {
         phone:                form.phone,
         firebaseEmailVerified: true,
       });
-      // Sign the Firebase user out — CRM uses its own JWT session
-      await auth.signOut();
+      await auth?.signOut();
       setStep("done");
     } catch (e: any) {
-      // If backend fails, clean up Firebase user to keep things in sync
-      if (auth.currentUser) await deleteUser(auth.currentUser).catch(() => {});
+      if (auth?.currentUser) await deleteUser(auth.currentUser).catch(() => {});
       setError(getApiError(e));
     }
     setLoading(false);
   }
 
   async function resendOtp() {
-    if (resendCountdown > 0) return;
+    if (resendCountdown > 0 || !auth) return;
     setLoading(true); setError("");
     try {
       verifierRef.current?.clear?.();
-      verifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current!, { size: "invisible" });
-      confirmResultRef.current = await signInWithPhoneNumber(auth, form.phone, verifierRef.current);
+      verifierRef.current = new RecaptchaVerifier(auth!, recaptchaRef.current!, { size: "invisible" });
+      confirmResultRef.current = await signInWithPhoneNumber(auth!, form.phone, verifierRef.current);
       setResendCountdown(60);
     } catch (e: any) { setError(getApiError(e)); }
     setLoading(false);
   }
 
   async function resendVerificationEmail() {
-    if (!auth.currentUser) return;
+    if (!auth?.currentUser) return;
     setLoading(true);
     try { await sendEmailVerification(auth.currentUser); } catch { /* ignore */ }
     setLoading(false);
