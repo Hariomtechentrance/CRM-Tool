@@ -4,3 +4,4 @@ dist/
 generated/
 prisma/generated/
 *.log
+src/scripts/_tmpSA.ts

@@ -46,6 +46,7 @@ import SuperAdminOrgsPage from "@/pages/superAdmin/SuperAdminOrgsPage";
 import SuperAdminUsersPage from "@/pages/superAdmin/SuperAdminUsersPage";
 import SuperAdminLoginPage from "@/pages/superAdmin/SuperAdminLoginPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
+import NotFoundPage from "@/pages/NotFoundPage";
 import EmailPage from "@/pages/email/EmailPage";
 import ActivitiesPage from "@/pages/activities/ActivitiesPage";
 import DealsPage from "@/pages/deals/DealsPage";
@@ -208,7 +209,7 @@ export default function App() {
         </Route>
 
         <Route path="/"  element={<PublicHome />} />
-        <Route path="*"  element={<PublicHome />} />
+        <Route path="*"  element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
     </ShortcutsProvider>

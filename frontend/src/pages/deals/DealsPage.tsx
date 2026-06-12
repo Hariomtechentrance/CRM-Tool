@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Briefcase, Plus, Search, X, TrendingUp, LayoutList, Kanban, Target, DollarSign } from "lucide-react";
 import DocumentsPanel from "@/components/DocumentsPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useTranslation } from 'react-i18next';
 
 const S = {
@@ -50,6 +51,7 @@ export default function DealsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ ...emptyForm });
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -212,7 +214,7 @@ export default function DealsPage() {
                             </div>
                           </td>
                           <td style={S.td}>{d.expectedCloseDate ? new Date(d.expectedCloseDate).toLocaleDateString("en-IN") : "—"}</td>
-                          <td style={S.td}><button onClick={e => { e.stopPropagation(); deleteDeal(d.id); }} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 11, padding: "2px 6px" }}>✕</button></td>
+                          <td style={S.td}><button onClick={e => { e.stopPropagation(); setDeleteId(d.id); }} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 11, padding: "2px 6px" }}>✕</button></td>
                         </tr>
                       );
                     })}
@@ -285,6 +287,17 @@ export default function DealsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteId && (
+        <ConfirmDialog
+          title="Delete Deal"
+          message="This deal and all its data will be permanently deleted. This cannot be undone."
+          confirmLabel="Delete Deal"
+          onConfirm={() => { deleteDeal(deleteId); setDeleteId(null); }}
+          onCancel={() => setDeleteId(null)}
+        />
       )}
     </div>
   );

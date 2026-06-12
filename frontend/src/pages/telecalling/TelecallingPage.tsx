@@ -42,6 +42,7 @@ export default function TelecallingPage() {
   const [dncList, setDncList] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -66,7 +67,8 @@ export default function TelecallingPage() {
       setCallStats(statsRes.data.data);
       setDncList(dRes.data.data || []);
       setCampaigns(campRes.data.data || []);
-    } catch {}
+      setError("");
+    } catch (e: any) { setError(e?.response?.data?.message || "Failed to load data. Please check your connection."); }
     setLoading(false);
   }, []);
 
@@ -136,6 +138,12 @@ export default function TelecallingPage() {
           {tab === "calls" ? "Log Call" : tab === "scripts" ? "Add Script" : tab === "campaigns" ? "New Campaign" : "Add to DNC"}
         </button>
       </div>
+      {error && (
+        <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{error}</span>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 4px" }}>✕</button>
+        </div>
+      )}
 
       {/* TRAI Compliance Banner */}
       <div style={{ background: "#f59e0b12", border: "1px solid #f59e0b30", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>

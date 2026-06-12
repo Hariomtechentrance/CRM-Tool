@@ -40,6 +40,7 @@ export default function HealthPage() {
   const [labReports, setLabReports] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -64,7 +65,8 @@ export default function HealthPage() {
       setPrescriptions(prRes.data.data || []);
       setLabReports(lRes.data.data || []);
       setStats(sRes.data.data);
-    } catch {}
+      setError("");
+    } catch (e: any) { setError(e?.response?.data?.message || "Failed to load data. Please check your connection."); }
     setLoading(false);
   }, [search]);
 
@@ -123,6 +125,12 @@ export default function HealthPage() {
           {tab === "patients" ? "New Patient" : tab === "visits" ? "New Visit" : "New Entry"}
         </button>
       </div>
+      {error && (
+        <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{error}</span>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 4px" }}>✕</button>
+        </div>
+      )}
 
       {stats && (
         <div style={S.kpiGrid}>

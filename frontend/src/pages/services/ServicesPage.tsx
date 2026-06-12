@@ -34,6 +34,7 @@ export default function ServicesPage() {
   const [articles, setArticles] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newMsg, setNewMsg] = useState("");
@@ -55,7 +56,8 @@ export default function ServicesPage() {
       setContracts(conRes.data.data || []);
       setArticles(kbRes.data.data || []);
       setMessages(msgRes.data.data || []);
-    } catch {}
+      setError("");
+    } catch (e: any) { setError(e?.response?.data?.message || "Failed to load data. Please check your connection."); }
     setLoading(false);
   }, []);
 
@@ -119,6 +121,13 @@ export default function ServicesPage() {
           {tab === "catalog" ? "Add Service" : tab === "contracts" ? "New Contract" : "New Article"}
         </button>}
       </div>
+
+      {error && (
+        <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{error}</span>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 4px" }}>✕</button>
+        </div>
+      )}
 
       <div style={S.tabs}>
         <TabBtn id="catalog" label="Service Catalog" icon={Grid} />

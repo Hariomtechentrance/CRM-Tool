@@ -39,6 +39,7 @@ export default function StockMarketPage() {
   const [kycRecords, setKYCRecords] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -63,7 +64,8 @@ export default function StockMarketPage() {
       setPlans(plRes.data.data || []);
       setKYCRecords(kycRes.data.data || []);
       setAlerts(alRes.data.data || []);
-    } catch {}
+      setError("");
+    } catch (e: any) { setError(e?.response?.data?.message || "Failed to load data. Please check your connection."); }
     setLoading(false);
   }, []);
 
@@ -128,6 +130,13 @@ export default function StockMarketPage() {
           </button>
         )}
       </div>
+
+      {error && (
+        <div style={{ background: "#ef444420", border: "1px solid #ef4444", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{error}</span>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 4px" }}>✕</button>
+        </div>
+      )}
 
       {/* SEBI Compliance Disclaimer */}
       <div style={{ background: "#ef444412", border: "1px solid #ef444430", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
