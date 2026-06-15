@@ -66,7 +66,10 @@ class CacheService {
     if (redis?.isReady) {
       try {
         const val = await redis.get(key);
-        if (val !== null) return JSON.parse(val) as T;
+        // Guard against Redis cache-poisoning with malformed JSON (LPDoS / secret-leak vector)
+        if (val !== null) {
+          try { return JSON.parse(val) as T; } catch { /* treat as cache miss */ }
+        }
       } catch (_) { /* fall through to LRU */ }
     }
     return apiCache.get<T>(key);

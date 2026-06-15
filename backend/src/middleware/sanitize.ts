@@ -1,39 +1,73 @@
 import { Request, Response, NextFunction } from "express";
 
-// Patterns that signal injection or XSS attempts
-const SCRIPT_TAG     = /<\/?script\b[^>]*>/gi;
-const DANGEROUS_TAGS = /<\/?(iframe|object|embed|form|base|applet|svg|xml|math)\b[^>]*>/gi;
-const EVENT_HANDLERS = /\bon\w+\s*=/gi;
-const JAVASCRIPT_URI = /javascript\s*:/gi;
-const DATA_URI_HTML  = /data\s*:\s*text\s*\/\s*html/gi;
-const NULL_BYTES     = /\x00/g;
-const NOSQL_OPS      = /^\$|^\./;  // Keys starting with $ or . (MongoDB/NoSQL operators)
+// ── XSS / Content injection ───────────────────────────────────
+const SCRIPT_TAG      = /<\/?script\b[^>]*>/gi;
+const DANGEROUS_TAGS  = /<\/?(iframe|object|embed|form|base|applet|svg|xml|math)\b[^>]*>/gi;
+const EVENT_HANDLERS  = /\bon\w+\s*=/gi;
+const JAVASCRIPT_URI  = /javascript\s*:/gi;
+// Extended data-URI: block html, xml, svg+xml, javascript MIME types
+const DATA_URI_UNSAFE = /data\s*:\s*(?:text\/(?:html|xml|javascript)|image\/svg\+xml|application\/(?:javascript|x-javascript)|[^,\s;]*(?:script|html|xml)[^,\s;]*)/gi;
+const NULL_BYTES      = /\x00/g;
+
+// ── SSTI (Server-Side Template Injection) ─────────────────────
+// Covers Handlebars/Angular {{…}}, EJS/ERB <% … %>, Jinja/Twig {% … %},
+// FreeMarker/Thymeleaf ${…}, Spring-EL/Ruby #{…}, Smarty {$…}
+const SSTI_HANDLEBARS = /\{\{[\s\S]*?\}\}/g;
+const SSTI_EJS        = /<%[\s\S]*?%>/g;
+const SSTI_JINJA      = /\{%[\s\S]*?%\}/g;
+const SSTI_FREEMARKER = /\$\{[^}]*\}/g;
+const SSTI_SPRING_EL  = /#\{[^}]*\}/g;
+
+// ── NoSQL injection ───────────────────────────────────────────
+// Keys starting with $ or . (MongoDB operators)
+const NOSQL_OPS = /^\$|^\./;
+// Prototype-pollution keys — must never appear in user data
+const PROTO_KEYS = /^(__proto__|constructor|prototype)$/;
+
+// ── ReDoS / LPDoS guards ──────────────────────────────────────
+// Hard cap per string field — prevents catastrophic backtracking and
+// resource exhaustion from huge single-field payloads.
+const MAX_STRING_LENGTH = 50_000; // 50 KB per field
+// Hard cap on array length — prevents O(n) blowup in recursive sanitiser
+const MAX_ARRAY_LENGTH = 500;
 
 function sanitizeString(val: string): string {
+  // 1. Truncate first — protects all subsequent regex passes from ReDoS
+  if (val.length > MAX_STRING_LENGTH) val = val.slice(0, MAX_STRING_LENGTH);
+
   return val
-    .replace(NULL_BYTES,     "")        // null byte injection
-    .replace(SCRIPT_TAG,     "")        // <script> tags
-    .replace(DANGEROUS_TAGS, "")        // dangerous HTML tags
-    .replace(EVENT_HANDLERS, "")        // onclick=, onload=, etc.
-    .replace(JAVASCRIPT_URI, "")        // javascript: URIs
-    .replace(DATA_URI_HTML,  "");       // data:text/html URIs
+    .replace(NULL_BYTES,      "")   // null-byte injection
+    .replace(SCRIPT_TAG,      "")   // <script> tags
+    .replace(DANGEROUS_TAGS,  "")   // dangerous HTML elements
+    .replace(EVENT_HANDLERS,  "")   // onclick=, onload=, etc.
+    .replace(JAVASCRIPT_URI,  "")   // javascript: URIs
+    .replace(DATA_URI_UNSAFE, "")   // data:text/html …, data:image/svg+xml …
+    .replace(SSTI_HANDLEBARS, "")   // {{ … }}
+    .replace(SSTI_EJS,        "")   // <% … %>
+    .replace(SSTI_JINJA,      "")   // {% … %}
+    .replace(SSTI_FREEMARKER, "")   // ${ … }
+    .replace(SSTI_SPRING_EL,  "");  // #{ … }
 }
 
 function sanitizeValue(val: unknown, depth = 0): unknown {
-  // Prevent deeply nested payloads from DoS-ing the sanitizer
+  // LPDoS: stop recursing at depth 10
   if (depth > 10) return val;
 
   if (typeof val === "string") return sanitizeString(val);
 
   if (Array.isArray(val)) {
-    return val.map(item => sanitizeValue(item, depth + 1));
+    // LPDoS: truncate oversized arrays before iterating
+    const safe = val.length > MAX_ARRAY_LENGTH ? val.slice(0, MAX_ARRAY_LENGTH) : val;
+    return safe.map(item => sanitizeValue(item, depth + 1));
   }
 
   if (val !== null && typeof val === "object") {
     const result: Record<string, unknown> = {};
     for (const key of Object.keys(val as Record<string, unknown>)) {
-      // Block NoSQL injection operators ($gt, $where, etc.) and path traversal (.)
+      // Block NoSQL injection operators ($gt, $where, …) and path traversal (.)
       if (NOSQL_OPS.test(key)) continue;
+      // Block prototype-pollution keys
+      if (PROTO_KEYS.test(key)) continue;
       result[key] = sanitizeValue((val as Record<string, unknown>)[key], depth + 1);
     }
     return result;
@@ -43,24 +77,25 @@ function sanitizeValue(val: unknown, depth = 0): unknown {
 }
 
 /**
- * Sanitizes req.body and req.query to strip:
- *   - XSS vectors (<script>, event handlers, javascript: URIs)
- *   - Null bytes
- *   - NoSQL injection operators ($gt, $where, etc.)
+ * Sanitizes req.body and req.query, stripping:
+ *   • XSS vectors (<script>, event handlers, javascript: URIs, unsafe data URIs)
+ *   • SSTI patterns (Handlebars, EJS, Jinja, FreeMarker, Spring EL)
+ *   • Null bytes
+ *   • NoSQL injection operators ($gt, $where, …)
+ *   • Prototype-pollution keys (__proto__, constructor, prototype)
+ *   • Truncates strings > 50 KB and arrays > 500 items (ReDoS / LPDoS)
  *
- * This runs BEFORE route handlers so every controller is protected.
- * Note: File uploads (multipart) are skipped — they are handled separately.
+ * Runs BEFORE route handlers so every controller is protected.
+ * File uploads (multipart) are skipped — handled by multer.
  */
 export function sanitizeInputs(req: Request, _res: Response, next: NextFunction): void {
   const ct = req.headers["content-type"] || "";
-  // Skip multipart/form-data (file uploads) — handled by multer
   if (!ct.includes("multipart/form-data")) {
     if (req.body && typeof req.body === "object") {
       req.body = sanitizeValue(req.body);
     }
   }
-  // Always sanitize query params
-  // Express 5 defines req.query as a read-only getter, so use defineProperty to shadow it
+  // Express 5: req.query is a read-only getter — shadow it with an own property
   if (req.query && typeof req.query === "object") {
     Object.defineProperty(req, "query", {
       value: sanitizeValue(req.query) as typeof req.query,
@@ -73,8 +108,7 @@ export function sanitizeInputs(req: Request, _res: Response, next: NextFunction)
 
 /**
  * Validates that POST/PUT/PATCH requests declare application/json.
- * Rejects requests where the Content-Type is missing or wrong type.
- * (multipart and form-urlencoded are explicitly allowed for file uploads)
+ * Allows multipart and form-urlencoded for file uploads.
  */
 export function enforceContentType(req: Request, res: Response, next: NextFunction): void {
   const method = req.method;

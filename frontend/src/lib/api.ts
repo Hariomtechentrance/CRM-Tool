@@ -9,12 +9,15 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// ── Request interceptor — attach access token & org context ─
+// ── Request interceptor — attach access token, org context & replay guard ─
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem("accessToken");
   const orgId = localStorage.getItem("activeOrgId");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   if (orgId) config.headers["x-organization-id"] = orgId;
+  // Replay-attack prevention: server rejects requests whose timestamp
+  // is more than 5 minutes stale, so replayed captures expire quickly.
+  config.headers["x-request-timestamp"] = String(Date.now());
   return config;
 });
 

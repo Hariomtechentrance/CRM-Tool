@@ -15,6 +15,7 @@ import { redis } from "./lib/redisClient";
 import { RedisStore } from "rate-limit-redis";
 import { v4 as uuidv4 } from "uuid";
 import { sanitizeInputs, enforceContentType } from "./middleware/sanitize";
+import { replayGuard } from "./middleware/replayGuard";
 import authRoutes from "./routes/auth.routes";
 import orgRoutes from "./routes/org.routes";
 import partyRoutes from "./routes/party.routes";
@@ -277,12 +278,15 @@ const strictLimiter = rateLimit({
   skipSuccessfulRequests: false,
 });
 
-app.use("/api/auth/login",          authLimiter);
-app.use("/api/auth/register",       authLimiter);
-app.use("/api/auth/forgot-password",strictLimiter);
-app.use("/api/auth/reset-password", strictLimiter);
-app.use("/api/auth/refresh",        authLimiter);
-app.use("/api/2fa",                 strictLimiter);
+// ── Replay-attack guard ───────────────────────────────────────
+// Requires X-Request-Timestamp (Unix ms) within ±5 min of server time
+// on all high-value mutating auth endpoints.
+app.use("/api/auth/login",          replayGuard, authLimiter);
+app.use("/api/auth/register",       replayGuard, authLimiter);
+app.use("/api/auth/forgot-password",replayGuard, strictLimiter);
+app.use("/api/auth/reset-password", replayGuard, strictLimiter);
+app.use("/api/auth/refresh",        replayGuard, authLimiter);
+app.use("/api/2fa",                 replayGuard, strictLimiter);
 app.use("/api/gst",                 heavyLimiter);
 app.use("/api",                     apiLimiter);
 

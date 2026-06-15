@@ -355,6 +355,19 @@ export async function forgotPassword(req: Request, res: Response): Promise<void>
 // One-time bootstrap: makes YOU super admin if no super admin exists yet
 export async function claimSuperAdmin(req: AuthRequest, res: Response): Promise<void> {
   try {
+    // Require a server-side bootstrap token to prevent privilege escalation
+    // by the first user who registers. Set SUPER_ADMIN_BOOTSTRAP_TOKEN in env.
+    const envToken = process.env.SUPER_ADMIN_BOOTSTRAP_TOKEN;
+    if (!envToken) {
+      res.status(503).json({ success: false, message: "Bootstrap not configured on this server." });
+      return;
+    }
+    const provided = (req.body as Record<string, unknown>)?.bootstrapToken;
+    if (typeof provided !== "string" || provided !== envToken) {
+      res.status(403).json({ success: false, message: "Invalid bootstrap token." });
+      return;
+    }
+
     const existingSuperAdmin = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
     if (existingSuperAdmin) {
       res.status(403).json({ success: false, message: "A super admin already exists. Contact them to be granted access." });
