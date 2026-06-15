@@ -79,6 +79,7 @@ import brandingRoutes from "./routes/branding.routes";
 import complianceRoutes from "./routes/compliance.routes";
 import restaurantRoutes from "./routes/restaurant.routes";
 import hotelRoutes from "./routes/hotel.routes";
+import chatbotRoutes from "./routes/chatbot.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -255,6 +256,17 @@ const apiLimiter = rateLimit({
   skip: (req) => req.path === "/api/health" || req.path === "/api/metrics",
 });
 
+// Chat / AI — prevent runaway LLM spend
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  store: makeRLStore("rl_chat:"),
+  passOnStoreError: true,
+  message: { success: false, message: "Too many chat messages. Please wait a moment." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Heavy endpoints — PDF/report generation, exports
 const heavyLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -399,6 +411,7 @@ app.use("/api/branding",      brandingRoutes);
 app.use("/api/compliance",    complianceRoutes);
 app.use("/api/restaurant",    restaurantRoutes);
 app.use("/api/hotel",         hotelRoutes);
+app.use("/api/chatbot",       chatLimiter, chatbotRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {
