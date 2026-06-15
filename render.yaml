@@ -22,6 +22,7 @@ services:
     plan: free
     buildCommand: cd backend && npm install --include=dev && npx prisma generate && (npx prisma migrate resolve --rolled-back 20260607002545_phase1_5_all_sectors 2>/dev/null || true) && (npx prisma migrate resolve --rolled-back 20260607120000_branding_compliance 2>/dev/null || true) && npx prisma migrate deploy && npm run build
     startCommand: node backend/dist/cluster.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production

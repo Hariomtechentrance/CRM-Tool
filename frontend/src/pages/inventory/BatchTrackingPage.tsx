@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Package, Plus, AlertTriangle, X, CalendarDays } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const S = {
   btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 } as React.CSSProperties,
@@ -56,16 +57,21 @@ export default function BatchTrackingPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [bRes, pRes] = await Promise.all([
         api.get(`/batches${tab === "expiring" ? "?expiringSoon=true" : ""}`),
         api.get("/inventory?limit=500"),
       ]);
       setBatches(bRes.data.data);
-      setProducts(pRes.data.data ?? []);
+      setProducts(pRes.data.data?.products ?? []);
+    } catch (e: any) {
+      setLoadError(e?.response?.data?.message || "Failed to load batches.");
     } finally { setLoading(false); }
   }, [tab]);
 
@@ -93,9 +99,9 @@ export default function BatchTrackingPage() {
   };
 
   const deleteBatch = async (id: string) => {
-    if (!confirm("Remove this batch?")) return;
-    await api.delete(`/batches/${id}`);
+    try { await api.delete(`/batches/${id}`); } catch { }
     load();
+    setConfirmDeleteId(null);
   };
 
   const expiringCount = batches.filter(b => b.expiryDate && daysUntil(b.expiryDate) <= 30).length;

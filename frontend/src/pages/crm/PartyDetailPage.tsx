@@ -22,7 +22,7 @@ import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import api from "@/lib/api";
 import { getInitials, getApiError, formatDate } from "@/lib/utils";
 import type { Party, Contact, CommunicationType } from "@/types";
-import { useTranslation } from 'react-i18next';
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // ── Comm type meta ────────────────────────────────────────────
 const COMM_META: Record<CommunicationType, { icon: React.ReactNode; label: string; color: string }> = {
@@ -159,22 +159,21 @@ function PartyTagEditor({ partyId, initialTags, onUpdated }: { partyId: string; 
   };
 
   const add = () => {
-  const { t } = useTranslation();
     const val = input.trim().toLowerCase();
     if (!val || tags.includes(val)) { setInput(""); return; }
     const next = [...tags, val];
     setTags(next); setInput(""); save(next);
   };
 
-  const remove = (t: string) => { const next = tags.filter(x => x !== t); setTags(next); save(next); };
+  const remove = (tag: string) => { const next = tags.filter(x => x !== tag); setTags(next); save(next); };
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-      {tags.map(t => (
-        <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: tagColor(t) + "20", color: tagColor(t) }}>
-          {t}
-          <button onClick={() => remove(t)} className="cursor-pointer" style={{ background: "none", border: "none", color: tagColor(t), padding: 0, lineHeight: 1 }}><XIcon size={10} /></button>
+      {tags.map(tag => (
+        <span key={tag} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: tagColor(tag) + "20", color: tagColor(tag) }}>
+          {tag}
+          <button onClick={() => remove(tag)} className="cursor-pointer" style={{ background: "none", border: "none", color: tagColor(tag), padding: 0, lineHeight: 1 }}><XIcon size={10} /></button>
         </span>
       ))}
       {saving && <span className="text-xs text-slate-400">saving…</span>}
@@ -202,6 +201,7 @@ export default function PartyDetailPage() {
   const [showContact, setShowContact]   = useState(false);
   const [editContact, setEditContact]   = useState<Contact | null>(null);
   const [showComm, setShowComm]         = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "contact" | "comm"; id: string; label: string } | null>(null);
 
   const fetchParty = useCallback(async () => {
     setLoading(true);
@@ -214,16 +214,16 @@ export default function PartyDetailPage() {
 
   useEffect(() => { fetchParty(); }, [fetchParty]);
 
-  const deleteContact = async (contactId: string) => {
-    if (!confirm("Delete this contact?")) return;
-    await api.delete(`/parties/${id}/contacts/${contactId}`);
-    fetchParty();
-  };
-
-  const deleteComm = async (commId: string) => {
-    if (!confirm("Delete this log entry?")) return;
-    await api.delete(`/parties/${id}/communications/${commId}`);
-    fetchParty();
+  const doDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      if (confirmDelete.type === "contact")
+        await api.delete(`/parties/${id}/contacts/${confirmDelete.id}`);
+      else
+        await api.delete(`/parties/${id}/communications/${confirmDelete.id}`);
+      fetchParty();
+    } catch { /* ignore */ }
+    setConfirmDelete(null);
   };
 
   if (loading) return (
@@ -460,7 +460,7 @@ export default function PartyDetailPage() {
                       </div>
                       <div className="flex gap-1">
                         <button onClick={() => { setEditContact(c); setShowContact(true); }} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"><Edit2 className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => deleteContact(c.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setConfirmDelete({ type: "contact", id: c.id, label: c.name })} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -525,7 +525,7 @@ export default function PartyDetailPage() {
                                 <p className="text-xs text-slate-400">{formatDate(comm.createdAt)}</p>
                                 <p className="text-xs text-slate-400">{comm.createdBy.name}</p>
                               </div>
-                              <button onClick={() => deleteComm(comm.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors cursor-pointer mt-0.5">
+                              <button onClick={() => setConfirmDelete({ type: "comm", id: comm.id, label: comm.subject || comm.description.slice(0, 40) })} className="p-1.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors cursor-pointer mt-0.5">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -573,6 +573,16 @@ export default function PartyDetailPage() {
       <PartyForm open={showEdit} onClose={() => setShowEdit(false)} onSaved={() => fetchParty()} party={party} />
       <ContactModal open={showContact} onClose={() => setShowContact(false)} onSaved={fetchParty} partyId={id!} contact={editContact} />
       <CommModal open={showComm} onClose={() => setShowComm(false)} onSaved={fetchParty} partyId={id!} />
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={confirmDelete.type === "contact" ? "Delete Contact" : "Delete Log Entry"}
+          message={`"${confirmDelete.label}" will be permanently deleted.`}
+          confirmLabel="Delete"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuthStore } from "@/stores/authStore";
 import { Copy, Merge, Users, Package, RefreshCw, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import api from "@/lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
+
 
 interface PartyRecord {
   id: string;
@@ -63,7 +63,6 @@ function fieldBadge(field: string) {
 }
 
 function PartyGroupCard({ group, onMerged }: { group: PartyGroup; onMerged: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
   const [expanded, setExpanded] = useState(true);
   const [keepId, setKeepId] = useState(group.parties[0].id);
   const [merging, setMerging] = useState(false);
@@ -73,16 +72,9 @@ function PartyGroupCard({ group, onMerged }: { group: PartyGroup; onMerged: () =
     setMerging(true);
     try {
       const mergeIds = group.parties.filter(p => p.id !== keepId).map(p => p.id);
-      const r = await fetch(`${API}/api/duplicates/parties/merge`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "x-organization-id": activeOrg?.id ?? "",
-        },
-        body: JSON.stringify({ keepId, mergeIds }),
-      });
-      if (r.ok) { setDone(true); setTimeout(onMerged, 800); }
+      await api.post("/duplicates/parties/merge", { keepId, mergeIds });
+      setDone(true);
+      setTimeout(onMerged, 800);
     } finally {
       setMerging(false);
     }
@@ -241,49 +233,46 @@ function ProductGroupCard({ group }: { group: ProductGroup }) {
 
 export default function DuplicatesPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
   const [tab, setTab] = useState<Tab>("parties");
   const [partyGroups, setPartyGroups] = useState<PartyGroup[]>([]);
   const [productGroups, setProductGroups] = useState<ProductGroup[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    "x-organization-id": activeOrg?.id ?? "",
-  };
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const [pr, prod] = await Promise.all([
-        fetch(`${API}/api/duplicates/parties`, { headers }).then(r => r.json()),
-        fetch(`${API}/api/duplicates/products`, { headers }).then(r => r.json()),
+        api.get("/duplicates/parties").then(r => r.data),
+        api.get("/duplicates/products").then(r => r.data),
       ]);
       setPartyGroups(pr.data?.groups ?? []);
       setProductGroups(prod.data?.groups ?? []);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || "Failed to load duplicate data.");
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeOrg?.id]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const tabBtn = (t: Tab, label: string, count: number) => (
+  const tabBtn = (tabId: Tab, label: string, count: number) => (
     <button
-      onClick={() => setTab(t)}
+      onClick={() => setTab(tabId)}
       className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
       style={{
-        background: tab === t ? "#6366f1" : "var(--bg-hover)",
-        color: tab === t ? "#fff" : "var(--text-secondary)",
+        background: tab === tabId ? "#6366f1" : "var(--bg-hover)",
+        color: tab === tabId ? "#fff" : "var(--text-secondary)",
         border: "none", cursor: "pointer",
       }}
     >
       {label}
       {count > 0 && (
         <span style={{
-          background: tab === t ? "#ffffff33" : "#6366f133",
-          color: tab === t ? "#fff" : "#6366f1",
+          background: tab === tabId ? "#ffffff33" : "#6366f133",
+          color: tab === tabId ? "#fff" : "#6366f1",
           borderRadius: 99, padding: "0 6px", fontSize: 11, fontWeight: 700,
         }}>{count}</span>
       )}
@@ -310,6 +299,14 @@ export default function DuplicatesPage() {
           Refresh
         </button>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center justify-between mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }}>
+          <span>{error}</span>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c", fontWeight: 700, marginLeft: 12 }}>✕</button>
+        </div>
+      )}
 
       {/* KPI strip */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>

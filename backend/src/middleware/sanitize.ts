@@ -60,8 +60,13 @@ export function sanitizeInputs(req: Request, _res: Response, next: NextFunction)
     }
   }
   // Always sanitize query params
+  // Express 5 defines req.query as a read-only getter, so use defineProperty to shadow it
   if (req.query && typeof req.query === "object") {
-    req.query = sanitizeValue(req.query) as typeof req.query;
+    Object.defineProperty(req, "query", {
+      value: sanitizeValue(req.query) as typeof req.query,
+      writable: true,
+      configurable: true,
+    });
   }
   next();
 }

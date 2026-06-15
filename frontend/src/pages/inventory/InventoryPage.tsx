@@ -23,7 +23,7 @@ const S = {
 };
 
 interface Summary { totalProducts: number; lowStock: number; outOfStock: number; inventoryValue: number; }
-interface Product { id: string; sku: string; name: string; unit: string; costPrice: number; sellingPrice: number; taxRate: number; currentStock: number; reorderLevel: number; status: string; category?: { name: string } | null; hsnCode?: string; }
+interface Product { id: string; sku: string; name: string; unit: string; costPrice: number; sellingPrice: number; taxRate: number; currentStock: number; reorderLevel: number; status: string; category?: { id: string; name: string } | null; categoryId?: string; hsnCode?: string; }
 interface Category { id: string; name: string; }
 
 const emptyForm = { sku: "", name: "", description: "", unit: "PCS", categoryId: "", costPrice: "", sellingPrice: "", mrp: "", taxRate: "0", hsnCode: "", reorderLevel: "0", barcode: "", notes: "" };
@@ -35,6 +35,7 @@ export default function InventoryPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -47,6 +48,7 @@ export default function InventoryPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [sumRes, prodRes, catRes] = await Promise.all([
         api.get("/inventory/summary"),
@@ -56,7 +58,9 @@ export default function InventoryPage() {
       setSummary(sumRes.data.data);
       setProducts(prodRes.data.data.products);
       setCategories(catRes.data.data);
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      setLoadError(e?.response?.data?.message || "Failed to load inventory.");
+    }
     setLoading(false);
   }, [search]);
 
@@ -97,7 +101,7 @@ export default function InventoryPage() {
 
   const openEdit = (p: Product) => {
     setEditId(p.id);
-    setForm({ sku: p.sku, name: p.name, description: "", unit: p.unit, categoryId: p.category?.name || "", costPrice: String(p.costPrice), sellingPrice: String(p.sellingPrice), mrp: "", taxRate: String(p.taxRate), hsnCode: p.hsnCode || "", reorderLevel: String(p.reorderLevel), barcode: "", notes: "" });
+    setForm({ sku: p.sku, name: p.name, description: "", unit: p.unit, categoryId: p.categoryId || p.category?.id || "", costPrice: String(p.costPrice), sellingPrice: String(p.sellingPrice), mrp: "", taxRate: String(p.taxRate), hsnCode: p.hsnCode || "", reorderLevel: String(p.reorderLevel), barcode: "", notes: "" });
     setShowModal(true);
   };
 
@@ -129,6 +133,14 @@ export default function InventoryPage() {
           </button>
         </div>
       </div>
+
+      {/* Load error banner */}
+      {loadError && (
+        <div className="flex items-center justify-between mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }}>
+          <span>{loadError}</span>
+          <button onClick={() => setLoadError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c", fontWeight: 700, marginLeft: 12 }}>✕</button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="kpi-grid">
