@@ -21,20 +21,22 @@ const ROLE_COLORS: Record<string, string> = {
   STAFF: "#818cf8", ACCOUNTANT: "#10b981", VIEWER: "var(--text-ghost)",
 };
 
-// Department presets — pre-select typical modules for each department
-const DEPT_PRESETS: { label: string; color: string; modules: string[] }[] = [
-  { label: "Stock Inward",  color: "#34D399", modules: ["STORE", "INVENTORY"] },
-  { label: "Stock Outward", color: "#FBBF24", modules: ["DISPATCH", "INVENTORY"] },
-  { label: "Purchase",      color: "#C084FC", modules: ["PURCHASE", "INVENTORY"] },
-  { label: "Accounts",      color: "#F87171", modules: ["ACCOUNTS"] },
-  { label: "HR & Payroll",  color: "#818CF8", modules: ["HR"] },
-  { label: "Warehouse",     color: "#FBBF24", modules: ["WAREHOUSE", "INVENTORY"] },
-  { label: "Sales & CRM",   color: "#818CF8", modules: ["CRM", "DISPATCH", "ACCOUNTS"] },
-  { label: "Marketing",     color: "#F87171", modules: ["MARKETING", "CRM"] },
-  { label: "Support",       color: "#34D399", modules: ["SUPPORT", "CRM"] },
-  { label: "Reports Only",  color: "#818CF8", modules: ["REPORTS"] },
-  { label: "Import/Export", color: "#34D399", modules: ["IMPORT_EXPORT_SUITE", "DISPATCH", "STORE", "INVENTORY", "ACCOUNTS"] },
-  { label: "Full Access",   color: "#6366f1", modules: ALL_MODULES.map((m) => m.key) },
+// Department presets — pre-select typical modules + suggested role for each department
+const DEPT_PRESETS: { label: string; color: string; modules: string[]; role: string }[] = [
+  { label: "HR & Payroll",   color: "#818CF8", role: "MANAGER", modules: ["HR"] },
+  { label: "Stock Inward",   color: "#34D399", role: "STAFF",   modules: ["STORE", "INVENTORY"] },
+  { label: "Stock Outward",  color: "#FBBF24", role: "STAFF",   modules: ["DISPATCH", "INVENTORY"] },
+  { label: "Purchase",       color: "#C084FC", role: "STAFF",   modules: ["PURCHASE", "INVENTORY"] },
+  { label: "Accounts",       color: "#F87171", role: "ACCOUNTANT", modules: ["ACCOUNTS"] },
+  { label: "Warehouse",      color: "#FBBF24", role: "STAFF",   modules: ["WAREHOUSE", "INVENTORY"] },
+  { label: "Sales & CRM",    color: "#6366f1", role: "STAFF",   modules: ["CRM", "DISPATCH", "ACCOUNTS"] },
+  { label: "Marketing",      color: "#F87171", role: "STAFF",   modules: ["MARKETING", "CRM"] },
+  { label: "Support",        color: "#34D399", role: "STAFF",   modules: ["SUPPORT", "CRM"] },
+  { label: "Projects / IT",  color: "#8b5cf6", role: "STAFF",   modules: ["PROJECTS"] },
+  { label: "Telecalling",    color: "#06b6d4", role: "STAFF",   modules: ["MARKETING", "CRM"] },
+  { label: "Import/Export",  color: "#34D399", role: "STAFF",   modules: ["IMPORT_EXPORT_SUITE", "DISPATCH", "STORE", "INVENTORY", "ACCOUNTS"] },
+  { label: "Reports Only",   color: "#818CF8", role: "VIEWER",  modules: ["REPORTS"] },
+  { label: "Full Access",    color: "#6366f1", role: "ADMIN",   modules: ALL_MODULES.map((m) => m.key) },
 ];
 
 const MODULE_GROUPS = [
@@ -105,7 +107,11 @@ export default function AdminTeamPage() {
     } catch { /* ignore */ }
   };
 
-  const applyPreset = (modules: string[]) => { setSelectedModules(modules); setInviteMsg(""); };
+  const applyPreset = (preset: { modules: string[]; role: string }) => {
+    setSelectedModules(preset.modules);
+    setInviteRole(preset.role);
+    setInviteMsg("");
+  };
   const toggleModule = (key: string) => {
     setSelectedModules((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
     setInviteMsg("");
@@ -300,12 +306,38 @@ export default function AdminTeamPage() {
                   <div>
                     <label style={S.label}>Role</label>
                     <select style={{ ...S.select, width: "100%" }} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                      <option value="ADMIN">Admin (full access)</option>
-                      <option value="MANAGER">Manager</option>
-                      <option value="STAFF">Staff</option>
-                      <option value="ACCOUNTANT">Accountant</option>
-                      <option value="VIEWER">Viewer (read-only)</option>
+                      <optgroup label="── Management ──────────────────">
+                        <option value="ADMIN">Admin — Full org access</option>
+                        <option value="MANAGER">Manager — Department head / HR Manager</option>
+                      </optgroup>
+                      <optgroup label="── Department Staff ─────────────">
+                        <option value="STAFF">HR Executive / HR Staff</option>
+                        <option value="STAFF">Sales Executive / BDE</option>
+                        <option value="STAFF">Purchase Officer / Procurement</option>
+                        <option value="STAFF">Inventory / Store In-charge</option>
+                        <option value="STAFF">Dispatch / Logistics Executive</option>
+                        <option value="STAFF">Warehouse Staff</option>
+                        <option value="STAFF">Marketing Executive</option>
+                        <option value="STAFF">Customer Support Executive</option>
+                        <option value="STAFF">Operations Staff</option>
+                        <option value="STAFF">Field Sales / Telecalling</option>
+                        <option value="STAFF">Import-Export Executive</option>
+                        <option value="STAFF">IT / Software Developer</option>
+                        <option value="STAFF">Project Coordinator</option>
+                        <option value="STAFF">Restaurant / Hotel Staff</option>
+                      </optgroup>
+                      <optgroup label="── Finance ───────────────────────">
+                        <option value="ACCOUNTANT">Accountant / Finance Staff</option>
+                        <option value="ACCOUNTANT">GST / Tax Executive</option>
+                        <option value="ACCOUNTANT">Billing / Invoice Staff</option>
+                      </optgroup>
+                      <optgroup label="── Read-Only Access ──────────────">
+                        <option value="VIEWER">Viewer — Read only</option>
+                      </optgroup>
                     </select>
+                    <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 5 }}>
+                      All "Department Staff" map to <strong>STAFF</strong> role. Finance options map to <strong>ACCOUNTANT</strong>. Use Module Access below to control exactly what each person sees.
+                    </p>
                   </div>
                 </div>
 
@@ -320,7 +352,7 @@ export default function AdminTeamPage() {
                       const isActive = preset.modules.length === selectedModules.length &&
                         preset.modules.every((m) => selectedModules.includes(m));
                       return (
-                        <button key={preset.label} onClick={() => applyPreset(preset.modules)} style={{
+                        <button key={preset.label} onClick={() => applyPreset(preset)} style={{
                           padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
                           border: `1px solid ${isActive ? preset.color : "var(--border)"}`,
                           background: isActive ? preset.color + "20" : "var(--bg-hover)",
@@ -328,6 +360,7 @@ export default function AdminTeamPage() {
                           display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
                         }}>
                           {preset.label}
+                          <span style={{ fontSize: 10, opacity: 0.75 }}>({preset.role})</span>
                           {isActive && <Check size={11} />}
                         </button>
                       );

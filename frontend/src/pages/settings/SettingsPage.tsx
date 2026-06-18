@@ -363,8 +363,29 @@ export default function SettingsPage() {
                   </div>
                   <div><label style={S.label}>Role</label>
                     <select style={S.select} value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
-                      {["OWNER", "ADMIN", "MANAGER", "ACCOUNTANT", "STAFF", "VIEWER"].map(r => <option key={r} value={r}>{r}</option>)}
+                      <optgroup label="── Management ──────────────">
+                        <option value="ADMIN">Admin — Full org access</option>
+                        <option value="MANAGER">Manager — Department head</option>
+                      </optgroup>
+                      <optgroup label="── Department Staff ─────────">
+                        <option value="STAFF">HR Executive / HR Staff</option>
+                        <option value="STAFF">Sales Executive</option>
+                        <option value="STAFF">Purchase Officer</option>
+                        <option value="STAFF">Inventory / Store Staff</option>
+                        <option value="STAFF">Dispatch / Logistics Staff</option>
+                        <option value="STAFF">Marketing Executive</option>
+                        <option value="STAFF">Support Executive</option>
+                        <option value="STAFF">Operations Staff</option>
+                        <option value="STAFF">Field Sales / Telecalling</option>
+                        <option value="ACCOUNTANT">Accountant / Finance Staff</option>
+                      </optgroup>
+                      <optgroup label="── Read-Only Access ─────────">
+                        <option value="VIEWER">Viewer — Read only</option>
+                      </optgroup>
                     </select>
+                    <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4, margin: "4px 0 0" }}>
+                      Role controls access level. Module access is set separately in Admin → Team.
+                    </p>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
