@@ -97,7 +97,7 @@ function contactAutoReplyTemplate(name: string): string {
 export async function submitContactRequest(req: Request, res: Response) {
   const parsed = contactSchema.safeParse(req.body);
   if (!parsed.success) {
-    return badRequest(res, parsed.error.errors[0].message);
+    return badRequest(res, parsed.error.issues[0].message);
   }
 
   const data = parsed.data;
