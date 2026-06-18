@@ -46,7 +46,8 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [claimingAdmin, setClaimingAdmin] = useState(false);
   const [claimMsg, setClaimMsg] = useState("");
-  const [claimSuccess, setClaimSuccess] = useState(false);
+  // Persist claim state in localStorage so banner stays hidden after page reload
+  const [claimSuccess, setClaimSuccess] = useState(() => localStorage.getItem("orgAdminClaimed") === "1");
   const [tab, setTab] = useState<Tab>("organization");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -147,12 +148,21 @@ export default function SettingsPage() {
     setClaimingAdmin(true);
     setClaimMsg("");
     try {
-      const r = await api.post("/auth/claim-super-admin");
+      // Pass empty object so axios sets Content-Type: application/json
+      const r = await api.post("/auth/claim-super-admin", {});
       setClaimMsg(r.data.message || "You are now the Admin. Logging out to refresh session…");
+      // Persist so banner stays hidden after reload
+      localStorage.setItem("orgAdminClaimed", "1");
       setClaimSuccess(true);
       setTimeout(async () => { await logout(); navigate("/login"); }, 2500);
     } catch (e: any) {
-      setClaimMsg(e?.response?.data?.message || "Failed. An admin may already exist for this organisation.");
+      const msg = e?.response?.data?.message || "Failed. An admin may already exist for this organisation.";
+      setClaimMsg(msg);
+      // If an admin already exists, hide the banner — it's no longer needed
+      if (e?.response?.status === 403) {
+        localStorage.setItem("orgAdminClaimed", "1");
+        setClaimSuccess(true);
+      }
     }
     setClaimingAdmin(false);
   };
