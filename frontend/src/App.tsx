@@ -3,7 +3,6 @@ import AppLayout from "@/components/layout/AppLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import AccessGate from "@/components/AccessGate";
 import LoginPage from "@/pages/auth/LoginPage";
-import RegisterPage from "@/pages/auth/RegisterPage";
 import CreateOrgPage from "@/pages/auth/CreateOrgPage";
 import AcceptInvitePage from "@/pages/auth/AcceptInvitePage";
 import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
@@ -107,7 +106,7 @@ export default function App() {
         <Route path="/public/project/:token" element={<PublicProjectPage />} />
         <Route path="/forms/:id"             element={<LeadCaptureFormPage />} />
         <Route path="/login"          element={<LoginPage />} />
-        <Route path="/register"       element={<RegisterPage />} />
+        <Route path="/register"       element={<Navigate to="/login" replace />} />
         <Route path="/create-org"     element={<CreateOrgPage />} />
         <Route path="/accept-invite"   element={<AcceptInvitePage />} />
         <Route path="/verify-email"    element={<VerifyEmailPage />} />

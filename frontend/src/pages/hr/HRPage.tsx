@@ -77,6 +77,9 @@ const errMsg = (e: unknown) => (e as {response?:{data?:{message?:string}}})?.res
 const empEmpty = { employeeCode:"", name:"", email:"", phone:"", designation:"", department:"", employmentType:"FULL_TIME", joiningDate:"", salaryType:"MONTHLY", basicSalary:"", dailyRate:"", hra:"0", allowances:"0", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" };
 const attEmpty = { employeeId:"", date:now.toISOString().slice(0,10), status:"PRESENT", checkIn:"", checkOut:"", notes:"" };
 const payEmpty = { employeeId:"", month:String(now.getMonth()+1), year:String(now.getFullYear()), workingDays:"26", presentDays:"", hra:"0", allowances:"0", deductions:"0" };
+
+// HR settings defaults — override from org settings
+const HR_DEFAULTS = { defaultWorkingDays: 26, enableHRA: true, enableAllowances: true, enablePF: true, enableESI: true };
 const leaveEmpty = { employeeId:"", leaveType:"Annual", fromDate:"", toDate:"", reason:"" };
 const shiftEmpty = { name:"", startTime:"09:00", endTime:"18:00", workingHours:"8", graceMins:"0" };
 const balanceEmpty = { employeeId:"", year:String(now.getFullYear()), leaveType:"Annual", allocated:"12", carried:"0" };
@@ -93,6 +96,9 @@ export default function HRPage() {
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Org-level HR settings (loaded once)
+  const [orgHR, setOrgHR] = useState({ ...HR_DEFAULTS });
 
   // Employee
   const [showEmpModal, setShowEmpModal] = useState(false);
@@ -164,14 +170,23 @@ export default function HRPage() {
   const loadBase = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, empRes, shiftRes] = await Promise.all([
+      const [sumRes, empRes, shiftRes, orgRes] = await Promise.all([
         api.get("/hr/summary"),
         api.get(`/hr?search=${search}&limit=200`),
         api.get("/hr/shifts"),
+        api.get("/organizations/current"),
       ]);
       setSummary(sumRes.data.data);
       setEmployees(empRes.data.data.employees || []);
       setShifts(shiftRes.data.data || []);
+      const hs = orgRes.data.data?.hrSettings;
+      if (hs) {
+        const merged = { ...HR_DEFAULTS, ...hs };
+        setOrgHR(merged);
+        // Seed default working days into both payroll forms
+        setPayForm(p => ({ ...p, workingDays: String(merged.defaultWorkingDays) }));
+        setAutoPayForm(p => ({ ...p, workingDays: String(merged.defaultWorkingDays) }));
+      }
     } catch { /* ignore */ }
     setLoading(false);
   }, [search]);
@@ -402,7 +417,7 @@ export default function HRPage() {
         <div style={{display:"flex",gap:8}}>
           {tab==="employees" && <button style={S.btn} onClick={openAdd}><Plus size={15}/> Add Employee</button>}
           {tab==="attendance" && <button style={S.btn} onClick={()=>{setAttForm({...attEmpty});setError("");setShowAttModal(true);}}><Plus size={15}/> Mark Attendance</button>}
-          {tab==="payroll" && <button style={S.btn} onClick={()=>{setPayForm({...payEmpty});setError("");setShowPayModal(true);}}><Plus size={15}/> Generate Payroll</button>}
+          {tab==="payroll" && <button style={S.btn} onClick={()=>{setPayForm({...payEmpty,workingDays:String(orgHR.defaultWorkingDays)});setError("");setShowPayModal(true);}}><Plus size={15}/> Generate Payroll</button>}
           {tab==="leaves" && leaveSubTab==="requests" && <button style={S.btn} onClick={()=>{setLeaveForm({...leaveEmpty});setError("");setShowLeaveModal(true);}}><Plus size={15}/> Apply Leave</button>}
           {tab==="leaves" && leaveSubTab==="balances" && <button style={S.btn} onClick={()=>{setLbForm({...balanceEmpty});setError("");setShowLbModal(true);}}><Plus size={15}/> Allocate Balance</button>}
           {tab==="performance" && perfSubTab==="goals" && <button style={S.btn} onClick={()=>{setEditGoalId(null);setGoalForm({...goalEmpty});setError("");setShowGoalModal(true);}}><Plus size={15}/> Add Goal</button>}
@@ -569,13 +584,18 @@ export default function HRPage() {
             <select style={S.fSel} value={payMonth} onChange={e=>setPayMonth(parseInt(e.target.value))}>{MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
             <select style={S.fSel} value={payYear} onChange={e=>setPayYear(parseInt(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>
             <span style={{fontSize:12,color:"var(--text-ghost)"}}>{payrolls.length} payslips · Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))}</span>
-            <button onClick={()=>{setAutoPayForm({month:String(payMonth),year:String(payYear),workingDays:"26"});setAutoPayResult(null);setShowAutoPayModal(true);}} style={{...S.btn,marginLeft:"auto",background:"linear-gradient(135deg,#10b981,#059669)",fontSize:12,padding:"6px 14px"}}>
+            <button onClick={()=>{setAutoPayForm({month:String(payMonth),year:String(payYear),workingDays:String(orgHR.defaultWorkingDays)});setAutoPayResult(null);setShowAutoPayModal(true);}} style={{...S.btn,marginLeft:"auto",background:"linear-gradient(135deg,#10b981,#059669)",fontSize:12,padding:"6px 14px"}}>
               Auto-Generate All
             </button>
           </div>
           {payLoading ? <div style={S.empty}>Loading...</div> : (
             <div className="table-wrap"><table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead><tr>{["Employee","Days","Basic","HRA+Allow","PF+ESI","Net Salary","Status",""].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}</tr></thead>
+              <thead><tr>
+                {["Employee","Days","Basic",
+                  ...(orgHR.enableHRA||orgHR.enableAllowances ? ["HRA+Allow"] : []),
+                  ...(orgHR.enablePF||orgHR.enableESI ? ["PF+ESI"] : []),
+                  "Net Salary","Status",""].map(h=><th key={h} style={{...S.th,whiteSpace:"nowrap" as const}}>{h}</th>)}
+              </tr></thead>
               <tbody>
                 {payrolls.length===0
                   ? <tr><td colSpan={8} style={S.empty}>No payrolls. Click "Auto-Generate All" to compute from attendance.</td></tr>
@@ -584,8 +604,8 @@ export default function HRPage() {
                       <td style={{...S.td,color:"var(--text-primary)",fontWeight:500}}><div>{p.employee.name}</div><div style={{fontSize:11,color:"var(--text-ghost)"}}>{p.employee.employeeCode}{p.employee.designation?` · ${p.employee.designation}`:""}</div></td>
                       <td style={S.td}>{p.presentDays}/{p.workingDays}</td>
                       <td style={S.td}>{fmt(p.basicSalary)}</td>
-                      <td style={{...S.td,color:"#10b981"}}>{fmt(p.hra+p.allowances)}</td>
-                      <td style={{...S.td,color:"#ef4444"}}>{fmt(p.pfDeduction+p.esiDeduction)}</td>
+                      {(orgHR.enableHRA||orgHR.enableAllowances) && <td style={{...S.td,color:"#10b981"}}>{fmt(p.hra+p.allowances)}</td>}
+                      {(orgHR.enablePF||orgHR.enableESI) && <td style={{...S.td,color:"#ef4444"}}>{fmt(p.pfDeduction+p.esiDeduction)}</td>}
                       <td style={{...S.td,color:"var(--text-primary)",fontWeight:700}}>{fmt(p.netSalary)}</td>
                       <td style={S.td}>{p.isPaid?<Badge text="PAID" color="#10b981"/>:<Badge text="PENDING" color="#f59e0b"/>}</td>
                       <td style={S.td}>
@@ -839,11 +859,23 @@ export default function HRPage() {
                     : <div><label style={S.label}>Daily Rate (₹/day)</label><input type="number" style={S.input} value={empForm.dailyRate} onChange={e=>ef("dailyRate",e.target.value)} onKeyDown={kDecimal}/></div>
                   }
                 </div>
-                <div className="grid-r2">
-                  <div><label style={S.label}>HRA (₹/month)</label><input type="number" style={S.input} value={empForm.hra} onChange={e=>ef("hra",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
-                  <div><label style={S.label}>Other Allowances (₹/month)</label><input type="number" style={S.input} value={empForm.allowances} onChange={e=>ef("allowances",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
-                </div>
-                <div style={{marginTop:8,fontSize:11,color:"var(--text-ghost)"}}>PF (12% basic) and ESI (0.75% if gross ≤ ₹21,000) are auto-deducted during payroll.</div>
+                {(orgHR.enableHRA || orgHR.enableAllowances) && (
+                  <div className="grid-r2">
+                    {orgHR.enableHRA && (
+                      <div><label style={S.label}>HRA (₹/month)</label><input type="number" style={S.input} value={empForm.hra} onChange={e=>ef("hra",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
+                    )}
+                    {orgHR.enableAllowances && (
+                      <div><label style={S.label}>Other Allowances (₹/month)</label><input type="number" style={S.input} value={empForm.allowances} onChange={e=>ef("allowances",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
+                    )}
+                  </div>
+                )}
+                {(orgHR.enablePF || orgHR.enableESI) ? (
+                  <div style={{marginTop:8,fontSize:11,color:"var(--text-ghost)"}}>
+                    {[orgHR.enablePF && "PF (12% basic)", orgHR.enableESI && "ESI (0.75% if gross ≤ ₹21,000)"].filter(Boolean).join(" and ")} {orgHR.enablePF||orgHR.enableESI?"are auto-deducted during payroll.":""}
+                  </div>
+                ) : (
+                  <div style={{marginTop:8,fontSize:11,color:"var(--text-ghost)"}}>PF and ESI deductions are disabled for this organisation.</div>
+                )}
               </div>
               <div className="grid-r2">
                 <div><label style={S.label}>PAN Number</label><input style={S.input} value={empForm.panNumber} onChange={e=>ef("panNumber",e.target.value.toUpperCase())} placeholder="ABCDE1234F" onKeyDown={kAlphaNum} maxLength={10}/></div>
@@ -909,14 +941,28 @@ export default function HRPage() {
                 <div><label style={S.label}>Month *</label><select style={S.select} value={payForm.month} onChange={e=>pf("month",e.target.value)}>{MONTHS.map((m,i)=><option key={i} value={String(i+1)}>{m}</option>)}</select></div>
                 <div><label style={S.label}>Year *</label><select style={S.select} value={payForm.year} onChange={e=>pf("year",e.target.value)}>{years.map(y=><option key={y} value={String(y)}>{y}</option>)}</select></div>
               </div>
-              <div className="grid-r2">
-                <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={payForm.workingDays} onChange={e=>pf("workingDays",e.target.value)}/></div>
-                <div><label style={S.label}>Days Present *</label><input type="number" style={S.input} value={payForm.presentDays} onChange={e=>pf("presentDays",e.target.value)}/></div>
+              {/* Working days — pill selector */}
+              <div>
+                <label style={S.label}>Working Days</label>
+                <div style={{display:"flex",gap:8}}>
+                  {[26,30,31].map(d=>(
+                    <button key={d} type="button" onClick={()=>pf("workingDays",String(d))}
+                      style={{padding:"7px 18px",borderRadius:8,border:"1px solid",cursor:"pointer",fontWeight:700,fontSize:13,
+                        borderColor:payForm.workingDays===String(d)?"#6366f1":"var(--border-input)",
+                        background:payForm.workingDays===String(d)?"#6366f120":"var(--bg-hover)",
+                        color:payForm.workingDays===String(d)?"#818cf8":"var(--text-sec)"}}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="grid-r2">
-                <div><label style={S.label}>HRA (₹)</label><input type="number" style={S.input} value={payForm.hra} onChange={e=>pf("hra",e.target.value)}/></div>
-                <div><label style={S.label}>Allowances (₹)</label><input type="number" style={S.input} value={payForm.allowances} onChange={e=>pf("allowances",e.target.value)}/></div>
-              </div>
+              <div><label style={S.label}>Days Present *</label><input type="number" style={S.input} value={payForm.presentDays} onChange={e=>pf("presentDays",e.target.value)} placeholder="e.g. 24"/></div>
+              {(orgHR.enableHRA||orgHR.enableAllowances) && (
+                <div className="grid-r2">
+                  {orgHR.enableHRA && <div><label style={S.label}>HRA Override (₹)</label><input type="number" style={S.input} value={payForm.hra} onChange={e=>pf("hra",e.target.value)}/></div>}
+                  {orgHR.enableAllowances && <div><label style={S.label}>Allowances Override (₹)</label><input type="number" style={S.input} value={payForm.allowances} onChange={e=>pf("allowances",e.target.value)}/></div>}
+                </div>
+              )}
               <div><label style={S.label}>Other Deductions (₹)</label><input type="number" style={S.input} value={payForm.deductions} onChange={e=>pf("deductions",e.target.value)}/></div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
@@ -938,7 +984,9 @@ export default function HRPage() {
             {!autoPayResult ? (
               <>
                 <div style={{background:"var(--bg-hover)",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#818CF8"}}>
-                  Calculates salary for <strong style={{color:"var(--text-primary)"}}>all active employees</strong> based on attendance. PF, ESI, and prorated components are computed automatically.
+                  Calculates salary for <strong style={{color:"var(--text-primary)"}}>all active employees</strong> based on attendance.
+                  {(orgHR.enablePF||orgHR.enableESI) && <> {[orgHR.enablePF&&"PF",orgHR.enableESI&&"ESI"].filter(Boolean).join(" & ")} auto-deducted.</>}
+                  {(!orgHR.enablePF&&!orgHR.enableESI) && <> No statutory deductions (PF/ESI disabled in HR Settings).</>}
                 </div>
                 {error&&<div style={S.err}>{error}</div>}
                 <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -946,7 +994,25 @@ export default function HRPage() {
                     <div><label style={S.label}>Month *</label><select style={S.select} value={autoPayForm.month} onChange={e=>setAutoPayForm(p=>({...p,month:e.target.value}))}>{MONTHS.map((m,i)=><option key={i} value={String(i+1)}>{m}</option>)}</select></div>
                     <div><label style={S.label}>Year *</label><select style={S.select} value={autoPayForm.year} onChange={e=>setAutoPayForm(p=>({...p,year:e.target.value}))}>{years.map(y=><option key={y} value={String(y)}>{y}</option>)}</select></div>
                   </div>
-                  <div><label style={S.label}>Working Days</label><input type="number" style={S.input} value={autoPayForm.workingDays} onChange={e=>setAutoPayForm(p=>({...p,workingDays:e.target.value}))}/></div>
+                  {/* Working days — pill selector */}
+                  <div>
+                    <label style={S.label}>Working Days (month basis)</label>
+                    <div style={{display:"flex",gap:8}}>
+                      {[26,30,31].map(d=>(
+                        <button key={d} type="button" onClick={()=>setAutoPayForm(p=>({...p,workingDays:String(d)}))}
+                          style={{padding:"7px 18px",borderRadius:8,border:"1px solid",cursor:"pointer",fontWeight:700,fontSize:13,
+                            borderColor:autoPayForm.workingDays===String(d)?"#10b981":"var(--border-input)",
+                            background:autoPayForm.workingDays===String(d)?"#10b98120":"var(--bg-hover)",
+                            color:autoPayForm.workingDays===String(d)?"#10b981":"var(--text-sec)"}}>
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{fontSize:11,color:"var(--text-ghost)",marginTop:6}}>
+                      Net = Basic ÷ {autoPayForm.workingDays} × Days Present{orgHR.enableHRA?" + HRA":""}{orgHR.enableAllowances?" + Allowances":""}
+                      {orgHR.enablePF?" − PF 12%":""}{orgHR.enableESI?" − ESI 0.75%":""}
+                    </div>
+                  </div>
                 </div>
                 <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>
                   <button onClick={()=>setShowAutoPayModal(false)} style={{...S.btn,background:"var(--border)",color:"var(--text-sec)"}}>Cancel</button>

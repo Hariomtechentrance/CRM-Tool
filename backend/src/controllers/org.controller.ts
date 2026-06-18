@@ -80,7 +80,10 @@ export async function getOrganization(req: OrgRequest, res: Response): Promise<v
         },
       },
     });
-    ok(res, org);
+    if (!org) { notFound(res, "Organization not found"); return; }
+    // Extract hrSettings from complianceConfig for the frontend
+    const cfg = (org.complianceConfig as Record<string, any>) ?? {};
+    ok(res, { ...org, hrSettings: cfg.hrSettings ?? null });
   } catch (err) {
     serverError(res, err);
   }
@@ -92,11 +95,29 @@ export async function updateOrganization(req: OrgRequest, res: Response): Promis
     if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
       forbidden(res, "Only Owner or Admin can update organization"); return;
     }
-    const parsed = updateOrgSchema.safeParse(req.body);
+
+    // Extract hrSettings separately — stored in complianceConfig JSON field
+    const { hrSettings, ...rest } = req.body as Record<string, any>;
+
+    const parsed = updateOrgSchema.safeParse(rest);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
 
-    const org = await prisma.organization.update({ where: { id: req.organizationId }, data: parsed.data });
-    ok(res, org, "Organization updated");
+    // Merge hrSettings into existing complianceConfig
+    let updateData: Record<string, any> = { ...parsed.data };
+    if (hrSettings !== undefined) {
+      const existing = await prisma.organization.findUnique({
+        where: { id: req.organizationId },
+        select: { complianceConfig: true },
+      });
+      const existingConfig = (existing?.complianceConfig as Record<string, any>) ?? {};
+      updateData.complianceConfig = { ...existingConfig, hrSettings };
+    }
+
+    const org = await prisma.organization.update({ where: { id: req.organizationId }, data: updateData });
+
+    // Return hrSettings extracted from complianceConfig for convenience
+    const cfg = (org.complianceConfig as Record<string, any>) ?? {};
+    ok(res, { ...org, hrSettings: cfg.hrSettings ?? null }, "Organization updated");
   } catch (err) {
     serverError(res, err);
   }

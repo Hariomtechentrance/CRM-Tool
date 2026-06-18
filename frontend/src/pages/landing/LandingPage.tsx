@@ -6,6 +6,7 @@ import {
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
   ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon, Check, Zap,
 } from "lucide-react";
+import ContactModal from "@/components/ContactModal";
 
 const PLANS = [
   {
@@ -130,20 +131,23 @@ const WHY = [
 ];
 
 const STEPS = [
-  { n: "01", title: "Register & Create Your Org",    desc: "Sign up free, create your organisation and invite your team in under 2 minutes." },
+  { n: "01", title: "Admin Creates Your Account",    desc: "Your organisation admin creates your user account and invites you to the platform." },
   { n: "02", title: "Enable the Modules You Need",   desc: "Turn on only the features relevant to your business — CRM, HR, inventory or all of them." },
   { n: "03", title: "Start Working",                  desc: "Add parties, products, employees and let FlowCRM handle the calculations, alerts and reports." },
 ];
 
 export default function LandingPage() {
   const navigate  = useNavigate();
-  const [filter, setFilter]     = useState("All");
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [filter, setFilter]           = useState("All");
+  const [expanded, setExpanded]       = useState<string | null>(null);
+  const [showContact, setShowContact] = useState(false);
 
   const filtered = filter === "All" ? MODULES : MODULES.filter(m => m.tag === filter);
 
   return (
     <div style={{ background: "var(--bg-main)", minHeight: "100vh", color: "var(--text-primary)", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+
+      {showContact && <ContactModal onClose={() => setShowContact(false)} />}
 
       {/* ── Navbar ── */}
       <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "var(--bg-card)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)", padding: "0 clamp(16px,4vw,64px)", display: "flex", alignItems: "center", height: 60, gap: 16 }}>
@@ -163,8 +167,8 @@ export default function LandingPage() {
           <button onClick={() => navigate("/login")} style={{ padding: "8px 18px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             Login
           </button>
-          <button onClick={() => navigate("/register")} style={{ padding: "8px 18px", borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-            Get Started Free
+          <button onClick={() => setShowContact(true)} style={{ padding: "8px 18px", borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            Request Access
           </button>
         </div>
       </nav>
@@ -182,8 +186,8 @@ export default function LandingPage() {
           CRM, Inventory, HR &amp; Payroll, Finance, Projects, Import-Export and more — all integrated, all GST-compliant, built for India.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => navigate("/register")} style={{ padding: "13px 30px", borderRadius: 8, background: "#6366f1", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            Start for Free <ChevronRight size={16} />
+          <button onClick={() => setShowContact(true)} style={{ padding: "13px 30px", borderRadius: 8, background: "#6366f1", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            Request Access <ChevronRight size={16} />
           </button>
           <button onClick={() => navigate("/login")} style={{ padding: "13px 30px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             Sign In
@@ -266,10 +270,10 @@ export default function LandingPage() {
                       ))}
                     </ul>
                     <button
-                      onClick={e => { e.stopPropagation(); navigate("/register"); }}
+                      onClick={e => { e.stopPropagation(); setShowContact(true); }}
                       style={{ marginTop: 14, width: "100%", padding: "9px 0", borderRadius: 7, background: mod.color, border: "none", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
                     >
-                      Use {mod.name}
+                      Request Access to {mod.name}
                     </button>
                   </div>
                 )}
@@ -388,7 +392,7 @@ export default function LandingPage() {
 
                 {/* CTA */}
                 <button
-                  onClick={() => navigate(plan.key === "CUSTOM" ? "#pricing" : "/register")}
+                  onClick={() => setShowContact(true)}
                   style={{
                     width: "100%", padding: "11px 0", borderRadius: 8, fontSize: 13, fontWeight: 700,
                     cursor: "pointer", transition: "opacity 0.15s", fontFamily: "inherit",
@@ -417,11 +421,11 @@ export default function LandingPage() {
           Ready to streamline your business?
         </h2>
         <p style={{ color: "var(--text-faint)", fontSize: 15, marginBottom: 32 }}>
-          Free to start. No credit card required.
+          Contact us to get your organisation set up and onboard your team.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => navigate("/register")} style={{ padding: "13px 32px", borderRadius: 8, background: "#6366f1", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            Create Free Account
+          <button onClick={() => setShowContact(true)} style={{ padding: "13px 32px", borderRadius: 8, background: "#6366f1", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Request Access
           </button>
           <button onClick={() => navigate("/login")} style={{ padding: "13px 26px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             Sign In
@@ -461,7 +465,6 @@ export default function LandingPage() {
         </div>
         <div style={{ display: "flex", gap: 16 }}>
           <button onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer" }}>Login</button>
-          <button onClick={() => navigate("/register")} style={{ background: "none", border: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer" }}>Register</button>
         </div>
       </footer>
     </div>

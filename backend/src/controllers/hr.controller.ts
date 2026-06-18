@@ -60,7 +60,14 @@ const leaveSchema = z.object({
 function calcPayroll(emp: {
   salaryType: string; basicSalary: number; dailyRate: number | null;
   hra: number; allowances: number;
-}, presentDays: number, workingDays: number, extraDeductions = 0) {
+}, presentDays: number, workingDays: number, extraDeductions = 0,
+  hrSettings?: { enableHRA?: boolean; enableAllowances?: boolean; enablePF?: boolean; enableESI?: boolean }
+) {
+  const useHRA        = hrSettings?.enableHRA        !== false; // default ON
+  const useAllowances = hrSettings?.enableAllowances !== false;
+  const usePF         = hrSettings?.enablePF         !== false;
+  const useESI        = hrSettings?.enableESI        !== false;
+
   let basicEarned: number;
   if (emp.salaryType === "DAILY") {
     const rate = emp.dailyRate ?? emp.basicSalary;
@@ -70,11 +77,12 @@ function calcPayroll(emp: {
     const perDay = workingDays > 0 ? emp.basicSalary / workingDays : 0;
     basicEarned = perDay * presentDays;
   }
-  const hraEarned    = emp.hra       * (presentDays / Math.max(workingDays, 1));
-  const allowEarned  = emp.allowances * (presentDays / Math.max(workingDays, 1));
+  const ratio        = presentDays / Math.max(workingDays, 1);
+  const hraEarned    = useHRA        ? emp.hra        * ratio : 0;
+  const allowEarned  = useAllowances ? emp.allowances * ratio : 0;
   const grossSalary  = basicEarned + hraEarned + allowEarned;
-  const pfDeduction  = basicEarned * 0.12;
-  const esiDeduction = grossSalary <= 21000 ? grossSalary * 0.0075 : 0;
+  const pfDeduction  = usePF  ? basicEarned * 0.12  : 0;
+  const esiDeduction = useESI ? (grossSalary <= 21000 ? grossSalary * 0.0075 : 0) : 0;
   const netSalary    = grossSalary - pfDeduction - esiDeduction - extraDeductions;
   return { basicEarned, hraEarned, allowEarned, grossSalary, pfDeduction, esiDeduction, netSalary };
 }
@@ -258,11 +266,15 @@ export async function generatePayroll(req: OrgRequest, res: Response): Promise<v
     const emp = await prisma.employee.findFirst({ where: { id: data.data.employeeId, organizationId: req.organizationId! } });
     if (!emp) { notFound(res, "Employee not found"); return; }
 
+    // Load org HR settings
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { complianceConfig: true } });
+    const hrSettings = ((org?.complianceConfig as Record<string, any>)?.hrSettings) ?? {};
+
     const hraToUse        = data.data.hra        ?? emp.hra;
     const allowancesToUse = data.data.allowances ?? emp.allowances;
     const { basicEarned, grossSalary, pfDeduction, esiDeduction, netSalary } = calcPayroll(
       { salaryType: emp.salaryType, basicSalary: emp.basicSalary, dailyRate: emp.dailyRate, hra: hraToUse, allowances: allowancesToUse },
-      data.data.presentDays, data.data.workingDays, data.data.deductions,
+      data.data.presentDays, data.data.workingDays, data.data.deductions, hrSettings,
     );
 
     const payroll = await prisma.payroll.upsert({
@@ -290,8 +302,14 @@ export async function generatePayroll(req: OrgRequest, res: Response): Promise<v
 // ── Auto-generate payroll for ALL active employees ───────────
 export async function autoGeneratePayroll(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { month, year, workingDays = 26 } = req.body as { month: number; year: number; workingDays?: number };
+    const { month, year, workingDays: wdOverride } = req.body as { month: number; year: number; workingDays?: number };
     if (!month || !year) { badRequest(res, "month and year are required"); return; }
+
+    // Load org HR settings — default working days from settings, override by request
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { complianceConfig: true } });
+    const hrSettings = ((org?.complianceConfig as Record<string, any>)?.hrSettings) ?? {};
+    const defaultWD = hrSettings.defaultWorkingDays ?? 26;
+    const workingDays = wdOverride ?? defaultWD;
 
     const employees = await prisma.employee.findMany({
       where: { organizationId: req.organizationId!, status: "ACTIVE" },
@@ -301,7 +319,7 @@ export async function autoGeneratePayroll(req: OrgRequest, res: Response): Promi
       const { presentDays } = await countAttendanceDays(emp.id, month, year);
       const { basicEarned, grossSalary, pfDeduction, esiDeduction, netSalary } = calcPayroll(
         { salaryType: emp.salaryType, basicSalary: emp.basicSalary, dailyRate: emp.dailyRate, hra: emp.hra, allowances: emp.allowances },
-        presentDays, workingDays, 0,
+        presentDays, workingDays, 0, hrSettings,
       );
       return prisma.payroll.upsert({
         where: { employeeId_month_year: { employeeId: emp.id, month, year } },

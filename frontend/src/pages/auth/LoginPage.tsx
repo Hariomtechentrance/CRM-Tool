@@ -15,6 +15,7 @@ import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import type { AuthResponse } from "@/types";
+import ContactModal from "@/components/ContactModal";
 
 const schema = z.object({
   email:    z.string().email("Invalid email address"),
@@ -44,6 +45,7 @@ export default function LoginPage() {
   const [loading,   setLoading]   = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
+  const [showContact, setShowContact] = useState(false);
   const recaptchaRef     = useRef<HTMLDivElement>(null);
   const verifierRef      = useRef<RecaptchaVerifier | null>(null);
   const confirmResultRef = useRef<ConfirmationResult | null>(null);
@@ -207,6 +209,7 @@ export default function LoginPage() {
   // ── Credentials screen ───────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      {showContact && <ContactModal onClose={() => setShowContact(false)} />}
       <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
 
       <div style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
@@ -276,10 +279,7 @@ export default function LoginPage() {
             </div>
           </form>
 
-          <p style={{ textAlign: "center", fontSize: 13, color: "var(--text-ghost)", marginTop: 24 }}>
-            Don't have an account?{" "}
-            <Link to="/register" style={{ color: "#818cf8", textDecoration: "none", fontWeight: 600 }}>Create account</Link>
-          </p>
+
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28, flexWrap: "wrap" }}>
@@ -290,6 +290,16 @@ export default function LoginPage() {
             </div>
           ))}
         </div>
+
+        <p style={{ textAlign: "center", fontSize: 13, color: "var(--text-ghost)", marginTop: 20 }}>
+          Don't have an account?{" "}
+          <button
+            onClick={() => setShowContact(true)}
+            style={{ background: "none", border: "none", color: "#818cf8", fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0 }}
+          >
+            Request access →
+          </button>
+        </p>
       </div>
 
       {/* Invisible reCAPTCHA for phone 2FA */}

@@ -352,34 +352,72 @@ export async function forgotPassword(req: Request, res: Response): Promise<void>
   }
 }
 
-// One-time bootstrap: makes YOU super admin if no super admin exists yet
+// One-time per-org bootstrap: makes YOU the org ADMIN if no admin/owner exists yet for this org
+// This is intentionally simpler than super admin — it's org-scoped, not platform-scoped.
 export async function claimSuperAdmin(req: AuthRequest, res: Response): Promise<void> {
   try {
-    // Require a server-side bootstrap token to prevent privilege escalation
-    // by the first user who registers. Set SUPER_ADMIN_BOOTSTRAP_TOKEN in env.
+    // Check if a super-admin bootstrap is requested (platform level — still requires token)
     const envToken = process.env.SUPER_ADMIN_BOOTSTRAP_TOKEN;
-    if (!envToken) {
-      res.status(503).json({ success: false, message: "Bootstrap not configured on this server." });
-      return;
-    }
     const provided = (req.body as Record<string, unknown>)?.bootstrapToken;
-    if (typeof provided !== "string" || provided !== envToken) {
-      res.status(403).json({ success: false, message: "Invalid bootstrap token." });
+
+    if (provided) {
+      // Platform super admin claim
+      if (!envToken) {
+        res.status(503).json({ success: false, message: "Bootstrap not configured on this server." });
+        return;
+      }
+      if (typeof provided !== "string" || provided !== envToken) {
+        res.status(403).json({ success: false, message: "Invalid bootstrap token." });
+        return;
+      }
+      const existingSuperAdmin = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
+      if (existingSuperAdmin) {
+        res.status(403).json({ success: false, message: "A super admin already exists." });
+        return;
+      }
+      const updated = await prisma.user.update({
+        where: { id: req.userId },
+        data: { isSuperAdmin: true },
+        select: { id: true, name: true, email: true, isSuperAdmin: true },
+      });
+      writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "SUPER_ADMIN_CLAIMED", resource: "User", resourceId: req.userId, description: "Super admin role self-claimed (bootstrap)", ipAddress: getIp(req as any) });
+      ok(res, { user: updated }, "You are now the Super Admin. Please log out and log back in.");
       return;
     }
 
-    const existingSuperAdmin = await prisma.user.findFirst({ where: { isSuperAdmin: true } });
-    if (existingSuperAdmin) {
-      res.status(403).json({ success: false, message: "A super admin already exists. Contact them to be granted access." });
+    // ── Org-level Admin claim (no token required) ────────────
+    // Find the user's organization membership
+    const membership = await prisma.organizationMember.findFirst({
+      where: { userId: req.userId!, isActive: true },
+      include: { organization: { select: { id: true, name: true } } },
+    });
+    if (!membership) {
+      res.status(400).json({ success: false, message: "You are not a member of any organization." });
       return;
     }
-    const updated = await prisma.user.update({
-      where: { id: req.userId },
-      data: { isSuperAdmin: true },
-      select: { id: true, name: true, email: true, isSuperAdmin: true },
+
+    // Check if an OWNER or ADMIN already exists in this org
+    const existingAdmin = await prisma.organizationMember.findFirst({
+      where: {
+        organizationId: membership.organizationId,
+        role: { in: ["OWNER", "ADMIN"] },
+        isActive: true,
+        NOT: { userId: req.userId! },
+      },
     });
-    writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "SUPER_ADMIN_CLAIMED", resource: "User", resourceId: req.userId, description: "Super admin role self-claimed (bootstrap)", ipAddress: getIp(req as any) });
-    ok(res, { user: updated }, "You are now the Super Admin. Please log out and log back in.");
+    if (existingAdmin) {
+      res.status(403).json({ success: false, message: "An admin already exists for this organisation. Contact them to be granted access." });
+      return;
+    }
+
+    // Promote this user to OWNER in their org
+    await prisma.organizationMember.update({
+      where: { id: membership.id },
+      data: { role: "OWNER" },
+    });
+
+    writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "ORG_ADMIN_CLAIMED", resource: "OrganizationMember", resourceId: membership.id, description: `Admin role claimed for org: ${membership.organization.name}`, ipAddress: getIp(req as any) });
+    ok(res, { orgName: membership.organization.name }, `You are now the Admin of ${membership.organization.name}. Please log out and log back in.`);
   } catch (err) {
     serverError(res, err);
   }

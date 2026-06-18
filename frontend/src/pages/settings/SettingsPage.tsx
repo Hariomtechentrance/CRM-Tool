@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
-import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc } from "lucide-react";
+import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
   subtitle: { fontSize: 13, color: "var(--text-ghost)", marginTop: 2, marginBottom: 24 } as React.CSSProperties,
-  tabs: { display: "flex", gap: 4, marginBottom: 24, borderBottom: "1px solid var(--border)", paddingBottom: 4 } as React.CSSProperties,
+  tabs: { display: "flex", gap: 4, marginBottom: 24, borderBottom: "1px solid var(--border)", paddingBottom: 4, flexWrap: "wrap" as const } as React.CSSProperties,
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24, marginBottom: 20 } as React.CSSProperties,
   section: { fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16, paddingBottom: 10, borderBottom: "1px solid var(--border)" } as React.CSSProperties,
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
@@ -20,11 +20,25 @@ const S = {
   select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 },
   modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 460 },
+  toggle: (on: boolean) => ({
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "12px 16px", borderRadius: 10, background: on ? "#6366f110" : "var(--bg-hover)",
+    border: `1px solid ${on ? "#6366f140" : "var(--border)"}`, cursor: "pointer",
+  }) as React.CSSProperties,
 };
 
-type Tab = "organization" | "modules" | "team" | "security";
+type Tab = "organization" | "modules" | "team" | "hr" | "security";
 
 interface Member { id: string; name: string; email: string; role: string; joinedAt: string }
+
+// Default HR settings — all features ON, 26 working days
+const HR_DEFAULTS = {
+  defaultWorkingDays: 26 as number,
+  enableHRA: true,
+  enableAllowances: true,
+  enablePF: true,
+  enableESI: true,
+};
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -32,12 +46,14 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [claimingAdmin, setClaimingAdmin] = useState(false);
   const [claimMsg, setClaimMsg] = useState("");
+  const [claimSuccess, setClaimSuccess] = useState(false);
   const [tab, setTab] = useState<Tab>("organization");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [form, setForm] = useState({ name: "", taxId: "", phone: "", email: "", address: "", city: "", state: "", country: "India", currency: "INR", website: "" });
   const [enabledModules, setEnabledModules] = useState<string[]>([]);
+  const [hrSettings, setHrSettings] = useState({ ...HR_DEFAULTS });
   const [members, setMembers] = useState<Member[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -66,9 +82,10 @@ export default function SettingsPage() {
             currency: o.currency || "INR",
             website: o.website || "",
           });
-          // Treat empty enabledModules as "all enabled" — same fallback as the sidebar
           const mods: string[] = o.enabledModules || [];
           setEnabledModules(mods.length === 0 ? ALL_MODULES.map((m) => m.key) : mods);
+          // Load HR settings — merge with defaults so missing keys are always defined
+          if (o.hrSettings) setHrSettings({ ...HR_DEFAULTS, ...o.hrSettings });
         }
         setMembers(Array.isArray(mRes.data.data) ? mRes.data.data : []);
       } catch { /* ignore */ }
@@ -114,17 +131,28 @@ export default function SettingsPage() {
   };
 
   const f = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const hf = <K extends keyof typeof hrSettings>(k: K, v: typeof hrSettings[K]) =>
+    setHrSettings(p => ({ ...p, [k]: v }));
 
-  const claimSuperAdmin = async () => {
+  const saveHrSettings = async () => {
+    setSaving(true); setSaveError("");
+    try {
+      await api.patch("/organizations/current", { hrSettings });
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    } catch { setSaveError("Failed to save HR settings."); }
+    setSaving(false);
+  };
+
+  const claimAdmin = async () => {
     setClaimingAdmin(true);
     setClaimMsg("");
     try {
       const r = await api.post("/auth/claim-super-admin");
-      setClaimMsg(r.data.message || "You are now Super Admin. Logging out to refresh session...");
-      updateUser({ isSuperAdmin: true });
+      setClaimMsg(r.data.message || "You are now the Admin. Logging out to refresh session…");
+      setClaimSuccess(true);
       setTimeout(async () => { await logout(); navigate("/login"); }, 2500);
     } catch (e: any) {
-      setClaimMsg(e?.response?.data?.message || "Failed. A Super Admin may already exist.");
+      setClaimMsg(e?.response?.data?.message || "Failed. An admin may already exist for this organisation.");
     }
     setClaimingAdmin(false);
   };
@@ -152,20 +180,20 @@ export default function SettingsPage() {
       </div>
       <p style={S.subtitle}>Organization profile, modules, team members and preferences</p>
 
-      {/* One-time Super Admin claim — only visible if not yet super admin */}
-      {!user?.isSuperAdmin && (
-        <div style={{ background: "var(--bg-card)", border: "1px solid #2a1a1a", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: "#ef444415", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Zap size={17} color="#ef4444" />
+      {/* One-time Admin claim — only visible if not yet owner/admin of an org */}
+      {!claimSuccess && (
+        <div style={{ background: "var(--bg-card)", border: "1px solid #1a2a1a", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: "#6366f115", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <UserCog size={17} color="#6366f1" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>Activate Super Admin (First-time Setup)</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>Claim Organisation Admin (First-time Setup)</div>
             <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>
-              {claimMsg || "Click to make yourself the platform Super Admin. Only works once — no existing super admin must exist."}
+              {claimMsg || "If no admin exists for your organisation yet, click to become the Admin. Only one admin per organisation."}
             </div>
           </div>
-          <button onClick={claimSuperAdmin} disabled={claimingAdmin} style={{ background: "#ef444420", color: "#ef4444", border: "1px solid #ef444440", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontWeight: 600, fontSize: 12, whiteSpace: "nowrap" as const, flexShrink: 0 }}>
-            {claimingAdmin ? "Activating..." : "Claim Super Admin"}
+          <button onClick={claimAdmin} disabled={claimingAdmin} style={{ background: "#6366f120", color: "#818cf8", border: "1px solid #6366f140", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontWeight: 600, fontSize: 12, whiteSpace: "nowrap" as const, flexShrink: 0 }}>
+            {claimingAdmin ? "Claiming…" : "Claim Admin"}
           </button>
         </div>
       )}
@@ -179,6 +207,9 @@ export default function SettingsPage() {
         </button>
         <button style={tabStyle("team")} onClick={() => setTab("team")}>
           <Users size={13} style={{ display: "inline", marginRight: 6 }} />Team
+        </button>
+        <button style={tabStyle("hr")} onClick={() => setTab("hr")}>
+          <UserCog size={13} style={{ display: "inline", marginRight: 6 }} />HR Settings
         </button>
         <button style={tabStyle("security")} onClick={() => setTab("security")}>
           <Lock size={13} style={{ display: "inline", marginRight: 6 }} />Security
@@ -338,8 +369,133 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* ── HR SETTINGS ── */}
+      {tab === "hr" && (
+        <div style={S.card}>
+          <div style={S.section}>HR & Payroll Settings</div>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 20 }}>
+            Configure how salary is calculated for all employees in <strong style={{ color: "var(--text-primary)" }}>{activeOrg?.name}</strong>. These settings apply to all payroll generations.
+          </p>
+
+          {/* Working Days */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Default Working Days (for salary proration)</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
+              {[26, 30, 31].map(d => (
+                <button key={d} onClick={() => hf("defaultWorkingDays", d)}
+                  style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                    borderColor: hrSettings.defaultWorkingDays === d ? "#6366f1" : "var(--border-input)",
+                    background: hrSettings.defaultWorkingDays === d ? "#6366f120" : "var(--bg-hover)",
+                    color: hrSettings.defaultWorkingDays === d ? "#818cf8" : "var(--text-sec)",
+                  }}>
+                  {d} Days
+                  <div style={{ fontSize: 10, fontWeight: 400, color: "var(--text-ghost)", marginTop: 2 }}>
+                    {d === 26 ? "Standard (recommended)" : d === 30 ? "Calendar month" : "31-day months"}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 8 }}>
+              Salary is prorated as: <code style={{ background: "var(--bg-hover)", padding: "1px 6px", borderRadius: 4 }}>Basic ÷ {hrSettings.defaultWorkingDays} × Days Present</code>
+            </p>
+          </div>
+
+          {/* Allowance toggles */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Salary Components</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* HRA */}
+              <div style={S.toggle(hrSettings.enableHRA)} onClick={() => hf("enableHRA", !hrSettings.enableHRA)}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>HRA (House Rent Allowance)</div>
+                  <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 2 }}>Include HRA in salary structure and payroll calculations</div>
+                </div>
+                <ToggleSwitch on={hrSettings.enableHRA} />
+              </div>
+              {/* Allowances */}
+              <div style={S.toggle(hrSettings.enableAllowances)} onClick={() => hf("enableAllowances", !hrSettings.enableAllowances)}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Other Allowances</div>
+                  <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 2 }}>Include travel, food, medical and other allowances in payroll</div>
+                </div>
+                <ToggleSwitch on={hrSettings.enableAllowances} />
+              </div>
+            </div>
+          </div>
+
+          {/* Statutory deduction toggles */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Statutory Deductions</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* PF */}
+              <div style={S.toggle(hrSettings.enablePF)} onClick={() => hf("enablePF", !hrSettings.enablePF)}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Provident Fund (PF)</div>
+                  <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 2 }}>Auto-deduct 12% of basic salary as employee PF contribution</div>
+                </div>
+                <ToggleSwitch on={hrSettings.enablePF} />
+              </div>
+              {/* ESI */}
+              <div style={S.toggle(hrSettings.enableESI)} onClick={() => hf("enableESI", !hrSettings.enableESI)}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>ESI (Employee State Insurance)</div>
+                  <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 2 }}>Auto-deduct 0.75% of gross salary when gross ≤ ₹21,000/month</div>
+                </div>
+                <ToggleSwitch on={hrSettings.enableESI} />
+              </div>
+            </div>
+          </div>
+
+          {/* Live preview */}
+          <div style={{ background: "var(--bg-hover)", borderRadius: 10, padding: "14px 18px", marginBottom: 20, border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Active Configuration Preview</div>
+            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
+              {[
+                { label: `${hrSettings.defaultWorkingDays}-day month`, on: true },
+                { label: "HRA", on: hrSettings.enableHRA },
+                { label: "Allowances", on: hrSettings.enableAllowances },
+                { label: "PF 12%", on: hrSettings.enablePF },
+                { label: "ESI 0.75%", on: hrSettings.enableESI },
+              ].map(c => (
+                <span key={c.label} style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                  background: c.on ? "#10b98120" : "#ef444415",
+                  color: c.on ? "#10b981" : "#ef4444",
+                  border: `1px solid ${c.on ? "#10b98140" : "#ef444430"}`,
+                }}>
+                  {c.on ? "✓" : "✗"} {c.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={saveHrSettings} style={S.btn} disabled={saving}>
+              {saved ? "✓ Saved!" : saving ? "Saving…" : "Save HR Settings"}
+            </button>
+            {saveError && <span style={{ fontSize: 12, color: "#f87171" }}>{saveError}</span>}
+          </div>
+        </div>
+      )}
+
       {/* ── SECURITY / 2FA ── */}
       {tab === "security" && <TwoFactorSettings />}
+    </div>
+  );
+}
+
+// ── Reusable toggle switch ───────────────────────────────────
+function ToggleSwitch({ on }: { on: boolean }) {
+  return (
+    <div style={{
+      width: 42, height: 24, borderRadius: 12, flexShrink: 0,
+      background: on ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "var(--border)",
+      position: "relative", transition: "background 0.2s",
+    }}>
+      <div style={{
+        position: "absolute", top: 3, left: on ? 21 : 3,
+        width: 18, height: 18, borderRadius: "50%", background: "white",
+        transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+      }} />
     </div>
   );
 }
