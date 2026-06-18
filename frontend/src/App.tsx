@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import AccessGate from "@/components/AccessGate";
+import RoleGate from "@/components/RoleGate";
 import LoginPage from "@/pages/auth/LoginPage";
 import CreateOrgPage from "@/pages/auth/CreateOrgPage";
 import AcceptInvitePage from "@/pages/auth/AcceptInvitePage";
@@ -88,6 +89,14 @@ const G = (moduleKey: string, Page: React.ComponentType) => (
   <AccessGate moduleKey={moduleKey}><Page /></AccessGate>
 );
 
+// Wrap a page with BOTH module access gate AND minimum role check
+// minRole defaults to "STAFF" (any member with module access can see it)
+const GR = (moduleKey: string, minRole: "MANAGER" | "ADMIN" | "OWNER", Page: React.ComponentType) => (
+  <AccessGate moduleKey={moduleKey}>
+    <RoleGate minRole={minRole}><Page /></RoleGate>
+  </AccessGate>
+);
+
 // Shows landing page for guests, redirects authenticated users to dashboard
 function PublicHome() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -151,11 +160,11 @@ export default function App() {
           {/* ── Operations ── */}
           <Route path="/pos"          element={G("POS", RetailPage)} />
           <Route path="/warehouse"    element={G("WAREHOUSE", WarehousePage)} />
-          <Route path="/hr"           element={G("HR", HRPage)} />
+          <Route path="/hr"           element={GR("HR", "MANAGER", HRPage)} />
           <Route path="/projects"       element={G("PROJECTS", ProjectsPage)} />
           <Route path="/it-projects"   element={G("PROJECTS", ITProjectsPage)} />
           <Route path="/sprint-board"  element={G("PROJECTS", SprintBoardPage)} />
-          <Route path="/team-dashboard" element={G("HR", TeamDashboardPage)} />
+          <Route path="/team-dashboard" element={GR("HR", "MANAGER", TeamDashboardPage)} />
           <Route path="/my-work"       element={G("PROJECTS", MyWorkPage)} />
           <Route path="/bugs"          element={G("PROJECTS", BugTrackerPage)} />
           <Route path="/time-tracking" element={G("PROJECTS", TimeTrackingPage)} />

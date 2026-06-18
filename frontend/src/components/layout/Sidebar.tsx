@@ -184,10 +184,17 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const canSee = (key: string) => isOrgAdmin || moduleAccess.includes(key);
 
   // Visibility rules for each section
+  const role = activeOrg?.role ?? "VIEWER";
+  const roleLevel: Record<string, number> = { OWNER:6, ADMIN:5, MANAGER:4, ACCOUNTANT:3, STAFF:2, VIEWER:1 };
+  const userLevel = roleLevel[role] ?? 1;
+  const isManager = userLevel >= 4; // MANAGER and above
+
   const showIT       = isOrgAdmin || canSee("PROJECTS");
   const showSales    = isOrgAdmin || canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
   const showFinance  = isOrgAdmin || canSee("ACCOUNTS");
   const showAdmin    = isOrgAdmin;
+  // Communication visible to anyone with any module access or manager+
+  const showComm     = isOrgAdmin || isManager || moduleAccess.length > 0;
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) => cn(
     "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150",
@@ -269,8 +276,9 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         {/* Divider after modules */}
         <div style={{ height: 1, background: "var(--border)", margin: "4px 0 8px" }} />
 
-        {/* ── Communication — always visible ── */}
-        <CollapsibleSection label={t("nav_communication")} storageKey="comm">
+        {/* ── Communication — visible to managers and above, or anyone with module access ── */}
+        {showComm && (
+          <CollapsibleSection label={t("nav_communication")} storageKey="comm">
           {[
             { href: "/email",        tKey: "nav_email",        Icon: Mail },
             { href: "/activities",   tKey: "nav_activities",   Icon: Calendar },
@@ -284,7 +292,8 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
               <span className="truncate">{t(tKey)}</span>
             </NavLink>
           ))}
-        </CollapsibleSection>
+          </CollapsibleSection>
+        )}
 
         {/* ── IT & Projects — only if has PROJECTS access ── */}
         {showIT && (

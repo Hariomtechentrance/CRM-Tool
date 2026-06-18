@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth";
-import { requireOrgContext } from "../middleware/orgContext";
+import { requireOrgContext, requireRole } from "../middleware/orgContext";
+import { requireModuleAccess } from "../middleware/requireModuleAccess";
 import {
   listEmployees, getEmployee, createEmployee, updateEmployee,
   markAttendance, listAttendance, bulkMarkAttendance,
@@ -16,63 +17,68 @@ import {
 } from "../controllers/hr.controller";
 
 const router = Router();
-router.use(authenticate, requireOrgContext);
 
-router.get("/summary", getHRSummary);
+// All HR routes require authentication + org context + HR module access
+router.use(authenticate, requireOrgContext, requireModuleAccess("HR"));
 
-// Payslip
-router.get("/payslip", getPayslip);
+// ── READ-ONLY routes — STAFF and above with HR module access ──────────────
+// Employees can view their own payslip, attendance and leave requests.
+// MANAGER+ can view all.
+router.get("/summary",    requireRole("MANAGER"), getHRSummary);
+router.get("/payslip",    getPayslip);              // any HR member (filtered by employeeId)
+router.get("/shifts",     listShifts);
+router.get("/attendance", listAttendance);
+router.get("/payroll",    requireRole("MANAGER"), listPayrolls);
+router.get("/leaves",     listLeaveRequests);        // all HR members can view leave list
+router.get("/leave-balances", requireRole("MANAGER"), listLeaveBalances);
+router.get("/goals",      listPerformanceGoals);
+router.get("/reviews",    listPerformanceReviews);
+router.get("/expenses",   listExpenses);
 
-// Shifts
-router.get("/shifts",              listShifts);
-router.post("/shifts",             createShift);
-router.patch("/shifts/:id",        updateShift);
-router.delete("/shifts/:id",       deleteShift);
-router.post("/shifts/assign",      assignShift);
+// ── WRITE routes — MANAGER and above only ─────────────────────────────────
 
-// Attendance
-router.get("/attendance",       listAttendance);
-router.post("/attendance",      markAttendance);
-router.post("/attendance/bulk", bulkMarkAttendance);
+// Shifts (HR Managers manage shifts)
+router.post("/shifts",          requireRole("MANAGER"), createShift);
+router.patch("/shifts/:id",     requireRole("MANAGER"), updateShift);
+router.delete("/shifts/:id",    requireRole("MANAGER"), deleteShift);
+router.post("/shifts/assign",   requireRole("MANAGER"), assignShift);
 
-// Payroll
-router.get("/payroll",                listPayrolls);
-router.post("/payroll",               generatePayroll);
-router.post("/payroll/auto-generate", autoGeneratePayroll);
-router.patch("/payroll/:id/paid",     markPayrollPaid);
+// Attendance (HR Managers mark / bulk-mark attendance)
+router.post("/attendance",       requireRole("MANAGER"), markAttendance);
+router.post("/attendance/bulk",  requireRole("MANAGER"), bulkMarkAttendance);
 
-// Leaves
-router.get("/leaves",               listLeaveRequests);
+// Payroll (MANAGER+ can generate; OWNER/ADMIN can mark paid)
+router.post("/payroll",               requireRole("MANAGER"), generatePayroll);
+router.post("/payroll/auto-generate", requireRole("MANAGER"), autoGeneratePayroll);
+router.patch("/payroll/:id/paid",     requireRole("MANAGER"), markPayrollPaid);
+
+// Leaves (any HR member can apply; MANAGER+ can approve/reject)
 router.post("/leaves",              createLeaveRequest);
-router.patch("/leaves/:id/status",  updateLeaveStatus);
+router.patch("/leaves/:id/status",  requireRole("MANAGER"), updateLeaveStatus);
 
-// Leave Balances
-router.get("/leave-balances",  listLeaveBalances);
-router.post("/leave-balances", upsertLeaveBalance);
+// Leave Balances (MANAGER+ only)
+router.post("/leave-balances", requireRole("MANAGER"), upsertLeaveBalance);
 
 // Performance Goals
-router.get("/goals",        listPerformanceGoals);
-router.post("/goals",       createPerformanceGoal);
-router.patch("/goals/:id",  updatePerformanceGoal);
-router.delete("/goals/:id", deletePerformanceGoal);
+router.post("/goals",       requireRole("MANAGER"), createPerformanceGoal);
+router.patch("/goals/:id",  requireRole("MANAGER"), updatePerformanceGoal);
+router.delete("/goals/:id", requireRole("MANAGER"), deletePerformanceGoal);
 
 // Performance Reviews
-router.get("/reviews",        listPerformanceReviews);
-router.post("/reviews",       createPerformanceReview);
-router.patch("/reviews/:id",  updatePerformanceReview);
+router.post("/reviews",       requireRole("MANAGER"), createPerformanceReview);
+router.patch("/reviews/:id",  requireRole("MANAGER"), updatePerformanceReview);
 
-// Expenses
-router.get("/expenses",                  listExpenses);
-router.post("/expenses",                 createExpense);
-router.patch("/expenses/:id",            updateExpense);
-router.patch("/expenses/:id/approve",    approveExpense);
-router.patch("/expenses/:id/reject",     rejectExpense);
-router.patch("/expenses/:id/paid",       markExpensePaid);
+// Expenses (any HR member can submit; MANAGER+ can approve/reject/mark paid)
+router.post("/expenses",              createExpense);
+router.patch("/expenses/:id",         updateExpense);
+router.patch("/expenses/:id/approve", requireRole("MANAGER"), approveExpense);
+router.patch("/expenses/:id/reject",  requireRole("MANAGER"), rejectExpense);
+router.patch("/expenses/:id/paid",    requireRole("MANAGER"), markExpensePaid);
 
-// Employees (keep at bottom — wildcard :id would swallow named routes above)
-router.get("/",      listEmployees);
-router.post("/",     createEmployee);
-router.get("/:id",   getEmployee);
-router.patch("/:id", updateEmployee);
+// Employees (MANAGER+ to create/update; OWNER/ADMIN already bypass via requireModuleAccess)
+router.get("/",      requireRole("MANAGER"), listEmployees);
+router.post("/",     requireRole("MANAGER"), createEmployee);
+router.get("/:id",   requireRole("MANAGER"), getEmployee);
+router.patch("/:id", requireRole("MANAGER"), updateEmployee);
 
 export default router;
