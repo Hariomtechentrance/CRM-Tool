@@ -3,7 +3,7 @@ import { authenticate } from "../middleware/auth";
 import { requireOrgContext, requireRole } from "../middleware/orgContext";
 import { requireModuleAccess } from "../middleware/requireModuleAccess";
 import {
-  listEmployees, getEmployee, createEmployee, updateEmployee,
+  listEmployees, getEmployee, createEmployee, updateEmployee, deleteEmployee,
   markAttendance, listAttendance, bulkMarkAttendance,
   generatePayroll, listPayrolls, autoGeneratePayroll, markPayrollPaid,
   createLeaveRequest, updateLeaveStatus, listLeaveRequests,
@@ -13,19 +13,22 @@ import {
   listPerformanceGoals, createPerformanceGoal, updatePerformanceGoal, deletePerformanceGoal,
   listPerformanceReviews, createPerformanceReview, updatePerformanceReview,
   listExpenses, createExpense, updateExpense, approveExpense, rejectExpense, markExpensePaid,
-  getPayslip,
+  getPayslip, getMyProfile, getDesignations,
 } from "../controllers/hr.controller";
 
 const router = Router();
 
-// All HR routes require authentication + org context + HR module access
-router.use(authenticate, requireOrgContext, requireModuleAccess("HR"));
+// ── Auth + org context (no module access required) — accessible to all org members ──
+router.use(authenticate, requireOrgContext);
+router.get("/my-profile",   getMyProfile);
+router.get("/designations", getDesignations);
+
+// All remaining HR routes require HR module access
+router.use(requireModuleAccess("HR"));
 
 // ── READ-ONLY routes — STAFF and above with HR module access ──────────────
-// Employees can view their own payslip, attendance and leave requests.
-// MANAGER+ can view all.
 router.get("/summary",    requireRole("MANAGER"), getHRSummary);
-router.get("/payslip",    getPayslip);              // any HR member (filtered by employeeId)
+router.get("/payslip",    getPayslip);
 router.get("/shifts",     listShifts);
 router.get("/attendance", listAttendance);
 router.get("/payroll",    requireRole("MANAGER"), listPayrolls);
@@ -76,9 +79,10 @@ router.patch("/expenses/:id/reject",  requireRole("MANAGER"), rejectExpense);
 router.patch("/expenses/:id/paid",    requireRole("MANAGER"), markExpensePaid);
 
 // Employees (MANAGER+ to create/update; OWNER/ADMIN already bypass via requireModuleAccess)
-router.get("/",      requireRole("MANAGER"), listEmployees);
-router.post("/",     requireRole("MANAGER"), createEmployee);
-router.get("/:id",   requireRole("MANAGER"), getEmployee);
-router.patch("/:id", requireRole("MANAGER"), updateEmployee);
+router.get("/",        requireRole("MANAGER"), listEmployees);
+router.post("/",       requireRole("MANAGER"), createEmployee);
+router.get("/:id",     requireRole("MANAGER"), getEmployee);
+router.patch("/:id",   requireRole("MANAGER"), updateEmployee);
+router.delete("/:id",  requireRole("MANAGER"), deleteEmployee);
 
 export default router;

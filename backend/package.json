@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "ts-node-dev src/prisma/seed.ts",
+    "db:seed:demo": "ts-node-dev --transpile-only src/prisma/seedDemo.ts",
     "create-superadmin": "ts-node-dev --transpile-only src/scripts/createSuperAdmin.ts"
   },
   "keywords": [],

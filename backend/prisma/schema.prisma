@@ -1108,6 +1108,10 @@ model Employee {
   panNumber      String?
   pfNumber       String?
   esiNumber      String?
+  pfEnabled      Boolean?          // null = use org default
+  esiEnabled     Boolean?          // null = use org default
+  orgRole        String?           // MANAGEMENT | HR | PROJECT_MANAGER | TEAM_LEAD | EMPLOYEE
+  userId         String?           // link to system User for access-control lookups
   address        String?
   notes          String?
   createdAt      DateTime       @default(now())

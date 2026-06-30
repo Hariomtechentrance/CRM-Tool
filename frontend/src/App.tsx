@@ -66,6 +66,8 @@ import ITProjectsPage from "@/pages/projects/ITProjectsPage";
 import SprintBoardPage from "@/pages/projects/SprintBoardPage";
 import TeamDashboardPage from "@/pages/hr/TeamDashboardPage";
 import MyWorkPage from "@/pages/projects/MyWorkPage";
+import PMDashboard from "@/pages/projects/PMDashboard";
+import TeamPage from "@/pages/projects/TeamPage";
 import BugTrackerPage from "@/pages/projects/BugTrackerPage";
 import TimeTrackingPage from "@/pages/projects/TimeTrackingPage";
 import TelecallingPage from "@/pages/telecalling/TelecallingPage";
@@ -165,6 +167,8 @@ export default function App() {
           <Route path="/it-projects"   element={G("PROJECTS", ITProjectsPage)} />
           <Route path="/sprint-board"  element={G("PROJECTS", SprintBoardPage)} />
           <Route path="/team-dashboard" element={GR("HR", "MANAGER", TeamDashboardPage)} />
+          <Route path="/pm-dashboard"  element={<PMDashboard />} />
+          <Route path="/team"          element={<TeamPage />} />
           <Route path="/my-work"       element={G("PROJECTS", MyWorkPage)} />
           <Route path="/bugs"          element={G("PROJECTS", BugTrackerPage)} />
           <Route path="/time-tracking" element={G("PROJECTS", TimeTrackingPage)} />

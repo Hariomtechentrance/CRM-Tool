@@ -3,6 +3,16 @@ import { persist } from "zustand/middleware";
 import api from "@/lib/api";
 import type { User, AuthResponse, OrganizationSummary } from "@/types";
 
+export interface EmployeeProfile {
+  id: string;
+  name: string;
+  designation?: string;
+  orgRole?: string;   // MANAGEMENT | HR | PROJECT_MANAGER | TEAM_LEAD | EMPLOYEE
+  department?: string;
+  employeeCode?: string;
+  projectMembers?: Array<{ role: string; project: { id: string; name: string; status: string } }>;
+}
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
@@ -10,8 +20,9 @@ interface AuthState {
   organizations: OrganizationSummary[];
   activeOrg: OrganizationSummary | null;
   isAuthenticated: boolean;
-  moduleAccess: string[];   // module keys the current user can access
-  isOrgAdmin: boolean;      // OWNER or ADMIN role in active org
+  moduleAccess: string[];
+  isOrgAdmin: boolean;
+  employeeProfile: EmployeeProfile | null;
 
   setAuth: (data: AuthResponse) => void;
   setActiveOrg: (org: OrganizationSummary) => void;
@@ -22,6 +33,7 @@ interface AuthState {
   loadModuleAccess: () => Promise<void>;
   setModuleAccess: (keys: string[], isAdmin: boolean) => void;
   updateActiveOrgModules: (enabledModules: string[]) => void;
+  loadEmployeeProfile: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -35,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       moduleAccess: [],
       isOrgAdmin: false,
+      employeeProfile: null,
 
       setAuth: (data: AuthResponse) => {
         localStorage.setItem("accessToken", data.accessToken);
@@ -57,6 +70,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           moduleAccess: seedModules,
           isOrgAdmin: seedAdmin,
+          employeeProfile: null, // always reset on login — prevents stale orgRole from previous session
         });
       },
 
@@ -90,7 +104,16 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("activeOrgId");
-        set({ user: null, accessToken: null, refreshToken: null, organizations: [], activeOrg: null, isAuthenticated: false });
+        set({ user: null, accessToken: null, refreshToken: null, organizations: [], activeOrg: null, isAuthenticated: false, employeeProfile: null });
+      },
+
+      loadEmployeeProfile: async (): Promise<void> => {
+        try {
+          const { data } = await api.get("/hr/my-profile");
+          set({ employeeProfile: (data.data as EmployeeProfile | null) ?? null });
+        } catch {
+          set({ employeeProfile: null });
+        }
       },
 
       updateUser: (updates: Partial<User>) => {
@@ -147,6 +170,8 @@ export const useAuthStore = create<AuthState>()(
             set({ moduleAccess: activeOrg.enabledModules });
           }
         }
+        // Load employee profile so sidebar can show role-specific links (PM / TL)
+        get().loadEmployeeProfile();
       },
     }),
     {

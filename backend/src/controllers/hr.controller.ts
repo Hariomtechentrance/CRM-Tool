@@ -4,6 +4,19 @@ import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
 import { ok, created, badRequest, notFound, serverError } from "../utils/response";
 
+const DESIGNATION_OPTIONS = [
+  "Developer", "Senior Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer",
+  "Project Manager", "Team Lead", "Scrum Master", "Tech Lead",
+  "HR Manager", "HR Executive", "HR Assistant",
+  "Accountant", "Senior Accountant", "Finance Executive", "Finance Manager",
+  "Sales Executive", "Business Development Manager", "Business Analyst",
+  "Operations Manager", "Admin Executive", "Office Manager",
+  "UI/UX Designer", "QA Engineer", "DevOps Engineer",
+  "Marketing Executive", "Marketing Manager",
+  "Director", "CEO", "CTO", "CFO",
+  "Other",
+];
+
 const employeeSchema = z.object({
   employeeCode:  z.string().min(1),
   name:          z.string().min(1),
@@ -18,6 +31,10 @@ const employeeSchema = z.object({
   dailyRate:     z.number().min(0).optional(),
   hra:           z.number().min(0).default(0),
   allowances:    z.number().min(0).default(0),
+  pfEnabled:     z.boolean().optional(),
+  esiEnabled:    z.boolean().optional(),
+  orgRole:       z.string().optional(), // MANAGEMENT | HR | PROJECT_MANAGER | TEAM_LEAD | EMPLOYEE
+  userId:        z.string().optional(),
   bankAccount:   z.string().optional(),
   bankIfsc:      z.string().optional(),
   panNumber:     z.string().optional(),
@@ -60,24 +77,27 @@ const leaveSchema = z.object({
 function calcPayroll(emp: {
   salaryType: string; basicSalary: number; dailyRate: number | null;
   hra: number; allowances: number;
+  pfEnabled?: boolean | null; esiEnabled?: boolean | null;
 }, presentDays: number, workingDays: number, extraDeductions = 0,
   hrSettings?: { enableHRA?: boolean; enableAllowances?: boolean; enablePF?: boolean; enableESI?: boolean }
 ) {
-  const useHRA        = hrSettings?.enableHRA        !== false; // default ON
+  const useHRA        = hrSettings?.enableHRA        !== false;
   const useAllowances = hrSettings?.enableAllowances !== false;
-  const usePF         = hrSettings?.enablePF         !== false;
-  const useESI        = hrSettings?.enableESI        !== false;
+  // Per-employee override: null/undefined → use org default; true/false → explicit
+  const usePF  = emp.pfEnabled  != null ? emp.pfEnabled  : (hrSettings?.enablePF  !== false);
+  const useESI = emp.esiEnabled != null ? emp.esiEnabled : (hrSettings?.enableESI !== false);
 
+  const clampedDays  = Math.min(presentDays, workingDays);
   let basicEarned: number;
   if (emp.salaryType === "DAILY") {
     const rate = emp.dailyRate ?? emp.basicSalary;
-    basicEarned = rate * presentDays;
+    basicEarned = rate * clampedDays;
   } else {
     // MONTHLY — prorate by attendance
     const perDay = workingDays > 0 ? emp.basicSalary / workingDays : 0;
-    basicEarned = perDay * presentDays;
+    basicEarned = perDay * clampedDays;
   }
-  const ratio        = presentDays / Math.max(workingDays, 1);
+  const ratio        = clampedDays / Math.max(workingDays, 1);
   const hraEarned    = useHRA        ? emp.hra        * ratio : 0;
   const allowEarned  = useAllowances ? emp.allowances * ratio : 0;
   const grossSalary  = basicEarned + hraEarned + allowEarned;
@@ -99,7 +119,7 @@ async function countAttendanceDays(employeeId: string, month: number, year: numb
   for (const r of rows) {
     if (r.status === "PRESENT") present += 1;
     else if (r.status === "HALF_DAY") present += 0.5;
-    else if (r.status === "LEAVE") present += 1; // paid leave counts as present
+    else if (r.status === "LEAVE" || r.status === "HOLIDAY") present += 1; // paid leave/holiday count as present
   }
   return { presentDays: present, totalMarked: rows.length };
 }
@@ -302,18 +322,27 @@ export async function generatePayroll(req: OrgRequest, res: Response): Promise<v
 // ── Auto-generate payroll for ALL active employees ───────────
 export async function autoGeneratePayroll(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { month, year, workingDays: wdOverride } = req.body as { month: number; year: number; workingDays?: number };
+    const body = req.body as { month: number | string; year: number | string; workingDays?: number | string };
+    const month = Number(body.month);
+    const year  = Number(body.year);
     if (!month || !year) { badRequest(res, "month and year are required"); return; }
 
     // Load org HR settings — default working days from settings, override by request
     const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { complianceConfig: true } });
     const hrSettings = ((org?.complianceConfig as Record<string, any>)?.hrSettings) ?? {};
-    const defaultWD = hrSettings.defaultWorkingDays ?? 26;
-    const workingDays = wdOverride ?? defaultWD;
+    const defaultWD = Number(hrSettings.defaultWorkingDays) || 26;
+    const workingDays = body.workingDays != null ? Number(body.workingDays) || defaultWD : defaultWD;
 
+    // Fetch ALL employees — no status filter so we always show the count correctly
     const employees = await prisma.employee.findMany({
       where: { organizationId: req.organizationId!, status: "ACTIVE" },
     });
+
+    if (employees.length === 0) {
+      ok(res, { generated: 0, month, year, totalNetSalary: 0, payrolls: [] },
+        "No active employees found. Make sure employees have status ACTIVE.");
+      return;
+    }
 
     const results = await Promise.all(employees.map(async (emp) => {
       const { presentDays } = await countAttendanceDays(emp.id, month, year);
@@ -840,5 +869,41 @@ export async function getPayslip(req: OrgRequest, res: Response): Promise<void> 
       isPaid: payroll.isPaid,
       paidAt: payroll.paidAt,
     });
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Get current user's employee profile (matched by email) ──
+export async function getMyProfile(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId! }, select: { email: true } });
+    if (!user) { notFound(res, "User not found"); return; }
+
+    const emp = await prisma.employee.findFirst({
+      where: {
+        organizationId: req.organizationId!,
+        OR: [{ email: user.email }, { userId: req.userId! }],
+      },
+      include: {
+        projectMembers: {
+          include: { project: { select: { id: true, name: true, status: true, endDate: true } } },
+        },
+      },
+    });
+    ok(res, emp ?? null);
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Return available designation options ────────────────────
+export async function getDesignations(_req: OrgRequest, res: Response): Promise<void> {
+  ok(res, DESIGNATION_OPTIONS);
+}
+
+// ── Delete employee ─────────────────────────────────────────
+export async function deleteEmployee(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const existing = await prisma.employee.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Employee not found"); return; }
+    await prisma.employee.update({ where: { id: req.params.id as string }, data: { status: "TERMINATED" } });
+    ok(res, null, "Employee terminated");
   } catch (e) { serverError(res, e); }
 }

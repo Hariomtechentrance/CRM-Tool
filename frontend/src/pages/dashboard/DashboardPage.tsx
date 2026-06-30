@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { formatCurrency } from "@/lib/utils";
 import api from "@/lib/api";
+import EmployeeDashboard from "./EmployeeDashboard";
 
 interface Stats {
   members: number; parties: number; invoices: number; orders: number;
@@ -62,13 +63,21 @@ const card: React.CSSProperties = { background: "var(--bg-card)", border: "1px s
 const cardHeader: React.CSSProperties = { padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" };
 
 export default function DashboardPage() {
-  const { activeOrg, moduleAccess } = useAuthStore();
+  const { activeOrg, moduleAccess, employeeProfile } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
   const navigate = useNavigate();
   const { t } = useTranslation();
   const currency = activeOrg?.currency || "INR";
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
+  // Once employeeProfile loads, redirect role-specific users to their primary page
+  const orgRole = employeeProfile?.orgRole;
+  useEffect(() => {
+    if (orgRole === "PROJECT_MANAGER") navigate("/pm-dashboard", { replace: true });
+    else if (orgRole === "TEAM_LEAD") navigate("/team", { replace: true });
+  }, [orgRole]);
+
+  // All hooks must be declared before any early return
   const [stats, setStats] = useState<Stats | null>(null);
   const [moduleStats, setModuleStats] = useState<ModuleStats | null>(null);
   const [feed, setFeed] = useState<FeedItem[]>([]);
@@ -77,6 +86,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isOrgAdmin) return;
     const load = async () => {
       setLoading(true);
       try {
@@ -95,7 +105,12 @@ export default function DashboardPage() {
       setLoading(false);
     };
     load();
-  }, [activeOrg?.id]);
+  }, [activeOrg?.id, isOrgAdmin]);
+
+  // Non-admin users with a specific employee role get their own view
+  if (!isOrgAdmin && orgRole !== undefined && orgRole !== "MANAGEMENT" && orgRole !== "HR") {
+    return <EmployeeDashboard />;
+  }
 
   // Derived financials from module stats
   const totalRevenue = moduleStats?.invoiceStats

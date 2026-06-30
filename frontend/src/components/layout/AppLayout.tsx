@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 
 export default function AppLayout() {
-  const { isAuthenticated, organizations, activeOrg, isOrgAdmin, syncModulesFromOrg, loadModuleAccess } = useAuthStore();
+  const { isAuthenticated, organizations, activeOrg, isOrgAdmin, syncModulesFromOrg, loadModuleAccess, loadEmployeeProfile } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -27,7 +27,9 @@ export default function AppLayout() {
     // For OWNER/ADMIN: activeOrg.enabledModules is already the source of truth
     // (set by login response and by Admin Panel saves), so no API call needed
     if (!isOrgAdmin) {
-      loadModuleAccess();
+      loadModuleAccess(); // also calls loadEmployeeProfile at the end
+    } else {
+      loadEmployeeProfile(); // admins skip loadModuleAccess but still need their orgRole
     }
   }, [isAuthenticated, activeOrg?.id]);
 

@@ -7,7 +7,7 @@ import {
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
   MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
   Phone, TrendingUp, Heart, Sliders, Palette, Scale,
-  UtensilsCrossed, Hotel,
+  UtensilsCrossed, Hotel, FolderKanban, UsersRound,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -54,6 +54,7 @@ const MOD_I18N_KEY: Record<string, string> = {
 
 function OrgSwitcherDropdown() {
   const { organizations, activeOrg, setActiveOrg } = useAuthStore();
+  const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   if (!activeOrg) return null;
@@ -96,17 +97,19 @@ function OrgSwitcherDropdown() {
               {activeOrg.id === org.id && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#6366f1" }} />}
             </button>
           ))}
-          <div style={{ borderTop: "1px solid var(--border)" }} className="mt-1 pt-1">
-            <NavLink
-              to="/create-org"
-              onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-3 px-3 py-2 transition-colors"
-              style={{ color: "#818CF8" }}
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">{t("nav_add_org")}</span>
-            </NavLink>
-          </div>
+          {isOrgAdmin && (
+            <div style={{ borderTop: "1px solid var(--border)" }} className="mt-1 pt-1">
+              <NavLink
+                to="/create-org"
+                onClick={() => setOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-2 transition-colors"
+                style={{ color: "#818CF8" }}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">{t("nav_add_org")}</span>
+              </NavLink>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -176,7 +179,7 @@ function CollapsibleSection({ label, storageKey, children, defaultOpen = true }:
 interface SidebarProps { open?: boolean; onClose?: () => void; }
 
 export default function Sidebar({ open = false, onClose }: SidebarProps) {
-  const { moduleAccess, activeOrg } = useAuthStore();
+  const { moduleAccess, activeOrg, employeeProfile } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
   const navModules = getNavModules(moduleAccess);
   const { t } = useTranslation();
@@ -189,12 +192,21 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const userLevel = roleLevel[role] ?? 1;
   const isManager = userLevel >= 4; // MANAGER and above
 
+  // Employee-level functional roles from HR profile
+  const orgRole = employeeProfile?.orgRole ?? null; // PROJECT_MANAGER | TEAM_LEAD | HR | MANAGEMENT | EMPLOYEE
+  const isPM   = orgRole === "PROJECT_MANAGER";
+  const isTL   = orgRole === "TEAM_LEAD";
+  const isHRRole = orgRole === "HR";
+
   const showIT       = isOrgAdmin || canSee("PROJECTS");
   const showSales    = isOrgAdmin || canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
   const showFinance  = isOrgAdmin || canSee("ACCOUNTS");
   const showAdmin    = isOrgAdmin;
   // Communication visible to anyone with any module access or manager+
   const showComm     = isOrgAdmin || isManager || moduleAccess.length > 0;
+  // PM / TL specific pages — only show to users with that exact orgRole (or org admin)
+  const showPMDash   = isOrgAdmin || isPM;
+  const showTeamPage = isTL;
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) => cn(
     "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150",
@@ -293,6 +305,26 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             </NavLink>
           ))}
           </CollapsibleSection>
+        )}
+
+        {/* ── PM Dashboard — visible to admins, managers, HR, and PM employees ── */}
+        {showPMDash && (
+          <div style={{ marginBottom: 2 }}>
+            <NavLink to="/pm-dashboard" onClick={onClose} className={navLinkClass}>
+              <FolderKanban style={{ width: 14, height: 14, flexShrink: 0 }} />
+              <span className="truncate">PM Dashboard</span>
+            </NavLink>
+          </div>
+        )}
+
+        {/* ── My Team — visible only to Team Lead employees ── */}
+        {showTeamPage && (
+          <div style={{ marginBottom: 2 }}>
+            <NavLink to="/team" onClick={onClose} className={navLinkClass}>
+              <UsersRound style={{ width: 14, height: 14, flexShrink: 0 }} />
+              <span className="truncate">My Team</span>
+            </NavLink>
+          </div>
         )}
 
         {/* ── IT & Projects — only if has PROJECTS access ── */}

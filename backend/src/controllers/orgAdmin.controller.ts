@@ -1,3 +1,4 @@
+import { LeaveStatus } from "@prisma/client";
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
@@ -237,5 +238,43 @@ export async function getChartData(req: OrgRequest, res: Response): Promise<void
         value:  Number(l._sum.value || 0),
       })),
     });
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Admin: list ALL pending leave requests (including HR staff) ──────────────
+export async function listPendingLeaves(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const { status = "PENDING" } = req.query as Record<string, string>;
+    const leaves = await prisma.leaveRequest.findMany({
+      where: { organizationId: orgId, status: status as LeaveStatus },
+      include: { employee: { select: { id: true, name: true, employeeCode: true, designation: true, department: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    ok(res, leaves);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function approveLeave(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { status } = req.body as { status: string };
+    if (!["APPROVED", "REJECTED"].includes(status)) {
+      const { badRequest } = await import("../utils/response");
+      badRequest(res, "status must be APPROVED or REJECTED"); return;
+    }
+    const orgId = req.organizationId!;
+    const leave = await prisma.leaveRequest.findFirst({
+      where: { id: req.params.id as string, organizationId: orgId },
+    });
+    if (!leave) {
+      const { notFound } = await import("../utils/response");
+      notFound(res, "Leave request not found"); return;
+    }
+    const updated = await prisma.leaveRequest.update({
+      where: { id: req.params.id as string },
+      data: { status: status as LeaveStatus },
+      include: { employee: { select: { name: true } } },
+    });
+    ok(res, updated, `Leave ${status.toLowerCase()} successfully`);
   } catch (e) { serverError(res, e); }
 }

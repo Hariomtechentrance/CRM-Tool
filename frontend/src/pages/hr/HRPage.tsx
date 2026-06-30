@@ -4,6 +4,7 @@ import { Users, Plus, Search, X, Calendar, DollarSign, UserCheck, Check, XCircle
 import DocumentsPanel from "@/components/DocumentsPanel";
 import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone } from "@/lib/fieldRules";
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from "@/stores/authStore";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const now = new Date();
@@ -74,7 +75,26 @@ const fmt = (n: number) => `₹${n.toLocaleString("en-IN",{maximumFractionDigits
 const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
 const errMsg = (e: unknown) => (e as {response?:{data?:{message?:string}}})?.response?.data?.message || "Failed";
 
-const empEmpty = { employeeCode:"", name:"", email:"", phone:"", designation:"", department:"", employmentType:"FULL_TIME", joiningDate:"", salaryType:"MONTHLY", basicSalary:"", dailyRate:"", hra:"0", allowances:"0", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" };
+const DESIGNATION_OPTS = [
+  "Developer","Senior Developer","Frontend Developer","Backend Developer","Full Stack Developer",
+  "Project Manager","Team Lead","Scrum Master","Tech Lead",
+  "HR Manager","HR Executive","HR Assistant",
+  "Accountant","Senior Accountant","Finance Executive","Finance Manager",
+  "Sales Executive","Business Development Manager","Business Analyst",
+  "Operations Manager","Admin Executive","Office Manager",
+  "UI/UX Designer","QA Engineer","DevOps Engineer",
+  "Marketing Executive","Marketing Manager",
+  "Director","CEO","CTO","CFO","Other",
+];
+const ORG_ROLES = [
+  { value:"EMPLOYEE",        label:"Employee" },
+  { value:"TEAM_LEAD",       label:"Team Lead" },
+  { value:"PROJECT_MANAGER", label:"Project Manager" },
+  { value:"HR",              label:"HR Manager" },
+  { value:"MANAGEMENT",      label:"Management" },
+];
+
+const empEmpty = { employeeCode:"", name:"", email:"", phone:"", designation:"", department:"", employmentType:"FULL_TIME", joiningDate:"", salaryType:"MONTHLY", basicSalary:"", dailyRate:"", hra:"0", allowances:"0", pfEnabled:"", esiEnabled:"", orgRole:"EMPLOYEE", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" };
 const attEmpty = { employeeId:"", date:now.toISOString().slice(0,10), status:"PRESENT", checkIn:"", checkOut:"", notes:"" };
 const payEmpty = { employeeId:"", month:String(now.getMonth()+1), year:String(now.getFullYear()), workingDays:"26", presentDays:"", hra:"0", allowances:"0", deductions:"0" };
 
@@ -89,6 +109,12 @@ const expenseEmpty = { employeeId:"", expenseDate:now.toISOString().slice(0,10),
 
 export default function HRPage() {
   const { t } = useTranslation();
+  const { activeOrg } = useAuthStore();
+
+  // Role-based access levels within the HR module
+  const role = activeOrg?.role ?? "STAFF";
+  const isHRManager = role === "OWNER" || role === "ADMIN" || role === "MANAGER";
+
   const [tab, setTab] = useState<Tab>("overview");
   const [summary, setSummary] = useState<Summary|null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -260,7 +286,7 @@ export default function HRPage() {
   const openAdd = () => { setEditId(null); setEmpForm({...empEmpty}); setError(""); setShowEmpModal(true); };
   const openEdit = (e: Employee) => {
     setEditId(e.id);
-    setEmpForm({ employeeCode:e.employeeCode, name:e.name, email:"", phone:"", designation:e.designation||"", department:e.department||"", employmentType:e.employmentType, joiningDate:new Date(e.joiningDate).toISOString().slice(0,10), salaryType:e.salaryType||"MONTHLY", basicSalary:String(e.basicSalary), dailyRate:String(e.dailyRate||""), hra:String(e.hra||0), allowances:String(e.allowances||0), bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" });
+    setEmpForm({ employeeCode:e.employeeCode, name:e.name, email:"", phone:"", designation:e.designation||"", department:e.department||"", employmentType:e.employmentType, joiningDate:new Date(e.joiningDate).toISOString().slice(0,10), salaryType:e.salaryType||"MONTHLY", basicSalary:String(e.basicSalary), dailyRate:String(e.dailyRate||""), hra:String(e.hra||0), allowances:String(e.allowances||0), pfEnabled:(e as any).pfEnabled!=null?String((e as any).pfEnabled):"", esiEnabled:(e as any).esiEnabled!=null?String((e as any).esiEnabled):"", orgRole:(e as any).orgRole||"EMPLOYEE", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" });
     setError(""); setShowEmpModal(true);
   };
   const openDetail = async (emp: Employee) => {
@@ -272,13 +298,43 @@ export default function HRPage() {
   const saveEmployee = async () => {
     setSaving(true); setError("");
     try {
-      const payload = { ...empForm, basicSalary:parseFloat(empForm.basicSalary)||0, dailyRate:empForm.salaryType==="DAILY"?(parseFloat(empForm.dailyRate)||0):undefined, hra:parseFloat(empForm.hra)||0, allowances:parseFloat(empForm.allowances)||0, email:empForm.email||undefined, phone:empForm.phone||undefined };
+      const payload = {
+        ...empForm,
+        basicSalary:  parseFloat(empForm.basicSalary)||0,
+        dailyRate:    empForm.salaryType==="DAILY"?(parseFloat(empForm.dailyRate)||0):undefined,
+        hra:          parseFloat(empForm.hra)||0,
+        allowances:   parseFloat(empForm.allowances)||0,
+        email:        empForm.email||undefined,
+        phone:        empForm.phone||undefined,
+        pfEnabled:    empForm.pfEnabled===""?undefined:empForm.pfEnabled==="true",
+        esiEnabled:   empForm.esiEnabled===""?undefined:empForm.esiEnabled==="true",
+        orgRole:      empForm.orgRole||"EMPLOYEE",
+      };
       if (editId) await api.patch(`/hr/${editId}`, payload);
       else await api.post("/hr", payload);
       setShowEmpModal(false); loadBase();
     } catch (e) { setError(errMsg(e)); }
     setSaving(false);
   };
+
+  const terminateEmployee = async (emp: Employee) => {
+    if (!confirm(`Terminate ${emp.name}? This will set their status to TERMINATED.`)) return;
+    try { await api.delete(`/hr/${emp.id}`); loadBase(); } catch { alert("Failed to terminate employee"); }
+  };
+
+  // Salary preview calculation (client-side, mirrors backend logic)
+  const salaryPreview = (() => {
+    const basic    = parseFloat(empForm.basicSalary)||0;
+    const hra      = orgHR.enableHRA ? (parseFloat(empForm.hra)||0) : 0;
+    const allow    = orgHR.enableAllowances ? (parseFloat(empForm.allowances)||0) : 0;
+    const gross    = basic + hra + allow;
+    const usePF    = empForm.pfEnabled===""  ? orgHR.enablePF   : empForm.pfEnabled==="true";
+    const useESI   = empForm.esiEnabled==="" ? orgHR.enableESI  : empForm.esiEnabled==="true";
+    const pf       = usePF  ? basic * 0.12 : 0;
+    const esi      = useESI ? (gross<=21000 ? gross*0.0075 : 0) : 0;
+    const net      = gross - pf - esi;
+    return { gross, pf, esi, net };
+  })();
 
   // ── Attendance ──
   const saveAttendance = async () => {
@@ -396,14 +452,19 @@ export default function HRPage() {
   const pf = (k: keyof typeof payEmpty, v: string) => setPayForm(p=>({...p,[k]:v}));
   const lf = (k: keyof typeof leaveEmpty, v: string) => setLeaveForm(p=>({...p,[k]:v}));
 
+  // Managers see all tabs; non-managers (STAFF with HR access) only see Leaves + Expenses
   const TABS: Array<{id:Tab;label:string;icon:React.ReactNode}> = [
-    {id:"overview",label:"Overview",icon:<TrendingUp size={14}/>},
-    {id:"employees",label:"Employees",icon:<Users size={14}/>},
-    {id:"attendance",label:"Attendance",icon:<Calendar size={14}/>},
-    {id:"payroll",label:"Payroll",icon:<DollarSign size={14}/>},
-    {id:"leaves",label:"Leaves",icon:<Clock size={14}/>},
-    {id:"performance",label:"Performance",icon:<Target size={14}/>},
-    {id:"expenses",label:"Expenses",icon:<Receipt size={14}/>},
+    ...(isHRManager ? [
+      {id:"overview"    as Tab, label:"Overview",    icon:<TrendingUp size={14}/>},
+      {id:"employees"   as Tab, label:"Employees",   icon:<Users size={14}/>},
+      {id:"attendance"  as Tab, label:"Attendance",  icon:<Calendar size={14}/>},
+      {id:"payroll"     as Tab, label:"Payroll",     icon:<DollarSign size={14}/>},
+    ] : []),
+    {id:"leaves"      as Tab, label:"Leaves",      icon:<Clock size={14}/>},
+    ...(isHRManager ? [
+      {id:"performance" as Tab, label:"Performance", icon:<Target size={14}/>},
+    ] : []),
+    {id:"expenses"    as Tab, label:"Expenses",    icon:<Receipt size={14}/>},
   ];
 
   return (
@@ -412,16 +473,18 @@ export default function HRPage() {
       <div className="page-hdr" style={{marginBottom:20}}>
         <div>
           <h1 style={S.title}>{ t('page_hr') }</h1>
-          <p style={S.subtitle}>{ t('page_hr_sub') }</p>
+          <p style={S.subtitle}>
+            {isHRManager ? t('page_hr_sub') : "View your leaves, expenses and payslip"}
+          </p>
         </div>
         <div style={{display:"flex",gap:8}}>
-          {tab==="employees" && <button style={S.btn} onClick={openAdd}><Plus size={15}/> Add Employee</button>}
-          {tab==="attendance" && <button style={S.btn} onClick={()=>{setAttForm({...attEmpty});setError("");setShowAttModal(true);}}><Plus size={15}/> Mark Attendance</button>}
-          {tab==="payroll" && <button style={S.btn} onClick={()=>{setPayForm({...payEmpty,workingDays:String(orgHR.defaultWorkingDays)});setError("");setShowPayModal(true);}}><Plus size={15}/> Generate Payroll</button>}
+          {isHRManager && tab==="employees" && <button style={S.btn} onClick={openAdd}><Plus size={15}/> Add Employee</button>}
+          {isHRManager && tab==="attendance" && <button style={S.btn} onClick={()=>{setAttForm({...attEmpty});setError("");setShowAttModal(true);}}><Plus size={15}/> Mark Attendance</button>}
+          {isHRManager && tab==="payroll" && <button style={S.btn} onClick={()=>{setPayForm({...payEmpty,workingDays:String(orgHR.defaultWorkingDays)});setError("");setShowPayModal(true);}}><Plus size={15}/> Generate Payroll</button>}
           {tab==="leaves" && leaveSubTab==="requests" && <button style={S.btn} onClick={()=>{setLeaveForm({...leaveEmpty});setError("");setShowLeaveModal(true);}}><Plus size={15}/> Apply Leave</button>}
-          {tab==="leaves" && leaveSubTab==="balances" && <button style={S.btn} onClick={()=>{setLbForm({...balanceEmpty});setError("");setShowLbModal(true);}}><Plus size={15}/> Allocate Balance</button>}
-          {tab==="performance" && perfSubTab==="goals" && <button style={S.btn} onClick={()=>{setEditGoalId(null);setGoalForm({...goalEmpty});setError("");setShowGoalModal(true);}}><Plus size={15}/> Add Goal</button>}
-          {tab==="performance" && perfSubTab==="reviews" && <button style={S.btn} onClick={()=>{setEditReviewId(null);setReviewForm({...reviewEmpty});setError("");setShowReviewModal(true);}}><Plus size={15}/> Add Review</button>}
+          {isHRManager && tab==="leaves" && leaveSubTab==="balances" && <button style={S.btn} onClick={()=>{setLbForm({...balanceEmpty});setError("");setShowLbModal(true);}}><Plus size={15}/> Allocate Balance</button>}
+          {isHRManager && tab==="performance" && perfSubTab==="goals" && <button style={S.btn} onClick={()=>{setEditGoalId(null);setGoalForm({...goalEmpty});setError("");setShowGoalModal(true);}}><Plus size={15}/> Add Goal</button>}
+          {isHRManager && tab==="performance" && perfSubTab==="reviews" && <button style={S.btn} onClick={()=>{setEditReviewId(null);setReviewForm({...reviewEmpty});setError("");setShowReviewModal(true);}}><Plus size={15}/> Add Review</button>}
           {tab==="expenses" && <button style={S.btn} onClick={()=>{setExpForm({...expenseEmpty});setError("");setShowExpModal(true);}}><Plus size={15}/> Add Expense</button>}
         </div>
       </div>
@@ -436,7 +499,7 @@ export default function HRPage() {
       </div>
 
       {/* ════════════════ OVERVIEW ════════════════ */}
-      {tab==="overview" && (
+      {isHRManager && tab==="overview" && (
         <div>
           {/* KPI row */}
           <div className="kpi-grid" style={{marginBottom:20}}>
@@ -512,7 +575,7 @@ export default function HRPage() {
       )}
 
       {/* ════════════════ EMPLOYEES ════════════════ */}
-      {tab==="employees" && (
+      {isHRManager && tab==="employees" && (
         <div style={S.card}>
           <div style={S.toolbar}>
             <div style={S.sw}><Search size={14} style={S.sIcon}/><input style={S.si} placeholder="Search employees..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
@@ -533,7 +596,12 @@ export default function HRPage() {
                       <td style={{...S.td,fontSize:12,color:"var(--text-ghost)"}}>{shifts.find(s=>s.id===e.shiftId)?.name||"—"}</td>
                       <td style={S.td}>{fmtDate(e.joiningDate)}</td>
                       <td style={S.td}><Badge text={e.status} color={e.status==="ACTIVE"?"#10b981":"#ef4444"}/></td>
-                      <td style={S.td}><button onClick={ev=>{ev.stopPropagation();openEdit(e);}} style={{...S.btnSm,padding:"3px 8px"}}>Edit</button></td>
+                      <td style={S.td}>
+                        <div style={{display:"flex",gap:4}}>
+                          <button onClick={ev=>{ev.stopPropagation();openEdit(e);}} style={{...S.btnSm,padding:"3px 8px"}}>Edit</button>
+                          {e.status==="ACTIVE" && <button onClick={ev=>{ev.stopPropagation();terminateEmployee(e);}} style={{...S.btnDanger,padding:"3px 8px"}}>Terminate</button>}
+                        </div>
+                      </td>
                     </tr>
                   ))
                 }
@@ -544,7 +612,7 @@ export default function HRPage() {
       )}
 
       {/* ════════════════ ATTENDANCE ════════════════ */}
-      {tab==="attendance" && (
+      {isHRManager && tab==="attendance" && (
         <div style={S.card}>
           <div style={S.toolbar}>
             <span style={{fontSize:13,color:"var(--text-sec)",fontWeight:600}}>Filter:</span>
@@ -577,13 +645,13 @@ export default function HRPage() {
       )}
 
       {/* ════════════════ PAYROLL ════════════════ */}
-      {tab==="payroll" && (
+      {isHRManager && tab==="payroll" && (
         <div style={S.card}>
           <div style={S.toolbar}>
             <span style={{fontSize:13,color:"var(--text-sec)",fontWeight:600}}>Filter:</span>
             <select style={S.fSel} value={payMonth} onChange={e=>setPayMonth(parseInt(e.target.value))}>{MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
             <select style={S.fSel} value={payYear} onChange={e=>setPayYear(parseInt(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>
-            <span style={{fontSize:12,color:"var(--text-ghost)"}}>{payrolls.length} payslips · Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))}</span>
+            <span style={{fontSize:12,color:"var(--text-ghost)"}}>{payrolls.length} payslips · Total Net: {fmt(payrolls.reduce((s,p)=>s+p.netSalary,0))} <span title="Professional Tax (PT) is deducted additionally in the payslip" style={{color:"#f59e0b",cursor:"help"}}>*pre-PT</span></span>
             <button onClick={()=>{setAutoPayForm({month:String(payMonth),year:String(payYear),workingDays:String(orgHR.defaultWorkingDays)});setAutoPayResult(null);setShowAutoPayModal(true);}} style={{...S.btn,marginLeft:"auto",background:"linear-gradient(135deg,#10b981,#059669)",fontSize:12,padding:"6px 14px"}}>
               Auto-Generate All
             </button>
@@ -709,7 +777,7 @@ export default function HRPage() {
       )}
 
       {/* ════════════════ PERFORMANCE ════════════════ */}
-      {tab==="performance" && (
+      {isHRManager && tab==="performance" && (
         <div>
           <div style={{display:"flex",gap:4,marginBottom:16}}>
             {(["goals","reviews"] as const).map(st=>(
@@ -843,12 +911,27 @@ export default function HRPage() {
                 <div><label style={S.label}>Phone</label><input style={S.input} value={empForm.phone} onChange={e=>ef("phone",e.target.value)} onKeyDown={kPhone} maxLength={15}/></div>
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>Designation</label><input style={S.input} value={empForm.designation} onChange={e=>ef("designation",e.target.value)} maxLength={100}/></div>
+                <div>
+                  <label style={S.label}>Designation / Post *</label>
+                  <select style={S.select} value={empForm.designation} onChange={e=>ef("designation",e.target.value)}>
+                    <option value="">Select post...</option>
+                    {DESIGNATION_OPTS.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
                 <div><label style={S.label}>Department</label><input style={S.input} value={empForm.department} onChange={e=>ef("department",e.target.value)} maxLength={100}/></div>
               </div>
               <div className="grid-r2">
+                <div>
+                  <label style={S.label}>Org Role (Access Level)</label>
+                  <select style={S.select} value={empForm.orgRole} onChange={e=>ef("orgRole",e.target.value)}>
+                    {ORG_ROLES.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </div>
                 <div><label style={S.label}>Employment Type</label><select style={S.select} value={empForm.employmentType} onChange={e=>ef("employmentType",e.target.value)}>{["FULL_TIME","PART_TIME","CONTRACT","INTERN"].map(t=><option key={t} value={t}>{t.replace("_"," ")}</option>)}</select></div>
-                <div><label style={S.label}>Joining Date *</label><input type="date" style={S.input} value={empForm.joiningDate} onChange={e=>ef("joiningDate",e.target.value)}/></div>
+              </div>
+              <div>
+                <label style={S.label}>Joining Date *</label>
+                <input type="date" style={S.input} value={empForm.joiningDate} onChange={e=>ef("joiningDate",e.target.value)}/>
               </div>
               <div style={{background:"var(--bg-hover)",borderRadius:8,padding:"12px 14px"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"var(--text-ghost)",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:10}}>Salary Structure</div>
@@ -869,12 +952,43 @@ export default function HRPage() {
                     )}
                   </div>
                 )}
-                {(orgHR.enablePF || orgHR.enableESI) ? (
-                  <div style={{marginTop:8,fontSize:11,color:"var(--text-ghost)"}}>
-                    {[orgHR.enablePF && "PF (12% basic)", orgHR.enableESI && "ESI (0.75% if gross ≤ ₹21,000)"].filter(Boolean).join(" and ")} {orgHR.enablePF||orgHR.enableESI?"are auto-deducted during payroll.":""}
+                {/* Per-employee PF / ESI override */}
+                <div style={{marginTop:10,display:"flex",gap:16,flexWrap:"wrap" as const}}>
+                  <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--text-sec)",cursor:"pointer"}}>
+                    <span style={S.label}>PF (12% basic)</span>
+                    <select style={{...S.select,width:"auto",padding:"5px 10px",fontSize:12}} value={empForm.pfEnabled} onChange={e=>ef("pfEnabled",e.target.value)}>
+                      <option value="">Use org default ({orgHR.enablePF?"ON":"OFF"})</option>
+                      <option value="true">Force ON</option>
+                      <option value="false">Force OFF</option>
+                    </select>
+                  </label>
+                  <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--text-sec)",cursor:"pointer"}}>
+                    <span style={S.label}>ESIC (0.75%)</span>
+                    <select style={{...S.select,width:"auto",padding:"5px 10px",fontSize:12}} value={empForm.esiEnabled} onChange={e=>ef("esiEnabled",e.target.value)}>
+                      <option value="">Use org default ({orgHR.enableESI?"ON":"OFF"})</option>
+                      <option value="true">Force ON</option>
+                      <option value="false">Force OFF</option>
+                    </select>
+                  </label>
+                </div>
+                {/* Salary preview */}
+                {(parseFloat(empForm.basicSalary)||0) > 0 && (
+                  <div style={{marginTop:12,background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:"10px 14px"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#818CF8",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:8}}>Salary Preview (full month)</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                      {[
+                        {l:"Gross",v:salaryPreview.gross,c:"#10b981"},
+                        {l:"PF",   v:salaryPreview.pf,   c:"#ef4444"},
+                        {l:"ESIC", v:salaryPreview.esi,  c:"#ef4444"},
+                        {l:"Net Take-Home", v:salaryPreview.net, c:"var(--text-primary)"},
+                      ].map(r=>(
+                        <div key={r.l} style={{textAlign:"center" as const}}>
+                          <div style={{fontSize:10,color:"var(--text-ghost)"}}>{r.l}</div>
+                          <div style={{fontSize:14,fontWeight:700,color:r.c}}>₹{Math.round(r.v).toLocaleString("en-IN")}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <div style={{marginTop:8,fontSize:11,color:"var(--text-ghost)"}}>PF and ESI deductions are disabled for this organisation.</div>
                 )}
               </div>
               <div className="grid-r2">
@@ -956,7 +1070,7 @@ export default function HRPage() {
                   ))}
                 </div>
               </div>
-              <div><label style={S.label}>Days Present *</label><input type="number" style={S.input} value={payForm.presentDays} onChange={e=>pf("presentDays",e.target.value)} placeholder="e.g. 24"/></div>
+              <div><label style={S.label}>Days Present * (max {payForm.workingDays})</label><input type="number" style={S.input} value={payForm.presentDays} onChange={e=>pf("presentDays",e.target.value)} placeholder="e.g. 24" min="0" max={payForm.workingDays} step="0.5"/></div>
               {(orgHR.enableHRA||orgHR.enableAllowances) && (
                 <div className="grid-r2">
                   {orgHR.enableHRA && <div><label style={S.label}>HRA Override (₹)</label><input type="number" style={S.input} value={payForm.hra} onChange={e=>pf("hra",e.target.value)}/></div>}
