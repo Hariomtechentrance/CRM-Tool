@@ -1,0 +1,53 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: "0 2 * * 0"    # Every Sunday at 2 AM UTC (weekly)
+    - cron: "0 2 1 * *"    # 1st of every month at 2 AM UTC (monthly)
+  workflow_dispatch:        # Allow manual trigger from GitHub UI
+
+jobs:
+  backup:
+    name: Backup PostgreSQL (Neon)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Determine backup type
+        id: backup_type
+        run: |
+          DAY=$(date +%u)   # 1=Mon ... 7=Sun
+          DOM=$(date +%d)   # day of month
+          if [ "$DOM" = "01" ]; then
+            echo "type=monthly" >> $GITHUB_OUTPUT
+          else
+            echo "type=weekly" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run pg_dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          TIMESTAMP=$(date +"%Y-%m-%d_%H-%M")
+          FILENAME="backup_${{ steps.backup_type.outputs.type }}_${TIMESTAMP}.sql.gz"
+          pg_dump "$DATABASE_URL" | gzip > "$FILENAME"
+          echo "BACKUP_FILE=$FILENAME" >> $GITHUB_ENV
+          SIZE=$(du -sh "$FILENAME" | cut -f1)
+          echo "Backup created: $FILENAME ($SIZE)"
+
+      - name: Upload backup as GitHub artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ steps.backup_type.outputs.type }}-${{ github.run_id }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 90   # Keep for 90 days
+
+      - name: Summary
+        run: |
+          echo "### Backup Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **File:** $BACKUP_FILE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type:** ${{ steps.backup_type.outputs.type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
