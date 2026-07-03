@@ -124,7 +124,7 @@ export async function listDemoRequests(req: Request, res: Response) {
 
 // ── Super Admin: update status / notes ────────────────────────
 export async function updateDemoRequest(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const body = req.body as { status?: string; adminNotes?: string };
   const updated = await prisma.demoRequest.update({
     where: { id },
