@@ -44,6 +44,7 @@ import SuperAdminLayout from "@/pages/superAdmin/SuperAdminLayout";
 import SuperAdminDashboard from "@/pages/superAdmin/SuperAdminDashboard";
 import SuperAdminOrgsPage from "@/pages/superAdmin/SuperAdminOrgsPage";
 import SuperAdminUsersPage from "@/pages/superAdmin/SuperAdminUsersPage";
+import AccessRequestsPage from "@/pages/superAdmin/AccessRequestsPage";
 import SuperAdminLoginPage from "@/pages/superAdmin/SuperAdminLoginPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -74,6 +75,9 @@ import TelecallingPage from "@/pages/telecalling/TelecallingPage";
 import ServicesPage from "@/pages/services/ServicesPage";
 import StockMarketPage from "@/pages/stockmarket/StockMarketPage";
 import HealthPage from "@/pages/health/HealthPage";
+import PatientPortalPage from "@/pages/health/PatientPortalPage";
+import HealthPortalLoginPage from "@/pages/health/HealthPortalLoginPage";
+import DoctorDashboardPage from "@/pages/health/DoctorDashboardPage";
 import RestaurantPage from "@/pages/restaurant/RestaurantPage";
 import HotelPage from "@/pages/hotel/HotelPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
@@ -114,6 +118,9 @@ export default function App() {
         {/* Public */}
         <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
         <Route path="/portal/invoice/:token"  element={<InvoicePortalPage />} />
+        <Route path="/patient-portal"          element={<PatientPortalPage />} />
+        <Route path="/health-portal/login"     element={<HealthPortalLoginPage />} />
+        <Route path="/health-portal/doctor"    element={<DoctorDashboardPage />} />
         <Route path="/public/project/:token" element={<PublicProjectPage />} />
         <Route path="/forms/:id"             element={<LeadCaptureFormPage />} />
         <Route path="/login"          element={<LoginPage />} />
@@ -138,9 +145,10 @@ export default function App() {
         {/* ── Super Admin (platform owner only) ── */}
         <Route path="/super-admin" element={<SuperAdminLayout />}>
           <Route index element={<Navigate to="/super-admin/dashboard" replace />} />
-          <Route path="dashboard"     element={<SuperAdminDashboard />} />
-          <Route path="organizations" element={<SuperAdminOrgsPage />} />
-          <Route path="users"         element={<SuperAdminUsersPage />} />
+          <Route path="dashboard"        element={<SuperAdminDashboard />} />
+          <Route path="organizations"    element={<SuperAdminOrgsPage />} />
+          <Route path="users"            element={<SuperAdminUsersPage />} />
+          <Route path="access-requests"  element={<AccessRequestsPage />} />
         </Route>
 
         {/* ── Main App ── */}
@@ -175,7 +183,7 @@ export default function App() {
           <Route path="/telecalling"   element={<TelecallingPage />} />
           <Route path="/services"      element={<ServicesPage />} />
           <Route path="/stock-market"  element={<StockMarketPage />} />
-          <Route path="/health"        element={<HealthPage />} />
+          <Route path="/health"        element={G("HEALTH", HealthPage)} />
 
           {/* ── Growth ── */}
           <Route path="/marketing"    element={G("MARKETING", LeadsPage)} />

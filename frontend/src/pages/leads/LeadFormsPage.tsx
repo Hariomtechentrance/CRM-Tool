@@ -273,7 +273,7 @@ export default function LeadFormsPage() {
   async function load() {
     try {
       const r = await api.get("/lead-forms", orgHeader);
-      setForms(r.data || []);
+      setForms(Array.isArray(r.data?.data) ? r.data.data : []);
     } catch { setForms([]); }
     finally { setLoading(false); }
   }

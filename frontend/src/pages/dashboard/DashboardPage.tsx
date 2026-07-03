@@ -83,7 +83,7 @@ export default function DashboardPage() {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [leadStages, setLeadStages] = useState<LeadStage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isOrgAdmin) return;
@@ -107,8 +107,8 @@ export default function DashboardPage() {
     load();
   }, [activeOrg?.id, isOrgAdmin]);
 
-  // Non-admin users with a specific employee role get their own view
-  if (!isOrgAdmin && orgRole !== undefined && orgRole !== "MANAGEMENT" && orgRole !== "HR") {
+  // All non-admin users (STAFF, MANAGER, doctors, etc.) get the employee view
+  if (!isOrgAdmin) {
     return <EmployeeDashboard />;
   }
 

@@ -5,6 +5,7 @@ import {
   Briefcase, FileText, Headphones, Warehouse, ShoppingBag, Kanban,
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
   ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon, Check, Zap,
+  Stethoscope,
 } from "lucide-react";
 import ContactModal from "@/components/ContactModal";
 
@@ -115,12 +116,13 @@ const MODULES = [
   { Icon: FileBox,        name: "Documents",             tag: "Communication",   color: "#94a3b8", desc: "Upload, organise and share business documents — invoices, contracts, compliance, photos.", features: ["Upload any file type", "Link to party / order / employee", "Cloud storage", "Search by name or tag", "Secure download links"] },
   { Icon: UtensilsCrossed,name: "Restaurant POS",        tag: "Food & Hospitality", color: "#f97316", desc: "Petpooja-style POS — table management, KOT, menu builder, billing and kitchen display for restaurants & cafés.", features: ["Table & section management", "Menu categories with VEG/NON-VEG tags", "Kitchen Order Tickets (KOT)", "Dine-in / Takeaway / Delivery", "5% GST auto-calculation", "Raw material & supplier tracking"] },
   { Icon: HotelIcon,      name: "Hotel / Resort",        tag: "Food & Hospitality", color: "#0ea5e9", desc: "Complete hotel PMS — room management, guest profiles, bookings, check-in/check-out and revenue tracking.", features: ["Room types & floor management", "Guest profiles with ID verification", "Booking with availability check", "Check-in / Check-out workflow", "12% GST on room charges", "Monthly revenue dashboard"] },
+  { Icon: Stethoscope,    name: "Health & Clinic",        tag: "Health",             color: "#10b981", desc: "Complete clinic & hospital management — verified doctors, patient records, appointment booking and a public patient portal.", features: ["Doctor registration with govt. document verification", "Patient profiles with auto codes (PT-00001)", "Appointment booking — verified doctors only", "Prescriptions with full medicine details", "Visit history, diagnosis & follow-up notes", "Public patient portal — no login needed"] },
 ];
 
-const TAGS = ["All", "Core", "Growth", "Operations", "Communication", "Food & Hospitality"];
+const TAGS = ["All", "Core", "Growth", "Operations", "Communication", "Food & Hospitality", "Health"];
 const TAG_COLORS: Record<string, string> = {
   Core: "#6366f1", Growth: "#10b981", Operations: "#f59e0b", Communication: "#06b6d4",
-  "Food & Hospitality": "#f97316",
+  "Food & Hospitality": "#f97316", Health: "#0f766e",
 };
 
 const WHY = [

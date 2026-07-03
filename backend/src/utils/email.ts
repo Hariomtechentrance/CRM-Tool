@@ -64,8 +64,13 @@ const p  = (t: string) => `<p style="margin:0 0 12px;font-size:15px;color:#50507
 const note = (t: string) => `<p style="margin:16px 0 0;font-size:13px;color:#a0a0b8">${t}</p>`;
 
 // ── Email verification ───────────────────────────────────────
+// Use only the first URL when FRONTEND_URL is comma-separated (dev has multiple)
+function frontendBase(): string {
+  return (process.env.FRONTEND_URL || "http://localhost:5173").split(",")[0].trim();
+}
+
 export function verifyEmailTemplate(name: string, token: string): string {
-  const url = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+  const url = `${frontendBase()}/verify-email?token=${token}`;
   return emailLayout("Verify your email", `
     ${h1(`Welcome to BL-CRM, ${name}!`)}
     ${p("Thanks for signing up. Please verify your email address to activate your account.")}
@@ -95,7 +100,7 @@ export function inviteEmailTemplate(
   role = "STAFF",
   allowedModules: string[] = [],
 ): string {
-  const url = `${process.env.FRONTEND_URL}/accept-invite?token=${token}`;
+  const url = `${frontendBase()}/accept-invite?token=${token}`;
   const roleLabel = ROLE_LABELS[role] || role;
 
   const moduleChips = allowedModules.length > 0
@@ -116,7 +121,7 @@ export function inviteEmailTemplate(
 
 // ── Password reset ───────────────────────────────────────────
 export function resetPasswordTemplate(name: string, token: string): string {
-  const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const url = `${frontendBase()}/reset-password?token=${token}`;
   return emailLayout("Reset your password", `
     ${h1("Reset Your Password")}
     ${p(`Hi <strong style="color:#1a1a2e">${name}</strong>, we received a request to reset your password.`)}

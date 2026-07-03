@@ -228,10 +228,12 @@ model Organization {
   marketAlerts          MarketAlert[]
 
   // Phase 5 — Health
-  patients     Patient[]
-  patientVisits PatientVisit[]
-  prescriptions Prescription[]
-  labReports   LabReport[]
+  patients          Patient[]
+  patientVisits     PatientVisit[]
+  prescriptions     Prescription[]
+  labReports        LabReport[]
+  doctors           Doctor[]
+  healthAppointments HealthAppointment[]
 
   // Phase 6 — Food & Hospitality
   restaurantTables  RestaurantTable[]
@@ -3091,10 +3093,11 @@ model Patient {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  visits       PatientVisit[]
+  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visits        PatientVisit[]
   prescriptions Prescription[]
-  labReports   LabReport[]
+  labReports    LabReport[]
+  appointments  HealthAppointment[]
 
   @@index([organizationId])
   @@index([organizationId, patientCode])
@@ -3171,6 +3174,102 @@ model LabReport {
 
   @@index([organizationId])
   @@index([patientId])
+}
+
+// ── Doctor registration & verification ──────────────────────
+
+enum DoctorVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentType {
+  CONSULTATION
+  FOLLOW_UP
+  EMERGENCY
+  PROCEDURE
+}
+
+model Doctor {
+  id                 String                   @id @default(cuid())
+  organizationId     String
+  name               String
+  email              String?
+  phone              String?
+  specialization     String
+  qualification      String
+  registrationNo     String
+  experience         Int?
+  department         String?
+  consultationFee    Decimal?                 @db.Decimal(10, 2)
+  availableDays      String[]                 @default([])
+  slotDuration       Int                      @default(30)
+  bio                String?
+  isVerified         Boolean                  @default(false)
+  verificationStatus DoctorVerificationStatus @default(PENDING)
+  rejectionReason    String?
+  isActive           Boolean                  @default(true)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents    DoctorDocument[]
+  appointments HealthAppointment[]
+
+  @@index([organizationId])
+  @@index([organizationId, registrationNo])
+}
+
+model DoctorDocument {
+  id         String   @id @default(cuid())
+  doctorId   String
+  docType    String
+  docNumber  String?
+  fileUrl    String?
+  fileName   String?
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+}
+
+model HealthAppointment {
+  id              String            @id @default(cuid())
+  organizationId  String
+  appointmentNo   String
+  patientId       String
+  doctorId        String
+  appointmentDate DateTime
+  timeSlot        String
+  type            AppointmentType   @default(CONSULTATION)
+  status          AppointmentStatus @default(SCHEDULED)
+  chiefComplaint  String?
+  notes           String?
+  fee             Decimal?          @db.Decimal(10, 2)
+  isPaid          Boolean           @default(false)
+  cancelReason    String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id])
+  doctor       Doctor       @relation(fields: [doctorId], references: [id])
+
+  @@index([organizationId])
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([appointmentDate])
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -3602,4 +3701,29 @@ model HotelBooking {
   @@index([organizationId])
   @@index([checkIn, checkOut])
   @@index([status])
+}
+
+// ── Public landing page access/demo requests ─────────────────
+enum DemoRequestStatus {
+  NEW
+  CONTACTED
+  ONBOARDED
+  REJECTED
+}
+
+model DemoRequest {
+  id           String            @id @default(cuid())
+  name         String
+  email        String
+  phone        String
+  organization String
+  teamSize     String?
+  message      String?
+  status       DemoRequestStatus @default(NEW)
+  adminNotes   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }
