@@ -92,6 +92,9 @@ function clearAuthStorage() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("activeOrgId");
+  // Also wipe the Zustand persist store so isAuthenticated resets to false on reload,
+  // preventing the redirect loop: / → /dashboard (stale auth) → 401 → /login → repeat
+  localStorage.removeItem("flowcrm-auth");
 }
 
 function loginRedirectUrl() {
