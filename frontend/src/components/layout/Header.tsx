@@ -1,4 +1,4 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
@@ -33,14 +33,14 @@ const SEV_ICON = {
 };
 const SEV_DOT = { critical: "#ef4444", warning: "#f59e0b", info: "#6366f1" };
 
-interface SearchResults { parties?: any[]; leads?: any[]; deals?: any[]; invoices?: any[]; products?: any[]; }
+interface SearchResults { parties?: any[]; leads?: any[]; deals?: any[]; invoices?: any[]; products?: any[]; patients?: any[]; }
 
 const RESULT_ICONS: Record<string, React.ReactNode> = {
   parties: <Users size={12} />, leads: <TrendingUp size={12} />, deals: <Briefcase size={12} />,
-  invoices: <Receipt size={12} />, products: <Package size={12} />,
+  invoices: <Receipt size={12} />, products: <Package size={12} />, patients: <HeartPulse size={12} />,
 };
 const RESULT_COLORS: Record<string, string> = {
-  parties: "#818CF8", leads: "#f59e0b", deals: "#10b981", invoices: "#F87171", products: "#60a5fa",
+  parties: "#818CF8", leads: "#f59e0b", deals: "#10b981", invoices: "#F87171", products: "#60a5fa", patients: "#ef4444",
 };
 
 function getItemDisplay(category: string, item: any): { label: string; sub?: string; href: string } {
@@ -50,6 +50,7 @@ function getItemDisplay(category: string, item: any): { label: string; sub?: str
     case "deals":    return { label: item.title, sub: item.party?.name || item.stage, href: "/deals" };
     case "invoices": return { label: item.invoiceNumber, sub: item.party?.name, href: "/accounts" };
     case "products": return { label: item.name, sub: item.sku ? `SKU: ${item.sku}` : undefined, href: "/inventory" };
+    case "patients": return { label: item.name, sub: [item.patientCode, item.phone].filter(Boolean).join(" · "), href: `/health?patientId=${item.id}` };
     default:         return { label: item.name || item.id, href: "/dashboard" };
   }
 }
@@ -178,7 +179,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           value={searchQuery}
           onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
           onFocus={() => setSearchOpen(true)}
-          placeholder="Search parties, deals, products..."
+          placeholder="Search parties, deals, products, patients..."
           style={{
             width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-input)", borderRadius: 8,
             padding: "7px 12px 7px 32px", color: "var(--text-primary)", fontSize: 13, outline: "none",

@@ -7,12 +7,12 @@ export async function globalSearch(req: OrgRequest, res: Response): Promise<void
   try {
     const orgId = req.organizationId!;
     const q = (req.query.q as string || "").trim();
-    if (!q || q.length < 2) { ok(res, { parties: [], leads: [], deals: [], invoices: [], products: [] }); return; }
+    if (!q || q.length < 2) { ok(res, { parties: [], leads: [], deals: [], invoices: [], products: [], patients: [] }); return; }
 
     const mode = "insensitive" as const;
     const take = 5;
 
-    const [parties, leads, deals, invoices, products] = await Promise.all([
+    const [parties, leads, deals, invoices, products, patients] = await Promise.all([
       prisma.party.findMany({
         where: {
           organizationId: orgId, isActive: true,
@@ -53,8 +53,16 @@ export async function globalSearch(req: OrgRequest, res: Response): Promise<void
         select: { id: true, name: true, sku: true, currentStock: true, sellingPrice: true },
         take,
       }),
+      (prisma as any).patient.findMany({
+        where: {
+          organizationId: orgId, isActive: true,
+          OR: [{ name: { contains: q, mode } }, { phone: { contains: q, mode } }, { patientCode: { contains: q, mode } }],
+        },
+        select: { id: true, name: true, patientCode: true, phone: true },
+        take,
+      }),
     ]);
 
-    ok(res, { parties, leads, deals, invoices, products });
+    ok(res, { parties, leads, deals, invoices, products, patients });
   } catch (e) { serverError(res, e); }
 }

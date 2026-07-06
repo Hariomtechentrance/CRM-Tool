@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "@/lib/api";
 import {
   Heart, Plus, X, User, Activity, Clipboard, TestTube,
   Stethoscope, Calendar, CheckCircle, XCircle, Clock,
-  AlertTriangle, Search, FileText, Shield,
+  AlertTriangle, Search, FileText, Shield, Pencil,
 } from "lucide-react";
 
 const S = {
@@ -31,22 +32,195 @@ const S = {
 };
 
 type TabType = "patients" | "doctors" | "appointments" | "visits" | "prescriptions" | "labs";
+type ProfileTab = "overview" | "appointments" | "visits" | "prescriptions" | "labs";
 
 const VERIFY_COLORS: Record<string, string> = { PENDING: "#f59e0b", VERIFIED: "#10b981", REJECTED: "#ef4444" };
 const STATUS_COLORS: Record<string, string> = { SCHEDULED: "#818cf8", CONFIRMED: "#10b981", COMPLETED: "#6b7280", CANCELLED: "#ef4444", NO_SHOW: "#f59e0b" };
 const DAYS = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
 const DOC_TYPES = ["MEDICAL_LICENSE","AADHAAR","PAN","DEGREE","GOVT_ID","OTHER"];
 
-const EMPTY_PATIENT = { name: "", phone: "", email: "", dob: "", gender: "", bloodGroup: "", address: "", allergies: "", notes: "" };
+const EMPTY_PATIENT = { name: "", phone: "", email: "", dob: "", gender: "", bloodGroup: "", address: "", allergies: "", notes: "", emergencyName: "", emergencyPhone: "" };
 const EMPTY_DOCTOR = { name: "", email: "", phone: "", specialization: "", qualification: "", registrationNo: "", experience: "", department: "", consultationFee: "", bio: "", availableDays: [] as string[], slotDuration: "30", documents: [] as any[] };
 const EMPTY_APPT = { patientId: "", doctorId: "", appointmentDate: "", timeSlot: "", type: "CONSULTATION", chiefComplaint: "", notes: "" };
 const EMPTY_VISIT = { patientId: "", visitType: "OPD", chiefComplaint: "", diagnosis: "", vitalsBP: "", vitalsPulse: "", vitalsTemp: "", vitalsWeight: "", notes: "", followUpDate: "" };
+const emptyRx = () => ({ patientId: "", medicines: [{ name: "", dosage: "", frequency: "", duration: "" }], instructions: "", diet: "", followUpDays: "", validUntil: "" });
+const emptyLab = () => ({ patientId: "", testName: "", testCategory: "", normalRange: "", interpretation: "", conductedAt: "" });
 
 function badge(label: string, color: string) {
   return <span style={{ background: color + "20", color, padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 700 }}>{label}</span>;
 }
 
+function fmtDate(d?: string | null) {
+  return d ? new Date(d).toLocaleDateString("en-IN") : "—";
+}
+
+// ── Reusable form field blocks (module-level so identity is stable across re-renders) ──
+
+function MedicineEditor({ medicines, setForm }: { medicines: any[]; setForm: (updater: (f: any) => any) => void }) {
+  return (
+    <div>
+      <label style={S.label}>Medicines</label>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {medicines.map((m: any, i: number) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr auto", gap: 8, alignItems: "center" }}>
+            <input style={S.input} placeholder="Medicine name" value={m.name} onChange={e => setForm((f: any) => ({ ...f, medicines: f.medicines.map((mm: any, j: number) => j === i ? { ...mm, name: e.target.value } : mm) }))} />
+            <input style={S.input} placeholder="Dosage e.g. 500mg" value={m.dosage} onChange={e => setForm((f: any) => ({ ...f, medicines: f.medicines.map((mm: any, j: number) => j === i ? { ...mm, dosage: e.target.value } : mm) }))} />
+            <input style={S.input} placeholder="Freq e.g. 1-0-1" value={m.frequency} onChange={e => setForm((f: any) => ({ ...f, medicines: f.medicines.map((mm: any, j: number) => j === i ? { ...mm, frequency: e.target.value } : mm) }))} />
+            <input style={S.input} placeholder="Duration e.g. 5 days" value={m.duration} onChange={e => setForm((f: any) => ({ ...f, medicines: f.medicines.map((mm: any, j: number) => j === i ? { ...mm, duration: e.target.value } : mm) }))} />
+            <button type="button" onClick={() => setForm((f: any) => ({ ...f, medicines: f.medicines.filter((_: any, j: number) => j !== i) }))} disabled={medicines.length === 1} style={{ background: "none", border: "none", cursor: medicines.length === 1 ? "not-allowed" : "pointer", color: "#ef4444", opacity: medicines.length === 1 ? 0.3 : 1 }}><X size={14} /></button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => setForm((f: any) => ({ ...f, medicines: [...f.medicines, { name: "", dosage: "", frequency: "", duration: "" }] }))} style={{ marginTop: 8, ...S.btnSm, background: "#10b98120", color: "#10b981", border: "1px solid #10b98140" }}>+ Add Medicine</button>
+    </div>
+  );
+}
+
+function PatientSelect({ value, patients, onChange }: { value: string; patients: any[]; onChange: (id: string) => void }) {
+  return (
+    <div>
+      <label style={S.label}>Patient *</label>
+      <select style={S.select} value={value} onChange={e => onChange(e.target.value)}>
+        <option value="">Select patient…</option>
+        {patients.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.patientCode})</option>)}
+      </select>
+    </div>
+  );
+}
+
+function PrescriptionFormFields({ form, setForm, patients, showPatientSelect, onSave, onCancel, saving }: {
+  form: any; setForm: (updater: (f: any) => any) => void; patients: any[]; showPatientSelect: boolean;
+  onSave: () => void; onCancel?: () => void; saving: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {showPatientSelect && <PatientSelect value={form.patientId} patients={patients} onChange={id => setForm((f: any) => ({ ...f, patientId: id }))} />}
+      <MedicineEditor medicines={form.medicines} setForm={setForm} />
+      <div style={S.g2}>
+        <div><label style={S.label}>Diet</label><input style={S.input} value={form.diet} onChange={e => setForm((f: any) => ({ ...f, diet: e.target.value }))} /></div>
+        <div><label style={S.label}>Follow-up in (days)</label><input type="number" style={S.input} value={form.followUpDays} onChange={e => setForm((f: any) => ({ ...f, followUpDays: e.target.value }))} /></div>
+      </div>
+      <div style={S.g2}>
+        <div><label style={S.label}>Valid Until</label><input type="date" style={S.input} value={form.validUntil} onChange={e => setForm((f: any) => ({ ...f, validUntil: e.target.value }))} /></div>
+        <div><label style={S.label}>Instructions</label><input style={S.input} value={form.instructions} onChange={e => setForm((f: any) => ({ ...f, instructions: e.target.value }))} /></div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {onCancel && <button type="button" onClick={onCancel} style={{ ...S.btnSm, flex: 1, background: "var(--bg-hover)", color: "var(--text-sec)", border: "1px solid var(--border)" }}>Cancel</button>}
+        <button onClick={onSave} disabled={saving || !form.patientId} style={{ ...S.btn, flex: 2, justifyContent: "center" }}>{saving ? "Saving..." : "Save Prescription"}</button>
+      </div>
+    </div>
+  );
+}
+
+function LabReportFormFields({ form, setForm, patients, showPatientSelect, onSave, onCancel, saving }: {
+  form: any; setForm: (updater: (f: any) => any) => void; patients: any[]; showPatientSelect: boolean;
+  onSave: () => void; onCancel?: () => void; saving: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {showPatientSelect && <PatientSelect value={form.patientId} patients={patients} onChange={id => setForm((f: any) => ({ ...f, patientId: id }))} />}
+      <div style={S.g2}>
+        <div><label style={S.label}>Test Name *</label><input style={S.input} value={form.testName} onChange={e => setForm((f: any) => ({ ...f, testName: e.target.value }))} /></div>
+        <div><label style={S.label}>Category</label><input style={S.input} placeholder="Blood, Urine, Imaging…" value={form.testCategory} onChange={e => setForm((f: any) => ({ ...f, testCategory: e.target.value }))} /></div>
+      </div>
+      <div style={S.g2}>
+        <div><label style={S.label}>Normal Range</label><input style={S.input} value={form.normalRange} onChange={e => setForm((f: any) => ({ ...f, normalRange: e.target.value }))} /></div>
+        <div><label style={S.label}>Conducted On</label><input type="date" style={S.input} value={form.conductedAt} onChange={e => setForm((f: any) => ({ ...f, conductedAt: e.target.value }))} /></div>
+      </div>
+      <div><label style={S.label}>Interpretation</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={form.interpretation} onChange={e => setForm((f: any) => ({ ...f, interpretation: e.target.value }))} /></div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {onCancel && <button type="button" onClick={onCancel} style={{ ...S.btnSm, flex: 1, background: "var(--bg-hover)", color: "var(--text-sec)", border: "1px solid var(--border)" }}>Cancel</button>}
+        <button onClick={onSave} disabled={saving || !form.patientId || !form.testName.trim()} style={{ ...S.btn, flex: 2, justifyContent: "center" }}>{saving ? "Saving..." : "Save Lab Report"}</button>
+      </div>
+    </div>
+  );
+}
+
+function AppointmentFormFields({ form, setForm, patients, doctors, showPatientSelect, onSave, onCancel, saving }: {
+  form: any; setForm: (updater: (f: any) => any) => void; patients: any[]; doctors: any[]; showPatientSelect: boolean;
+  onSave: () => void; onCancel?: () => void; saving: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={showPatientSelect ? S.g2 : undefined}>
+        {showPatientSelect && <PatientSelect value={form.patientId} patients={patients} onChange={id => setForm((f: any) => ({ ...f, patientId: id }))} />}
+        <div><label style={S.label}>Doctor *</label>
+          <select style={S.select} value={form.doctorId} onChange={e => setForm((f: any) => ({ ...f, doctorId: e.target.value }))}>
+            <option value="">Select doctor…</option>
+            {doctors.filter((d: any) => d.isVerified).map((d: any) => <option key={d.id} value={d.id}>Dr. {d.name} — {d.specialization}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={S.g3}>
+        <div><label style={S.label}>Date *</label><input type="date" style={S.input} value={form.appointmentDate} onChange={e => setForm((f: any) => ({ ...f, appointmentDate: e.target.value }))} /></div>
+        <div><label style={S.label}>Time Slot *</label><input style={S.input} placeholder="10:00-10:30" value={form.timeSlot} onChange={e => setForm((f: any) => ({ ...f, timeSlot: e.target.value }))} /></div>
+        <div><label style={S.label}>Type</label>
+          <select style={S.select} value={form.type} onChange={e => setForm((f: any) => ({ ...f, type: e.target.value }))}>
+            {["CONSULTATION","FOLLOW_UP","EMERGENCY","PROCEDURE"].map(t => <option key={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+      <div><label style={S.label}>Chief Complaint</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={form.chiefComplaint} onChange={e => setForm((f: any) => ({ ...f, chiefComplaint: e.target.value }))} /></div>
+      <div><label style={S.label}>Notes</label><input style={S.input} value={form.notes} onChange={e => setForm((f: any) => ({ ...f, notes: e.target.value }))} /></div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {onCancel && <button type="button" onClick={onCancel} style={{ ...S.btnSm, flex: 1, background: "var(--bg-hover)", color: "var(--text-sec)", border: "1px solid var(--border)" }}>Cancel</button>}
+        <button onClick={onSave} disabled={saving || !form.patientId || !form.doctorId || !form.appointmentDate || !form.timeSlot} style={{ ...S.btn, flex: 2, justifyContent: "center" }}>{saving ? "Booking…" : "Book Appointment"}</button>
+      </div>
+    </div>
+  );
+}
+
+function VisitFormFields({ form, setForm, patients, showPatientSelect, onSave, onCancel, saving }: {
+  form: any; setForm: (updater: (f: any) => any) => void; patients: any[]; showPatientSelect: boolean;
+  onSave: () => void; onCancel?: () => void; saving: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={showPatientSelect ? S.g2 : undefined}>
+        {showPatientSelect && <PatientSelect value={form.patientId} patients={patients} onChange={id => setForm((f: any) => ({ ...f, patientId: id }))} />}
+        <div><label style={S.label}>Visit Type</label>
+          <select style={S.select} value={form.visitType} onChange={e => setForm((f: any) => ({ ...f, visitType: e.target.value }))}>
+            {["OPD","IPD","EMERGENCY","FOLLOW_UP","TELECONSULTATION"].map(t => <option key={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+      <div><label style={S.label}>Chief Complaint</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={form.chiefComplaint} onChange={e => setForm((f: any) => ({ ...f, chiefComplaint: e.target.value }))} /></div>
+      <div style={S.g3}>
+        <div><label style={S.label}>BP</label><input style={S.input} placeholder="120/80" value={form.vitalsBP} onChange={e => setForm((f: any) => ({ ...f, vitalsBP: e.target.value }))} /></div>
+        <div><label style={S.label}>Pulse</label><input type="number" style={S.input} value={form.vitalsPulse} onChange={e => setForm((f: any) => ({ ...f, vitalsPulse: e.target.value }))} /></div>
+        <div><label style={S.label}>Temp (°C)</label><input type="number" step="0.1" style={S.input} value={form.vitalsTemp} onChange={e => setForm((f: any) => ({ ...f, vitalsTemp: e.target.value }))} /></div>
+      </div>
+      <div style={S.g2}>
+        <div><label style={S.label}>Diagnosis</label><input style={S.input} value={form.diagnosis} onChange={e => setForm((f: any) => ({ ...f, diagnosis: e.target.value }))} /></div>
+        <div><label style={S.label}>Follow-up Date</label><input type="date" style={S.input} value={form.followUpDate} onChange={e => setForm((f: any) => ({ ...f, followUpDate: e.target.value }))} /></div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {onCancel && <button type="button" onClick={onCancel} style={{ ...S.btnSm, flex: 1, background: "var(--bg-hover)", color: "var(--text-sec)", border: "1px solid var(--border)" }}>Cancel</button>}
+        <button onClick={onSave} disabled={saving || !form.patientId} style={{ ...S.btn, flex: 2, justifyContent: "center" }}>{saving ? "Saving..." : "Record Visit"}</button>
+      </div>
+    </div>
+  );
+}
+
+function MedicineList({ medicines }: { medicines: any[] }) {
+  if (!Array.isArray(medicines) || medicines.length === 0) return null;
+  return (
+    <div style={{ marginTop: 8 }}>
+      {medicines.map((m: any, j: number) => {
+        const dose = m.dosage ?? m.dose;
+        return (
+          <div key={j} style={{ background: "#10b98110", border: "1px solid #10b98120", borderRadius: 8, padding: "7px 11px", marginBottom: 5 }}>
+            <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 13 }}>{m.name || m}</div>
+            {dose && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{dose}{m.frequency ? ` · ${m.frequency}` : ""}{m.duration ? ` · ${m.duration}` : ""}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function HealthPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<TabType>("patients");
   const [patients, setPatients] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
@@ -68,7 +242,20 @@ export default function HealthPage() {
   const [doctorForm, setDoctorForm] = useState(EMPTY_DOCTOR);
   const [apptForm, setApptForm] = useState(EMPTY_APPT);
   const [visitForm, setVisitForm] = useState(EMPTY_VISIT);
+  const [rxForm, setRxForm] = useState(emptyRx());
+  const [labForm, setLabForm] = useState(emptyLab());
   const [newDoc, setNewDoc] = useState({ docType: "MEDICAL_LICENSE", docNumber: "", fileName: "" });
+
+  // ── Patient profile state ──
+  const [patientDetail, setPatientDetail] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [profileTab, setProfileTab] = useState<ProfileTab>("overview");
+  const [editingPatient, setEditingPatient] = useState(false);
+  const [editForm, setEditForm] = useState(EMPTY_PATIENT);
+  const [showProfileApptForm, setShowProfileApptForm] = useState(false);
+  const [showProfileVisitForm, setShowProfileVisitForm] = useState(false);
+  const [showProfileRxForm, setShowProfileRxForm] = useState(false);
+  const [showProfileLabForm, setShowProfileLabForm] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,6 +283,42 @@ export default function HealthPage() {
   }, [search]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link from global search: /health?patientId=xxx
+  useEffect(() => {
+    const pid = searchParams.get("patientId");
+    if (!pid) return;
+    setTab("patients");
+    setSelectedPatient({ id: pid });
+    const next = new URLSearchParams(searchParams);
+    next.delete("patientId");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Fetch full patient detail (visits/prescriptions/labs) whenever a patient is opened
+  useEffect(() => {
+    if (!selectedPatient?.id) { setPatientDetail(null); return; }
+    setProfileTab("overview");
+    setEditingPatient(false);
+    setShowProfileApptForm(false);
+    setShowProfileVisitForm(false);
+    setShowProfileRxForm(false);
+    setShowProfileLabForm(false);
+    setDetailLoading(true);
+    api.get(`/health/patients/${selectedPatient.id}`)
+      .then(r => setPatientDetail(r.data.data))
+      .catch(() => setPatientDetail(null))
+      .finally(() => setDetailLoading(false));
+  }, [selectedPatient?.id]);
+
+  const refreshPatientDetail = useCallback(async () => {
+    if (!selectedPatient?.id) return;
+    try {
+      const r = await api.get(`/health/patients/${selectedPatient.id}`);
+      setPatientDetail(r.data.data);
+    } catch { /* ignore */ }
+  }, [selectedPatient?.id]);
 
   // ── Save handlers ──────────────────────────────────────────
   const savePatient = async () => {
@@ -135,7 +358,8 @@ export default function HealthPage() {
     setSaving(true);
     try {
       await api.post("/health/appointments", apptForm);
-      setShowModal(false); setApptForm(EMPTY_APPT); load();
+      setShowModal(false); setShowProfileApptForm(false); setApptForm(EMPTY_APPT);
+      load(); refreshPatientDetail();
     } catch (e: any) { setError(e?.response?.data?.message || "Failed to book appointment"); }
     setSaving(false);
   };
@@ -151,13 +375,51 @@ export default function HealthPage() {
         vitalsWeight: visitForm.vitalsWeight ? Number(visitForm.vitalsWeight) : null,
         followUpDate: visitForm.followUpDate || null,
       });
-      setShowModal(false); setVisitForm(EMPTY_VISIT); load();
+      setShowModal(false); setShowProfileVisitForm(false); setVisitForm(EMPTY_VISIT);
+      load(); refreshPatientDetail();
     } catch (e: any) { setError(e?.response?.data?.message || "Failed to save"); }
     setSaving(false);
   };
 
+  const savePrescription = async () => {
+    if (!rxForm.patientId) return;
+    setSaving(true);
+    try {
+      const medicines = rxForm.medicines.filter((m: any) => m.name.trim());
+      await api.post("/health/prescriptions", {
+        patientId: rxForm.patientId,
+        medicines,
+        instructions: rxForm.instructions || null,
+        diet: rxForm.diet || null,
+        followUpDays: rxForm.followUpDays ? Number(rxForm.followUpDays) : null,
+        validUntil: rxForm.validUntil || null,
+      });
+      setShowModal(false); setShowProfileRxForm(false); setRxForm(emptyRx());
+      load(); refreshPatientDetail();
+    } catch (e: any) { setError(e?.response?.data?.message || "Failed to save prescription"); }
+    setSaving(false);
+  };
+
+  const saveLabReport = async () => {
+    if (!labForm.patientId || !labForm.testName.trim()) return;
+    setSaving(true);
+    try {
+      await api.post("/health/lab-reports", {
+        patientId: labForm.patientId,
+        testName: labForm.testName.trim(),
+        testCategory: labForm.testCategory || null,
+        normalRange: labForm.normalRange || null,
+        interpretation: labForm.interpretation || null,
+        conductedAt: labForm.conductedAt || null,
+      });
+      setShowModal(false); setShowProfileLabForm(false); setLabForm(emptyLab());
+      load(); refreshPatientDetail();
+    } catch (e: any) { setError(e?.response?.data?.message || "Failed to save lab report"); }
+    setSaving(false);
+  };
+
   const updateApptStatus = async (id: string, status: string) => {
-    try { await api.patch(`/health/appointments/${id}`, { status }); load(); } catch { /* ignore */ }
+    try { await api.patch(`/health/appointments/${id}`, { status }); load(); refreshPatientDetail(); } catch { /* ignore */ }
   };
 
   const doVerify = async (id: string, status: "VERIFIED" | "REJECTED") => {
@@ -179,6 +441,50 @@ export default function HealthPage() {
     }));
   };
 
+  // ── Patient profile: edit ──
+  const startEditPatient = () => {
+    const p = patientDetail || selectedPatient;
+    setEditForm({
+      name: p.name || "", phone: p.phone || "", email: p.email || "",
+      dob: p.dob ? String(p.dob).substring(0, 10) : "", gender: p.gender || "", bloodGroup: p.bloodGroup || "",
+      address: p.address || "", allergies: (p.allergies || []).join(", "), notes: p.notes || "",
+      emergencyName: p.emergencyName || "", emergencyPhone: p.emergencyPhone || "",
+    });
+    setEditingPatient(true);
+  };
+
+  const saveEditPatient = async () => {
+    if (!selectedPatient?.id) return;
+    setSaving(true);
+    try {
+      const res = await api.patch(`/health/patients/${selectedPatient.id}`, {
+        ...editForm,
+        dob: editForm.dob || null,
+        gender: editForm.gender || null,
+        bloodGroup: editForm.bloodGroup || null,
+        allergies: editForm.allergies ? editForm.allergies.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+      });
+      setPatientDetail((prev: any) => ({ ...prev, ...res.data.data }));
+      setSelectedPatient((prev: any) => ({ ...prev, ...res.data.data }));
+      setEditingPatient(false);
+      load();
+    } catch (e: any) { setError(e?.response?.data?.message || "Failed to update patient"); }
+    setSaving(false);
+  };
+
+  const openProfileApptForm = () => { setApptForm({ ...EMPTY_APPT, patientId: selectedPatient.id }); setShowProfileApptForm(true); };
+  const openProfileVisitForm = () => { setVisitForm({ ...EMPTY_VISIT, patientId: selectedPatient.id }); setShowProfileVisitForm(true); };
+  const openProfileRxForm = () => { setRxForm({ ...emptyRx(), patientId: selectedPatient.id }); setShowProfileRxForm(true); };
+  const openProfileLabForm = () => { setLabForm({ ...emptyLab(), patientId: selectedPatient.id }); setShowProfileLabForm(true); };
+
+  const openCreateModal = () => {
+    if (tab === "appointments") setApptForm(EMPTY_APPT);
+    if (tab === "prescriptions") setRxForm(emptyRx());
+    if (tab === "labs") setLabForm(emptyLab());
+    if (tab === "visits") setVisitForm(EMPTY_VISIT);
+    setShowModal(true);
+  };
+
   const TabBtn = ({ id, label, icon: Icon, count }: { id: TabType; label: string; icon: any; count?: number }) => (
     <button onClick={() => setTab(id)} style={{ padding: "9px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: tab === id ? 700 : 400, color: tab === id ? "var(--text-primary)" : "var(--text-ghost)", borderBottom: tab === id ? "2px solid #ef4444" : "2px solid transparent", marginBottom: -1, display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
       <Icon size={13} />{label}
@@ -186,7 +492,14 @@ export default function HealthPage() {
     </button>
   );
 
+  const ProfileTabBtn = ({ id, label, count }: { id: ProfileTab; label: string; count?: number }) => (
+    <button onClick={() => setProfileTab(id)} style={{ padding: "7px 12px", background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: profileTab === id ? 700 : 400, color: profileTab === id ? "var(--text-primary)" : "var(--text-ghost)", borderBottom: profileTab === id ? "2px solid #ef4444" : "2px solid transparent", marginBottom: -1 }}>
+      {label}{count !== undefined ? ` (${count})` : ""}
+    </button>
+  );
+
   const pendingDoctors = doctors.filter(d => d.verificationStatus === "PENDING").length;
+  const profile = patientDetail || selectedPatient;
 
   return (
     <div style={S.page}>
@@ -195,9 +508,9 @@ export default function HealthPage() {
           <h1 style={S.title}><Heart size={20} style={{ verticalAlign: "middle", marginRight: 8, color: "#ef4444" }} />Health & Clinic</h1>
           <p style={S.subtitle}>Doctors, patients, appointments, prescriptions, and lab reports</p>
         </div>
-        <button style={S.btn} onClick={() => setShowModal(true)}>
+        <button style={S.btn} onClick={openCreateModal}>
           <Plus size={15} />
-          {tab === "patients" ? "New Patient" : tab === "doctors" ? "Register Doctor" : tab === "appointments" ? "Book Appointment" : tab === "visits" ? "New Visit" : "New Entry"}
+          {tab === "patients" ? "New Patient" : tab === "doctors" ? "Register Doctor" : tab === "appointments" ? "Book Appointment" : tab === "visits" ? "New Visit" : tab === "prescriptions" ? "New Prescription" : "New Lab Report"}
         </button>
       </div>
 
@@ -404,37 +717,247 @@ export default function HealthPage() {
         </div>
       )}
 
-      {/* ── PATIENT DETAIL MODAL ── */}
+      {/* ── PATIENT PROFILE MODAL ── */}
       {selectedPatient && (
         <div style={S.modal} onClick={() => setSelectedPatient(null)}>
-          <div style={{ ...S.modalBox, width: 500 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ ...S.modalBox, width: 640 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
               <div>
-                <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{selectedPatient.name}</h2>
-                <span style={{ fontFamily: "monospace", color: "#818cf8", fontSize: 12 }}>{selectedPatient.patientCode}</span>
+                <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{profile?.name}</h2>
+                <span style={{ fontFamily: "monospace", color: "#818cf8", fontSize: 12 }}>{profile?.patientCode}</span>
               </div>
-              <button onClick={() => setSelectedPatient(null)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                {profileTab === "overview" && !editingPatient && (
+                  <button onClick={startEditPatient} style={{ ...S.btnSm, background: "#818cf820", color: "#818cf8", border: "1px solid #818cf840", display: "flex", alignItems: "center", gap: 4 }}>
+                    <Pencil size={11} />Edit
+                  </button>
+                )}
+                <button onClick={() => setSelectedPatient(null)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
+              </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[
-                { label: "Phone", val: selectedPatient.phone ?? "—" },
-                { label: "Email", val: selectedPatient.email ?? "—" },
-                { label: "Blood Group", val: selectedPatient.bloodGroup ? selectedPatient.bloodGroup.replace("_","").replace("POS","+").replace("NEG","-") : "—" },
-                { label: "Gender", val: selectedPatient.gender ?? "—" },
-                { label: "DOB", val: selectedPatient.dob ? new Date(selectedPatient.dob).toLocaleDateString("en-IN") : "—" },
-                { label: "Address", val: selectedPatient.address ?? "—" },
-              ].map(({ label, val }) => (
-                <div key={label} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 600, textTransform: "uppercase" }}>{label}</div>
-                  <div style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600, marginTop: 2 }}>{val}</div>
+
+            {detailLoading && !patientDetail ? (
+              <div style={{ textAlign: "center", padding: 32, color: "var(--text-ghost)", fontSize: 13 }}>Loading patient record...</div>
+            ) : (
+              <>
+                <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
+                  <ProfileTabBtn id="overview" label="Overview" />
+                  <ProfileTabBtn id="appointments" label="Appointments" count={profile?.appointments?.length ?? 0} />
+                  <ProfileTabBtn id="visits" label="Visits" count={profile?.visits?.length ?? 0} />
+                  <ProfileTabBtn id="prescriptions" label="Prescriptions" count={profile?.prescriptions?.length ?? 0} />
+                  <ProfileTabBtn id="labs" label="Lab Reports" count={profile?.labReports?.length ?? 0} />
                 </div>
-              ))}
-            </div>
-            {selectedPatient.allergies?.length > 0 && (
-              <div style={{ marginTop: 12, background: "#ef444411", borderRadius: 8, padding: "10px 12px" }}>
-                <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 700 }}>⚠ ALLERGIES</div>
-                <div style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 4 }}>{selectedPatient.allergies.join(", ")}</div>
-              </div>
+
+                {/* OVERVIEW */}
+                {profileTab === "overview" && (
+                  editingPatient ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={S.g2}>
+                        <div><label style={S.label}>Full Name *</label><input style={S.input} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
+                        <div><label style={S.label}>Phone</label><input style={S.input} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                      </div>
+                      <div style={S.g3}>
+                        <div><label style={S.label}>Date of Birth</label><input type="date" style={S.input} value={editForm.dob} onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))} /></div>
+                        <div><label style={S.label}>Gender</label>
+                          <select style={S.select} value={editForm.gender} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}>
+                            <option value="">Select</option><option>MALE</option><option>FEMALE</option><option>OTHER</option>
+                          </select>
+                        </div>
+                        <div><label style={S.label}>Blood Group</label>
+                          <select style={S.select} value={editForm.bloodGroup} onChange={e => setEditForm(f => ({ ...f, bloodGroup: e.target.value }))}>
+                            <option value="">Unknown</option>
+                            {["A_POS","A_NEG","B_POS","B_NEG","AB_POS","AB_NEG","O_POS","O_NEG"].map(bg => <option key={bg}>{bg}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div><label style={S.label}>Email</label><input type="email" style={S.input} value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></div>
+                      <div style={S.g2}>
+                        <div><label style={S.label}>Emergency Contact Name</label><input style={S.input} value={editForm.emergencyName} onChange={e => setEditForm(f => ({ ...f, emergencyName: e.target.value }))} /></div>
+                        <div><label style={S.label}>Emergency Contact Phone</label><input style={S.input} value={editForm.emergencyPhone} onChange={e => setEditForm(f => ({ ...f, emergencyPhone: e.target.value }))} /></div>
+                      </div>
+                      <div><label style={S.label}>Allergies (comma-separated)</label><input style={S.input} placeholder="Penicillin, Peanuts" value={editForm.allergies} onChange={e => setEditForm(f => ({ ...f, allergies: e.target.value }))} /></div>
+                      <div><label style={S.label}>Address</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} /></div>
+                      <div><label style={S.label}>Notes</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button type="button" onClick={() => setEditingPatient(false)} style={{ ...S.btnSm, flex: 1, background: "var(--bg-hover)", color: "var(--text-sec)", border: "1px solid var(--border)" }}>Cancel</button>
+                        <button onClick={saveEditPatient} disabled={saving || !editForm.name.trim()} style={{ ...S.btn, flex: 2, justifyContent: "center" }}>{saving ? "Saving..." : "Save Changes"}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {[
+                          { label: "Phone", val: profile?.phone ?? "—" },
+                          { label: "Email", val: profile?.email ?? "—" },
+                          { label: "Blood Group", val: profile?.bloodGroup ? profile.bloodGroup.replace("_","").replace("POS","+").replace("NEG","-") : "—" },
+                          { label: "Gender", val: profile?.gender ?? "—" },
+                          { label: "DOB", val: fmtDate(profile?.dob) },
+                          { label: "Address", val: profile?.address ?? "—" },
+                          { label: "Emergency Contact", val: profile?.emergencyName ?? "—" },
+                          { label: "Emergency Phone", val: profile?.emergencyPhone ?? "—" },
+                        ].map(({ label, val }) => (
+                          <div key={label} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "10px 12px" }}>
+                            <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 600, textTransform: "uppercase" }}>{label}</div>
+                            <div style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600, marginTop: 2 }}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {profile?.allergies?.length > 0 && (
+                        <div style={{ marginTop: 12, background: "#ef444411", borderRadius: 8, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 700 }}>⚠ ALLERGIES</div>
+                          <div style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 4 }}>{profile.allergies.join(", ")}</div>
+                        </div>
+                      )}
+                      {profile?.notes && (
+                        <div style={{ marginTop: 12, background: "var(--bg-hover)", borderRadius: 8, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Notes</div>
+                          <div style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 4 }}>{profile.notes}</div>
+                        </div>
+                      )}
+                    </>
+                  )
+                )}
+
+                {/* APPOINTMENTS */}
+                {profileTab === "appointments" && (
+                  <div>
+                    {!showProfileApptForm && (
+                      <button onClick={openProfileApptForm} style={{ ...S.btn, marginBottom: 14 }}><Plus size={14} />Book Appointment</button>
+                    )}
+                    {showProfileApptForm && (
+                      <div style={{ marginBottom: 16, background: "var(--bg-hover)", borderRadius: 10, padding: 16 }}>
+                        <AppointmentFormFields form={apptForm} setForm={setApptForm} patients={[]} doctors={doctors} showPatientSelect={false} onSave={saveAppointment} onCancel={() => setShowProfileApptForm(false)} saving={saving} />
+                      </div>
+                    )}
+                    {(() => {
+                      const appts = profile?.appointments || [];
+                      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+                      const next = [...appts]
+                        .filter((a: any) => ["SCHEDULED","CONFIRMED"].includes(a.status) && new Date(a.appointmentDate) >= todayStart)
+                        .sort((a: any, b: any) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())[0];
+                      return (
+                        <>
+                          {next && (
+                            <div style={{ background: "#10b98115", border: "1px solid #10b98130", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: "#10b981", textTransform: "uppercase" }}>Next Appointment</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>Dr. {next.doctor?.name} — {next.doctor?.specialization}</div>
+                              <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                                <span>{fmtDate(next.appointmentDate)} · {next.timeSlot}</span>{badge(next.type, "#818cf8")}
+                              </div>
+                            </div>
+                          )}
+                          {appts.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: 24, color: "var(--text-ghost)", fontSize: 13 }}>No appointments booked yet</div>
+                          ) : appts.map((a: any) => (
+                            <div key={a.id} style={{ borderBottom: "1px solid var(--border)", padding: "10px 0" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 13 }}>Dr. {a.doctor?.name}</span>
+                                {badge(a.status, STATUS_COLORS[a.status] || "#818cf8")}
+                              </div>
+                              <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 2 }}>{a.doctor?.specialization}</div>
+                              <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{fmtDate(a.appointmentDate)} · {a.timeSlot} · {a.type}</div>
+                              {a.chiefComplaint && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 4 }}>Complaint: {a.chiefComplaint}</div>}
+                              {a.status === "SCHEDULED" && (
+                                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                                  <button onClick={() => updateApptStatus(a.id, "COMPLETED")} style={{ ...S.btnSm, background: "#10b98115", color: "#10b981", border: "1px solid #10b98130" }}>Done</button>
+                                  <button onClick={() => updateApptStatus(a.id, "CANCELLED")} style={{ ...S.btnSm, background: "#ef444415", color: "#ef4444", border: "1px solid #ef444430" }}>Cancel</button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* VISITS */}
+                {profileTab === "visits" && (
+                  <div>
+                    {!showProfileVisitForm && (
+                      <button onClick={openProfileVisitForm} style={{ ...S.btn, marginBottom: 14 }}><Plus size={14} />Add Visit</button>
+                    )}
+                    {showProfileVisitForm && (
+                      <div style={{ marginBottom: 16, background: "var(--bg-hover)", borderRadius: 10, padding: 16 }}>
+                        <VisitFormFields form={visitForm} setForm={setVisitForm} patients={[]} showPatientSelect={false} onSave={saveVisit} onCancel={() => setShowProfileVisitForm(false)} saving={saving} />
+                      </div>
+                    )}
+                    {(!profile?.visits || profile.visits.length === 0) ? (
+                      <div style={{ textAlign: "center", padding: 24, color: "var(--text-ghost)", fontSize: 13 }}>No visits recorded yet</div>
+                    ) : profile.visits.map((v: any) => (
+                      <div key={v.id} style={{ borderBottom: "1px solid var(--border)", padding: "10px 0" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 13 }}>{fmtDate(v.visitDate)}</span>
+                          {badge(v.visitType, "#818cf8")}
+                        </div>
+                        {v.chiefComplaint && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 4 }}>Complaint: {v.chiefComplaint}</div>}
+                        {v.diagnosis && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 2 }}>Diagnosis: {v.diagnosis}</div>}
+                        {(v.vitalsBP || v.vitalsPulse || v.vitalsTemp) && (
+                          <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>
+                            {v.vitalsBP ? `BP ${v.vitalsBP}` : ""}{v.vitalsPulse ? ` · Pulse ${v.vitalsPulse}` : ""}{v.vitalsTemp ? ` · ${v.vitalsTemp}°C` : ""}
+                          </div>
+                        )}
+                        {v.followUpDate && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 2 }}>Follow-up: {fmtDate(v.followUpDate)}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* PRESCRIPTIONS */}
+                {profileTab === "prescriptions" && (
+                  <div>
+                    {!showProfileRxForm && (
+                      <button onClick={openProfileRxForm} style={{ ...S.btn, marginBottom: 14 }}><Plus size={14} />Add Prescription</button>
+                    )}
+                    {showProfileRxForm && (
+                      <div style={{ marginBottom: 16, background: "var(--bg-hover)", borderRadius: 10, padding: 16 }}>
+                        <PrescriptionFormFields form={rxForm} setForm={setRxForm} patients={[]} showPatientSelect={false} onSave={savePrescription} onCancel={() => setShowProfileRxForm(false)} saving={saving} />
+                      </div>
+                    )}
+                    {(!profile?.prescriptions || profile.prescriptions.length === 0) ? (
+                      <div style={{ textAlign: "center", padding: 24, color: "var(--text-ghost)", fontSize: 13 }}>No prescriptions yet</div>
+                    ) : profile.prescriptions.map((p: any) => (
+                      <div key={p.id} style={{ borderBottom: "1px solid var(--border)", padding: "10px 0" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 13 }}>{fmtDate(p.createdAt)}</span>
+                          {p.validUntil && <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>Valid until {fmtDate(p.validUntil)}</span>}
+                        </div>
+                        <MedicineList medicines={p.medicines} />
+                        {p.instructions && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 4 }}>Instructions: {p.instructions}</div>}
+                        {p.diet && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 2 }}>Diet: {p.diet}</div>}
+                        {p.followUpDays && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 2 }}>Follow-up in {p.followUpDays} days</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* LAB REPORTS */}
+                {profileTab === "labs" && (
+                  <div>
+                    {!showProfileLabForm && (
+                      <button onClick={openProfileLabForm} style={{ ...S.btn, marginBottom: 14 }}><Plus size={14} />Add Lab Report</button>
+                    )}
+                    {showProfileLabForm && (
+                      <div style={{ marginBottom: 16, background: "var(--bg-hover)", borderRadius: 10, padding: 16 }}>
+                        <LabReportFormFields form={labForm} setForm={setLabForm} patients={[]} showPatientSelect={false} onSave={saveLabReport} onCancel={() => setShowProfileLabForm(false)} saving={saving} />
+                      </div>
+                    )}
+                    {(!profile?.labReports || profile.labReports.length === 0) ? (
+                      <div style={{ textAlign: "center", padding: 24, color: "var(--text-ghost)", fontSize: 13 }}>No lab reports yet</div>
+                    ) : profile.labReports.map((r: any) => (
+                      <div key={r.id} style={{ borderBottom: "1px solid var(--border)", padding: "10px 0" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 13 }}>{r.testName}</span>
+                          <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>{fmtDate(r.conductedAt)}</span>
+                        </div>
+                        {r.testCategory && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 2 }}>Category: {r.testCategory}</div>}
+                        {r.normalRange && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 2 }}>Normal range: {r.normalRange}</div>}
+                        {r.interpretation && <div style={{ fontSize: 12, color: "var(--text-sec)", marginTop: 2 }}>Interpretation: {r.interpretation}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -504,7 +1027,7 @@ export default function HealthPage() {
           <div style={S.modalBox} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>
-                {tab === "patients" ? "Register Patient" : tab === "doctors" ? "Register Doctor" : tab === "appointments" ? "Book Appointment" : "Record Visit"}
+                {tab === "patients" ? "Register Patient" : tab === "doctors" ? "Register Doctor" : tab === "appointments" ? "Book Appointment" : tab === "visits" ? "Record Visit" : tab === "prescriptions" ? "New Prescription" : "New Lab Report"}
               </h2>
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
@@ -610,64 +1133,22 @@ export default function HealthPage() {
 
             {/* APPOINTMENT FORM */}
             {tab === "appointments" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g2}>
-                  <div><label style={S.label}>Patient *</label>
-                    <select style={S.select} value={apptForm.patientId} onChange={e => setApptForm(f => ({ ...f, patientId: e.target.value }))}>
-                      <option value="">Select patient…</option>
-                      {patients.map(p => <option key={p.id} value={p.id}>{p.name} ({p.patientCode})</option>)}
-                    </select>
-                  </div>
-                  <div><label style={S.label}>Doctor *</label>
-                    <select style={S.select} value={apptForm.doctorId} onChange={e => setApptForm(f => ({ ...f, doctorId: e.target.value }))}>
-                      <option value="">Select doctor…</option>
-                      {doctors.filter(d => d.isVerified).map(d => <option key={d.id} value={d.id}>Dr. {d.name} — {d.specialization}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={S.g3}>
-                  <div><label style={S.label}>Date *</label><input type="date" style={S.input} value={apptForm.appointmentDate} onChange={e => setApptForm(f => ({ ...f, appointmentDate: e.target.value }))} /></div>
-                  <div><label style={S.label}>Time Slot *</label><input style={S.input} placeholder="10:00-10:30" value={apptForm.timeSlot} onChange={e => setApptForm(f => ({ ...f, timeSlot: e.target.value }))} /></div>
-                  <div><label style={S.label}>Type</label>
-                    <select style={S.select} value={apptForm.type} onChange={e => setApptForm(f => ({ ...f, type: e.target.value }))}>
-                      {["CONSULTATION","FOLLOW_UP","EMERGENCY","PROCEDURE"].map(t => <option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div><label style={S.label}>Chief Complaint</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={apptForm.chiefComplaint} onChange={e => setApptForm(f => ({ ...f, chiefComplaint: e.target.value }))} /></div>
-                <div><label style={S.label}>Notes</label><input style={S.input} value={apptForm.notes} onChange={e => setApptForm(f => ({ ...f, notes: e.target.value }))} /></div>
-                <button onClick={saveAppointment} disabled={saving} style={{ ...S.btn, justifyContent: "center" }}>{saving ? "Booking…" : "Book Appointment"}</button>
-              </div>
+              <AppointmentFormFields form={apptForm} setForm={setApptForm} patients={patients} doctors={doctors} showPatientSelect onSave={saveAppointment} saving={saving} />
             )}
 
             {/* VISIT FORM */}
-            {(tab === "visits" || tab === "prescriptions" || tab === "labs") && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g2}>
-                  <div><label style={S.label}>Patient *</label>
-                    <select style={S.select} value={visitForm.patientId} onChange={e => setVisitForm(f => ({ ...f, patientId: e.target.value }))}>
-                      <option value="">Select patient…</option>
-                      {patients.map(p => <option key={p.id} value={p.id}>{p.name} ({p.patientCode})</option>)}
-                    </select>
-                  </div>
-                  <div><label style={S.label}>Visit Type</label>
-                    <select style={S.select} value={visitForm.visitType} onChange={e => setVisitForm(f => ({ ...f, visitType: e.target.value }))}>
-                      {["OPD","IPD","EMERGENCY","FOLLOW_UP","TELECONSULTATION"].map(t => <option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div><label style={S.label}>Chief Complaint</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={visitForm.chiefComplaint} onChange={e => setVisitForm(f => ({ ...f, chiefComplaint: e.target.value }))} /></div>
-                <div style={S.g3}>
-                  <div><label style={S.label}>BP</label><input style={S.input} placeholder="120/80" value={visitForm.vitalsBP} onChange={e => setVisitForm(f => ({ ...f, vitalsBP: e.target.value }))} /></div>
-                  <div><label style={S.label}>Pulse</label><input type="number" style={S.input} value={visitForm.vitalsPulse} onChange={e => setVisitForm(f => ({ ...f, vitalsPulse: e.target.value }))} /></div>
-                  <div><label style={S.label}>Temp (°C)</label><input type="number" step="0.1" style={S.input} value={visitForm.vitalsTemp} onChange={e => setVisitForm(f => ({ ...f, vitalsTemp: e.target.value }))} /></div>
-                </div>
-                <div style={S.g2}>
-                  <div><label style={S.label}>Diagnosis</label><input style={S.input} value={visitForm.diagnosis} onChange={e => setVisitForm(f => ({ ...f, diagnosis: e.target.value }))} /></div>
-                  <div><label style={S.label}>Follow-up Date</label><input type="date" style={S.input} value={visitForm.followUpDate} onChange={e => setVisitForm(f => ({ ...f, followUpDate: e.target.value }))} /></div>
-                </div>
-                <button onClick={saveVisit} disabled={saving} style={{ ...S.btn, justifyContent: "center" }}>{saving ? "Saving..." : "Record Visit"}</button>
-              </div>
+            {tab === "visits" && (
+              <VisitFormFields form={visitForm} setForm={setVisitForm} patients={patients} showPatientSelect onSave={saveVisit} saving={saving} />
+            )}
+
+            {/* PRESCRIPTION FORM */}
+            {tab === "prescriptions" && (
+              <PrescriptionFormFields form={rxForm} setForm={setRxForm} patients={patients} showPatientSelect onSave={savePrescription} saving={saving} />
+            )}
+
+            {/* LAB REPORT FORM */}
+            {tab === "labs" && (
+              <LabReportFormFields form={labForm} setForm={setLabForm} patients={patients} showPatientSelect onSave={saveLabReport} saving={saving} />
             )}
           </div>
         </div>

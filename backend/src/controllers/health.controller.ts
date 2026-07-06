@@ -58,6 +58,11 @@ export async function getPatient(req: OrgRequest, res: Response): Promise<void> 
         visits: { orderBy: { visitDate: "desc" }, take: 10 },
         prescriptions: { orderBy: { createdAt: "desc" }, take: 5 },
         labReports: { orderBy: { conductedAt: "desc" }, take: 5 },
+        appointments: {
+          orderBy: [{ appointmentDate: "desc" }, { timeSlot: "desc" }],
+          take: 10,
+          include: { doctor: { select: { id: true, name: true, specialization: true } } },
+        },
       },
     });
 
