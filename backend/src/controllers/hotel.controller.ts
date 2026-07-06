@@ -13,6 +13,21 @@ function nextSeq(prefix: string, count: number) {
   return `${prefix}-${String(count + 1).padStart(5, "0")}`;
 }
 
+async function generateRoomNumbers(org: string, typeName: string, count: number): Promise<string[]> {
+  const prefix = (typeName.trim().slice(0, 3).toUpperCase().replace(/[^A-Z]/g, "") || "RM");
+  const existing = await db.hotelRoom.findMany({
+    where: { organizationId: org, roomNumber: { startsWith: `${prefix}-` } },
+    select: { roomNumber: true },
+  });
+  const usedNums = existing
+    .map((r: any) => parseInt(r.roomNumber.split("-")[1], 10))
+    .filter((n: number) => !isNaN(n));
+  let next = usedNums.length ? Math.max(...usedNums) + 1 : 1;
+  const numbers: string[] = [];
+  for (let i = 0; i < count; i++) numbers.push(`${prefix}-${next + i}`);
+  return numbers;
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  ROOM TYPES
 // ═══════════════════════════════════════════════════════════════
@@ -34,12 +49,25 @@ export async function createRoomType(req: AuthRequest, res: Response) {
   try {
     const org = orgId(req);
     if (!org) return badRequest(res, "Organization required");
-    const { name, description, basePrice, capacity, bedType, amenities } = req.body;
+    const { name, description, basePrice, capacity, bedType, amenities, roomCount, floor } = req.body;
     if (!name || basePrice === undefined) return badRequest(res, "name and basePrice required");
     const rt = await db.roomType.create({
       data: { organizationId: org, name, description, basePrice, capacity: capacity || 2, bedType, amenities: amenities || [] },
     });
-    created(res, rt, "Room type created");
+
+    const count = parseInt(roomCount, 10) || 0;
+    let roomsCreated = 0;
+    if (count > 0) {
+      const numbers = await generateRoomNumbers(org, name, count);
+      await db.hotelRoom.createMany({
+        data: numbers.map(roomNumber => ({
+          organizationId: org, roomNumber, roomTypeId: rt.id, floor: parseInt(floor, 10) || 1,
+        })),
+      });
+      roomsCreated = numbers.length;
+    }
+
+    created(res, { ...rt, roomsCreated }, roomsCreated > 0 ? `Room type created with ${roomsCreated} rooms` : "Room type created");
   } catch (e) { serverError(res, e); }
 }
 
@@ -103,6 +131,26 @@ export async function updateRoom(req: AuthRequest, res: Response) {
   } catch (e) { serverError(res, e); }
 }
 
+export async function getRoom(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    if (!org) return badRequest(res, "Organization required");
+    const { id } = req.params;
+    const room = await db.hotelRoom.findFirst({
+      where: { id, organizationId: org },
+      include: {
+        roomType: true,
+        bookings: {
+          orderBy: { checkIn: "desc" }, take: 10,
+          include: { guest: { select: { id: true, name: true, phone: true } } },
+        },
+      },
+    });
+    if (!room) return notFound(res, "Room not found");
+    ok(res, room);
+  } catch (e) { serverError(res, e); }
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  GUESTS
 // ═══════════════════════════════════════════════════════════════
@@ -147,6 +195,25 @@ export async function updateGuest(req: AuthRequest, res: Response) {
   } catch (e) { serverError(res, e); }
 }
 
+export async function getGuest(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    if (!org) return badRequest(res, "Organization required");
+    const { id } = req.params;
+    const guest = await db.guestProfile.findFirst({
+      where: { id, organizationId: org },
+      include: {
+        bookings: {
+          orderBy: { checkIn: "desc" }, take: 10,
+          include: { room: { include: { roomType: true } } },
+        },
+      },
+    });
+    if (!guest) return notFound(res, "Guest not found");
+    ok(res, guest);
+  } catch (e) { serverError(res, e); }
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  BOOKINGS
 // ═══════════════════════════════════════════════════════════════
@@ -172,6 +239,20 @@ export async function getBookings(req: AuthRequest, res: Response) {
       db.hotelBooking.count({ where }),
     ]);
     ok(res, { bookings, total, page: parseInt(page), pages: Math.ceil(total / take) });
+  } catch (e) { serverError(res, e); }
+}
+
+export async function getBooking(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    if (!org) return badRequest(res, "Organization required");
+    const { id } = req.params;
+    const booking = await db.hotelBooking.findFirst({
+      where: { id, organizationId: org },
+      include: { room: { include: { roomType: true } }, guest: true },
+    });
+    if (!booking) return notFound(res, "Booking not found");
+    ok(res, booking);
   } catch (e) { serverError(res, e); }
 }
 

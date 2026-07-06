@@ -18,6 +18,8 @@ interface Booking {
   checkIn: string; checkOut: string; totalNights: number;
   ratePerNight: number; total: number; balanceDue: number; advancePaid: number;
   adults: number; children: number; source?: string;
+  subtotal?: number; taxAmount?: number; discount?: number;
+  paymentMethod?: string; specialRequests?: string; notes?: string;
   room: Room & { roomType: RoomType }; guest: Guest;
 }
 
@@ -55,7 +57,7 @@ const BTN_PRIMARY: React.CSSProperties = {
 
 export default function HotelPage() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"dashboard" | "rooms" | "bookings" | "guests">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "bookings" | "guests">("dashboard");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -67,17 +69,25 @@ export default function HotelPage() {
   // Filters
   const [bookingStatus, setBookingStatus] = useState("");
   const [guestSearch, setGuestSearch] = useState("");
-  const [roomFilter, setRoomFilter] = useState("");
 
   // Modals
-  const [showRoomModal, setShowRoomModal] = useState(false);
   const [showRoomTypeModal, setShowRoomTypeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
-  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
-  const [roomForm, setRoomForm] = useState({ roomNumber: "", roomTypeId: "", floor: "1", notes: "" });
-  const [roomTypeForm, setRoomTypeForm] = useState({ name: "", description: "", basePrice: "", capacity: "2", bedType: "", amenities: "" });
+  // Profile / detail views
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [roomDetail, setRoomDetail] = useState<any>(null);
+  const [roomDetailLoading, setRoomDetailLoading] = useState(false);
+  const [roomProfileTab, setRoomProfileTab] = useState<"overview" | "bookings">("overview");
+
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
+  const [guestDetail, setGuestDetail] = useState<any>(null);
+  const [guestDetailLoading, setGuestDetailLoading] = useState(false);
+
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  const [roomTypeForm, setRoomTypeForm] = useState({ name: "", description: "", basePrice: "", capacity: "2", bedType: "", amenities: "", roomCount: "", floor: "1" });
   const [bookingForm, setBookingForm] = useState({
     roomId: "", guestId: "", checkIn: "", checkOut: "", adults: "1", children: "0",
     ratePerNight: "", discount: "0", advancePaid: "0", paymentMethod: "CASH",
@@ -107,6 +117,25 @@ export default function HotelPage() {
 
   useEffect(() => { load(); }, [bookingStatus]);
 
+  useEffect(() => {
+    if (!selectedRoom?.id) { setRoomDetail(null); return; }
+    setRoomProfileTab("overview");
+    setRoomDetailLoading(true);
+    api.get(`/hotel/rooms/${selectedRoom.id}`)
+      .then(r => setRoomDetail(r.data.data))
+      .catch(() => setRoomDetail(null))
+      .finally(() => setRoomDetailLoading(false));
+  }, [selectedRoom?.id]);
+
+  useEffect(() => {
+    if (!selectedGuest?.id) { setGuestDetail(null); return; }
+    setGuestDetailLoading(true);
+    api.get(`/hotel/guests/${selectedGuest.id}`)
+      .then(r => setGuestDetail(r.data.data))
+      .catch(() => setGuestDetail(null))
+      .finally(() => setGuestDetailLoading(false));
+  }, [selectedGuest?.id]);
+
   async function searchGuests() {
     try {
       const g = await api.get(`/hotel/guests${guestSearch ? `?q=${encodeURIComponent(guestSearch)}` : ""}`);
@@ -124,31 +153,17 @@ export default function HotelPage() {
         ...roomTypeForm, basePrice: parseFloat(roomTypeForm.basePrice),
         capacity: parseInt(roomTypeForm.capacity),
         amenities: roomTypeForm.amenities.split(",").map(a => a.trim()).filter(Boolean),
+        roomCount: roomTypeForm.roomCount ? parseInt(roomTypeForm.roomCount) : 0,
+        floor: parseInt(roomTypeForm.floor) || 1,
       });
       setShowRoomTypeModal(false);
-      setRoomTypeForm({ name: "", description: "", basePrice: "", capacity: "2", bedType: "", amenities: "" });
+      setRoomTypeForm({ name: "", description: "", basePrice: "", capacity: "2", bedType: "", amenities: "", roomCount: "", floor: "1" });
       await load();
     } catch (e) { setError(getApiError(e)); }
     setLoading(false);
   }
 
   // ── Room ─────────────────────────────────────────────────────
-
-  async function saveRoom() {
-    if (!roomForm.roomNumber || !roomForm.roomTypeId) return;
-    setLoading(true);
-    try {
-      if (editingRoom) {
-        await api.patch(`/hotel/rooms/${editingRoom.id}`, { ...roomForm, floor: parseInt(roomForm.floor) });
-      } else {
-        await api.post("/hotel/rooms", { ...roomForm, floor: parseInt(roomForm.floor) });
-      }
-      setShowRoomModal(false); setEditingRoom(null);
-      setRoomForm({ roomNumber: "", roomTypeId: "", floor: "1", notes: "" });
-      await load();
-    } catch (e) { setError(getApiError(e)); }
-    setLoading(false);
-  }
 
   // ── Guest ─────────────────────────────────────────────────────
 
@@ -193,8 +208,6 @@ export default function HotelPage() {
   }
 
   // ── Derived ────────────────────────────────────────────────
-
-  const visibleRooms = rooms.filter(r => !roomFilter || r.status === roomFilter);
 
   // Auto-fill rate when room is selected
   function onRoomSelect(roomId: string) {
@@ -245,9 +258,9 @@ export default function HotelPage() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        {(["dashboard", "rooms", "bookings", "guests"] as const).map(t => (
+        {(["dashboard", "bookings", "guests"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={TAB_STYLE(tab === t)}>
-            {t === "dashboard" ? "🏨 Overview" : t === "rooms" ? "🛏 Rooms" : t === "bookings" ? "📅 Bookings" : "👤 Guests"}
+            {t === "dashboard" ? "🏨 Overview" : t === "bookings" ? "📅 Bookings" : "👤 Guests"}
           </button>
         ))}
       </div>
@@ -302,73 +315,23 @@ export default function HotelPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ══ ROOMS ══ */}
-      {tab === "rooms" && (
-        <div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-            <button onClick={() => setShowRoomTypeModal(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--bg-hover)", cursor: "pointer", fontSize: 13, color: "var(--text-sec)" }}>
-              <Plus size={14} /> Add Room Type
-            </button>
-            <button onClick={() => { setEditingRoom(null); setShowRoomModal(true); }}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", cursor: "pointer", fontSize: 13, color: "white", fontWeight: 600 }}>
-              <Plus size={14} /> Add Room
-            </button>
-            <div style={{ display: "flex", gap: 6, marginLeft: "auto", flexWrap: "wrap" }}>
-              {["", "AVAILABLE", "OCCUPIED", "RESERVED", "CLEANING"].map(s => (
-                <button key={s} onClick={() => setRoomFilter(s)} style={{ ...TAB_STYLE(roomFilter === s), padding: "5px 10px", fontSize: 11 }}>
-                  {s || "All"}
-                </button>
+          {/* Room types */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Room Types</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {roomTypes.map(rt => (
+                <div key={rt.id} style={{ ...CARD, padding: "10px 14px", display: "flex", gap: 12, alignItems: "center" }}>
+                  <BedDouble size={16} color="#6366f1" />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{rt.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>₹{Number(rt.basePrice).toFixed(0)}/night · {rt.capacity} guests{(rt as any)._count?.rooms !== undefined ? ` · ${(rt as any)._count.rooms} room${(rt as any)._count.rooms !== 1 ? "s" : ""}` : ""}</div>
+                  </div>
+                </div>
               ))}
+              {!roomTypes.length && <div style={{ color: "var(--text-ghost)", fontSize: 13 }}>No room types yet — add one to start creating rooms.</div>}
             </div>
           </div>
-
-          {/* Room types summary */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-            {roomTypes.map(rt => (
-              <div key={rt.id} style={{ ...CARD, padding: "10px 14px", display: "flex", gap: 12, alignItems: "center" }}>
-                <BedDouble size={16} color="#6366f1" />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{rt.name}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>₹{Number(rt.basePrice).toFixed(0)}/night · {rt.capacity} guests</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Rooms by floor */}
-          {Array.from(new Set(visibleRooms.map(r => r.floor))).sort().map(floor => {
-            const floorRooms = visibleRooms.filter(r => r.floor === floor);
-            return (
-              <div key={floor} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-                  Floor {floor}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-                  {floorRooms.map(room => (
-                    <div key={room.id} style={{ ...CARD, borderTop: `3px solid ${ROOM_COLOR[room.status] || "#6366f1"}`, cursor: "pointer" }}
-                      onClick={() => { setEditingRoom(room); setRoomForm({ roomNumber: room.roomNumber, roomTypeId: room.roomType.id, floor: String(room.floor), notes: room.notes || "" }); setShowRoomModal(true); }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: ROOM_COLOR[room.status] }}>#{room.roomNumber}</div>
-                        <Edit2 size={12} color="var(--text-ghost)" />
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--text-sec)", marginBottom: 4 }}>{room.roomType.name}</div>
-                      <div style={{ display: "inline-block", padding: "2px 7px", borderRadius: 5, background: `${ROOM_COLOR[room.status]}22`, color: ROOM_COLOR[room.status], fontSize: 10, fontWeight: 700 }}>
-                        {room.status.replace("_", " ")}
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4 }}>
-                        ₹{Number(room.roomType.basePrice).toFixed(0)}/night
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-          {!visibleRooms.length && <div style={{ textAlign: "center", padding: 50, color: "var(--text-ghost)" }}><BedDouble size={36} style={{ opacity: 0.3, marginBottom: 10 }} /><div>No rooms found</div></div>}
         </div>
       )}
 
@@ -390,7 +353,7 @@ export default function HotelPage() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {bookings.map(b => (
-              <div key={b.id} style={{ ...CARD, borderLeft: `4px solid ${BOOKING_COLOR[b.status] || "#6366f1"}` }}>
+              <div key={b.id} style={{ ...CARD, borderLeft: `4px solid ${BOOKING_COLOR[b.status] || "#6366f1"}`, cursor: "pointer" }} onClick={() => setSelectedBooking(b)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -415,7 +378,7 @@ export default function HotelPage() {
                     {Number(b.balanceDue) > 0 && (
                       <div style={{ fontSize: 11, color: "#ef4444" }}>Due ₹{Number(b.balanceDue).toFixed(0)}</div>
                     )}
-                    <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }} onClick={e => e.stopPropagation()}>
                       {b.status === "CONFIRMED" && (
                         <button onClick={() => updateStatus(b.id, "CHECKED_IN")}
                           style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 7, border: "none", background: "#10b981", color: "white", fontSize: 12, cursor: "pointer" }}>
@@ -466,7 +429,7 @@ export default function HotelPage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {guests.map(g => (
-              <div key={g.id} style={CARD}>
+              <div key={g.id} style={{ ...CARD, cursor: "pointer" }} onClick={() => setSelectedGuest(g)}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
                     {g.name.charAt(0).toUpperCase()}
@@ -503,33 +466,16 @@ export default function HotelPage() {
           </div>
           <FF label="Amenities (comma-separated)"><input value={roomTypeForm.amenities} onChange={e => setRoomTypeForm(f => ({ ...f, amenities: e.target.value }))} placeholder="AC, WiFi, TV, Hot Water…" style={INPUT_STYLE} /></FF>
           <FF label="Description"><input value={roomTypeForm.description} onChange={e => setRoomTypeForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description" style={INPUT_STYLE} /></FF>
-          <button onClick={saveRoomType} disabled={loading} style={BTN_PRIMARY}>{loading ? "Saving…" : "Add Room Type"}</button>
-        </HotelModal>
-      )}
-
-      {/* Room Modal */}
-      {showRoomModal && (
-        <HotelModal title={editingRoom ? "Edit Room" : "Add Room"} onClose={() => { setShowRoomModal(false); setEditingRoom(null); }}>
-          <FF label="Room Number *"><input value={roomForm.roomNumber} onChange={e => setRoomForm(f => ({ ...f, roomNumber: e.target.value }))} placeholder="101, 202A…" style={INPUT_STYLE} /></FF>
-          <FF label="Room Type *">
-            <select value={roomForm.roomTypeId} onChange={e => setRoomForm(f => ({ ...f, roomTypeId: e.target.value }))} style={INPUT_STYLE}>
-              <option value="">Select type</option>
-              {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.name} — ₹{Number(rt.basePrice).toFixed(0)}/night</option>)}
-            </select>
-          </FF>
-          <FF label="Floor">
-            <input value={roomForm.floor} onChange={e => setRoomForm(f => ({ ...f, floor: e.target.value }))} type="number" min="0" placeholder="1" style={INPUT_STYLE} />
-          </FF>
-          {editingRoom && (
-            <FF label="Status">
-              <select value={undefined} onChange={e => api.patch(`/hotel/rooms/${editingRoom.id}`, { status: e.target.value }).then(load)} style={INPUT_STYLE}>
-                {["AVAILABLE","OCCUPIED","RESERVED","CLEANING","MAINTENANCE","OUT_OF_ORDER"].map(s => (
-                  <option key={s} value={s}>{s.replace("_", " ")}</option>
-                ))}
-              </select>
-            </FF>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <FF label="Number of Rooms"><input value={roomTypeForm.roomCount} onChange={e => setRoomTypeForm(f => ({ ...f, roomCount: e.target.value }))} type="number" min="0" placeholder="e.g. 10" style={INPUT_STYLE} /></FF>
+            <FF label="Floor"><input value={roomTypeForm.floor} onChange={e => setRoomTypeForm(f => ({ ...f, floor: e.target.value }))} type="number" min="0" placeholder="1" style={INPUT_STYLE} /></FF>
+          </div>
+          {roomTypeForm.roomCount && parseInt(roomTypeForm.roomCount) > 0 && (
+            <div style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(99,102,241,0.08)", fontSize: 12, color: "#6366f1", marginBottom: 8 }}>
+              Will auto-create {roomTypeForm.roomCount} room{parseInt(roomTypeForm.roomCount) !== 1 ? "s" : ""} on floor {roomTypeForm.floor || 1}, ready to book immediately.
+            </div>
           )}
-          <button onClick={saveRoom} disabled={loading} style={BTN_PRIMARY}>{loading ? "Saving…" : editingRoom ? "Update Room" : "Add Room"}</button>
+          <button onClick={saveRoomType} disabled={loading} style={BTN_PRIMARY}>{loading ? "Saving…" : "Add Room Type"}</button>
         </HotelModal>
       )}
 
@@ -607,6 +553,124 @@ export default function HotelPage() {
           <button onClick={createBooking} disabled={loading} style={BTN_PRIMARY}>{loading ? "Creating…" : "Confirm Booking"}</button>
         </HotelModal>
       )}
+
+      {/* Room Profile — Overview (editable) + Bookings history */}
+      {selectedRoom && (
+        <HotelModal title={`Room #${(roomDetail || selectedRoom).roomNumber}`} onClose={() => setSelectedRoom(null)}>
+          {roomDetailLoading && !roomDetail ? (
+            <div style={{ textAlign: "center", padding: 24, color: "var(--text-ghost)", fontSize: 13 }}>Loading room...</div>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid var(--border)" }}>
+                <button onClick={() => setRoomProfileTab("overview")} style={{ padding: "7px 12px", background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: roomProfileTab === "overview" ? 700 : 400, color: roomProfileTab === "overview" ? "var(--text-primary)" : "var(--text-ghost)", borderBottom: roomProfileTab === "overview" ? "2px solid #6366f1" : "2px solid transparent", marginBottom: -1 }}>Overview</button>
+                <button onClick={() => setRoomProfileTab("bookings")} style={{ padding: "7px 12px", background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: roomProfileTab === "bookings" ? 700 : 400, color: roomProfileTab === "bookings" ? "var(--text-primary)" : "var(--text-ghost)", borderBottom: roomProfileTab === "bookings" ? "2px solid #6366f1" : "2px solid transparent", marginBottom: -1 }}>Bookings ({roomDetail?.bookings?.length ?? 0})</button>
+              </div>
+              {roomProfileTab === "overview" && (
+                <RoomOverviewForm
+                  room={roomDetail || selectedRoom}
+                  roomTypes={roomTypes}
+                  onSaved={(updated) => { setRoomDetail((d: any) => ({ ...d, ...updated })); load(); }}
+                />
+              )}
+              {roomProfileTab === "bookings" && (
+                (!roomDetail?.bookings || roomDetail.bookings.length === 0) ? (
+                  <div style={{ textAlign: "center", padding: 24, color: "var(--text-ghost)", fontSize: 13 }}>No bookings for this room yet</div>
+                ) : roomDetail.bookings.map((b: any) => (
+                  <div key={b.id} style={{ borderBottom: "1px solid var(--border)", padding: "10px 0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 13 }}>{b.guest?.name}</span>
+                      <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: `${BOOKING_COLOR[b.status]}22`, color: BOOKING_COLOR[b.status], fontWeight: 700 }}>{b.status.replace("_", " ")}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 2 }}>
+                      {b.bookingNumber} · {new Date(b.checkIn).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} → {new Date(b.checkOut).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </>
+          )}
+        </HotelModal>
+      )}
+
+      {/* Guest Profile — editable details + stay history */}
+      {selectedGuest && (
+        <HotelModal title={(guestDetail || selectedGuest).name} onClose={() => setSelectedGuest(null)}>
+          {guestDetailLoading && !guestDetail ? (
+            <div style={{ textAlign: "center", padding: 24, color: "var(--text-ghost)", fontSize: 13 }}>Loading guest...</div>
+          ) : (
+            <GuestProfileBody guest={guestDetail || selectedGuest} onUpdated={(g) => { setGuestDetail((d: any) => ({ ...d, ...g })); load(); }} />
+          )}
+        </HotelModal>
+      )}
+
+      {/* Booking Detail — full breakdown + quick links to guest/room */}
+      {selectedBooking && (
+        <HotelModal title={selectedBooking.bookingNumber} onClose={() => setSelectedBooking(null)}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
+            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: `${BOOKING_COLOR[selectedBooking.status]}22`, color: BOOKING_COLOR[selectedBooking.status], fontWeight: 700 }}>{selectedBooking.status.replace("_", " ")}</span>
+            {selectedBooking.source && <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>via {selectedBooking.source}</span>}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <div onClick={() => { setSelectedBooking(null); setSelectedGuest(selectedBooking.guest); }} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
+              <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Guest</div>
+              <div style={{ fontSize: 13, color: "#6366f1", fontWeight: 600, marginTop: 2 }}>{selectedBooking.guest.name} →</div>
+            </div>
+            <div onClick={() => { setSelectedBooking(null); setSelectedRoom(selectedBooking.room); }} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
+              <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Room</div>
+              <div style={{ fontSize: 13, color: "#6366f1", fontWeight: 600, marginTop: 2 }}>#{selectedBooking.room.roomNumber} — {selectedBooking.room.roomType.name} →</div>
+            </div>
+            <div style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px" }}>
+              <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Check-in</div>
+              <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, marginTop: 2 }}>{new Date(selectedBooking.checkIn).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+            </div>
+            <div style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px" }}>
+              <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Check-out</div>
+              <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, marginTop: 2 }}>{new Date(selectedBooking.checkOut).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+            </div>
+            <div style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px" }}>
+              <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Guests</div>
+              <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, marginTop: 2 }}>{selectedBooking.adults} adult{selectedBooking.adults !== 1 ? "s" : ""}{selectedBooking.children ? ` · ${selectedBooking.children} child${selectedBooking.children !== 1 ? "ren" : ""}` : ""}</div>
+            </div>
+            <div style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px" }}>
+              <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Payment Method</div>
+              <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, marginTop: 2 }}>{selectedBooking.paymentMethod || "—"}</div>
+            </div>
+          </div>
+          <div style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}><span style={{ color: "var(--text-ghost)" }}>Subtotal ({selectedBooking.totalNights} night{selectedBooking.totalNights !== 1 ? "s" : ""})</span><span>₹{Number(selectedBooking.subtotal || 0).toFixed(0)}</span></div>
+            {Number(selectedBooking.discount) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4, color: "#10b981" }}><span>Discount</span><span>−₹{Number(selectedBooking.discount).toFixed(0)}</span></div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}><span style={{ color: "var(--text-ghost)" }}>Tax (GST 12%)</span><span>₹{Number(selectedBooking.taxAmount || 0).toFixed(0)}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, paddingTop: 6, borderTop: "1px solid var(--border)" }}><span>Total</span><span>₹{Number(selectedBooking.total).toFixed(0)}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-ghost)", marginTop: 4 }}><span>Advance Paid</span><span>₹{Number(selectedBooking.advancePaid).toFixed(0)}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: Number(selectedBooking.balanceDue) > 0 ? "#ef4444" : "var(--text-ghost)" }}><span>Balance Due</span><span>₹{Number(selectedBooking.balanceDue).toFixed(0)}</span></div>
+          </div>
+          {selectedBooking.specialRequests && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 4 }}>Special Requests</div>
+              <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{selectedBooking.specialRequests}</div>
+            </div>
+          )}
+          {selectedBooking.notes && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 4 }}>Notes</div>
+              <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{selectedBooking.notes}</div>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            {selectedBooking.status === "CONFIRMED" && (
+              <button onClick={() => { updateStatus(selectedBooking.id, "CHECKED_IN"); setSelectedBooking(null); }} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#10b981", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Check In</button>
+            )}
+            {selectedBooking.status === "CHECKED_IN" && (
+              <button onClick={() => { updateStatus(selectedBooking.id, "CHECKED_OUT"); setSelectedBooking(null); }} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#6366f1", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Check Out</button>
+            )}
+            {selectedBooking.status === "CONFIRMED" && (
+              <button onClick={() => { updateStatus(selectedBooking.id, "CANCELLED"); setSelectedBooking(null); }} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)", color: "#ef4444", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel Booking</button>
+            )}
+          </div>
+        </HotelModal>
+      )}
     </div>
   );
 }
@@ -641,6 +705,154 @@ function FF({ label, children }: { label: string; children: React.ReactNode }) {
     <div style={{ marginBottom: 12 }}>
       <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>{label}</label>
       {children}
+    </div>
+  );
+}
+
+function RoomOverviewForm({ room, roomTypes, onSaved }: { room: any; roomTypes: RoomType[]; onSaved: (updated: any) => void }) {
+  const [form, setForm] = useState({ roomNumber: room.roomNumber, roomTypeId: room.roomType.id, floor: String(room.floor), status: room.status, notes: room.notes || "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setForm({ roomNumber: room.roomNumber, roomTypeId: room.roomType.id, floor: String(room.floor), status: room.status, notes: room.notes || "" });
+  }, [room.id]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const res = await api.patch(`/hotel/rooms/${room.id}`, { ...form, floor: parseInt(form.floor) });
+      onSaved(res.data.data);
+    } catch (e) { setError(getApiError(e)); }
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      {error && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{error}</div>}
+      <FF label="Room Number *"><input value={form.roomNumber} onChange={e => setForm(f => ({ ...f, roomNumber: e.target.value }))} style={INPUT_STYLE} /></FF>
+      <FF label="Room Type *">
+        <select value={form.roomTypeId} onChange={e => setForm(f => ({ ...f, roomTypeId: e.target.value }))} style={INPUT_STYLE}>
+          {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.name} — ₹{Number(rt.basePrice).toFixed(0)}/night</option>)}
+        </select>
+      </FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <FF label="Floor"><input type="number" min="0" value={form.floor} onChange={e => setForm(f => ({ ...f, floor: e.target.value }))} style={INPUT_STYLE} /></FF>
+        <FF label="Status">
+          <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={INPUT_STYLE}>
+            {["AVAILABLE","OCCUPIED","RESERVED","CLEANING","MAINTENANCE","OUT_OF_ORDER"].map(s => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+          </select>
+        </FF>
+      </div>
+      <FF label="Notes"><input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={INPUT_STYLE} /></FF>
+      <button onClick={save} disabled={saving} style={BTN_PRIMARY}>{saving ? "Saving…" : "Save Changes"}</button>
+    </div>
+  );
+}
+
+function GuestProfileBody({ guest, onUpdated }: { guest: any; onUpdated: (g: any) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: guest.name, phone: guest.phone, email: guest.email || "",
+    idType: guest.idType || "Aadhaar", idNumber: guest.idNumber || "",
+    address: guest.address || "", city: guest.city || "", nationality: guest.nationality || "Indian",
+    notes: guest.notes || "",
+  });
+
+  useEffect(() => {
+    setEditing(false);
+    setForm({
+      name: guest.name, phone: guest.phone, email: guest.email || "",
+      idType: guest.idType || "Aadhaar", idNumber: guest.idNumber || "",
+      address: guest.address || "", city: guest.city || "", nationality: guest.nationality || "Indian",
+      notes: guest.notes || "",
+    });
+  }, [guest.id]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const res = await api.patch(`/hotel/guests/${guest.id}`, form);
+      onUpdated(res.data.data);
+      setEditing(false);
+    } catch (e) { setError(getApiError(e)); }
+    setSaving(false);
+  }
+
+  if (editing) {
+    return (
+      <div>
+        {error && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{error}</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <FF label="Full Name *"><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={INPUT_STYLE} /></FF>
+          <FF label="Phone *"><input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} style={INPUT_STYLE} /></FF>
+        </div>
+        <FF label="Email"><input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={INPUT_STYLE} /></FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <FF label="ID Type">
+            <select value={form.idType} onChange={e => setForm(f => ({ ...f, idType: e.target.value }))} style={INPUT_STYLE}>
+              {["Aadhaar","PAN","Passport","Driving Licence","Voter ID"].map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </FF>
+          <FF label="ID Number"><input value={form.idNumber} onChange={e => setForm(f => ({ ...f, idNumber: e.target.value }))} style={INPUT_STYLE} /></FF>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <FF label="City"><input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={INPUT_STYLE} /></FF>
+          <FF label="Nationality"><input value={form.nationality} onChange={e => setForm(f => ({ ...f, nationality: e.target.value }))} style={INPUT_STYLE} /></FF>
+        </div>
+        <FF label="Notes"><input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={INPUT_STYLE} /></FF>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => setEditing(false)} style={{ flex: 1, padding: "9px 0", borderRadius: 9, border: "1px solid var(--border)", background: "var(--bg-hover)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button onClick={save} disabled={saving} style={{ ...BTN_PRIMARY, flex: 2, marginTop: 0 }}>{saving ? "Saving…" : "Save Changes"}</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+        <button onClick={() => setEditing(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 7, border: "1px solid var(--border)", background: "var(--bg-hover)", color: "#6366f1", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          <Edit2 size={11} /> Edit
+        </button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        {[
+          { label: "Phone", val: guest.phone },
+          { label: "Email", val: guest.email || "—" },
+          { label: "ID", val: guest.idType ? `${guest.idType}${guest.idNumber ? " · " + guest.idNumber : ""}` : "—" },
+          { label: "City", val: guest.city || "—" },
+          { label: "Nationality", val: guest.nationality || "—" },
+          { label: "Total Stays", val: guest.totalStays ?? 0 },
+        ].map(({ label, val }) => (
+          <div key={label} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>{label}</div>
+            <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, marginTop: 2 }}>{val}</div>
+          </div>
+        ))}
+      </div>
+      {guest.notes && (
+        <div style={{ marginBottom: 14, background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px" }}>
+          <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Notes</div>
+          <div style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 4 }}>{guest.notes}</div>
+        </div>
+      )}
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 8 }}>Stay History ({guest.bookings?.length ?? 0})</div>
+      {(!guest.bookings || guest.bookings.length === 0) ? (
+        <div style={{ textAlign: "center", padding: 20, color: "var(--text-ghost)", fontSize: 13 }}>No bookings yet</div>
+      ) : guest.bookings.map((b: any) => (
+        <div key={b.id} style={{ borderBottom: "1px solid var(--border)", padding: "8px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)" }}>Room #{b.room?.roomNumber} — {b.room?.roomType?.name}</span>
+            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: `${BOOKING_COLOR[b.status]}22`, color: BOOKING_COLOR[b.status], fontWeight: 700 }}>{b.status.replace("_", " ")}</span>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 2 }}>
+            {new Date(b.checkIn).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} → {new Date(b.checkOut).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} · ₹{Number(b.total).toFixed(0)}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
