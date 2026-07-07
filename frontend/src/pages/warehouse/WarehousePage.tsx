@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Warehouse, Plus, Search, X, ArrowRightLeft } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { kAlpha } from "@/lib/fieldRules";
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -192,8 +193,8 @@ export default function WarehousePage() {
               </div>
               <div><label style={S.label}>Address</label><input style={S.input} value={whForm.address} onChange={e => setWhForm(p => ({ ...p, address: e.target.value }))} /></div>
               <div className="grid-r2">
-                <div><label style={S.label}>City</label><input style={S.input} value={whForm.city} onChange={e => setWhForm(p => ({ ...p, city: e.target.value }))} /></div>
-                <div><label style={S.label}>State</label><input style={S.input} value={whForm.state} onChange={e => setWhForm(p => ({ ...p, state: e.target.value }))} /></div>
+                <div><label style={S.label}>City</label><input style={S.input} value={whForm.city} onChange={e => setWhForm(p => ({ ...p, city: e.target.value }))} onKeyDown={kAlpha} maxLength={100} /></div>
+                <div><label style={S.label}>State</label><input style={S.input} value={whForm.state} onChange={e => setWhForm(p => ({ ...p, state: e.target.value }))} onKeyDown={kAlpha} maxLength={100} /></div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <input type="checkbox" id="isDefault" checked={whForm.isDefault} onChange={e => setWhForm(p => ({ ...p, isDefault: e.target.checked }))} />

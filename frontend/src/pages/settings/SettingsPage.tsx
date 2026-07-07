@@ -5,6 +5,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
 import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { kPhone, kAlpha, kAlphaNum } from "@/lib/fieldRules";
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -235,7 +236,7 @@ export default function SettingsPage() {
               <input style={S.input} value={form.name} onChange={e => f("name", e.target.value)} />
             </div>
             <div><label style={S.label}>GST / Tax ID (Optional)</label>
-              <input style={S.input} value={form.taxId} onChange={e => f("taxId", e.target.value)} placeholder="22AAAAA0000A1Z5" />
+              <input style={S.input} value={form.taxId} onChange={e => f("taxId", e.target.value.toUpperCase())} onKeyDown={kAlphaNum} maxLength={15} placeholder="22AAAAA0000A1Z5" />
             </div>
           </div>
           <div className="grid-r2">
@@ -243,7 +244,7 @@ export default function SettingsPage() {
               <input type="email" style={S.input} value={form.email} onChange={e => f("email", e.target.value)} />
             </div>
             <div><label style={S.label}>Phone</label>
-              <input style={S.input} value={form.phone} onChange={e => f("phone", e.target.value)} />
+              <input style={S.input} value={form.phone} onChange={e => f("phone", e.target.value)} onKeyDown={kPhone} maxLength={15} />
             </div>
           </div>
           <div style={{ marginBottom: 16 }}><label style={S.label}>Address</label>
@@ -251,10 +252,10 @@ export default function SettingsPage() {
           </div>
           <div className="grid-r2">
             <div><label style={S.label}>City</label>
-              <input style={S.input} value={form.city} onChange={e => f("city", e.target.value)} />
+              <input style={S.input} value={form.city} onChange={e => f("city", e.target.value)} onKeyDown={kAlpha} maxLength={100} />
             </div>
             <div><label style={S.label}>State</label>
-              <input style={S.input} value={form.state} onChange={e => f("state", e.target.value)} />
+              <input style={S.input} value={form.state} onChange={e => f("state", e.target.value)} onKeyDown={kAlpha} maxLength={100} />
             </div>
           </div>
           <div className="grid-r2">

@@ -6,6 +6,7 @@ import {
   Stethoscope, Calendar, CheckCircle, XCircle, Clock,
   AlertTriangle, Search, FileText, Shield, Pencil,
 } from "lucide-react";
+import { kPhone } from "@/lib/fieldRules";
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -754,7 +755,7 @@ export default function HealthPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                       <div style={S.g2}>
                         <div><label style={S.label}>Full Name *</label><input style={S.input} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
-                        <div><label style={S.label}>Phone</label><input style={S.input} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                        <div><label style={S.label}>Phone</label><input style={S.input} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} /></div>
                       </div>
                       <div style={S.g3}>
                         <div><label style={S.label}>Date of Birth</label><input type="date" style={S.input} value={editForm.dob} onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))} /></div>
@@ -1037,7 +1038,7 @@ export default function HealthPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={S.g2}>
                   <div><label style={S.label}>Full Name *</label><input style={S.input} value={patientForm.name} onChange={e => setPatientForm(p => ({ ...p, name: e.target.value }))} /></div>
-                  <div><label style={S.label}>Phone</label><input style={S.input} value={patientForm.phone} onChange={e => setPatientForm(p => ({ ...p, phone: e.target.value }))} /></div>
+                  <div><label style={S.label}>Phone</label><input style={S.input} value={patientForm.phone} onChange={e => setPatientForm(p => ({ ...p, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} /></div>
                 </div>
                 <div style={S.g3}>
                   <div><label style={S.label}>Date of Birth</label><input type="date" style={S.input} value={patientForm.dob} onChange={e => setPatientForm(p => ({ ...p, dob: e.target.value }))} /></div>
@@ -1069,7 +1070,7 @@ export default function HealthPage() {
                 </div>
                 <div style={S.g2}>
                   <div><label style={S.label}>Full Name *</label><input style={S.input} value={doctorForm.name} onChange={e => setDoctorForm(f => ({ ...f, name: e.target.value }))} /></div>
-                  <div><label style={S.label}>Phone</label><input style={S.input} value={doctorForm.phone} onChange={e => setDoctorForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                  <div><label style={S.label}>Phone</label><input style={S.input} value={doctorForm.phone} onChange={e => setDoctorForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} /></div>
                 </div>
                 <div style={S.g2}>
                   <div><label style={S.label}>Email</label><input type="email" style={S.input} value={doctorForm.email} onChange={e => setDoctorForm(f => ({ ...f, email: e.target.value }))} /></div>

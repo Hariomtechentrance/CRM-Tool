@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import { Search, UserCheck, UserX, Shield, Users, Package } from "lucide-react";
+import { getApiError } from "@/lib/utils";
+import { Search, UserCheck, UserX, Shield, Users, Package, Plus, X, Copy, CheckCircle } from "lucide-react";
 
 const S = {
   page:        { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -14,6 +15,33 @@ const S = {
   table:       { width: "100%", borderCollapse: "collapse" as const },
   th:          { textAlign: "left" as const, padding: "10px 14px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "1px solid var(--border)", background: "var(--bg-hover)" },
   td:          { padding: "12px 14px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)", verticalAlign: "top" as const },
+  newBtn:      { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" } as React.CSSProperties,
+  input:       { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
+  label:       { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
+};
+
+const BUSINESS_TYPES = [
+  { value: "IMPORT_EXPORT", label: "Import & Export" },
+  { value: "TRADING", label: "Trading / Distribution" },
+  { value: "MANUFACTURING", label: "Manufacturing" },
+  { value: "RETAIL", label: "Retail Store" },
+  { value: "ECOMMERCE", label: "E-commerce" },
+  { value: "FOOD_BEVERAGE", label: "Food & Beverage / Restaurant" },
+  { value: "HOSPITALITY", label: "Hospitality / Hotel" },
+  { value: "IT_SOFTWARE", label: "IT / Software Product" },
+  { value: "IT_SERVICES", label: "IT Services" },
+  { value: "CONSULTING", label: "Consulting" },
+  { value: "HEALTHCARE", label: "Healthcare / Clinic" },
+  { value: "EDUCATION", label: "Education" },
+  { value: "REAL_ESTATE", label: "Real Estate" },
+  { value: "LOGISTICS", label: "Logistics" },
+  { value: "FINANCE", label: "Finance" },
+  { value: "OTHER", label: "Other" },
+];
+
+const EMPTY_CREATE_FORM = {
+  name: "", email: "", password: "", isSuperAdmin: false, sendWelcomeEmail: true,
+  createOrg: false, orgName: "", businessType: "OTHER",
 };
 
 const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
@@ -59,6 +87,13 @@ export default function SuperAdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState("");
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createdResult, setCreatedResult] = useState<{ email: string; password: string; orgSlug?: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -75,6 +110,42 @@ export default function SuperAdminUsersPage() {
     try { await api.patch(`/super-admin/users/${id}/toggle-active`); load(); } catch { /* ignore */ }
   };
 
+  const openCreateModal = () => {
+    setCreateForm(EMPTY_CREATE_FORM);
+    setCreateError("");
+    setCreatedResult(null);
+    setShowCreateModal(true);
+  };
+
+  const submitCreateUser = async () => {
+    if (!createForm.name.trim() || !createForm.email.trim()) return;
+    if (createForm.createOrg && !createForm.orgName.trim()) { setCreateError("Organization name is required"); return; }
+    setCreating(true);
+    setCreateError("");
+    try {
+      const res = await api.post("/super-admin/users", {
+        name: createForm.name.trim(),
+        email: createForm.email.trim(),
+        password: createForm.password.trim() || undefined,
+        isSuperAdmin: createForm.isSuperAdmin,
+        sendWelcomeEmail: createForm.sendWelcomeEmail,
+        organization: createForm.createOrg ? { name: createForm.orgName.trim(), businessType: createForm.businessType } : undefined,
+      });
+      const data = res.data.data;
+      setCreatedResult({ email: data.user.email, password: data.temporaryPassword, orgSlug: data.organization?.slug });
+      load();
+    } catch (e) { setCreateError(getApiError(e)); }
+    setCreating(false);
+  };
+
+  const copyCredentials = () => {
+    if (!createdResult) return;
+    navigator.clipboard.writeText(`Email: ${createdResult.email}\nPassword: ${createdResult.password}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const toggleSuperAdmin = async (id: string, current: boolean) => {
     if (!window.confirm(`${current ? "Remove" : "Grant"} super admin access for this user?`)) return;
     try { await api.patch(`/super-admin/users/${id}/super-admin`, { isSuperAdmin: !current }); load(); } catch { /* ignore */ }
@@ -82,8 +153,15 @@ export default function SuperAdminUsersPage() {
 
   return (
     <div style={S.page}>
-      <h1 style={S.title}>All Users</h1>
-      <p style={S.subtitle}>Every registered user across the platform — their organization, role, and module access ({total} total)</p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+        <div>
+          <h1 style={S.title}>All Users</h1>
+          <p style={S.subtitle}>Every registered user across the platform — their organization, role, and module access ({total} total)</p>
+        </div>
+        <button style={S.newBtn} onClick={openCreateModal}>
+          <Plus size={14} /> New User
+        </button>
+      </div>
 
       <div style={S.card}>
         <div style={S.toolbar}>
@@ -235,6 +313,101 @@ export default function SuperAdminUsersPage() {
           </table>
         )}
       </div>
+
+      {/* ── Create User Modal ── */}
+      {showCreateModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowCreateModal(false)}>
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{createdResult ? "Account Created" : "New User Account"}</span>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X size={16} /></button>
+            </div>
+
+            {createdResult ? (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, color: "#10b981" }}>
+                  <CheckCircle size={18} />
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>User account created successfully.</span>
+                </div>
+                <div style={{ background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Email</div>
+                  <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, marginBottom: 10 }}>{createdResult.email}</div>
+                  <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Temporary Password</div>
+                  <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, fontFamily: "monospace" }}>{createdResult.password}</div>
+                  {createdResult.orgSlug && (
+                    <>
+                      <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase", marginTop: 10, marginBottom: 4 }}>Organization</div>
+                      <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{createdResult.orgSlug}</div>
+                    </>
+                  )}
+                </div>
+                <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 16 }}>
+                  This password is shown only once — copy it now and share it securely with the user. They should change it after logging in.
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={copyCredentials} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    {copied ? <CheckCircle size={14} color="#10b981" /> : <Copy size={14} />} {copied ? "Copied" : "Copy Credentials"}
+                  </button>
+                  <button onClick={() => setShowCreateModal(false)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {createError && (
+                  <div style={{ marginBottom: 14, padding: "8px 12px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{createError}</div>
+                )}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={S.label}>Full Name *</label>
+                  <input style={S.input} value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} placeholder="Jane Doe" />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={S.label}>Email *</label>
+                  <input style={S.input} type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@company.com" />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={S.label}>Password (optional)</label>
+                  <input style={S.input} type="text" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} placeholder="Leave blank to auto-generate" />
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-sec)", marginBottom: 10, cursor: "pointer" }}>
+                  <input type="checkbox" checked={createForm.sendWelcomeEmail} onChange={e => setCreateForm(f => ({ ...f, sendWelcomeEmail: e.target.checked }))} />
+                  Email the credentials to this user
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-sec)", marginBottom: 14, cursor: "pointer" }}>
+                  <input type="checkbox" checked={createForm.isSuperAdmin} onChange={e => setCreateForm(f => ({ ...f, isSuperAdmin: e.target.checked }))} />
+                  Grant super admin access
+                </label>
+
+                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginBottom: 4 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-sec)", marginBottom: 12, cursor: "pointer" }}>
+                    <input type="checkbox" checked={createForm.createOrg} onChange={e => setCreateForm(f => ({ ...f, createOrg: e.target.checked }))} />
+                    Also create an organization for them (as OWNER)
+                  </label>
+                  {createForm.createOrg && (
+                    <>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={S.label}>Organization Name *</label>
+                        <input style={S.input} value={createForm.orgName} onChange={e => setCreateForm(f => ({ ...f, orgName: e.target.value }))} placeholder="Acme Traders" />
+                      </div>
+                      <div style={{ marginBottom: 4 }}>
+                        <label style={S.label}>Business Type</label>
+                        <select style={S.input} value={createForm.businessType} onChange={e => setCreateForm(f => ({ ...f, businessType: e.target.value }))}>
+                          {BUSINESS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button onClick={submitCreateUser} disabled={creating || !createForm.name.trim() || !createForm.email.trim()} style={{ width: "100%", marginTop: 14, padding: "10px 0", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                  {creating ? "Creating…" : "Create User"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

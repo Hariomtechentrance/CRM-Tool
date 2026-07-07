@@ -15,6 +15,7 @@ import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import { ALL_MODULES, MODULE_CATEGORIES, getDefaultModules } from "@/lib/modules";
+import { kAlpha, kAlphaNum, kPhone, upperReg, isOptGSTIN, isOptPhone } from "@/lib/fieldRules";
 import type { OrganizationSummary } from "@/types";
 
 // ── icon map ────────────────────────────────────────────────────
@@ -30,10 +31,10 @@ const schema = z.object({
   name: z.string().min(2, "Organization name must be at least 2 characters"),
   businessType: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
+  phone: z.string().refine(isOptPhone, "Invalid phone number").optional().or(z.literal("")),
   currency: z.string().optional(),
   country: z.string().optional(),
-  taxId: z.string().optional(),
+  taxId: z.string().refine(isOptGSTIN, "Invalid GSTIN. Format: 22AAAAA0000A1Z5").optional().or(z.literal("")),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -259,13 +260,26 @@ export default function CreateOrgPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Input label="Email" type="email" placeholder="info@company.com" leftIcon={<Mail style={{ width: 16, height: 16 }} />} error={errors.email?.message} {...register("email")} />
-                <Input label="Phone" placeholder="+91 98765 43210" leftIcon={<Phone style={{ width: 16, height: 16 }} />} {...register("phone")} />
+                <Input
+                  label="Phone" placeholder="+91 98765 43210" maxLength={15} onKeyDown={kPhone}
+                  leftIcon={<Phone style={{ width: 16, height: 16 }} />} error={errors.phone?.message}
+                  {...register("phone")}
+                />
               </div>
-              <Input label="GST Number" placeholder="22AAAAA0000A1Z5" hint="Your 15-digit GSTIN (optional)" leftIcon={<Hash style={{ width: 16, height: 16 }} />} {...register("taxId")} />
+              {(() => {
+                const f = register("taxId");
+                return (
+                  <Input
+                    label="GST Number" placeholder="22AAAAA0000A1Z5" hint="Your 15-digit GSTIN (optional)" maxLength={15} onKeyDown={kAlphaNum}
+                    leftIcon={<Hash style={{ width: 16, height: 16 }} />} error={errors.taxId?.message}
+                    {...f} {...upperReg(f.onChange)}
+                  />
+                );
+              })()}
               <Input label="Address" placeholder="123, MG Road" leftIcon={<MapPin style={{ width: 16, height: 16 }} />} {...register("address")} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <Input label="City" placeholder="Mumbai" {...register("city")} />
-                <Input label="State" placeholder="Maharashtra" {...register("state")} />
+                <Input label="City" placeholder="Mumbai" maxLength={100} onKeyDown={kAlpha} {...register("city")} />
+                <Input label="State" placeholder="Maharashtra" maxLength={100} onKeyDown={kAlpha} {...register("state")} />
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => setStep(1)} style={S.btnOut}>← Back</button>

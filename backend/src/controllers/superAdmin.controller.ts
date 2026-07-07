@@ -1,8 +1,12 @@
 import { Response } from "express";
+import { randomInt } from "crypto";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
-import { ok, serverError, badRequest } from "../utils/response";
+import { ok, created, serverError, badRequest } from "../utils/response";
+import { uniqueOrgSlug } from "../utils/slug";
+import { sendEmail } from "../utils/email";
 
 const updateOrgSchema = z.object({
   isActive:       z.boolean().optional(),
@@ -14,6 +18,20 @@ const updateOrgSchema = z.object({
 
 const superAdminFlagSchema = z.object({
   isSuperAdmin: z.boolean(),
+});
+
+const createUserSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8).max(100).optional(),
+  isSuperAdmin: z.boolean().optional(),
+  sendWelcomeEmail: z.boolean().optional(),
+  organization: z.object({
+    name: z.string().trim().min(2).max(100),
+    businessType: z.string().optional(),
+    currency: z.string().max(10).optional(),
+    country: z.string().max(60).optional(),
+  }).optional(),
 });
 
 export async function getSuperAdminStats(req: AuthRequest, res: Response): Promise<void> {
@@ -142,6 +160,85 @@ export async function listAllUsers(req: AuthRequest, res: Response): Promise<voi
     ]);
 
     ok(res, { users, total, page, limit });
+  } catch (e) { serverError(res, e); }
+}
+
+function generateTempPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+  let pw = "";
+  for (let i = 0; i < 12; i++) pw += chars[randomInt(chars.length)];
+  return pw;
+}
+
+// Regular users have no self-signup flow (see LoginPage's "Request access" —
+// that only logs a lead, it doesn't create an account). This is the actual
+// account-creation path: a super admin creates the User directly, optionally
+// bootstrapping an Organization + OWNER membership for them in one step.
+export async function createUser(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const parsed = createUserSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Invalid data", parsed.error.flatten().fieldErrors); return; }
+    const { name, email, isSuperAdmin, sendWelcomeEmail, organization } = parsed.data;
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) { badRequest(res, "A user with this email already exists"); return; }
+
+    const plainPassword = parsed.data.password || generateTempPassword();
+    const hash = await bcrypt.hash(plainPassword, 12);
+    // Computed before the transaction opens — uniqueOrgSlug queries via the
+    // plain `prisma` client, which conflicts with the transaction's reserved
+    // connection if called from inside the $transaction callback below.
+    const orgSlug = organization?.name ? await uniqueOrgSlug(organization.name) : null;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name, email, password: hash,
+          isActive: true, isEmailVerified: true,
+          isSuperAdmin: isSuperAdmin || false,
+        },
+      });
+
+      let org = null;
+      if (organization?.name && orgSlug) {
+        org = await tx.organization.create({
+          data: {
+            name: organization.name,
+            slug: orgSlug,
+            businessType: (organization.businessType as any) || "OTHER",
+            currency: organization.currency || "INR",
+            country: organization.country || "India",
+            email,
+            members: { create: { userId: user.id, role: "OWNER" } },
+          },
+        });
+      }
+
+      return { user, org };
+    });
+
+    if (sendWelcomeEmail) {
+      sendEmail({
+        to: email,
+        subject: "Your FlowCRM account has been created",
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:24px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0">
+            <h2 style="color:#111827;margin:0 0 8px">Welcome to FlowCRM${result.org ? ` — ${result.org.name}` : ""}</h2>
+            <p style="color:#374151;font-size:14px">An administrator has created an account for you.</p>
+            <table style="font-size:14px;color:#374151;border-collapse:collapse">
+              <tr><td style="padding:4px 12px 4px 0;color:#6b7280">Email</td><td><strong>${email}</strong></td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#6b7280">Password</td><td><strong>${plainPassword}</strong></td></tr>
+            </table>
+            <p style="color:#6b7280;font-size:12px;margin-top:16px">Please log in and change your password after your first login.</p>
+          </div>`,
+      }).catch(() => {});
+    }
+
+    created(res, {
+      user: { id: result.user.id, name: result.user.name, email: result.user.email, isSuperAdmin: result.user.isSuperAdmin },
+      organization: result.org ? { id: result.org.id, name: result.org.name, slug: result.org.slug } : null,
+      temporaryPassword: plainPassword,
+    }, "User created successfully");
   } catch (e) { serverError(res, e); }
 }
 

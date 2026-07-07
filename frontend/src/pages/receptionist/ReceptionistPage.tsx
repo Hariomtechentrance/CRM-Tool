@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
+import { kPhone } from "@/lib/fieldRules";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -341,7 +342,7 @@ export default function ReceptionistPage() {
         <Modal title="Check In Visitor" onClose={() => setShowVisitorModal(false)}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <FF label="Full Name *"><input value={visitorForm.name} onChange={e => setVisitorForm(f => ({ ...f, name: e.target.value }))} placeholder="Visitor name" style={INPUT_STYLE} /></FF>
-            <FF label="Phone"><input value={visitorForm.phone} onChange={e => setVisitorForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 98765…" style={INPUT_STYLE} /></FF>
+            <FF label="Phone"><input value={visitorForm.phone} onChange={e => setVisitorForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} placeholder="+91 98765…" style={INPUT_STYLE} /></FF>
           </div>
           <FF label="Company / Organization"><input value={visitorForm.company} onChange={e => setVisitorForm(f => ({ ...f, company: e.target.value }))} style={INPUT_STYLE} /></FF>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

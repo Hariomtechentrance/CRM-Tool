@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, User, Mail, Phone, Building2, Users, MessageSquare, CheckCircle, Send } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
+import { kPhone } from "@/lib/fieldRules";
 
 interface Props {
   onClose: () => void;
@@ -180,6 +181,8 @@ export default function ContactModal({ onClose }: Props) {
                 type="tel"
                 value={form.phone}
                 onChange={e => set("phone", e.target.value)}
+                onKeyDown={kPhone}
+                maxLength={15}
                 placeholder="+91 98765 43210"
                 style={FIELD}
               />

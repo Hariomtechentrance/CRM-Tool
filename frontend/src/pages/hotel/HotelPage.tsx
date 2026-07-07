@@ -7,6 +7,7 @@ import {
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import { useTranslation } from 'react-i18next';
+import { kPhone } from "@/lib/fieldRules";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -484,7 +485,7 @@ export default function HotelPage() {
         <HotelModal title="Add Guest Profile" onClose={() => setShowGuestModal(false)}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <FF label="Full Name *"><input value={guestForm.name} onChange={e => setGuestForm(f => ({ ...f, name: e.target.value }))} placeholder="Guest name" style={INPUT_STYLE} /></FF>
-            <FF label="Phone *"><input value={guestForm.phone} onChange={e => setGuestForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 98765…" style={INPUT_STYLE} /></FF>
+            <FF label="Phone *"><input value={guestForm.phone} onChange={e => setGuestForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} placeholder="+91 98765…" style={INPUT_STYLE} /></FF>
           </div>
           <FF label="Email"><input value={guestForm.email} onChange={e => setGuestForm(f => ({ ...f, email: e.target.value }))} placeholder="guest@email.com" style={INPUT_STYLE} /></FF>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -787,7 +788,7 @@ function GuestProfileBody({ guest, onUpdated }: { guest: any; onUpdated: (g: any
         {error && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{error}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <FF label="Full Name *"><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={INPUT_STYLE} /></FF>
-          <FF label="Phone *"><input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} style={INPUT_STYLE} /></FF>
+          <FF label="Phone *"><input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} style={INPUT_STYLE} /></FF>
         </div>
         <FF label="Email"><input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={INPUT_STYLE} /></FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

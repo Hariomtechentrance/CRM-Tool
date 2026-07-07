@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import { useTranslation } from 'react-i18next';
+import { kPhone, kAlpha } from "@/lib/fieldRules";
+
+const LEAD_FIELD_FILTER: Record<string, React.KeyboardEventHandler<HTMLInputElement>> = { phone: kPhone, phone2: kPhone, city: kAlpha };
+const LEAD_FIELD_MAXLEN: Record<string, number> = { phone: 15, phone2: 15, city: 100 };
 import {
   Phone, Mail, Plus, Search, X, Upload,
   User, Clock, CheckCircle, PhoneCall,
@@ -223,7 +227,10 @@ function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: { lead?
             {[["Name *","name","text","Full name"],["Company","company","text","Company"],["Phone","phone","text","+91 98765"],["Alt Phone","phone2","text","Alternate"],["Email","email","email","email@..."],["City","city","text","Mumbai"]].map(([l,k,t,ph]) => (
               <div key={String(k)}>
                 <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>{l}</label>
-                <input style={{ ...S.inp, width: "100%" }} type={String(t)} value={(form as any)[k as string]} onChange={e => f(k as string)(e.target.value)} placeholder={String(ph)} />
+                <input
+                  style={{ ...S.inp, width: "100%" }} type={String(t)} value={(form as any)[k as string]} onChange={e => f(k as string)(e.target.value)} placeholder={String(ph)}
+                  onKeyDown={LEAD_FIELD_FILTER[k as string]} maxLength={LEAD_FIELD_MAXLEN[k as string]}
+                />
               </div>
             ))}
             <div>
