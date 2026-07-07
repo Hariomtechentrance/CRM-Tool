@@ -5,7 +5,7 @@ import {
   ShoppingBag, Warehouse, UserCheck, Kanban,
   Megaphone, Headphones, Globe, BarChart3, Container, Shirt,
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
-  MonitorCheck, ClipboardList, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
+  MonitorCheck, ClipboardList, ClipboardCheck, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
   Phone, TrendingUp, Heart, Sliders, Palette, Scale,
   UtensilsCrossed, Hotel, FolderKanban, UsersRound,
 } from "lucide-react";
@@ -25,6 +25,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HeadphonesIcon: Headphones,
   UtensilsCrossed, Hotel,
   Phone, TrendingUp, Heart, Briefcase,
+  ClipboardCheck,
 };
 
 const MOD_I18N_KEY: Record<string, string> = {

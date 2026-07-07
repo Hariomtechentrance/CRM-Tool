@@ -79,6 +79,7 @@ import brandingRoutes from "./routes/branding.routes";
 import complianceRoutes from "./routes/compliance.routes";
 import restaurantRoutes from "./routes/restaurant.routes";
 import hotelRoutes from "./routes/hotel.routes";
+import receptionistRoutes from "./routes/receptionist.routes";
 import chatbotRoutes from "./routes/chatbot.routes";
 import contactRoutes from "./routes/contact.routes";
 import { errorHandler } from "./middleware/errorHandler";
@@ -412,6 +413,7 @@ app.use("/api/branding",      brandingRoutes);
 app.use("/api/compliance",    complianceRoutes);
 app.use("/api/restaurant",    restaurantRoutes);
 app.use("/api/hotel",         hotelRoutes);
+app.use("/api/receptionist",  receptionistRoutes);
 app.use("/api/chatbot",       chatLimiter, chatbotRoutes);
 app.use("/api/contact",       contactRoutes);
 

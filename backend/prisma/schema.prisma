@@ -247,6 +247,10 @@ model Organization {
   guestProfiles     GuestProfile[]
   hotelBookings     HotelBooking[]
 
+  // Phase 7 — Reception / Front Desk
+  visitors    Visitor[]
+  courierLogs CourierLog[]
+
   // Universal
   customFields CustomField[]
   smsLogs      SMSLog[]
@@ -3701,6 +3705,79 @@ model HotelBooking {
   @@index([organizationId])
   @@index([checkIn, checkOut])
   @@index([status])
+}
+
+// ── Reception / Front Desk (generic — any business type) ─────
+enum VisitorStatus {
+  CHECKED_IN
+  CHECKED_OUT
+  EXPECTED
+  CANCELLED
+}
+
+enum CourierType {
+  INCOMING
+  OUTGOING
+}
+
+enum CourierStatus {
+  PENDING
+  DELIVERED
+  RETURNED
+}
+
+model Visitor {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  phone          String?
+  email          String?
+  company        String?
+  purpose        String?
+  whomToMeet     String?
+  department     String?
+  idType         String?
+  idNumber       String?
+  vehicleNumber  String?
+  badgeNumber    String?
+  status         VisitorStatus @default(CHECKED_IN)
+  checkInTime    DateTime      @default(now())
+  checkOutTime   DateTime?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([checkInTime])
+}
+
+model CourierLog {
+  id             String        @id @default(cuid())
+  organizationId String
+  type           CourierType
+  courierCompany String?
+  trackingNumber String?
+  senderName     String?
+  senderCompany  String?
+  recipientName  String?
+  recipientDept  String?
+  description    String?
+  handledBy      String?
+  status         CourierStatus @default(PENDING)
+  loggedAt       DateTime      @default(now())
+  resolvedAt     DateTime?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([loggedAt])
 }
 
 // ── Public landing page access/demo requests ─────────────────

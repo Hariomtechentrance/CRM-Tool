@@ -80,6 +80,7 @@ import HealthPortalLoginPage from "@/pages/health/HealthPortalLoginPage";
 import DoctorDashboardPage from "@/pages/health/DoctorDashboardPage";
 import RestaurantPage from "@/pages/restaurant/RestaurantPage";
 import HotelPage from "@/pages/hotel/HotelPage";
+import ReceptionistPage from "@/pages/receptionist/ReceptionistPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
 import CustomFieldsPage from "@/pages/settings/CustomFieldsPage";
 import BrandingPage from "@/pages/settings/BrandingPage";
@@ -166,6 +167,7 @@ export default function App() {
           <Route path="/store"        element={G("STORE", StorePage)} />
           <Route path="/dispatch"     element={G("DISPATCH", SalesPage)} />
           <Route path="/accounts"     element={G("ACCOUNTS", FinancePage)} />
+          <Route path="/receptionist" element={G("RECEPTIONIST", ReceptionistPage)} />
 
           {/* ── Operations ── */}
           <Route path="/pos"          element={G("POS", RetailPage)} />

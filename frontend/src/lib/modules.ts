@@ -88,6 +88,18 @@ export const ALL_MODULES: ModuleDefinition[] = [
     accentBorder: "rgba(239,68,68,0.2)",
     defaultFor: ["IMPORT","EXPORT","IMPORT_EXPORT","TRADING","MANUFACTURING","RETAIL","ECOMMERCE","IT_SOFTWARE","IT_SERVICES","HEALTHCARE","EDUCATION","REAL_ESTATE","FOOD_BEVERAGE","LOGISTICS","FINANCE","CONSULTING","MEDIA","AGRICULTURE","HOSPITALITY","LEGAL","NGO","OTHER"],
   },
+  {
+    key: "RECEPTIONIST",
+    label: "Receptionist",
+    description: "Visitor check-in/check-out log and courier/package register — works for any business.",
+    href: "/receptionist",
+    category: "core",
+    iconName: "ClipboardCheck",
+    accentColor: "#22D3EE",
+    accentBg: "rgba(34,211,238,0.1)",
+    accentBorder: "rgba(34,211,238,0.2)",
+    defaultFor: ["IMPORT","EXPORT","IMPORT_EXPORT","TRADING","MANUFACTURING","RETAIL","ECOMMERCE","IT_SOFTWARE","IT_SERVICES","HEALTHCARE","EDUCATION","REAL_ESTATE","FOOD_BEVERAGE","LOGISTICS","FINANCE","CONSULTING","MEDIA","AGRICULTURE","HOSPITALITY","LEGAL","NGO","OTHER"],
+  },
   // ── OPERATIONS ────────────────────────────────────────────────
   {
     key: "POS",
