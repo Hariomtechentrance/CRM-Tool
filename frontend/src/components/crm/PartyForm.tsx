@@ -11,7 +11,7 @@ import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import type { Party, PartyType } from "@/types";
 import {
-  kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, upperReg,
+  kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, kGSTIN, kPAN, kIFSC, upperReg,
   isOptGSTIN, isOptPAN, isOptIFSC, isOptIEC, isOptPhone, isOptPIN, isOptBankAC,
 } from "@/lib/fieldRules";
 
@@ -184,8 +184,8 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
         {tab === "Business" && (
           <>
             <div className="grid grid-cols-2 gap-4">
-              {(() => { const f = register("gstin"); return <Input label="GSTIN" placeholder="22AAAAA0000A1Z5" error={errors.gstin?.message} maxLength={15} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
-              {(() => { const f = register("pan"); return <Input label="PAN" placeholder="AAAAA0000A" error={errors.pan?.message} maxLength={10} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
+              {(() => { const f = register("gstin"); return <Input label="GSTIN" placeholder="22AAAAA0000A1Z5" error={errors.gstin?.message} maxLength={15} onKeyDown={kGSTIN} {...f} {...upperReg(f.onChange)} />; })()}
+              {(() => { const f = register("pan"); return <Input label="PAN" placeholder="AAAAA0000A" error={errors.pan?.message} maxLength={10} onKeyDown={kPAN} {...f} {...upperReg(f.onChange)} />; })()}
             </div>
             {(() => { const f = register("iecCode"); return <Input label="IEC Code" placeholder="AABCD1234E" error={errors.iecCode?.message} maxLength={10} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
             <div className="grid grid-cols-2 gap-4">
@@ -207,7 +207,7 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
             <Input label="Bank Name" placeholder="HDFC Bank" maxLength={100} onKeyDown={kName} {...register("bankName")} />
             <Input label="Account Number" placeholder="0012345678901234" error={errors.bankAccount?.message} maxLength={18} onKeyDown={kDigits} {...register("bankAccount")} />
             <div className="grid grid-cols-2 gap-4">
-              {(() => { const f = register("bankIfsc"); return <Input label="IFSC Code" placeholder="HDFC0001234" error={errors.bankIfsc?.message} maxLength={11} onKeyDown={kAlphaNum} {...f} {...upperReg(f.onChange)} />; })()}
+              {(() => { const f = register("bankIfsc"); return <Input label="IFSC Code" placeholder="HDFC0001234" error={errors.bankIfsc?.message} maxLength={11} onKeyDown={kIFSC} {...f} {...upperReg(f.onChange)} />; })()}
               <Input label="Branch" placeholder="Andheri West, Mumbai" maxLength={100} onKeyDown={kAlpha} {...register("bankBranch")} />
             </div>
           </>

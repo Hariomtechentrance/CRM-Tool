@@ -15,7 +15,7 @@ import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import { ALL_MODULES, MODULE_CATEGORIES, getDefaultModules } from "@/lib/modules";
-import { kAlpha, kAlphaNum, kPhone, upperReg, isOptGSTIN, isOptPhone } from "@/lib/fieldRules";
+import { kAlpha, kGSTIN, kPhone, upperReg, isOptGSTIN, isOptPhone } from "@/lib/fieldRules";
 import type { OrganizationSummary } from "@/types";
 
 // ── icon map ────────────────────────────────────────────────────
@@ -270,7 +270,7 @@ export default function CreateOrgPage() {
                 const f = register("taxId");
                 return (
                   <Input
-                    label="GST Number" placeholder="22AAAAA0000A1Z5" hint="Your 15-digit GSTIN (optional)" maxLength={15} onKeyDown={kAlphaNum}
+                    label="GST Number" placeholder="22AAAAA0000A1Z5" hint="Your 15-digit GSTIN (optional)" maxLength={15} onKeyDown={kGSTIN}
                     leftIcon={<Hash style={{ width: 16, height: 16 }} />} error={errors.taxId?.message}
                     {...f} {...upperReg(f.onChange)}
                   />

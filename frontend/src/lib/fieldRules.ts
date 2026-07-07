@@ -67,6 +67,57 @@ export const kPhone = (e: React.KeyboardEvent<HTMLInputElement>) => {
   if (!/^[0-9+\-()]$/.test(e.key)) e.preventDefault();
 };
 
+// ── Position-aware filters for government ID formats ─────────
+// GSTIN/PAN/IFSC pin specific character classes (digit vs letter) to exact
+// positions — kAlphaNum alone can't catch "all letters" typed into a GSTIN,
+// since every individual keystroke IS alphanumeric. These check the cursor
+// position against the real structure so the wrong class is blocked live.
+const DIGIT = /^[0-9]$/;
+const LETTER = /^[a-zA-Z]$/;
+
+/** GSTIN: 2 digits, 5 letters, 4 digits, 1 letter, 1 alnum (1-9/A-Z), literal Z, 1 alnum */
+export const kGSTIN = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (SYS.includes(e.key) || ctrl(e)) return;
+  const pos = e.currentTarget.selectionStart ?? e.currentTarget.value.length;
+  const key = e.key;
+  let ok: boolean;
+  if (pos < 2) ok = DIGIT.test(key);
+  else if (pos < 7) ok = LETTER.test(key);
+  else if (pos < 11) ok = DIGIT.test(key);
+  else if (pos === 11) ok = LETTER.test(key);
+  else if (pos === 12) ok = /^[1-9a-zA-Z]$/.test(key);
+  else if (pos === 13) ok = /^[zZ]$/.test(key);
+  else if (pos === 14) ok = DIGIT.test(key) || LETTER.test(key);
+  else ok = false; // already 15 chars
+  if (!ok) e.preventDefault();
+};
+
+/** PAN: 5 letters, 4 digits, 1 letter */
+export const kPAN = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (SYS.includes(e.key) || ctrl(e)) return;
+  const pos = e.currentTarget.selectionStart ?? e.currentTarget.value.length;
+  const key = e.key;
+  let ok: boolean;
+  if (pos < 5) ok = LETTER.test(key);
+  else if (pos < 9) ok = DIGIT.test(key);
+  else if (pos === 9) ok = LETTER.test(key);
+  else ok = false; // already 10 chars
+  if (!ok) e.preventDefault();
+};
+
+/** IFSC: 4 letters, literal 0, 6 alphanumeric */
+export const kIFSC = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (SYS.includes(e.key) || ctrl(e)) return;
+  const pos = e.currentTarget.selectionStart ?? e.currentTarget.value.length;
+  const key = e.key;
+  let ok: boolean;
+  if (pos < 4) ok = LETTER.test(key);
+  else if (pos === 4) ok = key === "0";
+  else if (pos < 11) ok = DIGIT.test(key) || LETTER.test(key);
+  else ok = false; // already 11 chars
+  if (!ok) e.preventDefault();
+};
+
 // ── Auto-uppercase helper for react-hook-form ────────────────
 // Usage:
 //   const { ref, onChange: gstinOnChange, ...gstinRest } = register("gstin");

@@ -3,7 +3,7 @@ import type React from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { Building2, Save } from "lucide-react";
-import { kDigits, kAlphaNum, kPhone, kName, kAlpha } from "@/lib/fieldRules";
+import { kDigits, kAlphaNum, kPhone, kName, kAlpha, kGSTIN, kPAN, kIFSC } from "@/lib/fieldRules";
 import { useTranslation } from 'react-i18next';
 
 const S = {
@@ -138,8 +138,8 @@ export default function AdminSettingsPage() {
         <div style={S.cardTitle}><Building2 size={15} color="#10b981" /> Tax & Legal</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="grid-r2">
-            <F k="taxId" label="GSTIN" placeholder="22AAAAA0000A1Z5" maxLength={15} onKeyDown={kAlphaNum} autoUpper />
-            <F k="panNumber" label="PAN Number" placeholder="ABCDE1234F" maxLength={10} onKeyDown={kAlphaNum} autoUpper />
+            <F k="taxId" label="GSTIN" placeholder="22AAAAA0000A1Z5" maxLength={15} onKeyDown={kGSTIN} autoUpper />
+            <F k="panNumber" label="PAN Number" placeholder="ABCDE1234F" maxLength={10} onKeyDown={kPAN} autoUpper />
           </div>
           <F k="iecCode" label="IEC Code (Import-Export)" placeholder="AABCD1234E" maxLength={10} onKeyDown={kAlphaNum} autoUpper />
         </div>
@@ -152,7 +152,7 @@ export default function AdminSettingsPage() {
           <F k="bankName" label="Bank Name" maxLength={100} onKeyDown={kName} />
           <div className="grid-r2">
             <F k="bankAccount" label="Account Number" maxLength={18} onKeyDown={kDigits} />
-            <F k="bankIfsc" label="IFSC Code" maxLength={11} onKeyDown={kAlphaNum} autoUpper />
+            <F k="bankIfsc" label="IFSC Code" maxLength={11} onKeyDown={kIFSC} autoUpper />
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { Users, Plus, Search, X, Calendar, DollarSign, UserCheck, Check, XCircle, Clock, Target, TrendingUp, Receipt, Briefcase, ChevronRight, Download, Star } from "lucide-react";
 import DocumentsPanel from "@/components/DocumentsPanel";
-import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone } from "@/lib/fieldRules";
+import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, kPAN, kIFSC } from "@/lib/fieldRules";
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "@/stores/authStore";
 
@@ -992,12 +992,12 @@ export default function HRPage() {
                 )}
               </div>
               <div className="grid-r2">
-                <div><label style={S.label}>PAN Number</label><input style={S.input} value={empForm.panNumber} onChange={e=>ef("panNumber",e.target.value.toUpperCase())} placeholder="ABCDE1234F" onKeyDown={kAlphaNum} maxLength={10}/></div>
+                <div><label style={S.label}>PAN Number</label><input style={S.input} value={empForm.panNumber} onChange={e=>ef("panNumber",e.target.value.toUpperCase())} placeholder="ABCDE1234F" onKeyDown={kPAN} maxLength={10}/></div>
                 <div><label style={S.label}>PF Number</label><input style={S.input} value={empForm.pfNumber} onChange={e=>ef("pfNumber",e.target.value.toUpperCase())} maxLength={22}/></div>
               </div>
               <div className="grid-r2">
                 <div><label style={S.label}>Bank Account</label><input style={S.input} value={empForm.bankAccount} onChange={e=>ef("bankAccount",e.target.value)} onKeyDown={kDigits} maxLength={18}/></div>
-                <div><label style={S.label}>IFSC Code</label><input style={S.input} value={empForm.bankIfsc} onChange={e=>ef("bankIfsc",e.target.value.toUpperCase())} onKeyDown={kAlphaNum} maxLength={11}/></div>
+                <div><label style={S.label}>IFSC Code</label><input style={S.input} value={empForm.bankIfsc} onChange={e=>ef("bankIfsc",e.target.value.toUpperCase())} onKeyDown={kIFSC} maxLength={11}/></div>
               </div>
             </div>
             {editId&&<div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--border)"}}><DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact/></div>}
