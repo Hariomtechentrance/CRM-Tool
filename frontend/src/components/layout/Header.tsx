@@ -29,9 +29,9 @@ interface AppNotification {
 const SEV_ICON = {
   critical: <AlertCircle size={14} color="#ef4444" />,
   warning: <AlertTriangle size={14} color="#f59e0b" />,
-  info: <Info size={14} color="#6366f1" />,
+  info: <Info size={14} color="#2e9cc4" />,
 };
-const SEV_DOT = { critical: "#ef4444", warning: "#f59e0b", info: "#6366f1" };
+const SEV_DOT = { critical: "#ef4444", warning: "#f59e0b", info: "#2e9cc4" };
 
 interface SearchResults { parties?: any[]; leads?: any[]; deals?: any[]; invoices?: any[]; products?: any[]; patients?: any[]; }
 
@@ -40,7 +40,7 @@ const RESULT_ICONS: Record<string, React.ReactNode> = {
   invoices: <Receipt size={12} />, products: <Package size={12} />, patients: <HeartPulse size={12} />,
 };
 const RESULT_COLORS: Record<string, string> = {
-  parties: "#818CF8", leads: "#f59e0b", deals: "#10b981", invoices: "#F87171", products: "#60a5fa", patients: "#ef4444",
+  parties: "#74CDE8", leads: "#f59e0b", deals: "#10b981", invoices: "#F87171", products: "#60a5fa", patients: "#ef4444",
 };
 
 function getItemDisplay(category: string, item: any): { label: string; sub?: string; href: string } {
@@ -165,7 +165,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </button>
         <span className="text-sm font-medium truncate max-w-[200px]" style={{ color: "var(--text-faint)" }}>{activeOrg?.name}</span>
         {activeOrg && (
-          <span className="text-[11px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+          <span className="text-[11px] font-bold text-brand-400 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded-full">
             {activeOrg.currency}
           </span>
         )}
@@ -206,7 +206,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             ) : (
               Object.entries(searchResults || {}).map(([category, items]) => {
                 if (!items || items.length === 0) return null;
-                const color = RESULT_COLORS[category] || "#818CF8";
+                const color = RESULT_COLORS[category] || "#74CDE8";
                 const icon = RESULT_ICONS[category];
                 return (
                   <div key={category}>
@@ -268,7 +268,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               <span style={{
                 position: "absolute", top: 5, right: 5,
                 width: criticalCount > 0 ? "auto" : 8, minWidth: 8, height: 8,
-                background: criticalCount > 0 ? "#ef4444" : "#6366f1",
+                background: criticalCount > 0 ? "#ef4444" : "var(--brand-color)",
                 borderRadius: 99, border: "1px solid var(--bg-card)",
                 fontSize: 9, fontWeight: 700, color: "white",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -291,7 +291,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Notifications</span>
                   {totalCount > 0 && (
-                    <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: "#6366f120", color: "#818CF8", padding: "1px 7px", borderRadius: 99 }}>
+                    <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: "rgba(116,205,232,0.12)", color: "#74CDE8", padding: "1px 7px", borderRadius: 99 }}>
                       {totalCount}
                     </span>
                   )}
@@ -351,19 +351,19 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                           display: "flex", alignItems: "flex-start", gap: 10,
                           padding: "12px 16px", cursor: "pointer",
                           borderBottom: "1px solid var(--border)", transition: "background 0.15s",
-                          background: n.isRead ? "transparent" : "#6366f108",
+                          background: n.isRead ? "transparent" : "rgba(116,205,232,0.05)",
                         }}
                         onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? "transparent" : "#6366f108")}
+                        onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? "transparent" : "rgba(116,205,232,0.05)")}
                       >
-                        <div style={{ marginTop: 2, flexShrink: 0 }}><Info size={14} color="#6366f1" /></div>
+                        <div style={{ marginTop: 2, flexShrink: 0 }}><Info size={14} color="var(--brand-color)" /></div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: n.isRead ? 400 : 600, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {n.title}
                           </div>
                           <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>{n.message}</div>
                         </div>
-                        {!n.isRead && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", flexShrink: 0, marginTop: 5 }} />}
+                        {!n.isRead && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--brand-color)", flexShrink: 0, marginTop: 5 }} />}
                       </div>
                     ))}
                   </>
@@ -380,14 +380,14 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
                         setUnreadCount(0);
                       }}
-                      style={{ flex: 1, background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                      style={{ flex: 1, background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", color: "#74CDE8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                     >
                       Mark all read
                     </button>
                   )}
                   <button
                     onClick={() => { navigate("/admin/dashboard"); setBellOpen(false); }}
-                    style={{ flex: 1, background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", color: "#818CF8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                    style={{ flex: 1, background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 8, padding: "7px 12px", color: "#74CDE8", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                   >
                     View Admin →
                   </button>
@@ -407,7 +407,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
+              style={{ background: "linear-gradient(135deg, var(--brand-color), #74cde8)" }}>
               {user ? getInitials(user.name) : "U"}
             </div>
             <span className="text-sm font-medium" style={{ color: "var(--text-sec)" }}>{user?.name?.split(" ")[0]}</span>

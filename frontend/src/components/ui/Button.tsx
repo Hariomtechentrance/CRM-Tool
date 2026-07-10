@@ -13,7 +13,7 @@ export function Button({
   children, variant = "primary", size = "md", loading = false,
   icon, className, disabled, style, ...props
 }: ButtonProps) {
-  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:scale-[0.98]";
 
   const sizeMap = {
     xs: "px-2.5 py-1.5 text-xs",
@@ -31,11 +31,11 @@ export function Button({
   };
 
   const variantClasses: Record<string, string> = {
-    primary:   "bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 shadow-lg shadow-indigo-900/20 focus-visible:ring-indigo-500",
-    secondary: "hover:opacity-80 focus-visible:ring-indigo-400",
-    ghost:     "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:ring-indigo-400",
+    primary:   "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-lg shadow-brand-900/20 focus-visible:ring-brand-500",
+    secondary: "hover:opacity-80 focus-visible:ring-brand-400",
+    ghost:     "hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:ring-brand-400",
     danger:    "bg-red-600/15 text-red-500 hover:bg-red-600/25 border border-red-500/30 focus-visible:ring-red-500",
-    outline:   "hover:bg-[var(--bg-hover)] focus-visible:ring-indigo-400",
+    outline:   "hover:bg-[var(--bg-hover)] focus-visible:ring-brand-400",
   };
 
   return (

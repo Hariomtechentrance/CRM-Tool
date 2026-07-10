@@ -24,7 +24,7 @@ export function Select({ label, error, options, placeholder, className, id, styl
           id={selectId}
           className={cn(
             "w-full h-11 appearance-none rounded-lg border pl-3 pr-9 py-2 text-sm transition-all duration-150",
-            "focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20",
+            "focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             error && "border-red-500/60 focus:border-red-500 focus:ring-red-500/20",
             className

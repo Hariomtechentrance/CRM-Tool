@@ -33,8 +33,8 @@ const PLANS = [
     price: 299,
     priceLabel: "₹299",
     period: "per month",
-    color: "#6366f1",
-    gradient: "linear-gradient(135deg,#6366f120,#6366f108)",
+    color: "#2e9cc4",
+    gradient: "linear-gradient(135deg,#2e9cc420,#2e9cc408)",
     badge: null,
     tagline: "Small business essentials",
     pitch: "Everything a small shop or trading firm needs — manage stock, raise purchase orders, dispatch goods and invoice customers.",
@@ -42,7 +42,7 @@ const PLANS = [
     modules: ["Everything in Free", "Inventory & Stock", "Purchase Orders", "Sales & Dispatch", "Store Management", "Deals & Quotations"],
     support: "Email support",
     cta: "Get Starter",
-    ctaStyle: { background: "#6366f1", border: "none", color: "white" },
+    ctaStyle: { background: "#2e9cc4", border: "none", color: "white" },
   },
   {
     key: "PRO",
@@ -98,7 +98,7 @@ const PLANS = [
 ];
 
 const MODULES = [
-  { Icon: Users,       name: "CRM & Parties",        tag: "Core",          color: "#6366f1", desc: "Manage customers, suppliers, contacts and their full communication history in one place.", features: ["Customer & supplier profiles", "Contact management", "Communication log", "Credit limits & payment terms", "GSTIN / PAN / IEC tracking"] },
+  { Icon: Users,       name: "CRM & Parties",        tag: "Core",          color: "#2e9cc4", desc: "Manage customers, suppliers, contacts and their full communication history in one place.", features: ["Customer & supplier profiles", "Contact management", "Communication log", "Credit limits & payment terms", "GSTIN / PAN / IEC tracking"] },
   { Icon: Package,     name: "Inventory & Stock",     tag: "Core",          color: "#8b5cf6", desc: "Track every SKU, set reorder levels and get instant low-stock alerts before you run out.", features: ["Product catalog with HSN codes", "Real-time stock levels", "Low-stock & out-of-stock alerts", "Category management", "Barcode support"] },
   { Icon: ShoppingCart,name: "Purchase Orders",       tag: "Core",          color: "#10b981", desc: "Raise POs to suppliers, track delivery status and auto-update inventory on receipt.", features: ["PO creation & approval", "Item-level tracking", "Partial receipt support", "Supplier history", "PDF export"] },
   { Icon: Truck,       name: "Sales & Dispatch",      tag: "Core",          color: "#f59e0b", desc: "Process sales orders from confirmation to dispatch with live delivery tracking.", features: ["Sales order management", "Goods outward dispatch", "Vehicle & driver tracking", "Delivery status updates", "Shipping charges"] },
@@ -121,8 +121,8 @@ const MODULES = [
 
 const TAGS = ["All", "Core", "Growth", "Operations", "Communication", "Food & Hospitality", "Health"];
 const TAG_COLORS: Record<string, string> = {
-  Core: "#6366f1", Growth: "#10b981", Operations: "#f59e0b", Communication: "#06b6d4",
-  "Food & Hospitality": "#f97316", Health: "#0f766e",
+  Core: "#2e9cc4", Growth: "#10b981", Operations: "#f59e0b", Communication: "#0ea5e9",
+  "Food & Hospitality": "#f97316", Health: "#1f7ca0",
 };
 
 const WHY = [
@@ -147,68 +147,137 @@ export default function LandingPage() {
   const filtered = filter === "All" ? MODULES : MODULES.filter(m => m.tag === filter);
 
   return (
-    <div style={{ background: "var(--bg-main)", minHeight: "100vh", color: "var(--text-primary)", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <div style={{ background: "var(--bg-main)", minHeight: "100vh", color: "var(--text-primary)", fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
 
       {showContact && <ContactModal onClose={() => setShowContact(false)} />}
 
       {/* ── Navbar ── */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "var(--bg-card)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)", padding: "0 clamp(16px,4vw,64px)", display: "flex", alignItems: "center", height: 60, gap: 16 }}>
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "color-mix(in srgb, var(--bg-card) 82%, transparent)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid var(--border)", padding: "0 clamp(16px,4vw,64px)", display: "flex", alignItems: "center", height: 64, gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px rgba(116,205,232,0.35)" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 13, letterSpacing: "-0.5px" }}>FC</span>
           </div>
-          <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.3px" }}>FlowCRM</span>
+          <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.4px" }}>FlowCRM</span>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <a href="#pricing" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-ghost)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
-            Pricing
-          </a>
-          <a href="#features" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-ghost)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <a href="#features" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-faint)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
             Features
           </a>
+          <a href="#pricing" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-faint)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
+            Pricing
+          </a>
+          <span style={{ width: 1, height: 20, background: "var(--border)", margin: "0 6px" }} />
           <button onClick={() => navigate("/login")} style={{ padding: "8px 18px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             Login
           </button>
-          <button onClick={() => setShowContact(true)} style={{ padding: "8px 18px", borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => setShowContact(true)} style={{ padding: "8px 18px", borderRadius: 8, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px rgba(116,205,232,0.28)" }}>
             Request Access
           </button>
         </div>
       </nav>
 
       {/* ── Hero ── */}
-      <section style={{ textAlign: "center", padding: "80px clamp(16px,4vw,64px) 64px" }}>
-        <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: "#6366f115", border: "1px solid #6366f130", fontSize: 12, fontWeight: 600, color: "#818CF8", marginBottom: 24 }}>
-          The all-in-one business platform for Indian enterprises
-        </div>
-        <h1 style={{ fontSize: "clamp(32px,5vw,56px)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 20px", maxWidth: 760, marginInline: "auto", color: "var(--text-primary)" }}>
-          Run Your Entire Business{" "}
-          <span style={{ color: "#6366f1" }}>from One Platform</span>
-        </h1>
-        <p style={{ fontSize: "clamp(15px,2vw,17px)", color: "var(--text-faint)", maxWidth: 580, marginInline: "auto", lineHeight: 1.7, marginBottom: 36 }}>
-          CRM, Inventory, HR &amp; Payroll, Finance, Projects, Import-Export and more — all integrated, all GST-compliant, built for India.
-        </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => setShowContact(true)} style={{ padding: "13px 30px", borderRadius: 8, background: "#6366f1", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            Request Access <ChevronRight size={16} />
-          </button>
-          <button onClick={() => navigate("/login")} style={{ padding: "13px 30px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-            Sign In
-          </button>
-        </div>
+      <section className="mesh-bg" style={{ position: "relative", padding: "88px clamp(16px,4vw,64px) 72px", overflow: "hidden" }}>
+        <div className="grid-overlay" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
+        <div className="hero-grid" style={{ position: "relative", maxWidth: 1180, marginInline: "auto" }}>
 
-        {/* Stats */}
-        <div style={{ display: "flex", gap: "clamp(24px,4vw,64px)", justifyContent: "center", marginTop: 56, flexWrap: "wrap" }}>
-          {[
-            { value: "16+",     label: "Modules" },
-            { value: "100%",    label: "GST Compliant" },
-            { value: "Multi-org", label: "Support" },
-            { value: "Free",    label: "to Start" },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "clamp(22px,3vw,30px)", fontWeight: 800, color: "#6366f1" }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 2 }}>{s.label}</div>
+          {/* ── Left: copy ── */}
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 14px 5px 8px", borderRadius: 20, background: "var(--brand-soft)", border: "1px solid var(--brand-border)", fontSize: 12, fontWeight: 600, color: "var(--brand-color)", marginBottom: 26 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--brand-color)", boxShadow: "0 0 0 3px var(--brand-soft)" }} />
+              The all-in-one business platform for Indian enterprises
             </div>
-          ))}
+            <h1 style={{ fontSize: "clamp(34px,4.6vw,54px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em", margin: "0 0 20px", color: "var(--text-primary)" }}>
+              Run your entire business{" "}
+              <span className="brand-text-gradient">from one platform</span>
+            </h1>
+            <p style={{ fontSize: "clamp(15px,1.6vw,17px)", color: "var(--text-faint)", maxWidth: 500, lineHeight: 1.7, marginBottom: 34 }}>
+              CRM, Inventory, HR &amp; Payroll, Finance, Projects, Import-Export and more — all integrated, all GST-compliant, built for India.
+            </p>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setShowContact(true)} style={{ padding: "14px 30px", borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 10px 28px rgba(116,205,232,0.32)" }}>
+                Request Access <ChevronRight size={16} />
+              </button>
+              <button onClick={() => navigate("/login")} style={{ padding: "14px 30px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                Sign In
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div style={{ display: "flex", gap: 10, marginTop: 52, flexWrap: "wrap" }}>
+              {[
+                { value: "16+",     label: "Modules" },
+                { value: "100%",    label: "GST Compliant" },
+                { value: "Multi-org", label: "Support" },
+                { value: "Free",    label: "to Start" },
+              ].map(s => (
+                <div key={s.label} style={{ textAlign: "left", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 20px", boxShadow: "0 4px 20px var(--shadow)" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "var(--brand-color)" }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2, fontWeight: 600 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Right: floating product-preview visual (decorative) ── */}
+          <div className="hero-visual" style={{ position: "relative" }}>
+            <div style={{ position: "absolute", inset: "-10%", background: "radial-gradient(50% 50% at 50% 50%, rgba(116,205,232,0.18), transparent 70%)", pointerEvents: "none" }} />
+
+            <div style={{ position: "relative", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 20, padding: 22, boxShadow: "0 40px 90px var(--shadow)", transform: "rotate(-2deg)" }}>
+              <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#F87171" }} />
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FBBF24" }} />
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34D399" }} />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "var(--text-ghost)", fontWeight: 600 }}>Total Revenue</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "var(--text-primary)" }}>₹18.4L</div>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#22C55E", background: "rgba(34,197,94,0.12)", padding: "4px 8px", borderRadius: 6 }}>+24%</span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 64, marginBottom: 20 }}>
+                {[38, 60, 48, 76, 58, 92, 70].map((h, i) => (
+                  <div key={i} style={{
+                    flex: 1, height: `${h}%`, borderRadius: 4,
+                    background: i === 5 ? "linear-gradient(180deg,var(--brand-color),#1a6483)" : "var(--bg-hover)",
+                  }} />
+                ))}
+              </div>
+
+              {[
+                { label: "Invoices paid", v: "128", c: "#74CDE8" },
+                { label: "Open leads", v: "34", c: "#FBBF24" },
+                { label: "Active orders", v: "56", c: "#60A5FA" },
+              ].map(row => (
+                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderTop: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: row.c }} />
+                    <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{row.label}</span>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Floating chips for depth */}
+            <div style={{
+              position: "absolute", top: -16, left: -22, display: "flex", alignItems: "center", gap: 8,
+              background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "9px 14px",
+              boxShadow: "0 16px 36px var(--shadow)", transform: "rotate(5deg)", fontSize: 12, fontWeight: 600, color: "var(--text-sec)",
+            }}>
+              <Check size={14} color="#22C55E" /> GST auto-calculated
+            </div>
+            <div style={{
+              position: "absolute", bottom: -14, right: -18, display: "flex", alignItems: "center", gap: 8,
+              background: "linear-gradient(135deg,#2e9cc4,#74cde8)", borderRadius: 12, padding: "10px 16px",
+              boxShadow: "0 16px 36px rgba(116,205,232,0.35)", transform: "rotate(-3deg)", fontSize: 12, fontWeight: 700, color: "#fff",
+            }}>
+              <Zap size={14} /> 16 modules synced
+            </div>
+          </div>
         </div>
       </section>
 
@@ -224,9 +293,9 @@ export default function LandingPage() {
           {TAGS.map(t => (
             <button key={t} onClick={() => setFilter(t)} style={{
               padding: "6px 16px", borderRadius: 6, border: "1px solid",
-              borderColor: filter === t ? (TAG_COLORS[t] || "#6366f1") : "var(--border-input)",
-              background: filter === t ? (TAG_COLORS[t] || "#6366f1") + "15" : "transparent",
-              color: filter === t ? (TAG_COLORS[t] || "#6366f1") : "var(--text-ghost)",
+              borderColor: filter === t ? (TAG_COLORS[t] || "#2e9cc4") : "var(--border-input)",
+              background: filter === t ? (TAG_COLORS[t] || "#2e9cc4") + "15" : "transparent",
+              color: filter === t ? (TAG_COLORS[t] || "#2e9cc4") : "var(--text-ghost)",
               fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}>{t}</button>
           ))}
@@ -240,11 +309,11 @@ export default function LandingPage() {
               <div
                 key={mod.name}
                 onClick={() => setExpanded(isOpen ? null : mod.name)}
+                className="lift"
                 style={{
                   background: "var(--bg-card)",
                   border: `1px solid ${isOpen ? mod.color + "50" : "var(--border)"}`,
-                  borderRadius: 10, padding: 18, cursor: "pointer",
-                  transition: "border-color 0.2s",
+                  borderRadius: 14, padding: 18, cursor: "pointer",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: isOpen ? 12 : 0 }}>
@@ -254,7 +323,7 @@ export default function LandingPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{mod.name}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: (TAG_COLORS[mod.tag] || "#6366f1") + "15", color: TAG_COLORS[mod.tag] || "#6366f1" }}>{mod.tag}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: (TAG_COLORS[mod.tag] || "#2e9cc4") + "15", color: TAG_COLORS[mod.tag] || "#2e9cc4" }}>{mod.tag}</span>
                     </div>
                     <p style={{ fontSize: 12, color: "var(--text-faint)", margin: 0, lineHeight: 1.5 }}>{mod.desc}</p>
                   </div>
@@ -290,9 +359,9 @@ export default function LandingPage() {
         <h2 style={{ textAlign: "center", fontSize: "clamp(20px,3vw,30px)", fontWeight: 800, margin: "0 0 40px" }}>Why FlowCRM?</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 18, maxWidth: 960, marginInline: "auto" }}>
           {WHY.map(w => (
-            <div key={w.title} style={{ background: "var(--bg-hover)", borderRadius: 10, padding: 22, border: "1px solid var(--border)" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: "#6366f115", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-                <w.Icon size={17} color="#6366f1" strokeWidth={1.8} />
+            <div key={w.title} className="lift" style={{ background: "var(--bg-main)", borderRadius: 14, padding: 22, border: "1px solid var(--border)" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--brand-soft)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                <w.Icon size={17} color="var(--brand-color)" strokeWidth={1.8} />
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{w.title}</div>
               <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{w.desc}</div>
@@ -308,7 +377,7 @@ export default function LandingPage() {
           {STEPS.map((s, i) => (
             <div key={s.n} style={{ flex: "1 1 220px", maxWidth: 260, textAlign: "center" }}>
               <div style={{ fontSize: 42, fontWeight: 900, color: "var(--border)", lineHeight: 1, marginBottom: 8 }}>{s.n}</div>
-              <div style={{ width: 32, height: 3, background: "#6366f1", borderRadius: 2, marginInline: "auto", marginBottom: 14 }} />
+              <div style={{ width: 32, height: 3, background: "#2e9cc4", borderRadius: 2, marginInline: "auto", marginBottom: 14 }} />
               <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{s.title}</div>
               <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{s.desc}</div>
               {i < STEPS.length - 1 && (
@@ -322,7 +391,7 @@ export default function LandingPage() {
       {/* ── Pricing ── */}
       <section id="pricing" style={{ padding: "80px clamp(16px,4vw,64px)", background: "var(--bg-main)" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: "#6366f115", border: "1px solid #6366f130", fontSize: 12, fontWeight: 600, color: "#818CF8", marginBottom: 16 }}>
+          <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: "var(--brand-soft)", border: "1px solid var(--brand-border)", fontSize: 12, fontWeight: 600, color: "var(--brand-color)", marginBottom: 16 }}>
             Simple, transparent pricing
           </div>
           <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, margin: "0 0 12px", color: "var(--text-primary)" }}>
@@ -338,13 +407,14 @@ export default function LandingPage() {
           {PLANS.map(plan => (
             <div
               key={plan.key}
+              className={plan.badge !== "Most Popular" ? "lift" : undefined}
               style={{
-                background: plan.badge === "Most Popular" ? "var(--bg-card)" : "var(--bg-card)",
+                background: "var(--bg-card)",
                 border: plan.badge === "Most Popular" ? `2px solid ${plan.color}` : "1px solid var(--border)",
-                borderRadius: 14,
+                borderRadius: 16,
                 overflow: "hidden",
                 position: "relative",
-                boxShadow: plan.badge === "Most Popular" ? `0 8px 32px ${plan.color}25` : "none",
+                boxShadow: plan.badge === "Most Popular" ? `0 16px 40px ${plan.color}30` : "0 2px 10px var(--shadow)",
                 transform: plan.badge === "Most Popular" ? "translateY(-6px)" : "none",
               }}
             >
@@ -426,10 +496,10 @@ export default function LandingPage() {
           Contact us to get your organisation set up and onboard your team.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => setShowContact(true)} style={{ padding: "13px 32px", borderRadius: 8, background: "#6366f1", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={() => setShowContact(true)} style={{ padding: "13px 32px", borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 10px 28px rgba(116,205,232,0.28)" }}>
             Request Access
           </button>
-          <button onClick={() => navigate("/login")} style={{ padding: "13px 26px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => navigate("/login")} style={{ padding: "13px 26px", borderRadius: 10, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             Sign In
           </button>
         </div>
@@ -441,14 +511,14 @@ export default function LandingPage() {
           <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Contact &amp; Support</h3>
           <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 24 }}>Need help? Reach out to us on any of the channels below.</p>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 16 }}>
-            <a href="tel:9834134470" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-              <Phone size={14} color="#6366f1" /> 98341 34470
+            <a href="tel:9834134470" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Phone size={14} color="var(--brand-color)" /> 98341 34470
             </a>
-            <a href="tel:7397962433" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-              <Phone size={14} color="#6366f1" /> 73979 62433
+            <a href="tel:7397962433" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Phone size={14} color="var(--brand-color)" /> 73979 62433
             </a>
-            <a href="mailto:hariomvimal33333@gmail.com" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-              <Mail size={14} color="#6366f1" /> hariomvimal33333@gmail.com
+            <a href="mailto:hariomvimal33333@gmail.com" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Mail size={14} color="var(--brand-color)" /> hariomvimal33333@gmail.com
             </a>
           </div>
         </div>
@@ -457,7 +527,7 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <footer style={{ padding: "24px clamp(16px,4vw,64px)", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 10 }}>FC</span>
           </div>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)" }}>FlowCRM</span>

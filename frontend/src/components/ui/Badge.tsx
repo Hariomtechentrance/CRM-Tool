@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 type BadgeVariant = "blue" | "green" | "yellow" | "red" | "purple" | "orange" | "slate";
 
 const styles: Record<BadgeVariant, string> = {
-  blue:   "text-[#818CF8]",
-  green:  "text-[#34D399]",
+  blue:   "text-[#2E9CC4]",
+  green:  "text-[#22C55E]",
   yellow: "text-[#FCD34D]",
   red:    "text-[#F87171]",
   purple: "text-[#C084FC]",
@@ -13,8 +13,8 @@ const styles: Record<BadgeVariant, string> = {
 };
 
 const bgs: Record<BadgeVariant, string> = {
-  blue:   "rgba(99,102,241,0.12)",
-  green:  "rgba(16,185,129,0.1)",
+  blue:   "rgba(116,205,232,0.16)",
+  green:  "rgba(34,197,94,0.10)",
   yellow: "rgba(245,158,11,0.1)",
   red:    "rgba(239,68,68,0.1)",
   purple: "rgba(139,92,246,0.12)",
@@ -23,8 +23,8 @@ const bgs: Record<BadgeVariant, string> = {
 };
 
 const borders: Record<BadgeVariant, string> = {
-  blue:   "rgba(99,102,241,0.25)",
-  green:  "rgba(16,185,129,0.2)",
+  blue:   "rgba(116,205,232,0.35)",
+  green:  "rgba(34,197,94,0.22)",
   yellow: "rgba(245,158,11,0.2)",
   red:    "rgba(239,68,68,0.2)",
   purple: "rgba(139,92,246,0.25)",

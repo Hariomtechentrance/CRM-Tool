@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { LANGUAGES } from "@/i18n";
-import { Languages, ChevronDown } from "lucide-react";
+import { Languages } from "lucide-react";
 
 export default function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
@@ -27,30 +27,30 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <div ref={ref} style={{ position: "relative", padding: "0 10px", marginBottom: 4 }}>
+    <div ref={ref} style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(o => !o)}
         title={t("label_language")}
+        className="flex items-center justify-center rounded-xl transition-all duration-150 cursor-pointer"
         style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 6,
-          padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border)",
-          background: "var(--bg-hover)", cursor: "pointer", color: "var(--text-secondary)",
+          width: 40, height: 40,
+          background: open ? "var(--sb-active)" : "transparent",
+          border: open ? "1px solid var(--brand-border)" : "1px solid transparent",
+          color: open ? "var(--sb-accent)" : "var(--sb-text-dim)",
         }}
+        onMouseEnter={e => { if (!open) e.currentTarget.style.background = "var(--sb-hover)"; }}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.background = "transparent"; }}
       >
-        <Languages style={{ width: 13, height: 13, flexShrink: 0 }} />
-        <span style={{ fontSize: 11, flex: 1, textAlign: "left", fontWeight: 500 }}>
-          {current.flag} {current.native}
-        </span>
-        <ChevronDown style={{ width: 11, height: 11, transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0)" }} />
+        <Languages style={{ width: 18, height: 18 }} />
       </button>
 
       {open && (
         <div style={{
-          position: "absolute", left: 10, right: 10, bottom: "calc(100% + 4px)",
-          background: "var(--bg-card)", border: "1px solid var(--border)",
-          borderRadius: 10, padding: "6px 4px", zIndex: 100,
-          boxShadow: "0 -12px 40px var(--shadow)",
-          maxHeight: 280, overflowY: "auto",
+          position: "fixed", left: "var(--rail-w)", bottom: 12, width: 220,
+          background: "var(--sb-bg-raise)", border: "1px solid var(--sb-border)",
+          borderRadius: 12, padding: "6px 4px", zIndex: 45,
+          boxShadow: "16px 8px 40px rgba(0,0,0,0.45)",
+          maxHeight: 320, overflowY: "auto",
         }}>
           {LANGUAGES.map(lang => (
             <button
@@ -58,15 +58,15 @@ export default function LanguageSwitcher() {
               onClick={() => change(lang.code)}
               style={{
                 width: "100%", display: "flex", alignItems: "center", gap: 8,
-                padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer",
-                background: lang.code === current.code ? "rgba(99,102,241,0.12)" : "transparent",
-                color: lang.code === current.code ? "#818cf8" : "var(--text-secondary)",
+                padding: "7px 8px", borderRadius: 6, border: "none", cursor: "pointer",
+                background: lang.code === current.code ? "var(--sb-active)" : "transparent",
+                color: lang.code === current.code ? "var(--sb-accent)" : "var(--sb-text-dim)",
                 fontSize: 12, textAlign: "left",
               }}
             >
               <span style={{ fontSize: 14 }}>{lang.flag}</span>
               <span style={{ flex: 1, fontWeight: 500 }}>{lang.native}</span>
-              <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>{lang.label}</span>
+              <span style={{ fontSize: 10, color: "var(--sb-text-ghost)" }}>{lang.label}</span>
             </button>
           ))}
         </div>

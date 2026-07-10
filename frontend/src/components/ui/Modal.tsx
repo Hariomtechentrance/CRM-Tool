@@ -29,14 +29,23 @@ export function Modal({ open, onClose, title, children, size = "md", footer }: M
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 backdrop-blur-sm" style={{ background: "var(--overlay)" }} onClick={onClose} />
 
       {/* Panel */}
-      <div className={cn("relative bg-white rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh]", sizes[size])}>
+      <div
+        className={cn("relative rounded-2xl w-full flex flex-col max-h-[90vh]", sizes[size])}
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border)", boxShadow: "0 24px 80px var(--shadow)" }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+            style={{ color: "var(--text-ghost)" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-ghost)"; }}
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -45,7 +54,7 @@ export function Modal({ open, onClose, title, children, size = "md", footer }: M
         <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
 
         {/* Footer */}
-        {footer && <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 flex-shrink-0">{footer}</div>}
+        {footer && <div className="px-6 py-4 flex items-center justify-end gap-3 flex-shrink-0" style={{ borderTop: "1px solid var(--border)" }}>{footer}</div>}
       </div>
     </div>
   );
