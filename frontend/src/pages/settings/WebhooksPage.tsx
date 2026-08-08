@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Plus, Trash2, RotateCw, Send, ChevronDown, ChevronUp, Copy, CheckCircle, XCircle, Zap } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface Delivery {
   id: string;
@@ -60,7 +60,7 @@ function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClo
     if (!url.trim()) { setErr("URL is required"); return; }
     if (!selected.length) { setErr("Select at least one event"); return; }
     setSaving(true);
-    const r = await fetch(`${API}/api/webhooks`, {
+    const r = await fetch(`${API}/webhooks`, {
       method: "POST",
       headers: authHeaders(token!, activeOrg!.id),
       body: JSON.stringify({ url: url.trim(), events: selected, description: desc || undefined }),
@@ -131,7 +131,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
 
   async function loadDeliveries() {
     setLoadingDel(true);
-    const r = await fetch(`${API}/api/webhooks/${webhook.id}/deliveries`, { headers: headers() });
+    const r = await fetch(`${API}/webhooks/${webhook.id}/deliveries`, { headers: headers() });
     if (r.ok) { const d = await r.json(); setDeliveries(d.data ?? []); }
     setLoadingDel(false);
   }
@@ -143,7 +143,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
   }
 
   async function toggleActive() {
-    await fetch(`${API}/api/webhooks/${webhook.id}`, {
+    await fetch(`${API}/webhooks/${webhook.id}`, {
       method: "PUT", headers: headers(),
       body: JSON.stringify({ isActive: !webhook.isActive }),
     });
@@ -152,7 +152,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
 
   async function test() {
     setTesting(true);
-    await fetch(`${API}/api/webhooks/${webhook.id}/test`, { method: "POST", headers: headers() });
+    await fetch(`${API}/webhooks/${webhook.id}/test`, { method: "POST", headers: headers() });
     setTesting(false);
     if (expanded) loadDeliveries();
     else { setExpanded(true); loadDeliveries(); }
@@ -161,14 +161,14 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
   async function rotate() {
     if (!confirm("Rotate secret? The current secret will stop working immediately.")) return;
     setRotating(true);
-    await fetch(`${API}/api/webhooks/${webhook.id}/rotate-secret`, { method: "POST", headers: headers() });
+    await fetch(`${API}/webhooks/${webhook.id}/rotate-secret`, { method: "POST", headers: headers() });
     setRotating(false);
     onRefresh();
   }
 
   async function del() {
     if (!confirm("Delete this webhook endpoint?")) return;
-    await fetch(`${API}/api/webhooks/${webhook.id}`, { method: "DELETE", headers: headers() });
+    await fetch(`${API}/webhooks/${webhook.id}`, { method: "DELETE", headers: headers() });
     onRefresh();
   }
 
@@ -285,7 +285,7 @@ export default function WebhooksPage() {
 
   async function load() {
     setLoading(true);
-    const r = await fetch(`${API}/api/webhooks`, {
+    const r = await fetch(`${API}/webhooks`, {
       headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
     });
     if (r.ok) {

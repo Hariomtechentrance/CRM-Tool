@@ -7,7 +7,7 @@ import {
   AlertTriangle, CheckCircle, Clock, Wifi,
 } from "lucide-react";
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 function authH(token: string, orgId: string) {
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": orgId };
@@ -43,7 +43,7 @@ function OverviewTab() {
 
   useEffect(() => {
     if (!token || !activeOrg) return;
-    fetch(`${API}/api/security/overview`, { headers: authH(token, activeOrg.id) })
+    fetch(`${API}/security/overview`, { headers: authH(token, activeOrg.id) })
       .then(r => r.json()).then(r => { if (r.success) setData(r.data); })
       .finally(() => setLoading(false));
   }, [token, activeOrg]);
@@ -110,7 +110,7 @@ function SessionsTab() {
 
   const load = () => {
     if (!token || !activeOrg) return;
-    fetch(`${API}/api/sessions`, { headers: authH(token, activeOrg.id) })
+    fetch(`${API}/sessions`, { headers: authH(token, activeOrg.id) })
       .then(r => r.json()).then(r => { if (r.success) setSessions(r.data); })
       .finally(() => setLoading(false));
   };
@@ -118,13 +118,13 @@ function SessionsTab() {
 
   const revoke = async (id: string) => {
     setRevoking(id);
-    await fetch(`${API}/api/sessions/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
+    await fetch(`${API}/sessions/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
     load();
     setRevoking(null);
   };
 
   const revokeAll = async () => {
-    await fetch(`${API}/api/sessions/all`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
+    await fetch(`${API}/sessions/all`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
     load();
   };
 
@@ -212,7 +212,7 @@ function ApiKeysTab() {
 
   const load = () => {
     if (!token || !activeOrg) return;
-    fetch(`${API}/api/api-keys`, { headers: authH(token, activeOrg.id) })
+    fetch(`${API}/api-keys`, { headers: authH(token, activeOrg.id) })
       .then(r => r.json()).then(r => { if (r.success) setKeys(r.data); })
       .finally(() => setLoading(false));
   };
@@ -223,7 +223,7 @@ function ApiKeysTab() {
     setCreating(true);
     const body: any = { name: form.name, scopes: form.scopes };
     if (form.expiresInDays) body.expiresInDays = parseInt(form.expiresInDays);
-    const r = await fetch(`${API}/api/api-keys`, {
+    const r = await fetch(`${API}/api-keys`, {
       method: "POST", headers: authH(token!, activeOrg!.id), body: JSON.stringify(body),
     }).then(r => r.json());
     setCreating(false);
@@ -231,7 +231,7 @@ function ApiKeysTab() {
   };
 
   const revoke = async (id: string) => {
-    await fetch(`${API}/api/api-keys/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
+    await fetch(`${API}/api-keys/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
     load();
   };
 
@@ -366,7 +366,7 @@ function PasswordTab() {
     if (form.newPassword !== form.confirmPassword) { setMsg({ type: "err", text: "Passwords do not match" }); return; }
     if (strength(form.newPassword) < 4) { setMsg({ type: "err", text: "Password is too weak" }); return; }
     setSaving(true);
-    const r = await fetch(`${API}/api/auth/change-password`, {
+    const r = await fetch(`${API}/auth/change-password`, {
       method: "POST", headers: authH(token!, activeOrg!.id),
       body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }),
     }).then(r => r.json());
@@ -460,7 +460,7 @@ function IpAllowlistTab() {
 
   const load = () => {
     if (!token || !activeOrg) return;
-    fetch(`${API}/api/security/ip-allowlist`, { headers: authH(token, activeOrg.id) })
+    fetch(`${API}/security/ip-allowlist`, { headers: authH(token, activeOrg.id) })
       .then(r => r.json()).then(r => { if (r.success) setList(r.data); })
       .finally(() => setLoading(false));
   };
@@ -469,7 +469,7 @@ function IpAllowlistTab() {
   const add = async () => {
     if (!form.ipCidr.trim()) return;
     setAdding(true);
-    await fetch(`${API}/api/security/ip-allowlist`, {
+    await fetch(`${API}/security/ip-allowlist`, {
       method: "POST", headers: authH(token!, activeOrg!.id), body: JSON.stringify(form),
     });
     setAdding(false);
@@ -479,7 +479,7 @@ function IpAllowlistTab() {
   };
 
   const remove = async (id: string) => {
-    await fetch(`${API}/api/security/ip-allowlist/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
+    await fetch(`${API}/security/ip-allowlist/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
     load();
   };
 
@@ -565,8 +565,8 @@ function PermissionsTab() {
   const load = () => {
     if (!token || !activeOrg) return;
     Promise.all([
-      fetch(`${API}/api/security/permissions`, { headers: authH(token, activeOrg.id) }).then(r => r.json()),
-      fetch(`${API}/api/organizations/${activeOrg.id}/members`, { headers: authH(token, activeOrg.id) }).then(r => r.json()),
+      fetch(`${API}/security/permissions`, { headers: authH(token, activeOrg.id) }).then(r => r.json()),
+      fetch(`${API}/organizations/${activeOrg.id}/members`, { headers: authH(token, activeOrg.id) }).then(r => r.json()),
     ]).then(([p, m]) => {
       if (p.success) setPerms(p.data);
       if (m.success) setMembers(m.data);
@@ -577,7 +577,7 @@ function PermissionsTab() {
   const save = async () => {
     if (!form.userId || !form.moduleKey || !form.actions.length) return;
     setSaving(true);
-    await fetch(`${API}/api/security/permissions`, {
+    await fetch(`${API}/security/permissions`, {
       method: "POST", headers: authH(token!, activeOrg!.id), body: JSON.stringify(form),
     });
     setSaving(false);
@@ -586,7 +586,7 @@ function PermissionsTab() {
   };
 
   const remove = async (id: string) => {
-    await fetch(`${API}/api/security/permissions/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
+    await fetch(`${API}/security/permissions/${id}`, { method: "DELETE", headers: authH(token!, activeOrg!.id) });
     load();
   };
 

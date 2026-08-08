@@ -143,11 +143,13 @@ export async function createMenuItem(req: AuthRequest, res: Response) {
     if (!org) return badRequest(res, "Organization required");
     const { name, categoryId, price, costPrice, foodType, description, image, taxRate, preparationTime, tags, variants, addons } = req.body;
     if (!name || !categoryId || price === undefined) return badRequest(res, "name, categoryId, price required");
+    const prepTime = preparationTime === "" || preparationTime === undefined || preparationTime === null
+      ? undefined : Number(preparationTime);
     const item = await db.menuItem.create({
       data: {
         organizationId: org, name, categoryId, price, costPrice: costPrice || 0,
         foodType: foodType || "VEG", description, image, taxRate: taxRate || 0,
-        preparationTime, tags: tags || [],
+        preparationTime: prepTime, tags: tags || [],
         variants: variants?.length ? { create: variants } : undefined,
         addons:   addons?.length   ? { create: addons }   : undefined,
       },
@@ -161,9 +163,11 @@ export async function updateMenuItem(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
     const { name, categoryId, price, costPrice, foodType, description, image, taxRate, preparationTime, isAvailable, isFeatured, sortOrder, tags } = req.body;
+    const prepTime = preparationTime === "" || preparationTime === undefined || preparationTime === null
+      ? undefined : Number(preparationTime);
     const item = await db.menuItem.update({
       where: { id },
-      data: { name, categoryId, price, costPrice, foodType, description, image, taxRate, preparationTime, isAvailable, isFeatured, sortOrder, tags },
+      data: { name, categoryId, price, costPrice, foodType, description, image, taxRate, preparationTime: prepTime, isAvailable, isFeatured, sortOrder, tags },
       include: { variants: true, addons: true, category: { select: { id: true, name: true } } },
     });
     ok(res, item, "Menu item updated");
@@ -188,7 +192,10 @@ export async function getKOTs(req: AuthRequest, res: Response) {
     if (!org) return badRequest(res, "Organization required");
     const { status, tableId, date } = req.query as Record<string, string>;
     const where: any = { organizationId: org };
-    if (status) where.status = status;
+    if (status) {
+      const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
+      where.status = statuses.length > 1 ? { in: statuses } : statuses[0];
+    }
     if (tableId) where.tableId = tableId;
     if (date) {
       const d = new Date(date);

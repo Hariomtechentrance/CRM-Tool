@@ -45,7 +45,7 @@ export default function ApprovalQueuePage() {
     if (!activeOrg?.id) return;
     setLoading(true);
     try {
-      const res = await apiClient.get<{ data: Pending }>("/api/approvals/pending");
+      const res = await apiClient.get<{ data: Pending }>("/approvals/pending");
       setData(res.data.data);
     } finally {
       setLoading(false);
@@ -57,7 +57,7 @@ export default function ApprovalQueuePage() {
   async function act(type: "po" | "expense", id: string, action: "approve" | "reject") {
     setActionId(id);
     try {
-      await apiClient.post(`/api/approvals/${type}/${id}/${action}`, { note: noteMap[id] || "" });
+      await apiClient.post(`/approvals/${type}/${id}/${action}`, { note: noteMap[id] || "" });
       await load();
     } finally {
       setActionId(null);

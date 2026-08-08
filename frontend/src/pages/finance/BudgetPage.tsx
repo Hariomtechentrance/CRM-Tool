@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { PiggyBank, Plus, Trash2, RefreshCw, TrendingUp, AlertTriangle, CheckCircle, X } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface BudgetItem {
   id: string;
@@ -71,7 +71,7 @@ function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated
     if (!form.name || !form.fiscalYear) return;
     setSaving(true);
     try {
-      await fetch(`${API}/api/budgets`, {
+      await fetch(`${API}/budgets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -183,8 +183,8 @@ export default function BudgetPage() {
     setLoading(true);
     try {
       const [br, sr] = await Promise.all([
-        fetch(`${API}/api/budgets?fy=${fy}`, { headers }).then(r => r.json()),
-        fetch(`${API}/api/budgets/summary?fy=${fy}`, { headers }).then(r => r.json()),
+        fetch(`${API}/budgets?fy=${fy}`, { headers }).then(r => r.json()),
+        fetch(`${API}/budgets/summary?fy=${fy}`, { headers }).then(r => r.json()),
       ]);
       setBudgets(br.data?.budgets ?? []);
       setSummary(sr.data ?? null);
@@ -198,7 +198,7 @@ export default function BudgetPage() {
 
   async function deleteBudget(id: string) {
     if (!confirm("Delete this budget?")) return;
-    await fetch(`${API}/api/budgets/${id}`, {
+    await fetch(`${API}/budgets/${id}`, {
       method: "DELETE",
       headers,
     });

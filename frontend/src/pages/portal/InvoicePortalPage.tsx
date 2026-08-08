@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { FileText, Download, CreditCard, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react";
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface OrgInfo { name: string; email?: string; phone?: string; address?: string; city?: string; state?: string; pincode?: string; taxId?: string; logo?: string; }
 interface PartyInfo { name: string; displayName?: string; email?: string; phone?: string; address?: string; city?: string; state?: string; gstin?: string; }
@@ -53,7 +53,7 @@ export default function InvoicePortalPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API}/api/portal/invoice/${token}`)
+    fetch(`${API}/portal/invoice/${token}`)
       .then(r => r.json())
       .then(d => {
         if (d.success) setInvoice(d.data);
@@ -67,7 +67,7 @@ export default function InvoicePortalPage() {
     if (!token || !invoice || invoice.balanceDue <= 0) return;
     setPaying(true);
     try {
-      const r = await fetch(`${API}/api/portal/invoice/${token}/pay`, { method: "POST" });
+      const r = await fetch(`${API}/portal/invoice/${token}/pay`, { method: "POST" });
       const d = await r.json();
       if (d.data?.paymentUrl) window.open(d.data.paymentUrl, "_blank");
     } finally { setPaying(false); }

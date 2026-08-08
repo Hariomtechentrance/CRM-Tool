@@ -504,7 +504,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     load();
-    api.get("/hr").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
+    api.get("/hr").then(r => setEmployees(r.data.data?.employees ?? [])).catch(() => {});
     api.get("/leads/campaigns").then(r => setCampaigns(r.data.data ?? [])).catch(() => {});
   }, [load]);
 

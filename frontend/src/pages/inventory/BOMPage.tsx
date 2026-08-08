@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Layers, Plus, Trash2, RefreshCw, PlayCircle, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface Product { id: string; name: string; sku: string; unit?: string; currentStock?: number; }
 interface BOMItem { id: string; component: Product; quantity: number; unit: string; }
@@ -34,7 +34,7 @@ function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const headers = { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" };
 
   useEffect(() => {
-    fetch(`${API}/api/inventory?limit=200`, { headers })
+    fetch(`${API}/inventory?limit=200`, { headers })
       .then(r => r.json()).then(d => setProducts(d.data?.products ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -47,7 +47,7 @@ function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
     if (!productId || !name || !items[0].componentId) return;
     setSaving(true);
     try {
-      await fetch(`${API}/api/bom`, {
+      await fetch(`${API}/bom`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,7 +135,7 @@ function CreateWOModal({ bom, onClose, onCreated }: { bom: BOM; onClose: () => v
   async function submit() {
     setSaving(true);
     try {
-      await fetch(`${API}/api/bom/work-orders`, {
+      await fetch(`${API}/bom/work-orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" },
         body: JSON.stringify({ bomId: bom.id, quantity: Number(qty), startDate: startDate || undefined, endDate: endDate || undefined }),
@@ -197,8 +197,8 @@ export default function BOMPage() {
     setLoading(true);
     try {
       const [br, wr] = await Promise.all([
-        fetch(`${API}/api/bom`, { headers }).then(r => r.json()),
-        fetch(`${API}/api/bom/work-orders`, { headers }).then(r => r.json()),
+        fetch(`${API}/bom`, { headers }).then(r => r.json()),
+        fetch(`${API}/bom/work-orders`, { headers }).then(r => r.json()),
       ]);
       setBoms(br.data?.boms ?? []);
       setWorkOrders(wr.data?.workOrders ?? []);
@@ -209,7 +209,7 @@ export default function BOMPage() {
   useEffect(() => { load(); }, [load]);
 
   async function updateWOStatus(id: string, status: string) {
-    await fetch(`${API}/api/bom/work-orders/${id}/status`, {
+    await fetch(`${API}/bom/work-orders/${id}/status`, {
       method: "PATCH",
       headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -219,7 +219,7 @@ export default function BOMPage() {
 
   async function deleteBOM(id: string) {
     if (!confirm("Delete this BOM?")) return;
-    await fetch(`${API}/api/bom/${id}`, { method: "DELETE", headers });
+    await fetch(`${API}/bom/${id}`, { method: "DELETE", headers });
     setBoms(prev => prev.filter(b => b.id !== id));
   }
 

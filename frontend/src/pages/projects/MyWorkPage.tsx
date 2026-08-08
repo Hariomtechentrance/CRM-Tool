@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { CheckCircle, Clock, AlertCircle, Plus, Timer, ListTodo } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 const STATUS_CFG = {
   TODO:        { label: "To Do",      bg: "#1e293b", color: "#94a3b8" },
@@ -42,7 +42,7 @@ function LogTimeModal({ taskId, employeeId, onClose, onLogged }: { taskId: strin
   async function save() {
     if (!hours) return;
     setSaving(true);
-    await fetch(`${API}/api/sprints/log-time`, {
+    await fetch(`${API}/sprints/log-time`, {
       method: "POST",
       headers: authH(token!, activeOrg!.id),
       body: JSON.stringify({ taskId, employeeId, hours: Number(hours), notes: notes || undefined }),
@@ -153,15 +153,15 @@ export default function MyWorkPage() {
   const h = () => authH(token!, activeOrg!.id);
 
   useEffect(() => {
-    fetch(`${API}/api/hr/employees?status=ACTIVE`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
-      .then(r => r.json()).then(d => { const emps = d.data ?? []; setEmployees(emps); if (emps.length) setSelEmpId(emps[0].id); });
+    fetch(`${API}/hr?status=ACTIVE`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
+      .then(r => r.json()).then(d => { const emps = d.data?.employees ?? []; setEmployees(emps); if (emps.length) setSelEmpId(emps[0].id); });
   }, [activeOrg?.id]);
 
   useEffect(() => { if (selEmpId) load(); }, [selEmpId]);
 
   async function load() {
     setLoading(true);
-    const r = await fetch(`${API}/api/it-projects/my-work?employeeId=${selEmpId}`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } });
+    const r = await fetch(`${API}/it-projects/my-work?employeeId=${selEmpId}`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } });
     if (r.ok) {
       const d = await r.json();
       setBoard(d.data?.board ?? { TODO: [], IN_PROGRESS: [], IN_REVIEW: [], DONE: [] });
@@ -171,7 +171,7 @@ export default function MyWorkPage() {
   }
 
   async function updateStatus(taskId: string, status: TStatus) {
-    await fetch(`${API}/api/projects/tasks/${taskId}`, {
+    await fetch(`${API}/projects/tasks/${taskId}`, {
       method: "PATCH", headers: h(), body: JSON.stringify({ status }),
     });
     load();

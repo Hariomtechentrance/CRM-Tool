@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Users, CheckCircle, Clock, AlertCircle, Activity, Layers, Search } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 const ATT_COLOR: Record<string, { bg: string; color: string }> = {
   PRESENT:     { bg: "#14532d", color: "#4ade80" },
@@ -52,7 +52,7 @@ export default function TeamDashboardPage() {
 
   async function load() {
     setLoading(true);
-    const r = await fetch(`${API}/api/it-projects/team-dashboard`, {
+    const r = await fetch(`${API}/it-projects/team-dashboard`, {
       headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
     });
     if (r.ok) {

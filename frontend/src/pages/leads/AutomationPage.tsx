@@ -420,7 +420,7 @@ export default function AutomationPage() {
   async function fetchRules() {
     try {
       const res = await api.get("/automations", orgHeader);
-      setRules(res.data?.rules || res.data || []);
+      setRules(res.data?.data ?? []);
     } catch {
       setRules([]);
     } finally {

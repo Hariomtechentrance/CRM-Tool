@@ -99,7 +99,7 @@ export default function ReportsPage() {
         api.get("/inventory/summary").catch(() => ({ data: { data: {} } })),
         api.get("/finance/summary").catch(() => ({ data: { data: {} } })),
         api.get("/leads/stats").catch(() => ({ data: { data: {} } })),
-        api.get("/hr/stats").catch(() => ({ data: { data: {} } })),
+        api.get("/hr/summary").catch(() => ({ data: { data: {} } })),
       ]);
       setStats(dRes.data.data);
       setInvStats(iRes.data.data);
@@ -151,7 +151,7 @@ export default function ReportsPage() {
   ];
 
   const leadStatusData = leadStats?.byStatus
-    ? Object.entries(leadStats.byStatus as Record<string, number>).map(([label, value]) => ({ label, value, raw: value }))
+    ? (leadStats.byStatus as { status: string; _count: number }[]).map((s) => ({ label: s.status, value: s._count, raw: s._count }))
     : [];
 
   const financeChartData = [

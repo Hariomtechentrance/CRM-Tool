@@ -18,6 +18,9 @@ router.get("/stats", getCrmStats);
 // Bulk import
 router.post("/bulk-import", bulkImportParties);
 
+// Org-wide communications (for Activities page) — must come before /:id
+router.get("/communications",                listAllCommunications);
+
 // Party CRUD
 router.get("/",          listParties);
 router.post("/",         createParty);
@@ -30,9 +33,6 @@ router.get("/:id/contacts",                  listContacts);
 router.post("/:id/contacts",                 createContact);
 router.patch("/:id/contacts/:contactId",     updateContact);
 router.delete("/:id/contacts/:contactId",    deleteContact);
-
-// Org-wide communications (for Activities page)
-router.get("/communications",                listAllCommunications);
 
 // Communication log
 router.get("/:id/communications",            listCommunications);

@@ -65,7 +65,7 @@ export default function TDSPage() {
       ]);
       setEntries(eRes.data.data?.entries ?? []);
       setSummary(sRes.data.data);
-      setParties(pRes.data.data ?? []);
+      setParties(pRes.data.data?.parties ?? []);
     } finally { setLoading(false); }
   }, [tab]);
 

@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Truck, Download, CheckCircle, Copy, RefreshCw, X, AlertCircle } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface PendingInvoice {
   id: string;
@@ -48,7 +48,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingEWB, onClose, on
     if (!ewbNo.trim()) return;
     setSaving(true);
     try {
-      const r = await fetch(`${API}/api/ewaybill/${invoiceId}/ewb`, {
+      const r = await fetch(`${API}/ewaybill/${invoiceId}/ewb`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -140,7 +140,7 @@ export default function EWayBillPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/ewaybill/pending`, { headers });
+      const r = await fetch(`${API}/ewaybill/pending`, { headers });
       const d = await r.json();
       setInvoices(d.data?.invoices ?? []);
     } finally {
@@ -154,7 +154,7 @@ export default function EWayBillPage() {
   async function generatePayload(inv: PendingInvoice) {
     setGenerating(inv.id);
     try {
-      const r = await fetch(`${API}/api/ewaybill/${inv.id}/payload`, { headers });
+      const r = await fetch(`${API}/ewaybill/${inv.id}/payload`, { headers });
       const d = await r.json();
       if (d.data) {
         setModal({ payload: d.data.payload, invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, existingEWB: d.data.existingEWB });

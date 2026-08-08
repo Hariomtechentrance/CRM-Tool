@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { RefreshCw, Upload, CheckCircle, XCircle, Clock, Zap, Trash2, X, AlertCircle } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface BankTxn {
   id: string;
@@ -88,7 +88,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
     if (!rows.length || !accountName) return;
     setSaving(true);
     try {
-      await fetch(`${API}/api/reconciliation/import`, {
+      await fetch(`${API}/reconciliation/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" },
         body: JSON.stringify({ accountName, rows }),
@@ -151,7 +151,7 @@ export default function ReconciliationPage() {
     setLoading(true);
     try {
       const q = statusFilter !== "ALL" ? `?status=${statusFilter}` : "";
-      const r = await fetch(`${API}/api/reconciliation${q}`, { headers });
+      const r = await fetch(`${API}/reconciliation${q}`, { headers });
       const d = await r.json();
       setTxns(d.data?.transactions ?? []);
       setStats(d.data?.stats ?? null);
@@ -164,7 +164,7 @@ export default function ReconciliationPage() {
   async function autoMatch() {
     setAutoMatching(true);
     try {
-      const r = await fetch(`${API}/api/reconciliation/auto-match`, { method: "POST", headers });
+      const r = await fetch(`${API}/reconciliation/auto-match`, { method: "POST", headers });
       const d = await r.json();
       alert(`Auto-matched ${d.data?.matched ?? 0} of ${d.data?.total ?? 0} transactions`);
       load();
@@ -172,7 +172,7 @@ export default function ReconciliationPage() {
   }
 
   async function updateStatus(id: string, status: string) {
-    await fetch(`${API}/api/reconciliation/${id}`, {
+    await fetch(`${API}/reconciliation/${id}`, {
       method: "PATCH",
       headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ reconcileStatus: status }),
@@ -181,7 +181,7 @@ export default function ReconciliationPage() {
   }
 
   async function deleteTxn(id: string) {
-    await fetch(`${API}/api/reconciliation/${id}`, { method: "DELETE", headers });
+    await fetch(`${API}/reconciliation/${id}`, { method: "DELETE", headers });
     setTxns(prev => prev.filter(t => t.id !== id));
   }
 

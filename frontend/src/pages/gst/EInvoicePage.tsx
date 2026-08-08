@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { FileText, Download, CheckCircle, Clock, AlertCircle, Copy, RefreshCw, X } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface PendingInvoice {
   id: string;
@@ -62,7 +62,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingIRN, onClose, on
     if (!irn.trim()) return;
     setSaving(true);
     try {
-      const r = await fetch(`${API}/api/einvoice/${invoiceId}/irn`, {
+      const r = await fetch(`${API}/einvoice/${invoiceId}/irn`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -157,7 +157,7 @@ export default function EInvoicePage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/einvoice/pending`, { headers });
+      const r = await fetch(`${API}/einvoice/pending`, { headers });
       const d = await r.json();
       setInvoices(d.data?.invoices ?? []);
     } finally {
@@ -171,7 +171,7 @@ export default function EInvoicePage() {
   async function generatePayload(inv: PendingInvoice) {
     setGenerating(inv.id);
     try {
-      const r = await fetch(`${API}/api/einvoice/${inv.id}/payload`, { headers });
+      const r = await fetch(`${API}/einvoice/${inv.id}/payload`, { headers });
       const d = await r.json();
       if (d.data) {
         setModal({ payload: d.data.payload, invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, existingIRN: d.data.existingIRN });

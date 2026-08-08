@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Plus, Users, Calendar, GitBranch, ExternalLink, ChevronRight, Target, Code2, Briefcase, Search, Filter, Share2, Copy, Check, Trash2 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 const PROJECT_TYPES: Record<string, string> = {
   WEB_APP: "Web App", MOBILE_APP: "Mobile App", API_SERVICE: "API / Service",
@@ -78,7 +78,7 @@ function CreateProjectModal({ employees, onClose, onCreated }: { employees: any[
   async function save() {
     if (!form.name.trim()) return;
     setSaving(true);
-    const r = await fetch(`${API}/api/it-projects`, {
+    const r = await fetch(`${API}/it-projects`, {
       method: "POST",
       headers: authH(token!, activeOrg!.id),
       body: JSON.stringify({ ...form }),
@@ -257,7 +257,7 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
   async function generateLink() {
     setShareLoading(true);
     try {
-      const r = await fetch(`${API}/api/it-projects/${project.id}/share`, { method: "POST", headers: h() });
+      const r = await fetch(`${API}/it-projects/${project.id}/share`, { method: "POST", headers: h() });
       const d = await r.json();
       if (d.success) { setShareToken(d.data.token); onRefresh(); }
     } finally { setShareLoading(false); }
@@ -267,7 +267,7 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
     if (!confirm("Revoke public link? Anyone with the current link will lose access.")) return;
     setShareLoading(true);
     try {
-      await fetch(`${API}/api/it-projects/${project.id}/share`, { method: "DELETE", headers: h() });
+      await fetch(`${API}/it-projects/${project.id}/share`, { method: "DELETE", headers: h() });
       setShareToken(null); onRefresh();
     } finally { setShareLoading(false); }
   }
@@ -280,33 +280,33 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
   }
 
   useEffect(() => {
-    fetch(`${API}/api/hr/employees?status=ACTIVE`, { headers: h() })
-      .then(r => r.json()).then(d => setEmployees(d.data ?? []));
+    fetch(`${API}/hr?status=ACTIVE`, { headers: h() })
+      .then(r => r.json()).then(d => setEmployees(d.data?.employees ?? []));
   }, []);
 
   async function addMember() {
     if (!addMemberEmpId) return;
-    await fetch(`${API}/api/it-projects/${project.id}/members`, {
+    await fetch(`${API}/it-projects/${project.id}/members`, {
       method: "POST", headers: h(), body: JSON.stringify({ employeeId: addMemberEmpId, role: addMemberRole }),
     });
     setAddMemberEmpId(""); onRefresh();
   }
 
   async function removeMember(memberId: string) {
-    await fetch(`${API}/api/it-projects/${project.id}/members/${memberId}`, { method: "DELETE", headers: h() });
+    await fetch(`${API}/it-projects/${project.id}/members/${memberId}`, { method: "DELETE", headers: h() });
     onRefresh();
   }
 
   async function addMilestone() {
     if (!msTitle || !msDue) return;
-    await fetch(`${API}/api/it-projects/${project.id}/milestones`, {
+    await fetch(`${API}/it-projects/${project.id}/milestones`, {
       method: "POST", headers: h(), body: JSON.stringify({ title: msTitle, dueDate: msDue }),
     });
     setMsTitle(""); setMsDue(""); onRefresh();
   }
 
   async function toggleMilestone(msId: string, done: boolean) {
-    await fetch(`${API}/api/it-projects/${project.id}/milestones/${msId}`, {
+    await fetch(`${API}/it-projects/${project.id}/milestones/${msId}`, {
       method: "PATCH", headers: h(),
       body: JSON.stringify({ completedAt: done ? new Date().toISOString() : null }),
     });
@@ -495,7 +495,7 @@ export default function ITProjectsPage() {
     if (statusFilter !== "ALL") params.set("status", statusFilter);
     if (typeFilter !== "ALL") params.set("type", typeFilter);
     if (search) params.set("search", search);
-    const r = await fetch(`${API}/api/it-projects?${params}`, {
+    const r = await fetch(`${API}/it-projects?${params}`, {
       headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
     });
     if (r.ok) { const d = await r.json(); setProjects(d.data ?? []); }
@@ -508,9 +508,9 @@ export default function ITProjectsPage() {
   }, [search]);
 
   useEffect(() => {
-    fetch(`${API}/api/hr/employees?status=ACTIVE`, {
+    fetch(`${API}/hr?status=ACTIVE`, {
       headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
-    }).then(r => r.json()).then(d => setEmployees(d.data ?? []));
+    }).then(r => r.json()).then(d => setEmployees(d.data?.employees ?? []));
   }, [activeOrg?.id]);
 
   const stats = {

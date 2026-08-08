@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 const STATUS_COLOR: Record<string, string> = {
   PLANNING:  "#6366f1",
@@ -67,7 +67,7 @@ export default function PublicProjectPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/api/public/project/${token}`)
+    fetch(`${API}/public/project/${token}`)
       .then(r => r.json())
       .then(r => {
         if (r.success) setData(r.data);

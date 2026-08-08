@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { DollarSign, Plus, Trash2, RefreshCw, ArrowRight, X } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
-const API = import.meta.env.VITE_API_URL ?? "";
+const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
 interface Rate {
   id: string;
@@ -32,7 +32,7 @@ function AddRateModal({ currencies, onClose, onAdded }: {
     if (!rate) return;
     setSaving(true);
     try {
-      await fetch(`${API}/api/currency`, {
+      await fetch(`${API}/currency`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" },
         body: JSON.stringify({ fromCurrency: from, toCurrency: to, rate: Number(rate), effectiveDate: date }),
@@ -106,7 +106,7 @@ function ConvertPanel({ currencies, token, orgId }: { currencies: Currency[]; to
   async function convert() {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/currency/convert?from=${from}&to=${to}&amount=${amount}`, {
+      const r = await fetch(`${API}/currency/convert?from=${from}&to=${to}&amount=${amount}`, {
         headers: { Authorization: `Bearer ${token}`, "x-organization-id": orgId },
       });
       const d = await r.json();
@@ -178,7 +178,7 @@ export default function CurrencyPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/currency`, { headers });
+      const r = await fetch(`${API}/currency`, { headers });
       const d = await r.json();
       setRates(d.data?.rates ?? []);
       setCurrencies(d.data?.currencies ?? []);
@@ -189,7 +189,7 @@ export default function CurrencyPage() {
   useEffect(() => { load(); }, [load]);
 
   async function deleteRate(id: string) {
-    await fetch(`${API}/api/currency/${id}`, { method: "DELETE", headers });
+    await fetch(`${API}/currency/${id}`, { method: "DELETE", headers });
     setRates(prev => prev.filter(r => r.id !== id));
   }
 
