@@ -5,7 +5,7 @@ import {
   listParties, getParty, createParty, updateParty, deleteParty,
   listContacts, createContact, updateContact, deleteContact,
   listCommunications, createCommunication, deleteCommunication,
-  listAllCommunications, getCrmStats, bulkImportParties,
+  listAllCommunications, listFollowUps, getCrmStats, bulkImportParties,
 } from "../controllers/party.controller";
 
 const router = Router();
@@ -18,8 +18,9 @@ router.get("/stats", getCrmStats);
 // Bulk import
 router.post("/bulk-import", bulkImportParties);
 
-// Org-wide communications (for Activities page) — must come before /:id
+// Org-wide communications / follow-ups (for Activities & CRM pages) — must come before /:id
 router.get("/communications",                listAllCommunications);
+router.get("/follow-ups",                    listFollowUps);
 
 // Party CRUD
 router.get("/",          listParties);

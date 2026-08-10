@@ -257,6 +257,32 @@ export async function listAllCommunications(req: OrgRequest, res: Response): Pro
   } catch (err) { serverError(res, err); }
 }
 
+// ── Follow-ups (across all parties) ─────────────────────────
+// Powers the "My Follow-ups" list — every logged communication that has
+// a follow-up date set, across every customer/supplier, in one place.
+export async function listFollowUps(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const filter = (req.query.filter as string) || "upcoming"; // "upcoming" | "overdue" | "all"
+    const now = new Date();
+
+    const where: any = { organizationId: orgId, followUpDate: { not: null } };
+    if (filter === "upcoming") where.followUpDate = { gte: now };
+    else if (filter === "overdue") where.followUpDate = { lt: now };
+
+    const followUps = await prisma.communication.findMany({
+      where,
+      orderBy: { followUpDate: filter === "overdue" ? "desc" : "asc" },
+      take: 200,
+      include: {
+        party: { select: { id: true, name: true, type: true, phone: true, mobile: true, email: true } },
+        createdBy: { select: { id: true, name: true } },
+      },
+    });
+    ok(res, { followUps });
+  } catch (err) { serverError(res, err); }
+}
+
 // ── CRM Stats ────────────────────────────────────────────────
 
 export async function getCrmStats(req: OrgRequest, res: Response): Promise<void> {

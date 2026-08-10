@@ -312,6 +312,76 @@ async function runLeadFollowUpReminders() {
   }
 }
 
+// ── CRM Contact Follow-up Reminders ─────────────────────────────
+// Runs every 30 min — notifies whoever logged the communication about
+// due/overdue follow-ups with customers & suppliers (mirrors the Lead
+// follow-up job above, same pattern, different source table).
+async function runPartyFollowUpReminders() {
+  try {
+    const now = new Date();
+    const window = new Date(now.getTime() + 60 * 60000); // next 60 min
+
+    const due = await prisma.communication.findMany({
+      where: { followUpDate: { gte: now, lte: window } },
+      include: { party: { select: { name: true } } },
+      take: 100,
+    });
+
+    for (const comm of due) {
+      const existing = await prisma.notification.findFirst({
+        where: {
+          organizationId: comm.organizationId,
+          type: "PARTY_FOLLOW_UP_DUE",
+          link: `/crm/${comm.partyId}`,
+          createdAt: { gt: new Date(Date.now() - 3600000) },
+        },
+      });
+      if (existing) continue;
+
+      await createNotification({
+        organizationId: comm.organizationId,
+        type: "PARTY_FOLLOW_UP_DUE",
+        title: "Follow-up due",
+        message: `${comm.party.name} — follow up scheduled now`,
+        link: `/crm/${comm.partyId}`,
+        userId: comm.createdById,
+      });
+    }
+
+    // Overdue follow-ups — notify once daily at 9 AM (check hour)
+    if (now.getHours() === 9 && now.getMinutes() < 30) {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const overdue = await prisma.communication.findMany({
+        where: { followUpDate: { lt: startOfDay, not: null } },
+        include: { party: { select: { name: true } } },
+        take: 50,
+      });
+
+      for (const comm of overdue) {
+        const existing = await prisma.notification.findFirst({
+          where: {
+            organizationId: comm.organizationId,
+            type: "PARTY_FOLLOW_UP_OVERDUE",
+            link: `/crm/${comm.partyId}`,
+            createdAt: { gt: new Date(Date.now() - 24 * 3600000) },
+          },
+        });
+        if (existing) continue;
+        await createNotification({
+          organizationId: comm.organizationId,
+          type: "PARTY_FOLLOW_UP_OVERDUE",
+          title: "Overdue follow-up",
+          message: `${comm.party.name} — follow-up was missed! Log a new one to reschedule.`,
+          link: `/crm/${comm.partyId}`,
+          userId: comm.createdById,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[CRON] Party follow-up reminders failed:", e);
+  }
+}
+
 // ── Appointment Reminders ─────────────────────────────────────
 // Runs every 15 min — sends reminders 30 min before appointments
 async function runAppointmentReminders() {
@@ -383,8 +453,11 @@ export function startCronJobs() {
   // Lead follow-up reminders — every 30 min
   cron.schedule("*/30 * * * *", runLeadFollowUpReminders, { timezone: "Asia/Kolkata" });
 
+  // CRM contact (customer/supplier) follow-up reminders — every 30 min
+  cron.schedule("*/30 * * * *", runPartyFollowUpReminders, { timezone: "Asia/Kolkata" });
+
   // Appointment reminders — every 15 min
   cron.schedule("*/15 * * * *", runAppointmentReminders, { timezone: "Asia/Kolkata" });
 
-  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts, expiry alerts, lead follow-ups, appointment reminders, keep-alive");
+  console.log("[CRON] Jobs registered: payment reminders, recurring invoices, stock alerts, expiry alerts, lead follow-ups, party follow-ups, appointment reminders, keep-alive");
 }

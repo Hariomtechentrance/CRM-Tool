@@ -1,15 +1,105 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Users, TruckIcon, RefreshCw, Calendar, Phone, Mail, Building2, Upload } from "lucide-react";
+import { Search, Plus, Users, TruckIcon, RefreshCw, Calendar, Phone, Mail, Building2, Upload, X, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import BulkImportModal from "@/components/ui/BulkImportModal";
 import { Badge } from "@/components/ui/Badge";
 import { PartyForm } from "@/components/crm/PartyForm";
 import api from "@/lib/api";
-import { getInitials } from "@/lib/utils";
+import { getInitials, formatDate } from "@/lib/utils";
 import type { Party, CrmStats, PartyType } from "@/types";
 import { useTranslation } from 'react-i18next';
+
+interface FollowUp {
+  id: string;
+  subject?: string | null;
+  description: string;
+  followUpDate: string;
+  party: { id: string; name: string; phone?: string | null; mobile?: string | null; email?: string | null };
+  createdBy: { id: string; name: string };
+}
+
+function FollowUpsPanel({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<"upcoming" | "overdue">("upcoming");
+  const [items, setItems] = useState<FollowUp[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api.get<{ data: { followUps: FollowUp[] } }>("/parties/follow-ups", { params: { filter: tab } })
+      .then(res => setItems(res.data.data.followUps))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [tab]);
+
+  return (
+    <Card>
+      <div className="p-4 flex items-center justify-between border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-orange-600" />
+          <h2 className="font-semibold text-slate-800">Follow-ups</h2>
+        </div>
+        <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="px-4 pt-3 flex gap-1 p-1 bg-slate-100 rounded-xl w-fit ml-4 mt-3">
+        <button
+          onClick={() => setTab("upcoming")}
+          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${tab === "upcoming" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+        >
+          Upcoming
+        </button>
+        <button
+          onClick={() => setTab("overdue")}
+          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${tab === "overdue" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+        >
+          Overdue
+        </button>
+      </div>
+      <div className="p-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            {tab === "overdue" ? <Clock className="w-10 h-10 text-slate-200" /> : <Calendar className="w-10 h-10 text-slate-200" />}
+            <p className="text-slate-400 text-sm">No {tab} follow-ups</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((f) => (
+              <div
+                key={f.id}
+                onClick={() => navigate(`/crm/${f.party.id}`)}
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold flex-shrink-0">
+                    {getInitials(f.party.name)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{f.party.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{f.subject || f.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                  {tab === "overdue" && <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
+                  <span className={`text-xs font-medium ${tab === "overdue" ? "text-red-600" : "text-orange-600"}`}>
+                    {formatDate(f.followUpDate)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 const TYPE_TABS: { key: PartyType | "ALL"; label: string }[] = [
   { key: "ALL", label: "All" },
@@ -37,6 +127,7 @@ export default function CrmPage() {
   const [showForm, setShowForm]     = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [defaultType, setDefaultType] = useState<PartyType>("CUSTOMER");
+  const [showFollowUps, setShowFollowUps] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -96,10 +187,14 @@ export default function CrmPage() {
             { label: "Total Parties", value: stats.total, icon: <Building2 className="w-5 h-5 text-slate-600" />, bg: "bg-slate-50" },
             { label: "Customers", value: stats.customers, icon: <Users className="w-5 h-5 text-blue-600" />, bg: "bg-blue-50" },
             { label: "Suppliers", value: stats.suppliers, icon: <TruckIcon className="w-5 h-5 text-green-600" />, bg: "bg-green-50" },
-            { label: "Follow-ups This Week", value: stats.followUpsThisWeek, icon: <Calendar className="w-5 h-5 text-orange-600" />, bg: "bg-orange-50" },
+            { label: "Follow-ups This Week", value: stats.followUpsThisWeek, icon: <Calendar className="w-5 h-5 text-orange-600" />, bg: "bg-orange-50", onClick: () => setShowFollowUps(true) },
           ].map((s) => (
             <Card key={s.label}>
-              <div className="flex items-center gap-3 p-4">
+              <div
+                className={`flex items-center gap-3 p-4 ${s.onClick ? "cursor-pointer" : ""}`}
+                onClick={s.onClick}
+                role={s.onClick ? "button" : undefined}
+              >
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.bg}`}>{s.icon}</div>
                 <div>
                   <p className="text-xs text-slate-500">{s.label}</p>
@@ -110,6 +205,8 @@ export default function CrmPage() {
           ))}
         </div>
       )}
+
+      {showFollowUps && <FollowUpsPanel onClose={() => { setShowFollowUps(false); fetchStats(); }} />}
 
       {/* Filters */}
       <Card>
