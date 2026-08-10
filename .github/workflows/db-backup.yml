@@ -39,7 +39,7 @@ jobs:
           echo "Backup created: $FILENAME ($SIZE)"
 
       - name: Upload backup as GitHub artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ steps.backup_type.outputs.type }}-${{ github.run_id }}
           path: ${{ env.BACKUP_FILE }}
