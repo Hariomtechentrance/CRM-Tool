@@ -6,7 +6,7 @@ import { AuthRequest } from "../middleware/auth";
 const db = prisma as any;
 
 function orgId(req: AuthRequest) {
-  return req.headers["x-organization-id"] as string;
+  return (req as any).organizationId as string;
 }
 
 function nextSeq(prefix: string, count: number) {
@@ -73,7 +73,10 @@ export async function createRoomType(req: AuthRequest, res: Response) {
 
 export async function updateRoomType(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.roomType.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Room type not found");
     const { name, description, basePrice, capacity, bedType, amenities, isActive } = req.body;
     const rt = await db.roomType.update({
       where: { id }, data: { name, description, basePrice, capacity, bedType, amenities, isActive },
@@ -121,7 +124,10 @@ export async function createRoom(req: AuthRequest, res: Response) {
 
 export async function updateRoom(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.hotelRoom.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Room not found");
     const { roomNumber, roomTypeId, floor, status, notes, isActive } = req.body;
     const room = await db.hotelRoom.update({
       where: { id }, data: { roomNumber, roomTypeId, floor, status, notes, isActive },
@@ -188,7 +194,10 @@ export async function createGuest(req: AuthRequest, res: Response) {
 
 export async function updateGuest(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.guestProfile.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Guest not found");
     const data = req.body;
     const guest = await db.guestProfile.update({ where: { id }, data });
     ok(res, guest, "Guest updated");
@@ -264,6 +273,13 @@ export async function createBooking(req: AuthRequest, res: Response) {
     if (!roomId || !guestId || !checkIn || !checkOut || ratePerNight === undefined)
       return badRequest(res, "roomId, guestId, checkIn, checkOut, ratePerNight required");
 
+    const [roomExists, guestExists] = await Promise.all([
+      db.hotelRoom.findFirst({ where: { id: roomId, organizationId: org } }),
+      db.guestProfile.findFirst({ where: { id: guestId, organizationId: org } }),
+    ]);
+    if (!roomExists) return badRequest(res, "Room not found");
+    if (!guestExists) return badRequest(res, "Guest not found");
+
     const ci = new Date(checkIn); const co = new Date(checkOut);
     const nights = Math.max(1, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
 
@@ -309,10 +325,11 @@ export async function createBooking(req: AuthRequest, res: Response) {
 
 export async function updateBookingStatus(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
     const { status, notes } = req.body;
 
-    const booking = await db.hotelBooking.findUnique({ where: { id } });
+    const booking = await db.hotelBooking.findFirst({ where: { id, organizationId: org } });
     if (!booking) return notFound(res, "Booking not found");
 
     const updated = await db.hotelBooking.update({

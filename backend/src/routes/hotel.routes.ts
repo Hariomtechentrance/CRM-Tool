@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth";
+import { requireOrgContext } from "../middleware/orgContext";
 import {
   getRoomTypes, createRoomType, updateRoomType,
   getRooms, createRoom, updateRoom, getRoom,
@@ -9,7 +10,7 @@ import {
 } from "../controllers/hotel.controller";
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticate, requireOrgContext);
 
 // Room types
 router.get   ("/room-types",          getRoomTypes);

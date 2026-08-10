@@ -2,7 +2,7 @@ import { Response } from "express";
 import nodemailer from "nodemailer";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
-import { ok, serverError } from "../utils/response";
+import { ok, notFound, serverError } from "../utils/response";
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -147,6 +147,8 @@ export async function createTemplate(req: OrgRequest, res: Response): Promise<vo
 export async function updateTemplate(req: OrgRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
+    const existing = await prisma.emailTemplate.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Template not found"); return; }
     const { name, subject, body, category } = req.body;
     const template = await prisma.emailTemplate.update({
       where: { id },
@@ -159,6 +161,8 @@ export async function updateTemplate(req: OrgRequest, res: Response): Promise<vo
 export async function deleteTemplate(req: OrgRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
+    const existing = await prisma.emailTemplate.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Template not found"); return; }
     await prisma.emailTemplate.delete({ where: { id } });
     ok(res, null, "Deleted");
   } catch (e) { serverError(res, e); }

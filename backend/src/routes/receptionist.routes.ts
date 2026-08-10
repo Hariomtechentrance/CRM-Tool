@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth";
+import { requireOrgContext } from "../middleware/orgContext";
 import {
   listVisitors, getVisitor, createVisitor, updateVisitor, checkOutVisitor,
   listCouriers, createCourier, updateCourierStatus,
@@ -7,7 +8,7 @@ import {
 } from "../controllers/receptionist.controller";
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticate, requireOrgContext);
 
 // Dashboard
 router.get   ("/stats",                getReceptionistStats);

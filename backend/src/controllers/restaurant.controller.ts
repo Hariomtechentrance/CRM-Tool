@@ -8,7 +8,7 @@ const db = prisma as any;
 // ── Helpers ───────────────────────────────────────────────────
 
 function orgId(req: AuthRequest) {
-  return req.headers["x-organization-id"] as string;
+  return (req as any).organizationId as string;
 }
 
 function nextSeq(prefix: string, count: number) {
@@ -50,6 +50,8 @@ export async function updateTable(req: AuthRequest, res: Response) {
   try {
     const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.restaurantTable.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Table not found");
     const { tableNumber, section, capacity, status, posX, posY, isActive } = req.body;
     const table = await db.restaurantTable.update({
       where: { id },
@@ -61,7 +63,10 @@ export async function updateTable(req: AuthRequest, res: Response) {
 
 export async function deleteTable(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.restaurantTable.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Table not found");
     await db.restaurantTable.update({ where: { id }, data: { isActive: false } });
     ok(res, null, "Table removed");
   } catch (e) { serverError(res, e); }
@@ -99,7 +104,10 @@ export async function createCategory(req: AuthRequest, res: Response) {
 
 export async function updateCategory(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.menuCategory.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Category not found");
     const { name, description, image, sortOrder, isActive } = req.body;
     const cat = await db.menuCategory.update({
       where: { id }, data: { name, description, image, sortOrder, isActive },
@@ -110,7 +118,10 @@ export async function updateCategory(req: AuthRequest, res: Response) {
 
 export async function deleteCategory(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.menuCategory.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Category not found");
     await db.menuCategory.update({ where: { id }, data: { isActive: false } });
     ok(res, null, "Category removed");
   } catch (e) { serverError(res, e); }
@@ -161,7 +172,10 @@ export async function createMenuItem(req: AuthRequest, res: Response) {
 
 export async function updateMenuItem(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.menuItem.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Menu item not found");
     const { name, categoryId, price, costPrice, foodType, description, image, taxRate, preparationTime, isAvailable, isFeatured, sortOrder, tags } = req.body;
     const prepTime = preparationTime === "" || preparationTime === undefined || preparationTime === null
       ? undefined : Number(preparationTime);
@@ -176,7 +190,10 @@ export async function updateMenuItem(req: AuthRequest, res: Response) {
 
 export async function deleteMenuItem(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.menuItem.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Menu item not found");
     await db.menuItem.update({ where: { id }, data: { isAvailable: false } });
     ok(res, null, "Menu item removed");
   } catch (e) { serverError(res, e); }
@@ -221,6 +238,10 @@ export async function createKOT(req: AuthRequest, res: Response) {
     if (!org) return badRequest(res, "Organization required");
     const { tableId, orderType, customerName, customerPhone, notes, items } = req.body;
     if (!items?.length) return badRequest(res, "At least one item required");
+    if (tableId) {
+      const tableExists = await db.restaurantTable.findFirst({ where: { id: tableId, organizationId: org } });
+      if (!tableExists) return badRequest(res, "Table not found");
+    }
 
     const count = await db.kOT.count({ where: { organizationId: org } });
     const kotNumber = nextSeq("KOT", count);
@@ -265,7 +286,10 @@ export async function createKOT(req: AuthRequest, res: Response) {
 
 export async function updateKOTStatus(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.kOT.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "KOT not found");
     const { status } = req.body;
     const kot = await db.kOT.update({
       where: { id }, data: { status },
@@ -277,7 +301,10 @@ export async function updateKOTStatus(req: AuthRequest, res: Response) {
 
 export async function addKOTItems(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existingKot = await db.kOT.findFirst({ where: { id, organizationId: org } });
+    if (!existingKot) return notFound(res, "KOT not found");
     const { items } = req.body;
     if (!items?.length) return badRequest(res, "Items required");
 
@@ -309,8 +336,8 @@ export async function generateBill(req: AuthRequest, res: Response) {
     const { kotId, discount, paymentMethod, customerName, customerPhone, notes } = req.body;
     if (!kotId) return badRequest(res, "kotId required");
 
-    const kot = await db.kOT.findUnique({
-      where: { id: kotId },
+    const kot = await db.kOT.findFirst({
+      where: { id: kotId, organizationId: org },
       include: { items: { include: { menuItem: { select: { name: true } } } }, table: true },
     });
     if (!kot) return notFound(res, "KOT not found");
@@ -430,6 +457,10 @@ export async function createReservation(req: AuthRequest, res: Response) {
     if (!org) return badRequest(res, "Organization required");
     const { tableId, guestName, guestPhone, guestEmail, partySize, reservedAt, notes } = req.body;
     if (!guestName || !guestPhone || !reservedAt) return badRequest(res, "guestName, guestPhone, reservedAt required");
+    if (tableId) {
+      const tableExists = await db.restaurantTable.findFirst({ where: { id: tableId, organizationId: org } });
+      if (!tableExists) return badRequest(res, "Table not found");
+    }
     const r = await db.tableReservation.create({
       data: { organizationId: org, tableId, guestName, guestPhone, guestEmail, partySize: partySize || 2, reservedAt: new Date(reservedAt), notes },
     });
@@ -440,7 +471,10 @@ export async function createReservation(req: AuthRequest, res: Response) {
 
 export async function updateReservation(req: AuthRequest, res: Response) {
   try {
+    const org = orgId(req);
     const { id } = req.params;
+    const existing = await db.tableReservation.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Reservation not found");
     const data = req.body;
     if (data.reservedAt) data.reservedAt = new Date(data.reservedAt);
     const r = await db.tableReservation.update({ where: { id }, data });

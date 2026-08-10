@@ -5,8 +5,50 @@ import { ok, created, notFound, badRequest, serverError } from "../utils/respons
 import crypto from "crypto";
 import https from "https";
 import http from "http";
+import dns from "dns";
+import net from "net";
 
 const db = () => (prisma as any);
+
+// ── SSRF guard ──────────────────────────────────────────────
+// Blocks webhook URLs that resolve to private/internal/reserved IP ranges
+// (RFC1918, loopback, link-local incl. cloud metadata 169.254.169.254, etc.)
+// so a malicious/compromised org admin can't use webhooks to probe the
+// hosting infrastructure's internal network or steal cloud credentials.
+function isBlockedIP(ip: string): boolean {
+  const type = net.isIP(ip);
+  if (type === 4) {
+    const [a, b] = ip.split(".").map(Number);
+    if (a === 127) return true;                          // loopback
+    if (a === 10) return true;                            // 10.0.0.0/8
+    if (a === 172 && b >= 16 && b <= 31) return true;      // 172.16.0.0/12
+    if (a === 192 && b === 168) return true;               // 192.168.0.0/16
+    if (a === 169 && b === 254) return true;               // link-local / cloud metadata
+    if (a === 0) return true;                              // 0.0.0.0/8
+    return false;
+  }
+  if (type === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1") return true;                      // loopback
+    if (lower.startsWith("fe80:")) return true;             // link-local
+    if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // unique local
+    if (lower.startsWith("::ffff:")) return isBlockedIP(lower.replace("::ffff:", "")); // IPv4-mapped
+    return false;
+  }
+  return true; // not a valid IP at all — reject
+}
+
+async function assertPublicUrl(url: string): Promise<void> {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Only http/https webhook URLs are allowed");
+  }
+  if (parsed.hostname === "localhost") throw new Error("Webhook URL resolves to a blocked address");
+  const addresses = await dns.promises.lookup(parsed.hostname, { all: true });
+  for (const { address } of addresses) {
+    if (isBlockedIP(address)) throw new Error("Webhook URL resolves to a blocked address");
+  }
+}
 
 // Supported webhook events
 export const WEBHOOK_EVENTS = [
@@ -60,8 +102,8 @@ export async function createWebhook(req: OrgRequest, res: Response): Promise<voi
       badRequest(res, "url and events[] required");
       return;
     }
-    try { new URL(url); } catch {
-      badRequest(res, "Invalid URL");
+    try { await assertPublicUrl(url); } catch (e) {
+      badRequest(res, e instanceof Error ? e.message : "Invalid URL");
       return;
     }
 
@@ -97,7 +139,12 @@ export async function updateWebhook(req: OrgRequest, res: Response): Promise<voi
     const existing = await db().webhookEndpoint.findFirst({ where: { id, organizationId: orgId } });
     if (!existing) { notFound(res, "Webhook not found"); return; }
 
-    if (url) try { new URL(url); } catch { badRequest(res, "Invalid URL"); return; }
+    if (url) {
+      try { await assertPublicUrl(url); } catch (e) {
+        badRequest(res, e instanceof Error ? e.message : "Invalid URL");
+        return;
+      }
+    }
     if (events) {
       const invalid = events.filter((e: string) => !WEBHOOK_EVENTS.includes(e));
       if (invalid.length) { badRequest(res, `Unknown events: ${invalid.join(", ")}`); return; }
@@ -209,6 +256,14 @@ export async function dispatchWebhook(
   secret: string,
   payload: object
 ): Promise<{ success: boolean; statusCode: number | null; body: string }> {
+  // Re-validate at dispatch time too — the target hostname could have been
+  // re-pointed at an internal IP since the webhook was created (DNS rebinding).
+  try {
+    await assertPublicUrl(url);
+  } catch {
+    return { success: false, statusCode: null, body: "Blocked: webhook URL resolves to a disallowed address" };
+  }
+
   const body = JSON.stringify(payload);
   const sig = crypto.createHmac("sha256", secret).update(body).digest("hex");
 

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { createHash } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 
@@ -366,7 +366,10 @@ export async function claimSuperAdmin(req: AuthRequest, res: Response): Promise<
         res.status(503).json({ success: false, message: "Bootstrap not configured on this server." });
         return;
       }
-      if (typeof provided !== "string" || provided !== envToken) {
+      const providedBuf = typeof provided === "string" ? Buffer.from(provided) : null;
+      const envBuf = Buffer.from(envToken);
+      const tokenMatches = !!providedBuf && providedBuf.length === envBuf.length && timingSafeEqual(providedBuf, envBuf);
+      if (!tokenMatches) {
         res.status(403).json({ success: false, message: "Invalid bootstrap token." });
         return;
       }

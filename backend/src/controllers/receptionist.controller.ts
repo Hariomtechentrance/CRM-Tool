@@ -6,7 +6,7 @@ import { AuthRequest } from "../middleware/auth";
 const db = prisma as any;
 
 function orgId(req: AuthRequest) {
-  return req.headers["x-organization-id"] as string;
+  return (req as any).organizationId as string;
 }
 
 // ═══════════════════════════════════════════════════════════════

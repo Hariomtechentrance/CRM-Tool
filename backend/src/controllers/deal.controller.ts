@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
-import { ok, serverError } from "../utils/response";
+import { ok, notFound, serverError } from "../utils/response";
 
 const STAGE_PROBABILITY: Record<string, number> = {
   PROSPECTING: 10, QUALIFICATION: 20, NEEDS_ANALYSIS: 40,
@@ -104,6 +104,8 @@ export async function createDeal(req: OrgRequest, res: Response): Promise<void> 
 export async function updateDeal(req: OrgRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
+    const existing = await prisma.deal.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Deal not found"); return; }
     const { title, stage, value, probability, expectedCloseDate, description, notes, partyId } = req.body;
 
     const data: any = {};
@@ -132,6 +134,8 @@ export async function updateDeal(req: OrgRequest, res: Response): Promise<void> 
 export async function deleteDeal(req: OrgRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
+    const existing = await prisma.deal.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Deal not found"); return; }
     await prisma.deal.delete({ where: { id } });
     ok(res, null, "Deleted");
   } catch (e) { serverError(res, e); }

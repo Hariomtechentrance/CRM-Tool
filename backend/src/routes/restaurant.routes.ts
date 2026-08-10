@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth";
+import { requireOrgContext } from "../middleware/orgContext";
 import {
   getTables, createTable, updateTable, deleteTable,
   getCategories, createCategory, updateCategory, deleteCategory,
@@ -11,7 +12,7 @@ import {
 } from "../controllers/restaurant.controller";
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticate, requireOrgContext);
 
 // Tables
 router.get   ("/tables",            getTables);

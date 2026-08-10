@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
-import { ok, serverError } from "../utils/response";
+import { ok, notFound, serverError } from "../utils/response";
 
 export async function listQuotations(req: OrgRequest, res: Response): Promise<void> {
   try {
@@ -123,6 +123,8 @@ export async function createQuotation(req: OrgRequest, res: Response): Promise<v
 export async function updateQuotationStatus(req: OrgRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
+    const existing = await prisma.quotation.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Quotation not found"); return; }
     const { status } = req.body;
     const quotation = await prisma.quotation.update({
       where: { id },
@@ -136,6 +138,8 @@ export async function updateQuotationStatus(req: OrgRequest, res: Response): Pro
 export async function deleteQuotation(req: OrgRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
+    const existing = await prisma.quotation.findFirst({ where: { id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Quotation not found"); return; }
     await prisma.quotation.delete({ where: { id } });
     ok(res, null, "Deleted");
   } catch (e) { serverError(res, e); }
