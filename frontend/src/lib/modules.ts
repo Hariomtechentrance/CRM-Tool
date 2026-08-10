@@ -296,6 +296,18 @@ export const ALL_MODULES: ModuleDefinition[] = [
     accentBorder: "rgba(14,165,233,0.2)",
     defaultFor: ["HOSPITALITY"],
   },
+  {
+    key: "WBA",
+    label: "Service Delivery Pipeline",
+    description: "Sales-to-delivery pipeline for consulting engagements — VAPT, GRC, SOC, Digital Forensics, Awareness Training and Coaching projects, from accepted quotation to sign-off.",
+    href: "/wba",
+    category: "industry",
+    iconName: "ShieldCheck",
+    accentColor: "#2FB8A6",
+    accentBg: "rgba(47,184,166,0.1)",
+    accentBorder: "rgba(47,184,166,0.2)",
+    defaultFor: ["IT_SERVICES", "CONSULTING"],
+  },
 ];
 
 export const MODULE_CATEGORIES = [

@@ -83,6 +83,7 @@ import receptionistRoutes from "./routes/receptionist.routes";
 import pushRoutes from "./routes/push.routes";
 import chatbotRoutes from "./routes/chatbot.routes";
 import contactRoutes from "./routes/contact.routes";
+import wbaRoutes from "./routes/wba.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -418,6 +419,10 @@ app.use("/api/receptionist",  receptionistRoutes);
 app.use("/api/push",          pushRoutes);
 app.use("/api/chatbot",       chatLimiter, chatbotRoutes);
 app.use("/api/contact",       contactRoutes);
+// No withCache here: several WBA responses (/me, /projects) vary per-user for
+// the same URL (access level, staff-scoped visibility) — withCache keys only
+// on orgId+URL, so it would serve one user's response to another.
+app.use("/api/wba",           wbaRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

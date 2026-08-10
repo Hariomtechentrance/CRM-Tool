@@ -25,7 +25,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HeadphonesIcon: Headphones,
   UtensilsCrossed, Hotel,
   Phone, TrendingUp, Heart, Briefcase,
-  ClipboardCheck,
+  ClipboardCheck, ShieldCheck,
 };
 
 const MOD_I18N_KEY: Record<string, string> = {

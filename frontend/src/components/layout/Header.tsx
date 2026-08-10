@@ -1,4 +1,4 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse, BellRing } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse, BellRing, Plus, ShieldCheck } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
@@ -64,6 +64,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const { theme, toggleTheme } = useThemeStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const quickAddRef = useRef<HTMLDivElement>(null);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null); // null = unknown/checking
   const [pushBusy, setPushBusy] = useState(false);
 
@@ -155,6 +157,19 @@ export default function Header({ onMenuToggle }: HeaderProps) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Close quick-add on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (quickAddRef.current && !quickAddRef.current.contains(e.target as Node)) {
+        setQuickAddOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const hasWBA = activeOrg?.enabledModules?.includes("WBA");
 
   const handleLogout = async () => {
     await logout();
@@ -258,6 +273,47 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Right */}
       <div className="flex items-center gap-1.5">
+        {/* Quick add — Lead / Project, available from any dashboard */}
+        <div ref={quickAddRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => { setQuickAddOpen(p => !p); setBellOpen(false); setMenuOpen(false); }}
+            title="Quick add"
+            className="flex items-center gap-1.5 rounded-lg cursor-pointer"
+            style={{ height: 34, padding: "0 11px", color: "#06231f", background: "#2FB8A6", border: "none", fontSize: 12.5, fontWeight: 700 }}
+          >
+            <Plus size={15} /> <span className="hidden sm:inline">Add</span>
+          </button>
+
+          {quickAddOpen && (
+            <div style={{
+              position: "absolute", right: 0, top: "calc(100% + 8px)", width: 200,
+              background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12,
+              boxShadow: "0 20px 60px var(--shadow)", zIndex: 100, overflow: "hidden", padding: 6,
+            }}>
+              <button
+                onClick={() => { navigate("/marketing?quickAdd=lead"); setQuickAddOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors cursor-pointer"
+                style={{ color: "var(--text-sec)", background: "transparent", border: "none", textAlign: "left" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-sec)"; }}
+              >
+                <TrendingUp size={15} color="#f59e0b" /> New Lead
+              </button>
+              {hasWBA && (
+                <button
+                  onClick={() => { navigate("/wba?quickAdd=project"); setQuickAddOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors cursor-pointer"
+                  style={{ color: "var(--text-sec)", background: "transparent", border: "none", textAlign: "left" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-sec)"; }}
+                >
+                  <ShieldCheck size={15} color="#2FB8A6" /> New Project
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}

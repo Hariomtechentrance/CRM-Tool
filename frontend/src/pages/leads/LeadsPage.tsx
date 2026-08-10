@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "@/lib/api";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import { useTranslation } from 'react-i18next';
@@ -475,7 +476,8 @@ export default function LeadsPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSource, setFilterSource] = useState("");
   const [filterGrade, setFilterGrade] = useState("");
-  const [showAdd, setShowAdd] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showAdd, setShowAdd] = useState(searchParams.get("quickAdd") === "lead");
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [logLead, setLogLead] = useState<Lead | null>(null);
   const [bookLead, setBookLead] = useState<Lead | null>(null);
@@ -638,7 +640,7 @@ export default function LeadsPage() {
         </>
       )}
 
-      {showAdd && <LeadFormModal employees={employees} campaigns={campaigns} onClose={() => setShowAdd(false)} onSaved={load} />}
+      {showAdd && <LeadFormModal employees={employees} campaigns={campaigns} onClose={() => { setShowAdd(false); if (searchParams.get("quickAdd")) { searchParams.delete("quickAdd"); setSearchParams(searchParams, { replace: true }); } }} onSaved={load} />}
       {editLead && <LeadFormModal lead={editLead} employees={employees} campaigns={campaigns} onClose={() => setEditLead(null)} onSaved={load} />}
       {logLead && <LogActivityModal lead={logLead} onClose={() => setLogLead(null)} onSaved={load} />}
       {bookLead && <BookAppointmentModal lead={bookLead} onClose={() => setBookLead(null)} onSaved={load} />}
