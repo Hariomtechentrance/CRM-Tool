@@ -9,6 +9,7 @@ import {
   inviteMember,
   getInviteInfo,
   acceptInvite,
+  registerViaInvite,
   listPendingInvites,
   resendInvite,
   cancelInvite,
@@ -21,6 +22,7 @@ const router = Router();
 
 // Public — no auth required
 router.get("/invite/info", getInviteInfo);
+router.post("/invite/register", registerViaInvite);
 
 // All routes below require authentication
 router.use(authenticate);

@@ -1,13 +1,9 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { createHash, timingSafeEqual } from "crypto";
+import { timingSafeEqual } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
-
-// Hash a sensitive token before DB storage (SHA-256 one-way)
-function hashToken(raw: string): string {
-  return createHash("sha256").update(raw).digest("hex");
-}
+import { hashToken } from "../utils/tokenHash";
 import { prisma, withRetry } from "../lib/prisma";
 import {
   signAccessToken,

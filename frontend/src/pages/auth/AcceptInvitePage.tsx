@@ -1,13 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Building2, CheckCircle, XCircle, Loader } from "lucide-react";
+import { Building2, CheckCircle, XCircle, Loader, User, Lock, Eye, EyeOff } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { getApiError } from "@/lib/utils";
+import type { AuthResponse } from "@/types";
 
 const S = {
   page: { minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 } as React.CSSProperties,
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "36px 40px", maxWidth: 440, width: "100%", textAlign: "center" as const, boxShadow: "0 24px 80px rgba(0,0,0,0.5)" },
   btn: { width: "100%", height: 44, borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, marginTop: 20 } as React.CSSProperties,
+  label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6, textAlign: "left" as const } as React.CSSProperties,
+  inputWrap: { position: "relative" as const, marginBottom: 14 },
+  input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 9, padding: "10px 36px 10px 38px", color: "var(--text-primary)", fontSize: 14, outline: "none", boxSizing: "border-box" as const, fontFamily: "inherit" } as React.CSSProperties,
+  icon: { position: "absolute" as const, left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)", display: "flex" },
+  eyeBtn: { position: "absolute" as const, right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", display: "flex", padding: 0 },
 };
 
 interface InviteInfo {
@@ -20,12 +27,21 @@ interface InviteInfo {
 export default function AcceptInvitePage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated, addOrganization } = useAuthStore();
+  const { isAuthenticated, addOrganization, setAuth } = useAuthStore();
 
   const token = params.get("token");
   const [status, setStatus] = useState<"loading" | "ready" | "accepting" | "success" | "error">("loading");
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // ── New-account creation (for invitees with no existing FlowCRM account) ──
+  const [mode, setMode] = useState<"create" | "existing">("create");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [fieldErr, setFieldErr] = useState<{ name?: string; password?: string; confirmPassword?: string }>({});
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!token) { setStatus("error"); setErrorMsg("Invalid invite link — no token found."); return; }
@@ -53,6 +69,33 @@ export default function AcceptInvitePage() {
       setStatus("error");
       setErrorMsg(e?.response?.data?.message || "Failed to accept invite. It may have expired.");
     }
+  };
+
+  function validateNewAccount(): boolean {
+    const errs: typeof fieldErr = {};
+    if (!name.trim() || name.trim().length < 2) errs.name = "Name must be at least 2 characters";
+    if (password.length < 8) errs.password = "Password must be at least 8 characters";
+    else if (!/[A-Z]/.test(password)) errs.password = "Must contain an uppercase letter";
+    else if (!/[0-9]/.test(password)) errs.password = "Must contain a number";
+    else if (!/[^A-Za-z0-9]/.test(password)) errs.password = "Must contain a special character";
+    if (password !== confirmPassword) errs.confirmPassword = "Passwords do not match";
+    setFieldErr(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  const createAccount = async () => {
+    if (!validateNewAccount()) return;
+    setCreating(true);
+    setErrorMsg("");
+    try {
+      const r = await api.post("/organizations/invite/register", { token, name: name.trim(), password });
+      setAuth(r.data.data as AuthResponse);
+      setStatus("success");
+      setTimeout(() => navigate("/dashboard"), 2000);
+    } catch (e: any) {
+      setErrorMsg(getApiError(e));
+    }
+    setCreating(false);
   };
 
   const ROLE_LABELS: Record<string, string> = {
@@ -96,15 +139,69 @@ export default function AcceptInvitePage() {
                 <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>on FlowCRM</span>
               </div>
             </div>
-            {!isAuthenticated && (
-              <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 4 }}>You'll need to log in or register first.</p>
+            {isAuthenticated ? (
+              <>
+                <button onClick={accept} style={S.btn}>Accept & Join Organization</button>
+                <button onClick={() => navigate("/dashboard")} style={{ background: "none", border: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer", marginTop: 12, width: "100%" }}>
+                  Decline
+                </button>
+              </>
+            ) : mode === "create" ? (
+              <>
+                <div style={{ ...S.inputWrap, marginBottom: 10 }}>
+                  <label style={S.label}>Email</label>
+                  <div style={{ position: "relative" }}>
+                    <input value={invite.email} disabled style={{ ...S.input, opacity: 0.6, cursor: "not-allowed" }} />
+                  </div>
+                </div>
+                <div style={S.inputWrap}>
+                  <label style={S.label}>Your Name</label>
+                  <div style={{ position: "relative" }}>
+                    <span style={S.icon}><User size={15} /></span>
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Full name" style={S.input} />
+                  </div>
+                  {fieldErr.name && <p style={{ fontSize: 12, color: "#f87171", marginTop: 4, textAlign: "left" }}>{fieldErr.name}</p>}
+                </div>
+                <div style={S.inputWrap}>
+                  <label style={S.label}>Set a Password</label>
+                  <div style={{ position: "relative" }}>
+                    <span style={S.icon}><Lock size={15} /></span>
+                    <input type={showPw ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
+                      placeholder="Min 8 chars, uppercase, number, symbol" style={S.input} />
+                    <button type="button" onClick={() => setShowPw(!showPw)} style={S.eyeBtn}>{showPw ? <EyeOff size={15} /> : <Eye size={15} />}</button>
+                  </div>
+                  {fieldErr.password && <p style={{ fontSize: 12, color: "#f87171", marginTop: 4, textAlign: "left" }}>{fieldErr.password}</p>}
+                </div>
+                <div style={S.inputWrap}>
+                  <label style={S.label}>Confirm Password</label>
+                  <div style={{ position: "relative" }}>
+                    <span style={S.icon}><Lock size={15} /></span>
+                    <input type={showPw ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter password" style={S.input} />
+                  </div>
+                  {fieldErr.confirmPassword && <p style={{ fontSize: 12, color: "#f87171", marginTop: 4, textAlign: "left" }}>{fieldErr.confirmPassword}</p>}
+                </div>
+                {errorMsg && (
+                  <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 13, color: "#f87171", marginBottom: 4, textAlign: "left" }}>
+                    {errorMsg}
+                  </div>
+                )}
+                <button onClick={createAccount} disabled={creating} style={{ ...S.btn, opacity: creating ? 0.7 : 1 }}>
+                  {creating ? "Creating account…" : "Create Account & Join"}
+                </button>
+                <button onClick={() => { setMode("existing"); setErrorMsg(""); }} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 12, cursor: "pointer", marginTop: 12, width: "100%", fontWeight: 600 }}>
+                  Already have a FlowCRM account? Log in instead
+                </button>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 4 }}>You'll log in, then come back to accept this invite.</p>
+                <button onClick={accept} style={S.btn}>Log in to Accept Invite</button>
+                <button onClick={() => { setMode("create"); setErrorMsg(""); }} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 12, cursor: "pointer", marginTop: 12, width: "100%", fontWeight: 600 }}>
+                  ← New here? Create an account instead
+                </button>
+              </>
             )}
-            <button onClick={accept} style={S.btn}>
-              {isAuthenticated ? "Accept & Join Organization" : "Log in to Accept Invite"}
-            </button>
-            <button onClick={() => navigate("/dashboard")} style={{ background: "none", border: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer", marginTop: 12, width: "100%" }}>
-              Decline
-            </button>
           </>
         )}
 

@@ -1,4 +1,6 @@
-import { Response } from "express";
+import { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { AuthRequest } from "../middleware/auth";
@@ -11,6 +13,9 @@ import {
 import { ok, created, badRequest, forbidden, notFound, serverError, conflict } from "../utils/response";
 import { uniqueOrgSlug } from "../utils/slug";
 import { sendEmail, inviteEmailTemplate } from "../utils/email";
+import { isStrongPassword } from "./auth.controller";
+import { hashToken } from "../utils/tokenHash";
+import { signAccessToken, signRefreshToken, getRefreshExpiryDate } from "../lib/jwt";
 import { MemberRole } from "@prisma/client";
 import { google } from "googleapis";
 
@@ -295,6 +300,81 @@ export async function acceptInvite(req: AuthRequest, res: Response): Promise<voi
     });
 
     ok(res, { organization: invite.organization, role: invite.role }, "Joined organization successfully");
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// ── Register a brand-new account directly from an invite ──────
+// Public — no auth. Used when the invited email has no existing FlowCRM
+// account yet. The invite link itself (sent to a real inbox by an org
+// admin) is treated as proof of email ownership, so no separate
+// verification step is required — same trust model as a password-reset
+// link. Creates the user, joins the org, grants the pre-selected
+// modules, and returns tokens so the frontend can log them straight in.
+export async function registerViaInvite(req: Request, res: Response): Promise<void> {
+  try {
+    const { token, name, password } = req.body as { token?: string; name?: string; password?: string };
+    if (!token || !name?.trim() || !password) {
+      badRequest(res, "token, name, and password are required");
+      return;
+    }
+
+    const invite = await prisma.orgInvite.findUnique({
+      where: { token },
+      include: {
+        organization: {
+          select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true },
+        },
+      },
+    });
+    if (!invite || invite.status !== "PENDING" || invite.expiresAt < new Date()) {
+      badRequest(res, "This invite link is invalid or has expired");
+      return;
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email: invite.email } });
+    if (existingUser) {
+      conflict(res, "An account with this email already exists. Please log in instead.");
+      return;
+    }
+
+    const strength = isStrongPassword(password);
+    if (!strength.ok) { badRequest(res, strength.reason!); return; }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: { name: name.trim(), email: invite.email, password: hashedPassword, isEmailVerified: true },
+      });
+      await tx.organizationMember.create({
+        data: { userId: newUser.id, organizationId: invite.organizationId, role: invite.role },
+      });
+      if (invite.allowedModules.length > 0) {
+        await tx.userModuleAccess.createMany({
+          data: invite.allowedModules.map((moduleKey) => ({
+            userId: newUser.id, organizationId: invite.organizationId, moduleKey, grantedById: invite.invitedById,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      await tx.orgInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
+      return newUser;
+    });
+
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: false });
+    const tokenId = uuidv4();
+    const refreshToken = signRefreshToken({ userId: user.id, tokenId });
+    await prisma.refreshToken.create({
+      data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
+    });
+
+    created(res, {
+      accessToken, refreshToken,
+      user: { id: user.id, name: user.name, email: user.email, avatar: null, isSuperAdmin: false },
+      organizations: [{ ...invite.organization, role: invite.role }],
+    }, "Account created — welcome aboard!");
   } catch (err) {
     serverError(res, err);
   }
