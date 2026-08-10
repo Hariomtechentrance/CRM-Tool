@@ -267,3 +267,58 @@ export async function makeSuperAdmin(req: AuthRequest, res: Response): Promise<v
     ok(res, { user: updated });
   } catch (e) { serverError(res, e); }
 }
+
+// ── Org module requests — the only path left for an org to gain a module
+// it wasn't given at signup, now that its own admins can't self-grant one ──
+export async function listModuleRequests(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const status = req.query.status as string | undefined;
+    const requests = await prisma.orgModuleRequest.findMany({
+      where: status && status !== "ALL" ? { status: status as any } : undefined,
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+        requestedBy: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { requestedAt: "desc" },
+    });
+    ok(res, requests);
+  } catch (e) { serverError(res, e); }
+}
+
+const resolveModuleRequestSchema = z.object({
+  decision: z.enum(["APPROVE", "DENY"]),
+  responseNote: z.string().max(500).optional(),
+});
+
+export async function resolveModuleRequest(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const parsed = resolveModuleRequestSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Invalid data", parsed.error.flatten().fieldErrors); return; }
+
+    const request = await prisma.orgModuleRequest.findUnique({ where: { id } });
+    if (!request) { res.status(404).json({ success: false, message: "Request not found" }); return; }
+    if (request.status !== "PENDING") { badRequest(res, "This request has already been resolved"); return; }
+
+    if (parsed.data.decision === "APPROVE") {
+      const org = await prisma.organization.findUnique({ where: { id: request.organizationId }, select: { enabledModules: true } });
+      if (org && !org.enabledModules.includes(request.moduleKey)) {
+        await prisma.organization.update({
+          where: { id: request.organizationId },
+          data: { enabledModules: { push: request.moduleKey } },
+        });
+      }
+    }
+
+    const updated = await prisma.orgModuleRequest.update({
+      where: { id },
+      data: {
+        status: parsed.data.decision === "APPROVE" ? "APPROVED" : "DENIED",
+        responseNote: parsed.data.responseNote || null,
+        resolvedAt: new Date(),
+        resolvedById: req.userId!,
+      },
+    });
+    ok(res, updated);
+  } catch (e) { serverError(res, e); }
+}

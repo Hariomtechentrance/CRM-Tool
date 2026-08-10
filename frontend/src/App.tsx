@@ -44,6 +44,7 @@ import SuperAdminLayout from "@/pages/superAdmin/SuperAdminLayout";
 import SuperAdminDashboard from "@/pages/superAdmin/SuperAdminDashboard";
 import SuperAdminOrgsPage from "@/pages/superAdmin/SuperAdminOrgsPage";
 import SuperAdminUsersPage from "@/pages/superAdmin/SuperAdminUsersPage";
+import SuperAdminModuleRequestsPage from "@/pages/superAdmin/SuperAdminModuleRequestsPage";
 import AccessRequestsPage from "@/pages/superAdmin/AccessRequestsPage";
 import SuperAdminLoginPage from "@/pages/superAdmin/SuperAdminLoginPage";
 import ComingSoonPage from "@/pages/ComingSoonPage";
@@ -150,6 +151,7 @@ export default function App() {
           <Route path="dashboard"        element={<SuperAdminDashboard />} />
           <Route path="organizations"    element={<SuperAdminOrgsPage />} />
           <Route path="users"            element={<SuperAdminUsersPage />} />
+          <Route path="module-requests"  element={<SuperAdminModuleRequestsPage />} />
           <Route path="access-requests"  element={<AccessRequestsPage />} />
         </Route>
 

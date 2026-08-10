@@ -4,6 +4,7 @@ import { requireSuperAdmin } from "../middleware/superAdmin";
 import {
   getSuperAdminStats, listAllOrganizations, getOrganizationDetail,
   updateOrganization, listAllUsers, createUser, toggleUserActive, makeSuperAdmin,
+  listModuleRequests, resolveModuleRequest,
 } from "../controllers/superAdmin.controller";
 import { listDemoRequests, updateDemoRequest } from "../controllers/contact.controller";
 
@@ -22,5 +23,9 @@ router.patch("/users/:id/super-admin",   makeSuperAdmin);
 // Demo / access requests from landing page
 router.get("/demo-requests",         listDemoRequests);
 router.patch("/demo-requests/:id",   updateDemoRequest);
+
+// Org module requests — approve/deny an org gaining a new module
+router.get("/module-requests",       listModuleRequests);
+router.patch("/module-requests/:id", resolveModuleRequest);
 
 export default router;

@@ -107,6 +107,16 @@ export async function updateOrganization(req: OrgRequest, res: Response): Promis
     const parsed = updateOrgSchema.safeParse(rest);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
 
+    // An org's own admin can turn a module OFF freely, but turning a new one
+    // ON requires the super admin's approval via a module request — see
+    // requestOrgModule(). Silently drop any additions rather than erroring,
+    // since the frontend never sends them (this is just a backend backstop).
+    if (parsed.data.enabledModules !== undefined) {
+      const existing = await prisma.organization.findUnique({ where: { id: req.organizationId }, select: { enabledModules: true } });
+      const current = existing?.enabledModules ?? [];
+      parsed.data.enabledModules = parsed.data.enabledModules.filter((m) => current.includes(m));
+    }
+
     // Merge hrSettings into existing complianceConfig
     let updateData: Record<string, any> = { ...parsed.data };
     if (hrSettings !== undefined) {
@@ -500,6 +510,44 @@ export async function removeMember(req: OrgRequest, res: Response): Promise<void
       data: { isActive: false },
     });
     ok(res, null, "Member removed");
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// ── Module requests — an org's own admin can no longer just enable a new
+// module for themselves; they ask the platform's super admin instead. ──────
+export async function requestOrgModule(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only Owner or Admin can request a module"); return;
+    }
+
+    const { moduleKey, message } = req.body as { moduleKey?: string; message?: string };
+    if (!moduleKey) { badRequest(res, "moduleKey is required"); return; }
+
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { enabledModules: true } });
+    if (org?.enabledModules.includes(moduleKey)) { badRequest(res, "This module is already enabled"); return; }
+
+    const request = await prisma.orgModuleRequest.upsert({
+      where: { organizationId_moduleKey: { organizationId: req.organizationId!, moduleKey } },
+      create: { organizationId: req.organizationId!, moduleKey, requestedById: req.userId!, message: message || null },
+      update: { status: "PENDING", message: message || null, requestedById: req.userId!, responseNote: null, resolvedAt: null, resolvedById: null, requestedAt: new Date() },
+    });
+
+    created(res, request);
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+export async function listOrgModuleRequests(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const requests = await prisma.orgModuleRequest.findMany({
+      where: { organizationId: req.organizationId! },
+      orderBy: { requestedAt: "desc" },
+    });
+    ok(res, requests);
   } catch (err) {
     serverError(res, err);
   }

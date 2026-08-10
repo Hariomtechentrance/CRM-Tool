@@ -39,6 +39,8 @@ model User {
   communications      Communication[]
   moduleAccess        UserModuleAccess[]
   accessRequests      AccessRequest[]
+  orgModuleRequests   OrgModuleRequest[]    @relation("OrgModuleRequestedBy")
+  resolvedModuleReqs  OrgModuleRequest[]    @relation("OrgModuleResolvedBy")
   gmailAccount        GmailAccount?
   emailAccounts       EmailAccount[]
   pushSubscriptions   WebPushSubscription[]
@@ -184,6 +186,7 @@ model Organization {
   auditLogs          AuditLog[]
   userModuleAccess   UserModuleAccess[]
   accessRequests     AccessRequest[]
+  moduleRequests     OrgModuleRequest[]
   goodsEntries       GoodsEntry[]
   emailLogs          EmailLog[]
   emailTemplates     EmailTemplate[]
@@ -315,6 +318,30 @@ enum AccessRequestStatus {
   PENDING
   APPROVED
   DENIED
+}
+
+// An org's request to enable a module it doesn't have yet — distinct from
+// AccessRequest, which is a user asking their own org admin for a module
+// the org already has. This one goes to the platform's super admin: an org's
+// own Owner/Admin can no longer just flip a new module on for themselves.
+model OrgModuleRequest {
+  id             String              @id @default(cuid())
+  organizationId String
+  moduleKey      String
+  requestedById  String
+  status         AccessRequestStatus @default(PENDING)
+  message        String?
+  responseNote   String?
+  requestedAt    DateTime            @default(now())
+  resolvedAt     DateTime?
+  resolvedById   String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("OrgModuleRequestedBy", fields: [requestedById], references: [id])
+  resolvedBy   User?        @relation("OrgModuleResolvedBy", fields: [resolvedById], references: [id])
+
+  @@unique([organizationId, moduleKey])
+  @@index([status])
 }
 
 model AuditLog {

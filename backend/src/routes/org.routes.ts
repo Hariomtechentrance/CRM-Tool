@@ -16,6 +16,8 @@ import {
   listMembers,
   updateMemberRole,
   removeMember,
+  requestOrgModule,
+  listOrgModuleRequests,
 } from "../controllers/org.controller";
 
 const router = Router();
@@ -42,5 +44,7 @@ router.post("/current/members/invites/:inviteId/resend", requireOrgContext, rese
 router.delete("/current/members/invites/:inviteId", requireOrgContext, cancelInvite);
 router.patch("/current/members/:memberId/role", requireOrgContext, updateMemberRole);
 router.delete("/current/members/:memberId", requireOrgContext, removeMember);
+router.post("/current/module-requests", requireOrgContext, requestOrgModule);
+router.get("/current/module-requests", requireOrgContext, listOrgModuleRequests);
 
 export default router;
