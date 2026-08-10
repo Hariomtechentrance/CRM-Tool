@@ -57,7 +57,7 @@
     "razorpay": "^2.9.6",
     "redis": "^4.7.1",
     "speakeasy": "^2.0.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "uuid": "^14.0.0",
     "web-push": "^3.6.7",
     "zod": "^4.4.3"
