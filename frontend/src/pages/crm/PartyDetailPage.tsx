@@ -20,7 +20,7 @@ import DocumentsPanel from "@/components/DocumentsPanel";
 import RecordComments from "@/components/RecordComments";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import api from "@/lib/api";
-import { getInitials, getApiError, formatDate } from "@/lib/utils";
+import { getInitials, getApiError, formatDate, formatDateTime } from "@/lib/utils";
 import type { Party, Contact, CommunicationType } from "@/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -137,7 +137,7 @@ function CommModal({ open, onClose, onSaved, partyId }: {
         <Input label="Subject" placeholder="Brief subject..." {...register("subject")} />
         <Textarea label="Description *" placeholder="What was discussed / noted..." rows={3} {...register("description")} error={errors.description?.message} />
         <Input label="Outcome" placeholder="Next steps, result..." {...register("outcome")} />
-        <Input label="Follow-up Date" type="date" {...register("followUpDate")} />
+        <Input label="Follow-up Date & Time" type="datetime-local" {...register("followUpDate")} />
       </div>
     </Modal>
   );
@@ -413,7 +413,7 @@ export default function PartyDetailPage() {
                       <Clock className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="text-slate-700 font-medium">{c.subject || c.description.slice(0, 40)}</p>
-                        <p className="text-xs text-orange-600">{formatDate(c.followUpDate!)}</p>
+                        <p className="text-xs text-orange-600">{formatDateTime(c.followUpDate!)}</p>
                       </div>
                     </div>
                   ))}
@@ -516,7 +516,7 @@ export default function PartyDetailPage() {
                               {comm.followUpDate && (
                                 <div className="flex items-center gap-1.5 mt-2 text-xs text-orange-600">
                                   <CalendarDays className="w-3.5 h-3.5" />
-                                  Follow-up: {formatDate(comm.followUpDate)}
+                                  Follow-up: {formatDateTime(comm.followUpDate)}
                                 </div>
                               )}
                             </div>

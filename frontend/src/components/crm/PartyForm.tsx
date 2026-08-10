@@ -38,6 +38,7 @@ const schema = z.object({
   bankIfsc:         z.string().refine(isOptIFSC, "Invalid IFSC. Format: ABCD0123456").optional(),
   bankBranch:       z.string().max(100).optional(),
   notes:            z.string().optional(),
+  assignedToId:     z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -57,6 +58,11 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
   const isEdit = !!party;
   const [tab, setTab] = useState<Tab>("Basic");
   const [apiError, setApiError] = useState("");
+  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (open) api.get("/hr?status=ACTIVE").then(r => setEmployees(r.data.data?.employees ?? [])).catch(() => {});
+  }, [open]);
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,9 +98,10 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
           bankIfsc: party.bankIfsc ?? "",
           bankBranch: party.bankBranch ?? "",
           notes: party.notes ?? "",
+          assignedToId: party.assignedToId ?? "",
         });
       } else {
-        reset({ type: defaultType, currency: "INR", country: "IN" });
+        reset({ type: defaultType, currency: "INR", country: "IN", assignedToId: "" });
       }
     }
   }, [open, party, defaultType, reset]);
@@ -102,7 +109,7 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
   const onSubmit = async (data: FormData) => {
     setApiError("");
     try {
-      const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== "" && v !== undefined));
+      const clean = Object.fromEntries(Object.entries(data).filter(([k, v]) => k === "assignedToId" || (v !== "" && v !== undefined)));
       const res = isEdit
         ? await api.patch<{ data: Party }>(`/parties/${party!.id}`, clean)
         : await api.post<{ data: Party }>("/parties", clean);
@@ -156,6 +163,12 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
               <Input label="Phone" placeholder="+91 9876543210" error={errors.phone?.message} maxLength={15} onKeyDown={kPhone} {...register("phone")} />
             </div>
             <Input label="Mobile" placeholder="+91 9876543210" error={errors.mobile?.message} maxLength={15} onKeyDown={kPhone} {...register("mobile")} />
+            <Select
+              label="Assigned To"
+              options={[{ value: "", label: "Unassigned — visible to whole team" }, ...employees.map(e => ({ value: e.id, label: e.name }))]}
+              value={watch("assignedToId") ?? ""}
+              onChange={(e) => setValue("assignedToId", e.target.value)}
+            />
             <Textarea label="Internal Notes" placeholder="Any notes about this party..." {...register("notes")} />
           </>
         )}

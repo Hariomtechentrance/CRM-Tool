@@ -22,6 +22,10 @@ export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+export function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+}
+
 export function getApiError(error: unknown): string {
   if (error && typeof error === "object") {
     if ("response" in error) {

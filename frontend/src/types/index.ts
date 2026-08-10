@@ -121,6 +121,7 @@ export interface Party {
   notes?: string | null;
   tags?: string[];
   isActive: boolean;
+  assignedToId?: string | null;
   createdAt: string;
   updatedAt: string;
   contacts?: Contact[];

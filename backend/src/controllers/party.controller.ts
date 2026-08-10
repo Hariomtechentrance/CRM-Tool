@@ -87,7 +87,7 @@ export async function createParty(req: OrgRequest, res: Response): Promise<void>
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
 
     const party = await prisma.party.create({
-      data: { ...parsed.data, organizationId: req.organizationId! },
+      data: { ...parsed.data, assignedToId: parsed.data.assignedToId || null, organizationId: req.organizationId! },
     });
     created(res, party, "Party created successfully");
   } catch (err) { serverError(res, err); }
@@ -101,7 +101,9 @@ export async function updateParty(req: OrgRequest, res: Response): Promise<void>
     const parsed = updatePartySchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
 
-    const updated = await prisma.party.update({ where: { id: party.id }, data: parsed.data });
+    const updateData: Record<string, unknown> = { ...parsed.data };
+    if ("assignedToId" in updateData) updateData.assignedToId = (updateData.assignedToId as string) || null;
+    const updated = await prisma.party.update({ where: { id: party.id }, data: updateData });
     ok(res, updated, "Party updated");
   } catch (err) { serverError(res, err); }
 }

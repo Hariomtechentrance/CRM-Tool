@@ -1,10 +1,11 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse, BellRing } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
 import api from "@/lib/api";
 import { getInitials } from "@/lib/utils";
+import { isPushSupported, isPushSubscribed, enablePushNotifications } from "@/lib/pushNotifications";
 
 interface Alert {
   id: string;
@@ -63,6 +64,21 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const { theme, toggleTheme } = useThemeStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null); // null = unknown/checking
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    if (bellOpen && isPushSupported() && pushEnabled === null) {
+      isPushSubscribed().then(setPushEnabled);
+    }
+  }, [bellOpen, pushEnabled]);
+
+  const handleEnablePush = async () => {
+    setPushBusy(true);
+    const result = await enablePushNotifications();
+    setPushEnabled(result.ok);
+    setPushBusy(false);
+  };
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [alertLoading, setAlertLoading] = useState(false);
@@ -300,6 +316,21 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                   <X size={15} />
                 </button>
               </div>
+
+              {/* Enable browser push — only shown when supported and not yet enabled */}
+              {isPushSupported() && pushEnabled === false && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderBottom: "1px solid var(--border)", background: "rgba(116,205,232,0.05)" }}>
+                  <BellRing size={14} color="#74CDE8" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: "var(--text-sec)", flex: 1 }}>Get desktop alerts for due follow-ups</span>
+                  <button
+                    onClick={handleEnablePush}
+                    disabled={pushBusy}
+                    style={{ background: "#74CDE8", border: "none", borderRadius: 6, padding: "5px 10px", color: "#0a1a1f", fontSize: 11, fontWeight: 700, cursor: pushBusy ? "default" : "pointer", opacity: pushBusy ? 0.7 : 1, flexShrink: 0 }}
+                  >
+                    {pushBusy ? "Enabling…" : "Enable"}
+                  </button>
+                </div>
+              )}
 
               {/* Alert + Notification List */}
               <div style={{ maxHeight: 400, overflowY: "auto" }}>

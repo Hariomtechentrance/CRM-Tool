@@ -7,7 +7,7 @@ import BulkImportModal from "@/components/ui/BulkImportModal";
 import { Badge } from "@/components/ui/Badge";
 import { PartyForm } from "@/components/crm/PartyForm";
 import api from "@/lib/api";
-import { getInitials, formatDate } from "@/lib/utils";
+import { getInitials, formatDateTime } from "@/lib/utils";
 import type { Party, CrmStats, PartyType } from "@/types";
 import { useTranslation } from 'react-i18next';
 
@@ -89,7 +89,7 @@ function FollowUpsPanel({ onClose }: { onClose: () => void }) {
                 <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
                   {tab === "overdue" && <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
                   <span className={`text-xs font-medium ${tab === "overdue" ? "text-red-600" : "text-orange-600"}`}>
-                    {formatDate(f.followUpDate)}
+                    {formatDateTime(f.followUpDate)}
                   </span>
                 </div>
               </div>

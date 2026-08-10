@@ -20,3 +20,39 @@ self.addEventListener("fetch", e => {
     fetch(e.request).catch(() => caches.match(e.request))
   );
 });
+
+// ── Web Push ────────────────────────────────────────────────
+// Shows an OS-level notification even if no FlowCRM tab is open.
+self.addEventListener("push", (event) => {
+  let data = { title: "FlowCRM", body: "You have a new notification.", link: "/dashboard" };
+  try { if (event.data) data = { ...data, ...event.data.json() }; } catch { /* use defaults */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/favicon.svg",
+      badge: "/favicon.svg",
+      data: { link: data.link || "/dashboard" },
+      tag: data.link, // replaces any existing notification for the same record instead of stacking
+    })
+  );
+});
+
+// Clicking the notification focuses an existing FlowCRM tab (navigating it
+// to the linked record) or opens a new one if none is open.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const link = event.notification.data?.link || "/dashboard";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          client.postMessage({ type: "PUSH_NAVIGATE", link });
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(link);
+    })
+  );
+});

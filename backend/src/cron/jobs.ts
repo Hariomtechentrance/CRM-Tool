@@ -4,6 +4,7 @@ import http from "http";
 import { prisma } from "../lib/prisma";
 import { sendEmail } from "../utils/email";
 import { createNotification } from "../controllers/notifications.controller";
+import { dispatchAlert } from "../lib/alertDispatch";
 
 // ── Payment Reminders ─────────────────────────────────────────
 // Runs daily at 9:00 AM — finds overdue invoices and sends email reminders
@@ -239,12 +240,16 @@ async function runExpiryAlerts() {
 }
 
 // ── Lead Follow-up Reminders ──────────────────────────────────
-// Runs every 30 min — notifies assignees about due follow-ups
+// Runs every 5 min, alerting on a tight (10-min) lookahead window so the
+// alert lands close to the actual scheduled time rather than up to an
+// hour early. Assigned lead -> only the assignee is alerted; unassigned
+// ("fresh") lead -> every active team member is, across all three
+// channels (in-app, browser push, email).
 async function runLeadFollowUpReminders() {
   try {
     const db = prisma as any;
     const now = new Date();
-    const window = new Date(now.getTime() + 60 * 60000); // next 60 min
+    const window = new Date(now.getTime() + 10 * 60000); // next 10 min
 
     const leads = await db.lead.findMany({
       where: {
@@ -266,18 +271,18 @@ async function runLeadFollowUpReminders() {
       });
       if (existing) continue;
 
-      await createNotification({
+      await dispatchAlert({
         organizationId: lead.organizationId,
+        userId: lead.assignedToId,
         type: "FOLLOW_UP_DUE",
         title: "Follow-up due",
         message: `${lead.name}${lead.company ? ` (${lead.company})` : ""} — follow up scheduled now`,
         link: `/marketing?lead=${lead.id}`,
-        userId: lead.assignedToId ?? undefined,
       });
     }
 
     // Overdue follow-ups — notify once daily at 9 AM (check hour)
-    if (now.getHours() === 9 && now.getMinutes() < 30) {
+    if (now.getHours() === 9 && now.getMinutes() < 5) {
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const overdue = await db.lead.findMany({
         where: {
@@ -297,13 +302,13 @@ async function runLeadFollowUpReminders() {
           },
         });
         if (existing) continue;
-        await createNotification({
+        await dispatchAlert({
           organizationId: lead.organizationId,
+          userId: lead.assignedToId,
           type: "FOLLOW_UP_OVERDUE",
           title: "Overdue follow-up",
           message: `${lead.name} — follow-up was missed! Update status or reschedule.`,
           link: `/marketing?lead=${lead.id}`,
-          userId: lead.assignedToId ?? undefined,
         });
       }
     }
@@ -313,17 +318,18 @@ async function runLeadFollowUpReminders() {
 }
 
 // ── CRM Contact Follow-up Reminders ─────────────────────────────
-// Runs every 30 min — notifies whoever logged the communication about
-// due/overdue follow-ups with customers & suppliers (mirrors the Lead
-// follow-up job above, same pattern, different source table).
+// Runs every 5 min on a tight 10-min lookahead (mirrors the Lead job
+// above). Alerts the customer's assigned owner if one is set; otherwise
+// — a "fresh"/unowned customer — every active team member is alerted,
+// since nobody specifically owns following up with them yet.
 async function runPartyFollowUpReminders() {
   try {
     const now = new Date();
-    const window = new Date(now.getTime() + 60 * 60000); // next 60 min
+    const window = new Date(now.getTime() + 10 * 60000); // next 10 min
 
     const due = await prisma.communication.findMany({
       where: { followUpDate: { gte: now, lte: window } },
-      include: { party: { select: { name: true } } },
+      include: { party: { select: { name: true, assignedToId: true } } },
       take: 100,
     });
 
@@ -338,22 +344,22 @@ async function runPartyFollowUpReminders() {
       });
       if (existing) continue;
 
-      await createNotification({
+      await dispatchAlert({
         organizationId: comm.organizationId,
+        userId: comm.party.assignedToId,
         type: "PARTY_FOLLOW_UP_DUE",
         title: "Follow-up due",
         message: `${comm.party.name} — follow up scheduled now`,
         link: `/crm/${comm.partyId}`,
-        userId: comm.createdById,
       });
     }
 
     // Overdue follow-ups — notify once daily at 9 AM (check hour)
-    if (now.getHours() === 9 && now.getMinutes() < 30) {
+    if (now.getHours() === 9 && now.getMinutes() < 5) {
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const overdue = await prisma.communication.findMany({
         where: { followUpDate: { lt: startOfDay, not: null } },
-        include: { party: { select: { name: true } } },
+        include: { party: { select: { name: true, assignedToId: true } } },
         take: 50,
       });
 
@@ -367,13 +373,13 @@ async function runPartyFollowUpReminders() {
           },
         });
         if (existing) continue;
-        await createNotification({
+        await dispatchAlert({
           organizationId: comm.organizationId,
+          userId: comm.party.assignedToId,
           type: "PARTY_FOLLOW_UP_OVERDUE",
           title: "Overdue follow-up",
           message: `${comm.party.name} — follow-up was missed! Log a new one to reschedule.`,
           link: `/crm/${comm.partyId}`,
-          userId: comm.createdById,
         });
       }
     }
@@ -450,11 +456,11 @@ export function startCronJobs() {
   // Expiry alerts — daily at 7:00 AM
   cron.schedule("0 7 * * *", runExpiryAlerts, { timezone: "Asia/Kolkata" });
 
-  // Lead follow-up reminders — every 30 min
-  cron.schedule("*/30 * * * *", runLeadFollowUpReminders, { timezone: "Asia/Kolkata" });
+  // Lead follow-up reminders — every 5 min (tight window so alerts land close to the actual scheduled time)
+  cron.schedule("*/5 * * * *", runLeadFollowUpReminders, { timezone: "Asia/Kolkata" });
 
-  // CRM contact (customer/supplier) follow-up reminders — every 30 min
-  cron.schedule("*/30 * * * *", runPartyFollowUpReminders, { timezone: "Asia/Kolkata" });
+  // CRM contact (customer/supplier) follow-up reminders — every 5 min
+  cron.schedule("*/5 * * * *", runPartyFollowUpReminders, { timezone: "Asia/Kolkata" });
 
   // Appointment reminders — every 15 min
   cron.schedule("*/15 * * * *", runAppointmentReminders, { timezone: "Asia/Kolkata" });
