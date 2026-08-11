@@ -1,4 +1,4 @@
-import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse, BellRing, Plus, ShieldCheck } from "lucide-react";
+import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse, BellRing, Plus, ShieldCheck, Check } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
@@ -6,6 +6,7 @@ import { useThemeStore } from "@/stores/themeStore";
 import api from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 import { isPushSupported, isPushSubscribed, enablePushNotifications } from "@/lib/pushNotifications";
+import { WBA_CATEGORIES } from "@/pages/wba/WBAPage";
 
 interface Alert {
   id: string;
@@ -65,6 +66,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [showQuickLead, setShowQuickLead] = useState(false);
+  const [showQuickProject, setShowQuickProject] = useState(false);
   const quickAddRef = useRef<HTMLDivElement>(null);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null); // null = unknown/checking
   const [pushBusy, setPushBusy] = useState(false);
@@ -182,6 +185,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const hasResults = searchResults && Object.values(searchResults).some(arr => arr && arr.length > 0);
 
   return (
+    <>
     <header style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}
       className="h-14 flex items-center justify-between px-4 md:px-6 flex-shrink-0">
       {/* Left */}
@@ -291,7 +295,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               boxShadow: "0 20px 60px var(--shadow)", zIndex: 100, overflow: "hidden", padding: 6,
             }}>
               <button
-                onClick={() => { navigate("/marketing?quickAdd=lead"); setQuickAddOpen(false); }}
+                onClick={() => { setShowQuickLead(true); setQuickAddOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors cursor-pointer"
                 style={{ color: "var(--text-sec)", background: "transparent", border: "none", textAlign: "left" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
@@ -301,7 +305,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               </button>
               {hasWBA && (
                 <button
-                  onClick={() => { navigate("/wba?quickAdd=project"); setQuickAddOpen(false); }}
+                  onClick={() => { setShowQuickProject(true); setQuickAddOpen(false); }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors cursor-pointer"
                   style={{ color: "var(--text-sec)", background: "transparent", border: "none", textAlign: "left" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
@@ -535,5 +539,132 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </div>
       </div>
     </header>
+    {showQuickLead && <QuickAddLeadModal onClose={() => setShowQuickLead(false)} />}
+    {showQuickProject && <QuickAddProjectModal onClose={() => setShowQuickProject(false)} />}
+    </>
+  );
+}
+
+// ── Quick-add modals ─────────────────────────────────────────────
+// Deliberately self-contained (not "navigate to the full module page") —
+// every org member can log a lead or start a project from anywhere, even
+// if their job role doesn't grant them the full Leads/WBA module.
+const qaModal: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 };
+const qaBox: React.CSSProperties = { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, width: "100%", maxWidth: 460, maxHeight: "88vh", overflowY: "auto" };
+const qaInput: React.CSSProperties = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 11px", color: "var(--text-primary)", fontSize: 13.5, outline: "none", boxSizing: "border-box" };
+const qaLabel: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "var(--text-sec)", fontWeight: 600 };
+
+function QuickAddLeadModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ name: "", phone: "", email: "", company: "", notes: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const submit = async () => {
+    if (!form.name.trim()) { setError("Name is required."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await api.post("/leads", { ...form, source: "OTHER", status: "NEW" });
+      setDone(true);
+      setTimeout(onClose, 1200);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Could not add the lead.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={qaModal} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={qaBox}>
+        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>New Lead</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
+        </div>
+        {done ? (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <Check size={28} color="#10b981" style={{ margin: "0 auto 8px", display: "block" }} />
+            <p style={{ color: "#10b981", fontWeight: 600, margin: 0 }}>Lead added.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+              {error && <div style={{ background: "#450a0a", color: "#f87171", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>{error}</div>}
+              <label style={qaLabel}>Name<input style={qaInput} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Full name" autoFocus /></label>
+              <label style={qaLabel}>Company<input style={qaInput} value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} /></label>
+              <label style={qaLabel}>Phone<input style={qaInput} value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} /></label>
+              <label style={qaLabel}>Email<input type="email" style={qaInput} value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></label>
+              <label style={qaLabel}>Notes<textarea style={{ ...qaInput, minHeight: 60, resize: "vertical", fontFamily: "inherit" }} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></label>
+            </div>
+            <div style={{ padding: "16px 22px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={onClose} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-sec)", cursor: "pointer", fontSize: 13.5 }}>Cancel</button>
+              <button onClick={submit} disabled={saving} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#f59e0b", color: "#2b1600", fontWeight: 700, cursor: saving ? "default" : "pointer", fontSize: 13.5, opacity: saving ? 0.7 : 1 }}>
+                {saving ? "Adding..." : "Add Lead"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QuickAddProjectModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ projectName: "", clientName: "", category: "VAPT", description: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const submit = async () => {
+    if (!form.projectName.trim() || !form.clientName.trim()) { setError("Project name and client name are required."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await api.post("/wba/projects/quick", form);
+      setDone(true);
+      setTimeout(onClose, 1200);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Could not add the project.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={qaModal} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={qaBox}>
+        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>New Project</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
+        </div>
+        {done ? (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <Check size={28} color="#10b981" style={{ margin: "0 auto 8px", display: "block" }} />
+            <p style={{ color: "#10b981", fontWeight: 600, margin: 0 }}>Project added — your Project Manager will staff it.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+              {error && <div style={{ background: "#450a0a", color: "#f87171", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>{error}</div>}
+              <label style={qaLabel}>Project Name<input style={qaInput} value={form.projectName} onChange={e => setForm(p => ({ ...p, projectName: e.target.value }))} placeholder="e.g. Acme Corp — VAPT Engagement" autoFocus /></label>
+              <label style={qaLabel}>Client Name<input style={qaInput} value={form.clientName} onChange={e => setForm(p => ({ ...p, clientName: e.target.value }))} /></label>
+              <label style={qaLabel}>Category
+                <select style={qaInput} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
+                  {Object.entries(WBA_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </label>
+              <label style={qaLabel}>Description<textarea style={{ ...qaInput, minHeight: 60, resize: "vertical", fontFamily: "inherit" }} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></label>
+            </div>
+            <div style={{ padding: "16px 22px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={onClose} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-sec)", cursor: "pointer", fontSize: 13.5 }}>Cancel</button>
+              <button onClick={submit} disabled={saving} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#2FB8A6", color: "#06231f", fontWeight: 700, cursor: saving ? "default" : "pointer", fontSize: 13.5, opacity: saving ? 0.7 : 1 }}>
+                {saving ? "Adding..." : "Add Project"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

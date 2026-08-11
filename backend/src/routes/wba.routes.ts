@@ -10,6 +10,13 @@ import {
 } from "../controllers/wba.controller";
 
 const router = Router();
+
+// Quick-create a project from anywhere in the app (header quick-add) — any
+// org member can do this regardless of their own WBA module grant, same as
+// "anyone can get a project from their end" applies to createProject below.
+// Deliberately mounted before the module gate so it isn't blocked by it.
+router.post("/projects/quick", authenticate, requireOrgContext, createProject);
+
 router.use(authenticate, requireOrgContext, requireModuleAccess("WBA"));
 
 router.get("/me",                             getMyAccessLevel);
