@@ -28,7 +28,19 @@ const S = {
   }) as React.CSSProperties,
 };
 
-type Tab = "organization" | "modules" | "team" | "hr" | "security";
+type Tab = "organization" | "team" | "hr" | "security";
+
+// Mirrors backend JOB_ROLES (org.controller.ts) — label + whether the admin
+// picks specific modules for this title, or it comes with sensible defaults.
+const JOB_ROLES: Record<string, { label: string; picksModules: boolean; hint: string }> = {
+  MANAGER:         { label: "Manager",          picksModules: false, hint: "Gets every module the organization currently has enabled." },
+  ACCOUNTANT:      { label: "Accountant",        picksModules: false, hint: "Gets Accounts & Finance, Reports & Analytics." },
+  PROJECT_MANAGER: { label: "Project Manager",   picksModules: false, hint: "Gets Projects & Tasks, HR & Payroll." },
+  EXECUTIVE:       { label: "Executive",         picksModules: false, hint: "Gets CRM & Contacts, Leads & Marketing." },
+  HR:              { label: "HR",                picksModules: false, hint: "Gets HR & Payroll only." },
+  STAFF:           { label: "Staff",             picksModules: true,  hint: "Pick exactly which module(s) they need below." },
+  INTERN:          { label: "Intern",            picksModules: true,  hint: "Pick exactly which module(s) they need below." },
+};
 
 interface Member { id: string; name: string; email: string; role: string; joinedAt: string }
 
@@ -43,7 +55,7 @@ const HR_DEFAULTS = {
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { activeOrg, updateActiveOrgModules, loadModuleAccess, user, logout, updateUser } = useAuthStore();
+  const { activeOrg, user, logout, updateUser } = useAuthStore();
   const navigate = useNavigate();
   const [claimingAdmin, setClaimingAdmin] = useState(false);
   const [claimMsg, setClaimMsg] = useState("");
@@ -54,14 +66,13 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [form, setForm] = useState({ name: "", taxId: "", phone: "", email: "", address: "", city: "", state: "", country: "India", currency: "INR", website: "" });
-  const [enabledModules, setEnabledModules] = useState<string[]>([]);
   const [hrSettings, setHrSettings] = useState({ ...HR_DEFAULTS });
   const [members, setMembers] = useState<Member[]>([]);
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("STAFF");
-  const [inviting, setInviting] = useState(false);
-  const [inviteDone, setInviteDone] = useState(false);
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const [empForm, setEmpForm] = useState({ name: "", jobRole: "STAFF", description: "", email: "", password: "", confirmPassword: "", phone: "", modules: [] as string[] });
+  const [addingEmployee, setAddingEmployee] = useState(false);
+  const [addEmployeeError, setAddEmployeeError] = useState("");
+  const [addEmployeeDone, setAddEmployeeDone] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -84,8 +95,6 @@ export default function SettingsPage() {
             currency: o.currency || "INR",
             website: o.website || "",
           });
-          const mods: string[] = o.enabledModules || [];
-          setEnabledModules(mods.length === 0 ? ALL_MODULES.map((m) => m.key) : mods);
           // Load HR settings — merge with defaults so missing keys are always defined
           if (o.hrSettings) setHrSettings({ ...HR_DEFAULTS, ...o.hrSettings });
         }
@@ -104,32 +113,21 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
-  const saveModules = async () => {
-    setSaving(true);
-    setSaveError("");
+  const EMPTY_EMP_FORM = { name: "", jobRole: "STAFF", description: "", email: "", password: "", confirmPassword: "", phone: "", modules: [] as string[] };
+
+  const addEmployee = async () => {
+    setAddingEmployee(true);
+    setAddEmployeeError("");
     try {
-      await api.patch("/organizations/current", { enabledModules });
-      updateActiveOrgModules(enabledModules);
-      await loadModuleAccess(); // re-sync isOrgAdmin + moduleAccess so sidebar updates immediately
-      setSaved(true); setTimeout(() => setSaved(false), 2000);
-    } catch {
-      setSaveError("Failed to save. Please try again.");
+      await api.post("/organizations/current/employees", empForm);
+      setAddEmployeeDone(true);
+      const mRes = await api.get("/organizations/current/members");
+      setMembers(Array.isArray(mRes.data.data) ? mRes.data.data : []);
+      setTimeout(() => { setAddEmployeeDone(false); setShowAddEmployee(false); setEmpForm(EMPTY_EMP_FORM); }, 2000);
+    } catch (e: any) {
+      setAddEmployeeError(e?.response?.data?.message || "Could not add employee.");
     }
-    setSaving(false);
-  };
-
-  const toggleModule = (key: string) =>
-    setEnabledModules(p => p.includes(key) ? p.filter(m => m !== key) : [...p, key]);
-
-  const sendInvite = async () => {
-    if (!inviteEmail) return;
-    setInviting(true);
-    try {
-      await api.post("/organizations/current/members/invite", { email: inviteEmail, role: inviteRole });
-      setInviteDone(true);
-      setTimeout(() => { setInviteDone(false); setShowInvite(false); setInviteEmail(""); setInviteRole("STAFF"); }, 2000);
-    } catch { /* ignore */ }
-    setInviting(false);
+    setAddingEmployee(false);
   };
 
   const f = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
@@ -175,13 +173,7 @@ export default function SettingsPage() {
     borderBottom: tab === t ? "2px solid #6366f1" : "2px solid transparent",
   });
 
-  const CATEGORIES = [
-    { key: "core",        label: "Core Business" },
-    { key: "operations",  label: "Operations" },
-    { key: "growth",      label: "Growth & Support" },
-    { key: "industry",    label: "Industry Specific" },
-    { key: "hospitality", label: "Food & Hospitality" },
-  ] as const;
+  const isAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
 
   return (
     <div className="page-pad">
@@ -209,12 +201,19 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {!isAdmin ? (
+        <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
+          <Lock size={28} color="var(--text-ghost)" style={{ marginBottom: 12 }} />
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 4px" }}>Organization settings are admin-only</p>
+          <p style={{ fontSize: 13, color: "var(--text-ghost)", margin: 0 }}>
+            Only {activeOrg?.name ?? "your organization"}'s owner or admin can view team members, HR settings and security here.
+          </p>
+        </div>
+      ) : (
+      <>
       <div style={S.tabs}>
         <button style={tabStyle("organization")} onClick={() => setTab("organization")}>
           <Building2 size={13} style={{ display: "inline", marginRight: 6 }} />Organization
-        </button>
-        <button style={tabStyle("modules")} onClick={() => setTab("modules")}>
-          <Shield size={13} style={{ display: "inline", marginRight: 6 }} />Modules
         </button>
         <button style={tabStyle("team")} onClick={() => setTab("team")}>
           <Users size={13} style={{ display: "inline", marginRight: 6 }} />Team
@@ -281,52 +280,13 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ── MODULE SELECTION ── */}
-      {tab === "modules" && (
-        <div style={S.card}>
-          <div style={S.section}>Enabled Modules</div>
-          <p style={{ fontSize: 13, color: "var(--text-ghost)", marginBottom: 20 }}>
-            Select which modules are active for <strong style={{ color: "var(--text-primary)" }}>{activeOrg?.name}</strong>. Changes affect all team members.
-          </p>
-          {CATEGORIES.map(cat => {
-            const mods = ALL_MODULES.filter(m => m.category === cat.key);
-            return (
-              <div key={cat.key} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{cat.label}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 8 }}>
-                  {mods.map(m => {
-                    const on = enabledModules.includes(m.key);
-                    return (
-                      <label key={m.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: on ? "#6366f115" : "var(--bg-hover)", borderRadius: 8, border: `1px solid ${on ? "#6366f1" : "var(--border)"}`, cursor: "pointer" }}>
-                        <input type="checkbox" checked={on} onChange={() => toggleModule(m.key)} style={{ accentColor: "#6366f1" }} />
-                        <div>
-                          <div style={{ fontSize: 13, color: on ? "var(--text-primary)" : "var(--text-sec)", fontWeight: on ? 600 : 400 }}>{m.label}</div>
-                          <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 1 }}>{m.description.slice(0, 50)}…</div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-            <button onClick={saveModules} style={S.btn} disabled={saving}>
-              {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Module Selection"}
-            </button>
-            <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>{enabledModules.length} module{enabledModules.length !== 1 ? "s" : ""} selected</span>
-            {saveError && <span style={{ fontSize: 12, color: "#f87171", fontWeight: 600 }}>{saveError}</span>}
-          </div>
-        </div>
-      )}
-
       {/* ── TEAM MEMBERS ── */}
       {tab === "team" && (
         <div style={S.card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={S.section as React.CSSProperties}>Team Members</div>
-            <button onClick={() => setShowInvite(true)} style={{ ...S.btn, padding: "7px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-              <Plus size={13} /> Invite Member
+            <button onClick={() => setShowAddEmployee(true)} style={{ ...S.btn, padding: "7px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+              <Plus size={13} /> Add Employee
             </button>
           </div>
           {members.length === 0 ? (
@@ -343,56 +303,80 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ── INVITE MODAL ── */}
-      {showInvite && (
-        <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowInvite(false)}>
-          <div className="modal-inner">
+      {/* ── ADD EMPLOYEE MODAL ── */}
+      {showAddEmployee && (
+        <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowAddEmployee(false)}>
+          <div className="modal-inner" style={{ maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Invite Team Member</h3>
-              <button onClick={() => setShowInvite(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Add Employee</h3>
+              <button onClick={() => setShowAddEmployee(false)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
-            {inviteDone ? (
+            {addEmployeeDone ? (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
                 <Check size={32} color="#10b981" style={{ margin: "0 auto 10px", display: "block" }} />
-                <div style={{ color: "#10b981", fontWeight: 600 }}>Invitation sent!</div>
+                <div style={{ color: "#10b981", fontWeight: 600 }}>Employee added — they can log in right away.</div>
               </div>
             ) : (
               <>
+                {addEmployeeError && <div style={{ background: "#ef444415", border: "1px solid #ef444430", borderRadius: 8, padding: "8px 12px", color: "#f87171", fontSize: 12.5, marginBottom: 14 }}>{addEmployeeError}</div>}
                 <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
-                  <div><label style={S.label}>Email Address</label>
-                    <input type="email" style={S.input} value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="team@example.com" />
+                  <div><label style={S.label}>Name</label>
+                    <input style={S.input} value={empForm.name} onChange={e => setEmpForm(p => ({ ...p, name: e.target.value }))} placeholder="Full name" />
                   </div>
-                  <div><label style={S.label}>Role</label>
-                    <select style={S.select} value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
-                      <optgroup label="── Management ──────────────">
-                        <option value="ADMIN">Admin — Full org access</option>
-                        <option value="MANAGER">Manager — Department head</option>
-                      </optgroup>
-                      <optgroup label="── Department Staff ─────────">
-                        <option value="STAFF">HR Executive / HR Staff</option>
-                        <option value="STAFF">Sales Executive</option>
-                        <option value="STAFF">Purchase Officer</option>
-                        <option value="STAFF">Inventory / Store Staff</option>
-                        <option value="STAFF">Dispatch / Logistics Staff</option>
-                        <option value="STAFF">Marketing Executive</option>
-                        <option value="STAFF">Support Executive</option>
-                        <option value="STAFF">Operations Staff</option>
-                        <option value="STAFF">Field Sales / Telecalling</option>
-                        <option value="ACCOUNTANT">Accountant / Finance Staff</option>
-                      </optgroup>
-                      <optgroup label="── Read-Only Access ─────────">
-                        <option value="VIEWER">Viewer — Read only</option>
-                      </optgroup>
+                  <div><label style={S.label}>Job Role</label>
+                    <select style={S.select} value={empForm.jobRole} onChange={e => setEmpForm(p => ({ ...p, jobRole: e.target.value, modules: [] }))}>
+                      {Object.entries(JOB_ROLES).map(([key, r]) => <option key={key} value={key}>{r.label}</option>)}
                     </select>
-                    <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4, margin: "4px 0 0" }}>
-                      Role controls access level. Module access is set separately in Admin → Team.
-                    </p>
+                    <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4, margin: "4px 0 0" }}>{JOB_ROLES[empForm.jobRole].hint}</p>
                   </div>
+
+                  {JOB_ROLES[empForm.jobRole].picksModules && (
+                    <div>
+                      <label style={S.label}>Modules</label>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {ALL_MODULES.map(m => {
+                          const on = empForm.modules.includes(m.key);
+                          return (
+                            <button type="button" key={m.key}
+                              onClick={() => setEmpForm(p => ({ ...p, modules: on ? p.modules.filter(k => k !== m.key) : [...p.modules, m.key] }))}
+                              style={{ padding: "5px 10px", borderRadius: 7, fontSize: 12, cursor: "pointer",
+                                border: on ? "1px solid #6366f1" : "1px solid var(--border)",
+                                background: on ? "#6366f118" : "var(--bg-hover)", color: on ? "#818cf8" : "var(--text-sec)" }}>
+                              {m.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div><label style={S.label}>Description</label>
+                    <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" as const, fontFamily: "inherit" }} value={empForm.description} onChange={e => setEmpForm(p => ({ ...p, description: e.target.value }))} placeholder="What do they do day to day?" />
+                  </div>
+                  <div className="grid-r2">
+                    <div><label style={S.label}>Login Email</label>
+                      <input type="email" style={S.input} value={empForm.email} onChange={e => setEmpForm(p => ({ ...p, email: e.target.value }))} placeholder="name@company.com" />
+                    </div>
+                    <div><label style={S.label}>Phone</label>
+                      <input style={S.input} value={empForm.phone} onChange={e => setEmpForm(p => ({ ...p, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} />
+                    </div>
+                  </div>
+                  <div className="grid-r2">
+                    <div><label style={S.label}>Password</label>
+                      <input type="password" style={S.input} value={empForm.password} onChange={e => setEmpForm(p => ({ ...p, password: e.target.value }))} placeholder="Min 8 characters" />
+                    </div>
+                    <div><label style={S.label}>Confirm Password</label>
+                      <input type="password" style={S.input} value={empForm.confirmPassword} onChange={e => setEmpForm(p => ({ ...p, confirmPassword: e.target.value }))} />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 11, color: "var(--text-ghost)", margin: 0 }}>
+                    They can log in immediately with this email and password — share it with them directly.
+                  </p>
                 </div>
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                  <button onClick={() => setShowInvite(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
-                  <button onClick={sendInvite} style={S.btn} disabled={inviting || !inviteEmail}>
-                    {inviting ? "Sending..." : "Send Invite"}
+                  <button onClick={() => setShowAddEmployee(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
+                  <button onClick={addEmployee} style={S.btn} disabled={addingEmployee || !empForm.name || !empForm.email || !empForm.password}>
+                    {addingEmployee ? "Adding..." : "Add Employee"}
                   </button>
                 </div>
               </>
@@ -511,6 +495,8 @@ export default function SettingsPage() {
 
       {/* ── SECURITY / 2FA ── */}
       {tab === "security" && <TwoFactorSettings />}
+      </>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
+import { ALL_MODULES, getDefaultModules } from "@/lib/modules";
 import { Search, UserCheck, UserX, Shield, Users, Package, Plus, X, Copy, CheckCircle } from "lucide-react";
 
 const S = {
@@ -41,7 +42,7 @@ const BUSINESS_TYPES = [
 
 const EMPTY_CREATE_FORM = {
   name: "", email: "", password: "", isSuperAdmin: false, sendWelcomeEmail: true,
-  createOrg: false, orgName: "", businessType: "OTHER",
+  createOrg: false, orgName: "", businessType: "OTHER", enabledModules: [] as string[],
 };
 
 const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
@@ -129,7 +130,7 @@ export default function SuperAdminUsersPage() {
         password: createForm.password.trim() || undefined,
         isSuperAdmin: createForm.isSuperAdmin,
         sendWelcomeEmail: createForm.sendWelcomeEmail,
-        organization: createForm.createOrg ? { name: createForm.orgName.trim(), businessType: createForm.businessType } : undefined,
+        organization: createForm.createOrg ? { name: createForm.orgName.trim(), businessType: createForm.businessType, enabledModules: createForm.enabledModules } : undefined,
       });
       const data = res.data.data;
       setCreatedResult({ email: data.user.email, password: data.temporaryPassword, orgSlug: data.organization?.slug });
@@ -390,11 +391,32 @@ export default function SuperAdminUsersPage() {
                         <label style={S.label}>Organization Name *</label>
                         <input style={S.input} value={createForm.orgName} onChange={e => setCreateForm(f => ({ ...f, orgName: e.target.value }))} placeholder="Acme Traders" />
                       </div>
-                      <div style={{ marginBottom: 4 }}>
+                      <div style={{ marginBottom: 14 }}>
                         <label style={S.label}>Business Type</label>
-                        <select style={S.input} value={createForm.businessType} onChange={e => setCreateForm(f => ({ ...f, businessType: e.target.value }))}>
+                        <select style={S.input} value={createForm.businessType} onChange={e => {
+                          const businessType = e.target.value;
+                          setCreateForm(f => ({ ...f, businessType, enabledModules: getDefaultModules(businessType) }));
+                        }}>
                           {BUSINESS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                         </select>
+                        <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4 }}>Pre-selected the usual set for this business type — adjust below for this client.</p>
+                      </div>
+                      <div style={{ marginBottom: 4 }}>
+                        <label style={S.label}>Modules ({createForm.enabledModules.length} selected)</label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 160, overflowY: "auto", padding: "8px 0" }}>
+                          {ALL_MODULES.map(m => {
+                            const on = createForm.enabledModules.includes(m.key);
+                            return (
+                              <button type="button" key={m.key}
+                                onClick={() => setCreateForm(f => ({ ...f, enabledModules: on ? f.enabledModules.filter(k => k !== m.key) : [...f.enabledModules, m.key] }))}
+                                style={{ padding: "5px 10px", borderRadius: 7, fontSize: 11.5, cursor: "pointer",
+                                  border: on ? "1px solid #6366f1" : "1px solid var(--border)",
+                                  background: on ? "#6366f118" : "var(--bg-hover)", color: on ? "#818cf8" : "var(--text-sec)" }}>
+                                {m.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </>
                   )}

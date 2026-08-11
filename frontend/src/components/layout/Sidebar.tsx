@@ -356,9 +356,14 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         {/* ── Fixed bottom: language + settings ── */}
         <div className="flex flex-col items-center flex-shrink-0" style={{ padding: "8px 0", borderTop: "1px solid var(--sb-border)", gap: 6 }}>
           <LanguageSwitcher />
-          <NavLink to="/settings" onClick={closeAll} className={({ isActive }) => railLinkClass(isActive)} style={{ width: 40, height: 40 }} title={t("nav_settings")}>
-            <Settings style={{ width: 18, height: 18 }} />
+          <NavLink to="/directory" onClick={closeAll} className={({ isActive }) => railLinkClass(isActive)} style={{ width: 40, height: 40 }} title="Company Directory">
+            <UsersRound style={{ width: 18, height: 18 }} />
           </NavLink>
+          {isOrgAdmin && (
+            <NavLink to="/settings" onClick={closeAll} className={({ isActive }) => railLinkClass(isActive)} style={{ width: 40, height: 40 }} title={t("nav_settings")}>
+              <Settings style={{ width: 18, height: 18 }} />
+            </NavLink>
+          )}
         </div>
       </div>
 

@@ -37,6 +37,7 @@ import EWayBillPage from "@/pages/gst/EWayBillPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTeamPage from "@/pages/admin/AdminTeamPage";
+import DirectoryPage from "@/pages/directory/DirectoryPage";
 import AdminModulesPage from "@/pages/admin/AdminModulesPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
 import AdminLogsPage from "@/pages/admin/AdminLogsPage";
@@ -182,6 +183,7 @@ export default function App() {
           <Route path="/team-dashboard" element={GR("HR", "MANAGER", TeamDashboardPage)} />
           <Route path="/pm-dashboard"  element={<PMDashboard />} />
           <Route path="/team"          element={<TeamPage />} />
+          <Route path="/directory"     element={<DirectoryPage />} />
           <Route path="/my-work"       element={G("PROJECTS", MyWorkPage)} />
           <Route path="/bugs"          element={G("PROJECTS", BugTrackerPage)} />
           <Route path="/time-tracking" element={G("PROJECTS", TimeTrackingPage)} />

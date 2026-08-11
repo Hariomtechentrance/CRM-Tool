@@ -455,6 +455,9 @@ export async function cancelInvite(req: OrgRequest, res: Response): Promise<void
 // ── List & Remove Members ────────────────────────────────────
 export async function listMembers(req: OrgRequest, res: Response): Promise<void> {
   try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only Owner or Admin can view the team list"); return;
+    }
     const members = await prisma.organizationMember.findMany({
       where: { organizationId: req.organizationId!, isActive: true },
       include: { user: { select: { id: true, name: true, email: true, avatar: true, lastLoginAt: true } } },
@@ -548,6 +551,110 @@ export async function listOrgModuleRequests(req: OrgRequest, res: Response): Pro
       orderBy: { requestedAt: "desc" },
     });
     ok(res, requests);
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// ── Job Role taxonomy ────────────────────────────────────────────
+// Each preset sets a starting permission tier + module grants when an org
+// admin adds a new employee directly. "ALL_ENABLED" means every module the
+// org currently has turned on. STAFF/INTERN/HR ship with a narrow starting
+// point since those titles are too generic/specific to guess broadly —
+// the admin picks the exact module(s) for that person at creation time.
+export const JOB_ROLES: Record<string, { label: string; memberRole: MemberRole; defaultModules: string[] | "ALL_ENABLED" }> = {
+  MANAGER:         { label: "Manager",          memberRole: MemberRole.MANAGER,    defaultModules: "ALL_ENABLED" },
+  ACCOUNTANT:      { label: "Accountant",        memberRole: MemberRole.ACCOUNTANT, defaultModules: ["ACCOUNTS", "REPORTS"] },
+  PROJECT_MANAGER: { label: "Project Manager",   memberRole: MemberRole.MANAGER,    defaultModules: ["PROJECTS", "HR"] },
+  EXECUTIVE:       { label: "Executive",         memberRole: MemberRole.STAFF,      defaultModules: ["CRM", "MARKETING"] },
+  STAFF:           { label: "Staff",             memberRole: MemberRole.STAFF,      defaultModules: [] },
+  INTERN:          { label: "Intern",            memberRole: MemberRole.STAFF,      defaultModules: [] },
+  HR:              { label: "HR",                memberRole: MemberRole.STAFF,      defaultModules: ["HR"] },
+};
+
+// ── Add employee directly — sets their password immediately, no email
+// dependency. Replaces the old invite-by-email flow as the primary path. ──
+export async function createOrgEmployee(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only Owner or Admin can add employees"); return;
+    }
+
+    const { name, jobRole, description, email, password, confirmPassword, phone, modules } = req.body as {
+      name?: string; jobRole?: string; description?: string; email?: string;
+      password?: string; confirmPassword?: string; phone?: string; modules?: string[];
+    };
+
+    if (!name?.trim()) { badRequest(res, "Name is required"); return; }
+    if (!jobRole || !JOB_ROLES[jobRole]) { badRequest(res, "A valid job role is required"); return; }
+    if (!email?.trim()) { badRequest(res, "Email is required"); return; }
+    if (password !== confirmPassword) { badRequest(res, "Passwords do not match"); return; }
+    const strength = isStrongPassword(password || "");
+    if (!strength.ok) { badRequest(res, strength.reason || "Password is too weak"); return; }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (existing) { conflict(res, "A user with this email already exists"); return; }
+
+    const preset = JOB_ROLES[jobRole];
+    let moduleKeys: string[];
+    if (preset.defaultModules === "ALL_ENABLED") {
+      const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { enabledModules: true } });
+      moduleKeys = org?.enabledModules ?? [];
+    } else {
+      moduleKeys = modules && modules.length > 0 ? modules : preset.defaultModules;
+    }
+
+    const hash = await bcrypt.hash(password!, 12);
+    const employeeCount = await prisma.employee.count({ where: { organizationId: req.organizationId! } });
+
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { name: name.trim(), email: normalizedEmail, password: hash, isActive: true, isEmailVerified: true },
+      });
+      await tx.organizationMember.create({
+        data: { userId: user.id, organizationId: req.organizationId!, role: preset.memberRole },
+      });
+      if (moduleKeys.length > 0) {
+        await tx.userModuleAccess.createMany({
+          data: moduleKeys.map((moduleKey) => ({ userId: user.id, organizationId: req.organizationId!, moduleKey, grantedById: req.userId! })),
+        });
+      }
+      const employee = await tx.employee.create({
+        data: {
+          organizationId: req.organizationId!,
+          employeeCode: `EMP-${String(employeeCount + 1).padStart(4, "0")}`,
+          name: name.trim(),
+          email: normalizedEmail,
+          phone: phone || null,
+          designation: preset.label,
+          orgRole: jobRole,
+          notes: description || null,
+          userId: user.id,
+          joiningDate: new Date(),
+        },
+      });
+      return { user, employee };
+    });
+
+    created(res, {
+      id: result.user.id, name: result.user.name, email: result.user.email,
+      jobRole, role: preset.memberRole, modules: moduleKeys, employeeId: result.employee.id,
+    }, "Employee added");
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// ── Company directory — who works here, visible to every member ────
+export async function listOrgDirectory(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const employees = await prisma.employee.findMany({
+      where: { organizationId: req.organizationId!, status: "ACTIVE" },
+      select: { id: true, name: true, designation: true, department: true, orgRole: true },
+      orderBy: { name: "asc" },
+    });
+    ok(res, employees);
   } catch (err) {
     serverError(res, err);
   }

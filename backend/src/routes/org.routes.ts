@@ -18,6 +18,8 @@ import {
   removeMember,
   requestOrgModule,
   listOrgModuleRequests,
+  createOrgEmployee,
+  listOrgDirectory,
 } from "../controllers/org.controller";
 
 const router = Router();
@@ -46,5 +48,7 @@ router.patch("/current/members/:memberId/role", requireOrgContext, updateMemberR
 router.delete("/current/members/:memberId", requireOrgContext, removeMember);
 router.post("/current/module-requests", requireOrgContext, requestOrgModule);
 router.get("/current/module-requests", requireOrgContext, listOrgModuleRequests);
+router.post("/current/employees", requireOrgContext, createOrgEmployee);
+router.get("/current/directory", requireOrgContext, listOrgDirectory);
 
 export default router;

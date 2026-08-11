@@ -9,14 +9,15 @@ import { MemberRole } from "@prisma/client";
 // (OWNER/ADMIN/MANAGER/STAFF) — a platform ADMIN auto-bypasses every
 // module's access checks org-wide, which makes it impossible to express
 // "the org owner is the only administrator of this module" using the
-// generic role alone. Instead we key off each person's HR job-title
-// convention (Employee.orgRole: MANAGEMENT | PROJECT_MANAGER | ... ),
+// generic role alone. Instead we key off each person's platform-wide Job
+// Role (Employee.orgRole: MANAGER | ACCOUNTANT | PROJECT_MANAGER |
+// EXECUTIVE | STAFF | INTERN | HR — see JOB_ROLES in org.controller.ts),
 // which is set per-person rather than being an org-wide bypass:
 //   OWNER      — the org owner: full control, the only one who can add
 //                employees or staff a project's team.
 //   PM         — orgRole "PROJECT_MANAGER": creates/edits projects, sets
 //                status & deadlines, but cannot staff the team.
-//   LEADERSHIP — orgRole "MANAGEMENT": read-only visibility into every
+//   LEADERSHIP — orgRole "MANAGER": read-only visibility into every
 //                project and every deadline, no write actions.
 //   STAFF      — everyone else: sees only projects they're assigned to.
 // Orgs that haven't adopted the orgRole convention fall back to the
@@ -32,7 +33,7 @@ async function getAccessLevel(req: OrgRequest): Promise<WBALevel> {
   });
 
   if (employee?.orgRole === "PROJECT_MANAGER") return "PM";
-  if (employee?.orgRole === "MANAGEMENT") return "LEADERSHIP";
+  if (employee?.orgRole === "MANAGER") return "LEADERSHIP";
 
   // Fallback for orgs not using the orgRole convention on their Employee records.
   if (!employee?.orgRole) {

@@ -31,6 +31,7 @@ const createUserSchema = z.object({
     businessType: z.string().optional(),
     currency: z.string().max(10).optional(),
     country: z.string().max(60).optional(),
+    enabledModules: z.array(z.string().max(50)).max(50).optional(),
   }).optional(),
 });
 
@@ -209,6 +210,7 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
             currency: organization.currency || "INR",
             country: organization.country || "India",
             email,
+            enabledModules: organization.enabledModules ?? [],
             members: { create: { userId: user.id, role: "OWNER" } },
           },
         });
