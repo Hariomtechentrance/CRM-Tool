@@ -76,7 +76,7 @@ function ContactModal({ open, onClose, onSaved, partyId, contact }: {
         <Input label="Name *" {...register("name")} error={errors.name?.message} />
         <Input label="Designation" placeholder="Manager, Director..." {...register("designation")} />
         <Input label="Email" type="email" {...register("email")} error={errors.email?.message} />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input label="Phone" {...register("phone")} />
           <Input label="Mobile" {...register("mobile")} />
         </div>
@@ -317,7 +317,7 @@ export default function PartyDetailPage() {
             <Card>
               <CardHeader><h3 className="font-semibold text-slate-700">Business Details</h3></CardHeader>
               <CardBody>
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                   {[
                     { label: "GSTIN",          value: party.gstin },
                     { label: "PAN",            value: party.pan },
@@ -350,7 +350,7 @@ export default function PartyDetailPage() {
               <Card>
                 <CardHeader><h3 className="font-semibold text-slate-700">Banking</h3></CardHeader>
                 <CardBody>
-                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     {[
                       { label: "Bank",    value: party.bankName },
                       { label: "Account", value: party.bankAccount },
@@ -388,7 +388,7 @@ export default function PartyDetailPage() {
                     <p className="text-xs text-slate-400">Since {formatDate(party.createdAt)}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="bg-slate-50 rounded-lg p-3 text-center">
                     <Building className="w-4 h-4 text-slate-400 mx-auto mb-1" />
                     <p className="text-xs text-slate-500">Contacts</p>

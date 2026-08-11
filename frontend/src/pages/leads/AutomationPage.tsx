@@ -72,7 +72,7 @@ function ActionConfigFields({ actionType, config, onChange }: {
 }) {
   if (actionType === "create_followup") {
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
             Days from now
@@ -549,7 +549,7 @@ export default function AutomationPage() {
       {/* How it works panel */}
       <div className="mt-8 rounded-2xl p-5" style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.12)" }}>
         <h3 className="text-sm font-semibold mb-3" style={{ color: "#818cf8" }}>How Automation Works</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { title: "Status Changed", desc: "When a lead status is updated, automatically schedule a follow-up or change grade." },
             { title: "Lead Created", desc: "When a new lead is added, auto-assign it to a team member or add a welcome tag." },

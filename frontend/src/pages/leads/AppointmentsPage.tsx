@@ -60,7 +60,7 @@ function AppointmentFormModal({ appt, onClose, onSaved }: { appt?: Appointment |
             <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Title *</label>
             <input style={{ ...S.inp, width: "100%" }} value={form.title} onChange={e => f("title")(e.target.value)} placeholder="Meeting with Rajesh Sharma" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Date & Time *</label>
               <input style={{ ...S.inp, width: "100%" }} type="datetime-local" value={form.scheduledAt} onChange={e => f("scheduledAt")(e.target.value)} />

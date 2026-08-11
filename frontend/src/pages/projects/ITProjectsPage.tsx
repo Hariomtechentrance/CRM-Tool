@@ -94,7 +94,7 @@ function CreateProjectModal({ employees, onClose, onCreated }: { employees: any[
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
       <div className="rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
         <h2 className="text-base font-bold mb-5" style={{ color: "var(--text-primary)" }}>New IT Project</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="col-span-2">
             <label style={lbl}>Project Name *</label>
             <input style={inp} value={form.name} onChange={e => f("name")(e.target.value)} placeholder="e.g. Customer Portal v2" />

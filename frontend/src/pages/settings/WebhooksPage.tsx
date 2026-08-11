@@ -352,7 +352,7 @@ export default function WebhooksPage() {
       {/* Events reference */}
       <div className="mt-8 rounded-xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
         <h3 className="text-sm font-bold mb-3" style={{ color: "var(--text-primary)" }}>Available Events</h3>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {allEvents.map(e => (
             <div key={e} className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
               style={{ background: "var(--bg-hover)" }}>

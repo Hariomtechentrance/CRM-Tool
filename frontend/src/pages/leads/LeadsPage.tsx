@@ -78,7 +78,7 @@ function LogActivityModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () 
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
         </div>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Type</label>
               <select style={{ ...S.inp, width: "100%" }} value={form.type} onChange={e => f("type")(e.target.value)}>
@@ -103,7 +103,7 @@ function LogActivityModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () 
             <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Notes *</label>
             <textarea style={{ ...S.inp, width: "100%", resize: "vertical", minHeight: 80 } as React.CSSProperties} value={form.description} onChange={e => f("description")(e.target.value)} placeholder="What was discussed? Next steps?" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {form.type === "CALL" && (
               <div>
                 <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Duration (min)</label>
@@ -152,7 +152,7 @@ function BookAppointmentModal({ lead, onClose, onSaved }: { lead: Lead; onClose:
             <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Title</label>
             <input style={{ ...S.inp, width: "100%" }} value={form.title} onChange={e => f("title")(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Date & Time</label>
               <input style={{ ...S.inp, width: "100%" }} type="datetime-local" value={form.scheduledAt} onChange={e => f("scheduledAt")(e.target.value)} />
@@ -224,7 +224,7 @@ function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: { lead?
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
         </div>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[["Name *","name","text","Full name"],["Company","company","text","Company"],["Phone","phone","text","+91 98765"],["Alt Phone","phone2","text","Alternate"],["Email","email","email","email@..."],["City","city","text","Mumbai"]].map(([l,k,t,ph]) => (
               <div key={String(k)}>
                 <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>{l}</label>
@@ -353,7 +353,7 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
           <div className="space-y-3">
             <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80" }}>{sample}</div>
             <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>Supports JustDial, Facebook Leads, IndiaMart CSV exports. Columns: name, phone, email, company, city</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Source</label>
                 <select style={{ ...S.inp, width: "100%" }} value={source} onChange={e => setSource(e.target.value)}>
