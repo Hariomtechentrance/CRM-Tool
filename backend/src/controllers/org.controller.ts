@@ -597,12 +597,22 @@ export async function createOrgEmployee(req: OrgRequest, res: Response): Promise
     if (existing) { conflict(res, "A user with this email already exists"); return; }
 
     const preset = JOB_ROLES[jobRole];
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { enabledModules: true } });
+    const orgModules = org?.enabledModules ?? [];
+
     let moduleKeys: string[];
     if (preset.defaultModules === "ALL_ENABLED") {
-      const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { enabledModules: true } });
-      moduleKeys = org?.enabledModules ?? [];
+      moduleKeys = orgModules;
     } else {
-      moduleKeys = modules && modules.length > 0 ? modules : preset.defaultModules;
+      moduleKeys = modules && modules.length > 0 ? modules : [...preset.defaultModules];
+    }
+
+    // A Project Manager runs whatever delivery-pipeline module the org has —
+    // WBA (Service Delivery Pipeline) isn't a standard preset module since
+    // it's org-specific, so wire it in for orgs that have it enabled rather
+    // than hardcoding it into every org's Project Manager default.
+    if ((jobRole === "PROJECT_MANAGER" || jobRole === "EXECUTIVE") && orgModules.includes("WBA") && !moduleKeys.includes("WBA")) {
+      moduleKeys = [...moduleKeys, "WBA"];
     }
 
     const hash = await bcrypt.hash(password!, 12);
