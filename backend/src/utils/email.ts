@@ -1,17 +1,31 @@
 import nodemailer from "nodemailer";
 
-const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const configuredPort = Number(process.env.SMTP_PORT) || 587;
+const alternatePort = configuredPort === 465 ? 587 : 465;
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: smtpPort,
-  secure: smtpPort === 465, // SSL on 465, STARTTLS on 587
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: { rejectUnauthorized: process.env.NODE_ENV === "production" },
-});
+// Some PaaS hosts block outbound port 587 (STARTTLS) but allow 465 (implicit
+// TLS), or vice versa. Rather than hard-fail on whichever port happens to be
+// configured, build a transporter for both and fall back to the other one
+// if the first times out or is refused — cheap insurance against exactly
+// that class of host-level network block, with no behavior change if the
+// configured port already works.
+function makeTransporter(port: number) {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465, // SSL on 465, STARTTLS on 587
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    tls: { rejectUnauthorized: process.env.NODE_ENV === "production" },
+    connectionTimeout: 10_000,
+    socketTimeout: 10_000,
+  });
+}
+
+const primaryTransporter = makeTransporter(configuredPort);
+let fallbackTransporter: ReturnType<typeof makeTransporter> | null = null;
 
 interface SendMailOptions { to: string; subject: string; html: string; }
 
@@ -25,13 +39,25 @@ export async function sendEmail({ to, subject, html }: SendMailOptions) {
     throw new Error("SMTP not configured. Set SMTP_HOST and SMTP_USER in your environment.");
   }
 
+  const mail = { from: process.env.EMAIL_FROM || "FlowCRM <noreply@flowcrm.in>", to, subject, html };
+
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || "FlowCRM <noreply@flowcrm.in>",
-      to, subject, html,
-    });
+    await primaryTransporter.sendMail(mail);
+    return;
+  } catch (err: any) {
+    const isNetworkBlock = err?.code === "ETIMEDOUT" || err?.code === "ECONNREFUSED" || err?.code === "ESOCKET";
+    if (!isNetworkBlock) {
+      console.error("[Email] Failed to send:", err);
+      throw new Error("Email delivery failed. Please try again later.");
+    }
+    console.warn(`[Email] Port ${configuredPort} blocked/unreachable, retrying on ${alternatePort}...`);
+  }
+
+  try {
+    fallbackTransporter ??= makeTransporter(alternatePort);
+    await fallbackTransporter.sendMail(mail);
   } catch (err) {
-    console.error("[Email] Failed to send:", err);
+    console.error("[Email] Failed to send on both ports:", err);
     throw new Error("Email delivery failed. Please try again later.");
   }
 }
