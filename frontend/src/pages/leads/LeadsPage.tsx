@@ -217,8 +217,8 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-4" style={{ background: "rgba(0,0,0,0.75)" }}>
-      <div className="rounded-2xl p-5 w-full max-w-xl mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center py-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-xl mx-4 max-h-[88vh] overflow-y-auto" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{lead ? "Edit Lead" : "Add Lead"}</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
