@@ -7,6 +7,7 @@ import api from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 import { isPushSupported, isPushSubscribed, enablePushNotifications } from "@/lib/pushNotifications";
 import { WBA_CATEGORIES } from "@/pages/wba/WBAPage";
+import { LeadFormModal } from "@/pages/leads/LeadsPage";
 
 interface Alert {
   id: string;
@@ -539,7 +540,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </div>
       </div>
     </header>
-    {showQuickLead && <QuickAddLeadModal onClose={() => setShowQuickLead(false)} />}
+    {showQuickLead && <QuickAddLeadWrapper onClose={() => setShowQuickLead(false)} />}
     {showQuickProject && <QuickAddProjectModal onClose={() => setShowQuickProject(false)} />}
     </>
   );
@@ -554,60 +555,18 @@ const qaBox: React.CSSProperties = { background: "var(--bg-card)", border: "1px 
 const qaInput: React.CSSProperties = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 11px", color: "var(--text-primary)", fontSize: 13.5, outline: "none", boxSizing: "border-box" };
 const qaLabel: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "var(--text-sec)", fontWeight: 600 };
 
-function QuickAddLeadModal({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ name: "", phone: "", email: "", company: "", notes: "" });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
+// Same exact form as the Leads page's own "Add Lead" — not a stripped-down
+// alternate version — so it looks and works identically for every role,
+// wherever it's opened from. Only fetches its own employee list here since
+// this isn't nested under the Leads page.
+function QuickAddLeadWrapper({ onClose }: { onClose: () => void }) {
+  const [employees, setEmployees] = useState<{ id: string; name: string; designation?: string }[]>([]);
 
-  const submit = async () => {
-    if (!form.name.trim()) { setError("Name is required."); return; }
-    setSaving(true);
-    setError("");
-    try {
-      await api.post("/leads", { ...form, source: "OTHER", status: "NEW" });
-      setDone(true);
-      setTimeout(onClose, 1200);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || "Could not add the lead.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  useEffect(() => {
+    api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
+  }, []);
 
-  return (
-    <div style={qaModal} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={qaBox}>
-        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>New Lead</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
-        </div>
-        {done ? (
-          <div style={{ padding: 32, textAlign: "center" }}>
-            <Check size={28} color="#10b981" style={{ margin: "0 auto 8px", display: "block" }} />
-            <p style={{ color: "#10b981", fontWeight: 600, margin: 0 }}>Lead added.</p>
-          </div>
-        ) : (
-          <>
-            <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
-              {error && <div style={{ background: "#450a0a", color: "#f87171", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>{error}</div>}
-              <label style={qaLabel}>Name<input style={qaInput} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Full name" autoFocus /></label>
-              <label style={qaLabel}>Company<input style={qaInput} value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} /></label>
-              <label style={qaLabel}>Phone<input style={qaInput} value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} /></label>
-              <label style={qaLabel}>Email<input type="email" style={qaInput} value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></label>
-              <label style={qaLabel}>Notes<textarea style={{ ...qaInput, minHeight: 60, resize: "vertical", fontFamily: "inherit" }} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></label>
-            </div>
-            <div style={{ padding: "16px 22px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={onClose} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-sec)", cursor: "pointer", fontSize: 13.5 }}>Cancel</button>
-              <button onClick={submit} disabled={saving} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#f59e0b", color: "#2b1600", fontWeight: 700, cursor: saving ? "default" : "pointer", fontSize: 13.5, opacity: saving ? 0.7 : 1 }}>
-                {saving ? "Adding..." : "Add Lead"}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  return <LeadFormModal employees={employees} onClose={onClose} onSaved={() => {}} />;
 }
 
 function QuickAddProjectModal({ onClose }: { onClose: () => void }) {

@@ -183,7 +183,7 @@ function BookAppointmentModal({ lead, onClose, onSaved }: { lead: Lead; onClose:
 }
 
 // ── Lead Form Modal ───────────────────────────────────────────
-function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: { lead?: Lead | null; employees: Employee[]; campaigns: any[]; onClose: () => void; onSaved: () => void }) {
+export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: { lead?: Lead | null; employees: Employee[]; campaigns?: any[]; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     name: lead?.name ?? "", company: lead?.company ?? "", email: lead?.email ?? "",
     phone: lead?.phone ?? "", phone2: lead?.phone2 ?? "", city: lead?.city ?? "",
@@ -506,7 +506,9 @@ export default function LeadsPage() {
 
   useEffect(() => {
     load();
-    api.get("/hr").then(r => setEmployees(r.data.data?.employees ?? [])).catch(() => {});
+    // Directory (not /hr) — assignable to everyone regardless of HR module access,
+    // so "Assign To" shows the same people list no matter who's opening this form.
+    api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
     api.get("/leads/campaigns").then(r => setCampaigns(r.data.data ?? [])).catch(() => {});
   }, [load]);
 
