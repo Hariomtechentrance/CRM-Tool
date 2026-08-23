@@ -148,7 +148,7 @@ export default function PublicProjectPage() {
       </div>
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 24px 48px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="grid-r2" style={{ gap: 20 }}>
 
           {/* Left column */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

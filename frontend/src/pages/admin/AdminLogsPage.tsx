@@ -79,7 +79,8 @@ export default function AdminLogsPage() {
           </div>
         ) : (
           <>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
                   {["Time", "User", "Action", "Resource", "Description", "IP"].map((h) => (
@@ -119,6 +120,7 @@ export default function AdminLogsPage() {
                 })}
               </tbody>
             </table>
+            </div>
 
             {totalPages > 1 && (
               <div style={{ display: "flex", justifyContent: "center", gap: 8, padding: "16px 0 0" }}>

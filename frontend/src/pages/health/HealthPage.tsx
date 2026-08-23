@@ -23,7 +23,7 @@ const S = {
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
   td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 600, maxHeight: "90vh", overflowY: "auto" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 600, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   textarea: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const, resize: "vertical" as const, minHeight: 72 },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -97,11 +97,11 @@ function PrescriptionFormFields({ form, setForm, patients, showPatientSelect, on
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {showPatientSelect && <PatientSelect value={form.patientId} patients={patients} onChange={id => setForm((f: any) => ({ ...f, patientId: id }))} />}
       <MedicineEditor medicines={form.medicines} setForm={setForm} />
-      <div style={S.g2}>
+      <div className="grid-r2">
         <div><label style={S.label}>Diet</label><input style={S.input} value={form.diet} onChange={e => setForm((f: any) => ({ ...f, diet: e.target.value }))} /></div>
         <div><label style={S.label}>Follow-up in (days)</label><input type="number" style={S.input} value={form.followUpDays} onChange={e => setForm((f: any) => ({ ...f, followUpDays: e.target.value }))} /></div>
       </div>
-      <div style={S.g2}>
+      <div className="grid-r2">
         <div><label style={S.label}>Valid Until</label><input type="date" style={S.input} value={form.validUntil} onChange={e => setForm((f: any) => ({ ...f, validUntil: e.target.value }))} /></div>
         <div><label style={S.label}>Instructions</label><input style={S.input} value={form.instructions} onChange={e => setForm((f: any) => ({ ...f, instructions: e.target.value }))} /></div>
       </div>
@@ -120,11 +120,11 @@ function LabReportFormFields({ form, setForm, patients, showPatientSelect, onSav
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {showPatientSelect && <PatientSelect value={form.patientId} patients={patients} onChange={id => setForm((f: any) => ({ ...f, patientId: id }))} />}
-      <div style={S.g2}>
+      <div className="grid-r2">
         <div><label style={S.label}>Test Name *</label><input style={S.input} value={form.testName} onChange={e => setForm((f: any) => ({ ...f, testName: e.target.value }))} /></div>
         <div><label style={S.label}>Category</label><input style={S.input} placeholder="Blood, Urine, Imaging…" value={form.testCategory} onChange={e => setForm((f: any) => ({ ...f, testCategory: e.target.value }))} /></div>
       </div>
-      <div style={S.g2}>
+      <div className="grid-r2">
         <div><label style={S.label}>Normal Range</label><input style={S.input} value={form.normalRange} onChange={e => setForm((f: any) => ({ ...f, normalRange: e.target.value }))} /></div>
         <div><label style={S.label}>Conducted On</label><input type="date" style={S.input} value={form.conductedAt} onChange={e => setForm((f: any) => ({ ...f, conductedAt: e.target.value }))} /></div>
       </div>
@@ -152,7 +152,7 @@ function AppointmentFormFields({ form, setForm, patients, doctors, showPatientSe
           </select>
         </div>
       </div>
-      <div style={S.g3}>
+      <div className="grid-r3">
         <div><label style={S.label}>Date *</label><input type="date" style={S.input} value={form.appointmentDate} onChange={e => setForm((f: any) => ({ ...f, appointmentDate: e.target.value }))} /></div>
         <div><label style={S.label}>Time Slot *</label><input style={S.input} placeholder="10:00-10:30" value={form.timeSlot} onChange={e => setForm((f: any) => ({ ...f, timeSlot: e.target.value }))} /></div>
         <div><label style={S.label}>Type</label>
@@ -186,12 +186,12 @@ function VisitFormFields({ form, setForm, patients, showPatientSelect, onSave, o
         </div>
       </div>
       <div><label style={S.label}>Chief Complaint</label><textarea style={{ ...S.textarea, minHeight: 60 }} value={form.chiefComplaint} onChange={e => setForm((f: any) => ({ ...f, chiefComplaint: e.target.value }))} /></div>
-      <div style={S.g3}>
+      <div className="grid-r3">
         <div><label style={S.label}>BP</label><input style={S.input} placeholder="120/80" value={form.vitalsBP} onChange={e => setForm((f: any) => ({ ...f, vitalsBP: e.target.value }))} /></div>
         <div><label style={S.label}>Pulse</label><input type="number" style={S.input} value={form.vitalsPulse} onChange={e => setForm((f: any) => ({ ...f, vitalsPulse: e.target.value }))} /></div>
         <div><label style={S.label}>Temp (°C)</label><input type="number" step="0.1" style={S.input} value={form.vitalsTemp} onChange={e => setForm((f: any) => ({ ...f, vitalsTemp: e.target.value }))} /></div>
       </div>
-      <div style={S.g2}>
+      <div className="grid-r2">
         <div><label style={S.label}>Diagnosis</label><input style={S.input} value={form.diagnosis} onChange={e => setForm((f: any) => ({ ...f, diagnosis: e.target.value }))} /></div>
         <div><label style={S.label}>Follow-up Date</label><input type="date" style={S.input} value={form.followUpDate} onChange={e => setForm((f: any) => ({ ...f, followUpDate: e.target.value }))} /></div>
       </div>
@@ -524,7 +524,7 @@ export default function HealthPage() {
 
       {/* KPIs */}
       {stats && (
-        <div style={S.kpiGrid}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
             { label: "Total Patients", value: stats.totalPatients, color: "#ef4444", icon: User },
             { label: "Today's Visits", value: stats.todayVisits, color: "#818cf8", icon: Activity },
@@ -563,7 +563,8 @@ export default function HealthPage() {
       {/* ── PATIENTS ── */}
       {tab === "patients" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Code","Name","Phone","Blood","Visits","Allergies"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", padding: 32 }}>Loading...</td></tr>
@@ -580,13 +581,15 @@ export default function HealthPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* ── DOCTORS ── */}
       {tab === "doctors" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Name","Specialization","Reg. No.","Experience","Verification","Documents","Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", padding: 32 }}>Loading...</td></tr>
@@ -617,13 +620,15 @@ export default function HealthPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* ── APPOINTMENTS ── */}
       {tab === "appointments" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Appt No","Patient","Doctor","Date","Slot","Type","Status","Action"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={8} style={{ ...S.td, textAlign: "center", padding: 32 }}>Loading...</td></tr>
@@ -649,13 +654,15 @@ export default function HealthPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* ── VISITS ── */}
       {tab === "visits" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Patient","Date","Type","Diagnosis","Vitals","Follow-up"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", padding: 32 }}>Loading...</td></tr>
@@ -672,13 +679,15 @@ export default function HealthPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* ── PRESCRIPTIONS ── */}
       {tab === "prescriptions" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Patient","Date","Medicines","Instructions","Follow-up","Valid Until"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {prescriptions.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", padding: 32 }}>No prescriptions</td></tr>
@@ -694,13 +703,15 @@ export default function HealthPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* ── LAB REPORTS ── */}
       {tab === "labs" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Patient","Test","Category","Conducted","Interpretation"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {labReports.length === 0 ? <tr><td colSpan={5} style={{ ...S.td, textAlign: "center", padding: 32 }}>No lab reports</td></tr>
@@ -715,6 +726,7 @@ export default function HealthPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -753,11 +765,11 @@ export default function HealthPage() {
                 {profileTab === "overview" && (
                   editingPatient ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      <div style={S.g2}>
+                      <div className="grid-r2">
                         <div><label style={S.label}>Full Name *</label><input style={S.input} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
                         <div><label style={S.label}>Phone</label><input style={S.input} value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} /></div>
                       </div>
-                      <div style={S.g3}>
+                      <div className="grid-r3">
                         <div><label style={S.label}>Date of Birth</label><input type="date" style={S.input} value={editForm.dob} onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))} /></div>
                         <div><label style={S.label}>Gender</label>
                           <select style={S.select} value={editForm.gender} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}>
@@ -772,7 +784,7 @@ export default function HealthPage() {
                         </div>
                       </div>
                       <div><label style={S.label}>Email</label><input type="email" style={S.input} value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></div>
-                      <div style={S.g2}>
+                      <div className="grid-r2">
                         <div><label style={S.label}>Emergency Contact Name</label><input style={S.input} value={editForm.emergencyName} onChange={e => setEditForm(f => ({ ...f, emergencyName: e.target.value }))} /></div>
                         <div><label style={S.label}>Emergency Contact Phone</label><input style={S.input} value={editForm.emergencyPhone} onChange={e => setEditForm(f => ({ ...f, emergencyPhone: e.target.value }))} /></div>
                       </div>
@@ -786,7 +798,7 @@ export default function HealthPage() {
                     </div>
                   ) : (
                     <>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div className="grid-r2" style={{ gap: 10 }}>
                         {[
                           { label: "Phone", val: profile?.phone ?? "—" },
                           { label: "Email", val: profile?.email ?? "—" },
@@ -978,7 +990,7 @@ export default function HealthPage() {
               </div>
               <button onClick={() => setSelectedDoctor(null)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <div className="grid-r2" style={{ gap: 10, marginBottom: 14 }}>
               {[
                 { label: "Qualification", val: selectedDoctor.qualification },
                 { label: "Reg. No.", val: selectedDoctor.registrationNo },
@@ -1036,11 +1048,11 @@ export default function HealthPage() {
             {/* PATIENT FORM */}
             {tab === "patients" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Full Name *</label><input style={S.input} value={patientForm.name} onChange={e => setPatientForm(p => ({ ...p, name: e.target.value }))} /></div>
                   <div><label style={S.label}>Phone</label><input style={S.input} value={patientForm.phone} onChange={e => setPatientForm(p => ({ ...p, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} /></div>
                 </div>
-                <div style={S.g3}>
+                <div className="grid-r3">
                   <div><label style={S.label}>Date of Birth</label><input type="date" style={S.input} value={patientForm.dob} onChange={e => setPatientForm(p => ({ ...p, dob: e.target.value }))} /></div>
                   <div><label style={S.label}>Gender</label>
                     <select style={S.select} value={patientForm.gender} onChange={e => setPatientForm(p => ({ ...p, gender: e.target.value }))}>
@@ -1068,19 +1080,19 @@ export default function HealthPage() {
                   <AlertTriangle size={14} color="#f59e0b" style={{ marginTop: 2, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, color: "#f59e0b" }}>Doctor registration requires government-issued documents. The account will be active only after admin verification.</span>
                 </div>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Full Name *</label><input style={S.input} value={doctorForm.name} onChange={e => setDoctorForm(f => ({ ...f, name: e.target.value }))} /></div>
                   <div><label style={S.label}>Phone</label><input style={S.input} value={doctorForm.phone} onChange={e => setDoctorForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} /></div>
                 </div>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Email</label><input type="email" style={S.input} value={doctorForm.email} onChange={e => setDoctorForm(f => ({ ...f, email: e.target.value }))} /></div>
                   <div><label style={S.label}>Specialization *</label><input style={S.input} placeholder="Cardiology, Orthopedics…" value={doctorForm.specialization} onChange={e => setDoctorForm(f => ({ ...f, specialization: e.target.value }))} /></div>
                 </div>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Qualification *</label><input style={S.input} placeholder="MBBS, MD, MS…" value={doctorForm.qualification} onChange={e => setDoctorForm(f => ({ ...f, qualification: e.target.value }))} /></div>
                   <div><label style={S.label}>Medical Reg. No. *</label><input style={S.input} placeholder="MCI/State Council number" value={doctorForm.registrationNo} onChange={e => setDoctorForm(f => ({ ...f, registrationNo: e.target.value }))} /></div>
                 </div>
-                <div style={S.g3}>
+                <div className="grid-r3">
                   <div><label style={S.label}>Experience (yrs)</label><input type="number" style={S.input} value={doctorForm.experience} onChange={e => setDoctorForm(f => ({ ...f, experience: e.target.value }))} /></div>
                   <div><label style={S.label}>Department</label><input style={S.input} value={doctorForm.department} onChange={e => setDoctorForm(f => ({ ...f, department: e.target.value }))} /></div>
                   <div><label style={S.label}>Consultation Fee (₹)</label><input type="number" style={S.input} value={doctorForm.consultationFee} onChange={e => setDoctorForm(f => ({ ...f, consultationFee: e.target.value }))} /></div>
@@ -1102,7 +1114,7 @@ export default function HealthPage() {
                     <Shield size={13} color="#818cf8" />
                     <label style={{ ...S.label, margin: 0 }}>Government Documents</label>
                   </div>
-                  <div style={S.g3}>
+                  <div className="grid-r3">
                     <div>
                       <label style={S.label}>Document Type</label>
                       <select style={S.select} value={newDoc.docType} onChange={e => setNewDoc(d => ({ ...d, docType: e.target.value }))}>

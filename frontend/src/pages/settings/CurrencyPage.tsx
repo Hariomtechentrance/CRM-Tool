@@ -66,7 +66,7 @@ function AddRateModal({ currencies, onClose, onAdded }: {
               </select>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const }}>Rate (1 {from} = ? {to})</label>
               <input type="number" step="0.0001" value={rate} onChange={e => setRate(e.target.value)} placeholder="e.g. 83.50"

@@ -37,7 +37,7 @@ export default function SuperAdminDashboard() {
       <h1 style={S.title}>Platform Dashboard</h1>
       <p style={S.subtitle}>Overview of all organizations and users on FlowCRM</p>
 
-      <div style={S.grid4}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { icon: Building2, label: "Total Organizations", value: stats?.totalOrgs ?? 0, color: "#6366f1" },
           { icon: CheckCircle, label: "Active Orgs", value: stats?.activeOrgs ?? 0, color: "#10b981" },
@@ -54,7 +54,7 @@ export default function SuperAdminDashboard() {
         ))}
       </div>
 
-      <div style={S.grid2}>
+      <div className="grid-r2" style={{ gap: 20 }}>
         {/* Recent Organizations */}
         <div style={S.card}>
           <div style={S.cardTitle}><Clock size={15} color="#818cf8" /> Recently Joined Organizations</div>

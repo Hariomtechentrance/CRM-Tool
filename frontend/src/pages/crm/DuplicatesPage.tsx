@@ -309,7 +309,7 @@ export default function DuplicatesPage() {
       )}
 
       {/* KPI strip */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+      <div className="grid-r2" style={{ gap: 12, marginBottom: 20 }}>
         {[
           { icon: Users, label: "Party duplicates", value: partyGroups.length, color: "#6366f1" },
           { icon: Package, label: "Product duplicates", value: productGroups.length, color: "#f59e0b" },

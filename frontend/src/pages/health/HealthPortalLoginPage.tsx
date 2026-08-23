@@ -201,7 +201,7 @@ export default function HealthPortalLoginPage() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
                     10 Doctors — all use password: Doctor@123
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 8px" }}>
+                  <div className="grid-r2" style={{ gap: "3px 8px" }}>
                     {[
                       ["priya.sharma","General Medicine"],
                       ["rajesh.patel","Cardiology"],
@@ -271,7 +271,7 @@ export default function HealthPortalLoginPage() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
                     Try these patient codes
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 12px" }}>
+                  <div className="grid-r2" style={{ gap: "4px 12px" }}>
                     {[
                       ["PT-00001","Amit Gupta"],["PT-00002","Sunita Devi"],
                       ["PT-00003","Raju Kumar"],["PT-00004","Meena Shah"],

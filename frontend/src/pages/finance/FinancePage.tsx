@@ -182,7 +182,7 @@ SALES: "TAX INVOICE", PURCHASE: "PURCHASE BILL", CREDIT_NOTE: "CREDIT NOTE", DEB
   </div>
 
   <div class="sec-title">Line Items</div>
-  <table>
+    <table>
     <thead>
       <tr>
         <th style="width:32px;text-align:center">#</th>
@@ -211,7 +211,7 @@ SALES: "TAX INVOICE", PURCHASE: "PURCHASE BILL", CREDIT_NOTE: "CREDIT NOTE", DEB
 
   ${payRows ? `
     <div class="sec-title">Payment History</div>
-    <table>
+      <table>
       <thead><tr><th>Date</th><th>Method</th><th>Reference #</th><th style="text-align:right">Amount</th></tr></thead>
       <tbody>${payRows}</tbody>
     </table>

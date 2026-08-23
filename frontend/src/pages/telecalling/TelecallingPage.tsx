@@ -17,7 +17,7 @@ const S = {
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
   td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 480, maxHeight: "90vh", overflowY: "auto" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 480, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   textarea: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const, resize: "vertical" as const, minHeight: 80 },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -154,7 +154,7 @@ export default function TelecallingPage() {
         </div>
       </div>
 
-      <div style={S.kpiGrid}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total Calls", value: callStats?.total ?? 0, color: "#818cf8", icon: PhoneCall },
           { label: "Connected", value: totalByOutcome("CONNECTED"), color: "#10b981", icon: Phone },
@@ -180,7 +180,8 @@ export default function TelecallingPage() {
 
       {tab === "calls" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Phone", "Outcome", "Duration", "Notes", "Called At"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={5} style={{ ...S.td, textAlign: "center", padding: 32 }}>Loading...</td></tr>
@@ -198,6 +199,7 @@ export default function TelecallingPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -223,7 +225,8 @@ export default function TelecallingPage() {
             <input style={{ ...S.input, maxWidth: 300 }} placeholder="Phone number to block" value={dncPhone} onChange={e => setDncPhone(e.target.value)} />
             <button style={S.btn} onClick={addDNC}>Add to DNC</button>
           </div>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Phone", "Reason", "Added On", "Remove"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {dncList.length === 0 ? <tr><td colSpan={4} style={{ ...S.td, textAlign: "center", padding: 32 }}>DNC list is empty</td></tr>
@@ -237,6 +240,7 @@ export default function TelecallingPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -246,7 +250,7 @@ export default function TelecallingPage() {
             <div key={c.id} style={S.card}>
               <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 14, marginBottom: 8 }}>{c.name}</div>
               <div style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 12 }}>{c.description ?? "No description"}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div className="grid-r2" style={{ gap: 8 }}>
                 {[{ label: "Target", val: c.targetCount }, { label: "Dialed", val: c.dialedCount }, { label: "Connected", val: c.connectedCount }, { label: "Converted", val: c.convertedCount }].map(m => (
                   <div key={m.label} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "8px 12px" }}>
                     <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 600, textTransform: "uppercase" }}>{m.label}</div>
@@ -275,7 +279,7 @@ export default function TelecallingPage() {
             {tab === "calls" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div><label style={S.label}>Phone *</label><input style={S.input} value={callForm.phone} onChange={e => setCallForm(p => ({ ...p, phone: e.target.value }))} /></div>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Outcome</label>
                     <select style={S.select} value={callForm.outcome} onChange={e => setCallForm(p => ({ ...p, outcome: e.target.value }))}>
                       {["CONNECTED","NO_ANSWER","BUSY","VOICEMAIL","WRONG_NUMBER","CALLBACK_REQUESTED","INTERESTED","NOT_INTERESTED","CONVERTED"].map(s => <option key={s}>{s.replace("_", " ")}</option>)}
@@ -290,7 +294,7 @@ export default function TelecallingPage() {
 
             {tab === "scripts" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Script Name *</label><input style={S.input} value={scriptForm.name} onChange={e => setScriptForm(p => ({ ...p, name: e.target.value }))} /></div>
                   <div><label style={S.label}>Category</label><input style={S.input} value={scriptForm.category} onChange={e => setScriptForm(p => ({ ...p, category: e.target.value }))} /></div>
                 </div>

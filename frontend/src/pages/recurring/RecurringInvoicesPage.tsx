@@ -177,7 +177,7 @@ export default function RecurringInvoicesPage() {
             </div>
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Row 1 */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Party</label>
                   <select value={form.partyId} onChange={e => setField("partyId", e.target.value)} style={S.input}>
@@ -192,7 +192,7 @@ export default function RecurringInvoicesPage() {
               </div>
 
               {/* Row 2 */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div className="grid-r3" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Frequency</label>
                   <select value={form.frequency} onChange={e => setField("frequency", e.target.value)} style={S.input}>

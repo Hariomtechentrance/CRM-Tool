@@ -15,7 +15,7 @@ const S = {
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
   td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 520, maxHeight: "90vh", overflowY: "auto" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 520, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   textarea: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const, resize: "vertical" as const, minHeight: 80 },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -157,7 +157,8 @@ export default function ServicesPage() {
 
       {tab === "contracts" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Contract", "Billing", "Value", "Status", "Auto Renew"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={5} style={{ ...S.td, textAlign: "center", padding: 32 }}>Loading...</td></tr>
@@ -173,6 +174,7 @@ export default function ServicesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -229,12 +231,12 @@ export default function ServicesPage() {
 
             {tab === "catalog" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Name *</label><input style={S.input} value={catalogForm.name} onChange={e => setCatalogForm(p => ({ ...p, name: e.target.value }))} /></div>
                   <div><label style={S.label}>Category</label><input style={S.input} value={catalogForm.category} onChange={e => setCatalogForm(p => ({ ...p, category: e.target.value }))} /></div>
                 </div>
                 <div><label style={S.label}>Description</label><textarea style={S.textarea} value={catalogForm.description} onChange={e => setCatalogForm(p => ({ ...p, description: e.target.value }))} /></div>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Unit Price (₹) *</label><input type="number" style={S.input} value={catalogForm.unitPrice} onChange={e => setCatalogForm(p => ({ ...p, unitPrice: e.target.value }))} /></div>
                   <div><label style={S.label}>Unit</label><input style={S.input} value={catalogForm.unit} onChange={e => setCatalogForm(p => ({ ...p, unit: e.target.value }))} /></div>
                 </div>
@@ -246,7 +248,7 @@ export default function ServicesPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div><label style={S.label}>Contract Title *</label><input style={S.input} value={contractForm.title} onChange={e => setContractForm(p => ({ ...p, title: e.target.value }))} /></div>
                 <div><label style={S.label}>Description</label><textarea style={S.textarea} value={contractForm.description} onChange={e => setContractForm(p => ({ ...p, description: e.target.value }))} /></div>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Value (₹)</label><input type="number" style={S.input} value={contractForm.value} onChange={e => setContractForm(p => ({ ...p, value: e.target.value }))} /></div>
                   <div><label style={S.label}>Billing Cycle</label>
                     <select style={S.select} value={contractForm.billingCycle} onChange={e => setContractForm(p => ({ ...p, billingCycle: e.target.value }))}>
@@ -264,7 +266,7 @@ export default function ServicesPage() {
 
             {tab === "kb" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Title *</label><input style={S.input} value={kbForm.title} onChange={e => setKBForm(p => ({ ...p, title: e.target.value }))} /></div>
                   <div><label style={S.label}>Category</label><input style={S.input} value={kbForm.category} onChange={e => setKBForm(p => ({ ...p, category: e.target.value }))} /></div>
                 </div>

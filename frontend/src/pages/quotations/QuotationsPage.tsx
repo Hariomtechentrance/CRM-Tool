@@ -249,7 +249,7 @@ export default function QuotationsPage() {
       </div>
 
       {/* KPIs */}
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 14, marginBottom: 24 }}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 mb-6">
         <div style={S.kpi}>
           <div style={S.kpiLabel}>Total</div>
           <div style={{ ...S.kpiValue, color: "var(--text-primary)" }}>{stats?.total ?? "—"}</div>
@@ -401,7 +401,7 @@ export default function QuotationsPage() {
               {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13 }}>{error}</div>}
 
               {/* Basic info */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="grid-r2" style={{ gap: 16 }}>
                 <div>
                   <label style={S.label}>Party / Customer</label>
                   <select style={S.select} value={form.partyId} onChange={e => setForm(p => ({ ...p, partyId: e.target.value }))}>
@@ -489,7 +489,7 @@ export default function QuotationsPage() {
               </div>
 
               {/* Notes & Terms */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="grid-r2" style={{ gap: 16 }}>
                 <div>
                   <label style={S.label}>Notes</label>
                   <textarea style={{ ...S.input, height: 80, resize: "vertical" as const }} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Internal notes..." />
@@ -534,7 +534,7 @@ export default function QuotationsPage() {
 
             <div style={{ padding: 24 }}>
               {/* Meta */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+              <div className="grid-r3" style={{ gap: 16, marginBottom: 24 }}>
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 4 }}>Party</div>
                   <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{viewQt.party?.name || "—"}</div>
@@ -557,7 +557,8 @@ export default function QuotationsPage() {
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", marginBottom: 10 }}>Line Items</div>
                   <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <div className="overflow-x-auto">
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
                       <thead>
                         <tr style={{ background: "#0A0A18" }}>
                           {["#", "Description", "Qty", "Unit Price", "Tax", "Discount", "Total"].map(h => (
@@ -579,6 +580,7 @@ export default function QuotationsPage() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </div>
               )}

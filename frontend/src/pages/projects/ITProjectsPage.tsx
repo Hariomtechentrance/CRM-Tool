@@ -538,7 +538,7 @@ export default function ITProjectsPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total", value: stats.total, icon: Briefcase, color: "#818cf8" },
           { label: "Active", value: stats.active, icon: Code2, color: "#4ade80" },

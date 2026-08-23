@@ -280,7 +280,7 @@ function ApiKeysTab() {
       {showCreate && (
         <div style={{ padding: 18, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Create API Key</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label style={{ fontSize: 11, color: "var(--text-faint)", display: "block", marginBottom: 4 }}>Name *</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -506,7 +506,7 @@ function IpAllowlistTab() {
 
       {showAdd && (
         <div style={{ padding: 16, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label style={{ fontSize: 11, color: "var(--text-faint)", display: "block", marginBottom: 4 }}>IP / CIDR *</label>
               <input value={form.ipCidr} onChange={e => setForm(f => ({ ...f, ipCidr: e.target.value }))}
@@ -615,7 +615,7 @@ function PermissionsTab() {
 
       {showForm && (
         <div style={{ padding: 16, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label style={{ fontSize: 11, color: "var(--text-faint)", display: "block", marginBottom: 4 }}>User *</label>
               <select value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} style={inputSt}>

@@ -280,7 +280,7 @@ export default function HotelPage() {
           </div>
 
           {/* Today section */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+          <div className="grid-r2" style={{ gap: 12, marginBottom: 20 }}>
             <div style={CARD}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <LogIn size={16} color="#10b981" />
@@ -461,13 +461,13 @@ export default function HotelPage() {
         <HotelModal title="Add Room Type" onClose={() => setShowRoomTypeModal(false)}>
           <FF label="Name *"><input value={roomTypeForm.name} onChange={e => setRoomTypeForm(f => ({ ...f, name: e.target.value }))} placeholder="Standard / Deluxe / Suite" style={INPUT_STYLE} /></FF>
           <FF label="Base Price / Night (₹) *"><input value={roomTypeForm.basePrice} onChange={e => setRoomTypeForm(f => ({ ...f, basePrice: e.target.value }))} type="number" min="0" placeholder="0" style={INPUT_STYLE} /></FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Capacity (guests)"><input value={roomTypeForm.capacity} onChange={e => setRoomTypeForm(f => ({ ...f, capacity: e.target.value }))} type="number" min="1" style={INPUT_STYLE} /></FF>
             <FF label="Bed Type"><input value={roomTypeForm.bedType} onChange={e => setRoomTypeForm(f => ({ ...f, bedType: e.target.value }))} placeholder="King / Queen / Twin" style={INPUT_STYLE} /></FF>
           </div>
           <FF label="Amenities (comma-separated)"><input value={roomTypeForm.amenities} onChange={e => setRoomTypeForm(f => ({ ...f, amenities: e.target.value }))} placeholder="AC, WiFi, TV, Hot Water…" style={INPUT_STYLE} /></FF>
           <FF label="Description"><input value={roomTypeForm.description} onChange={e => setRoomTypeForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description" style={INPUT_STYLE} /></FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Number of Rooms"><input value={roomTypeForm.roomCount} onChange={e => setRoomTypeForm(f => ({ ...f, roomCount: e.target.value }))} type="number" min="0" placeholder="e.g. 10" style={INPUT_STYLE} /></FF>
             <FF label="Floor"><input value={roomTypeForm.floor} onChange={e => setRoomTypeForm(f => ({ ...f, floor: e.target.value }))} type="number" min="0" placeholder="1" style={INPUT_STYLE} /></FF>
           </div>
@@ -483,12 +483,12 @@ export default function HotelPage() {
       {/* Guest Modal */}
       {showGuestModal && (
         <HotelModal title="Add Guest Profile" onClose={() => setShowGuestModal(false)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Full Name *"><input value={guestForm.name} onChange={e => setGuestForm(f => ({ ...f, name: e.target.value }))} placeholder="Guest name" style={INPUT_STYLE} /></FF>
             <FF label="Phone *"><input value={guestForm.phone} onChange={e => setGuestForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} placeholder="+91 98765…" style={INPUT_STYLE} /></FF>
           </div>
           <FF label="Email"><input value={guestForm.email} onChange={e => setGuestForm(f => ({ ...f, email: e.target.value }))} placeholder="guest@email.com" style={INPUT_STYLE} /></FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="ID Type">
               <select value={guestForm.idType} onChange={e => setGuestForm(f => ({ ...f, idType: e.target.value }))} style={INPUT_STYLE}>
                 {["Aadhaar","PAN","Passport","Driving Licence","Voter ID"].map(t => <option key={t} value={t}>{t}</option>)}
@@ -496,7 +496,7 @@ export default function HotelPage() {
             </FF>
             <FF label="ID Number"><input value={guestForm.idNumber} onChange={e => setGuestForm(f => ({ ...f, idNumber: e.target.value }))} placeholder="ID number" style={INPUT_STYLE} /></FF>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="City"><input value={guestForm.city} onChange={e => setGuestForm(f => ({ ...f, city: e.target.value }))} placeholder="City" style={INPUT_STYLE} /></FF>
             <FF label="Nationality"><input value={guestForm.nationality} onChange={e => setGuestForm(f => ({ ...f, nationality: e.target.value }))} placeholder="Indian" style={INPUT_STYLE} /></FF>
           </div>
@@ -515,7 +515,7 @@ export default function HotelPage() {
               ))}
             </select>
           </FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Check-in *"><input type="date" value={bookingForm.checkIn} onChange={e => setBookingForm(f => ({ ...f, checkIn: e.target.value }))} style={INPUT_STYLE} /></FF>
             <FF label="Check-out *"><input type="date" value={bookingForm.checkOut} onChange={e => setBookingForm(f => ({ ...f, checkOut: e.target.value }))} style={INPUT_STYLE} /></FF>
           </div>
@@ -530,12 +530,12 @@ export default function HotelPage() {
               {guests.map(g => <option key={g.id} value={g.id}>{g.name} · {g.phone}</option>)}
             </select>
           </FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div className="grid-r3" style={{ gap: 10 }}>
             <FF label="Rate/Night (₹) *"><input value={bookingForm.ratePerNight} onChange={e => setBookingForm(f => ({ ...f, ratePerNight: e.target.value }))} type="number" min="0" style={INPUT_STYLE} /></FF>
             <FF label="Adults"><input value={bookingForm.adults} onChange={e => setBookingForm(f => ({ ...f, adults: e.target.value }))} type="number" min="1" style={INPUT_STYLE} /></FF>
             <FF label="Children"><input value={bookingForm.children} onChange={e => setBookingForm(f => ({ ...f, children: e.target.value }))} type="number" min="0" style={INPUT_STYLE} /></FF>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Advance Paid (₹)"><input value={bookingForm.advancePaid} onChange={e => setBookingForm(f => ({ ...f, advancePaid: e.target.value }))} type="number" min="0" style={INPUT_STYLE} /></FF>
             <FF label="Payment Method">
               <select value={bookingForm.paymentMethod} onChange={e => setBookingForm(f => ({ ...f, paymentMethod: e.target.value }))} style={INPUT_STYLE}>
@@ -611,7 +611,7 @@ export default function HotelPage() {
             <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: `${BOOKING_COLOR[selectedBooking.status]}22`, color: BOOKING_COLOR[selectedBooking.status], fontWeight: 700 }}>{selectedBooking.status.replace("_", " ")}</span>
             {selectedBooking.source && <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>via {selectedBooking.source}</span>}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div className="grid-r2" style={{ gap: 10, marginBottom: 14 }}>
             <div onClick={() => { setSelectedBooking(null); setSelectedGuest(selectedBooking.guest); }} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
               <div style={{ fontSize: 10, color: "var(--text-ghost)", fontWeight: 700, textTransform: "uppercase" }}>Guest</div>
               <div style={{ fontSize: 13, color: "#6366f1", fontWeight: 600, marginTop: 2 }}>{selectedBooking.guest.name} →</div>
@@ -737,7 +737,7 @@ function RoomOverviewForm({ room, roomTypes, onSaved }: { room: any; roomTypes: 
           {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.name} — ₹{Number(rt.basePrice).toFixed(0)}/night</option>)}
         </select>
       </FF>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div className="grid-r2" style={{ gap: 10 }}>
         <FF label="Floor"><input type="number" min="0" value={form.floor} onChange={e => setForm(f => ({ ...f, floor: e.target.value }))} style={INPUT_STYLE} /></FF>
         <FF label="Status">
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={INPUT_STYLE}>
@@ -786,12 +786,12 @@ function GuestProfileBody({ guest, onUpdated }: { guest: any; onUpdated: (g: any
     return (
       <div>
         {error && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{error}</div>}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="grid-r2" style={{ gap: 10 }}>
           <FF label="Full Name *"><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={INPUT_STYLE} /></FF>
           <FF label="Phone *"><input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} style={INPUT_STYLE} /></FF>
         </div>
         <FF label="Email"><input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={INPUT_STYLE} /></FF>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="grid-r2" style={{ gap: 10 }}>
           <FF label="ID Type">
             <select value={form.idType} onChange={e => setForm(f => ({ ...f, idType: e.target.value }))} style={INPUT_STYLE}>
               {["Aadhaar","PAN","Passport","Driving Licence","Voter ID"].map(t => <option key={t} value={t}>{t}</option>)}
@@ -799,7 +799,7 @@ function GuestProfileBody({ guest, onUpdated }: { guest: any; onUpdated: (g: any
           </FF>
           <FF label="ID Number"><input value={form.idNumber} onChange={e => setForm(f => ({ ...f, idNumber: e.target.value }))} style={INPUT_STYLE} /></FF>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="grid-r2" style={{ gap: 10 }}>
           <FF label="City"><input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={INPUT_STYLE} /></FF>
           <FF label="Nationality"><input value={form.nationality} onChange={e => setForm(f => ({ ...f, nationality: e.target.value }))} style={INPUT_STYLE} /></FF>
         </div>
@@ -819,7 +819,7 @@ function GuestProfileBody({ guest, onUpdated }: { guest: any; onUpdated: (g: any
           <Edit2 size={11} /> Edit
         </button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+      <div className="grid-r2" style={{ gap: 10, marginBottom: 14 }}>
         {[
           { label: "Phone", val: guest.phone },
           { label: "Email", val: guest.email || "—" },

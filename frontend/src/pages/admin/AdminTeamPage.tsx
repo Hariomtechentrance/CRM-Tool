@@ -294,7 +294,7 @@ export default function AdminTeamPage() {
                 </p>
 
                 {/* Email + Role row */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+                <div className="grid-r2" style={{ gap: 14, marginBottom: 20 }}>
                   <div>
                     <label style={S.label}>Email Address</label>
                     <div style={{ position: "relative" }}>

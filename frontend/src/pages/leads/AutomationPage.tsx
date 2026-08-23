@@ -472,7 +472,7 @@ export default function AutomationPage() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { label: "Total Rules", value: rules.length, color: "#818cf8" },
           { label: "Active", value: active.length, color: "#34d399" },

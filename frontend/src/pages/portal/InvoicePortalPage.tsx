@@ -118,7 +118,7 @@ export default function InvoicePortalPage() {
 
           {/* Invoice meta */}
           <div style={{ padding: "24px 32px", borderBottom: "1px solid #e2e8f0" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div className="grid-r2" style={{ gap: 24 }}>
               <div>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Invoice To</p>
                 <p style={{ fontWeight: 700, color: "#1e293b", fontSize: 15 }}>{invoice.party?.name ?? "Customer"}</p>
@@ -148,7 +148,8 @@ export default function InvoicePortalPage() {
 
           {/* Line items */}
           <div style={{ padding: "0 32px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
                   {["Description", "HSN", "Qty", "Rate", "Tax", "Amount"].map(h => (
@@ -169,6 +170,7 @@ export default function InvoicePortalPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Totals */}

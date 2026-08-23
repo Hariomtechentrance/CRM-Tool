@@ -238,7 +238,7 @@ export default function PatientPortalPage() {
               <button onClick={() => { setPatient(null); setCode(""); }} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer" }}><X size={18} /></button>
             </div>
 
-            <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid-r2" style={{ marginTop: 16, gap: 10 }}>
               {patient.phone && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#9ca3af" }}>
                   <Phone size={12} />{patient.phone}

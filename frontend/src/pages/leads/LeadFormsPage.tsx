@@ -314,7 +314,7 @@ export default function LeadFormsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { label: "Total Forms", value: forms.length, color: "#818cf8" },
           { label: "Active Forms", value: forms.filter(f => f.isActive).length, color: "#34d399" },
@@ -362,7 +362,7 @@ export default function LeadFormsPage() {
       {/* How it works */}
       <div className="mt-8 rounded-2xl p-5" style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.12)" }}>
         <h3 className="text-sm font-semibold mb-3" style={{ color: "#818cf8" }}>How Lead Forms Work</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { step: "1", title: "Build Your Form", desc: "Add fields like name, phone, email, city, requirements." },
             { step: "2", title: "Share the Link", desc: "Copy the link and share on WhatsApp, Instagram bio, website, or Google Ads." },

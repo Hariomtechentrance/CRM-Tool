@@ -123,7 +123,7 @@ export default function OrgAdminPage() {
       <p style={S.subtitle}>Track all departments, manage team access and monitor business activity</p>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10, marginBottom: 20 }}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-5">
         {kpis.map(k => (
           <div key={k.label} style={S.kpi}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>

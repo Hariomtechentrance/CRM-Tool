@@ -176,7 +176,8 @@ export default function SuperAdminUsersPage() {
         {loading ? (
           <div style={{ padding: 48, textAlign: "center", color: "var(--text-ghost)" }}>Loading users…</div>
         ) : (
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead>
               <tr>
                 {["User", "Organization & Role", "Modules", "Team Size", "Last Login", "Joined", "Status", "Actions"].map(h => (
@@ -312,6 +313,7 @@ export default function SuperAdminUsersPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

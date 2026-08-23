@@ -141,7 +141,7 @@ export default function DoctorDashboardPage() {
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+        <div className="grid-r2" style={{ gap: 20, alignItems: "start" }}>
 
           {/* Today's Appointments */}
           <div style={S.card}>

@@ -370,7 +370,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
       {/* ── Flyout panels ── */}
       {flyout === "modules" && (
         <Flyout title={t("nav_modules")} onClose={() => setFlyout(null)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+          <div className="grid-r2" style={{ gap: 4 }}>
             {navModules.map((mod) => {
               const Icon = ICON_MAP[mod.iconName] || Package;
               const i18nKey = MOD_I18N_KEY[mod.key];

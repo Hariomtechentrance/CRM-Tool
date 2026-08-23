@@ -132,7 +132,7 @@ export default function GSTReportsPage() {
             <KPI label="Net Tax Payable" value={fmt(gstr3b.netTax.total)} color="#ef4444" icon={<FileText size={14} color="#ef4444" />} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div className="grid-r2" style={{ gap: 16, marginBottom: 16 }}>
             {/* Outward */}
             <div style={S.card}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>

@@ -148,7 +148,8 @@ export default function CustomFieldsPage() {
             <button onClick={openAdd} style={{ ...S.btn, marginTop: 16, display: "inline-flex", alignItems: "center", gap: 6 }}><Plus size={13} /> Add First Field</button>
           </div>
         ) : (
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead>
               <tr>{["","Label","Field Key","Type","Required","Status","Actions"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
@@ -186,6 +187,7 @@ export default function CustomFieldsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -228,7 +230,7 @@ export default function CustomFieldsPage() {
                 </div>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Sort Order</label>
                   <input type="number" style={S.input} value={form.sortOrder} onChange={e => setForm(p => ({ ...p, sortOrder: Number(e.target.value) }))} min={0} />

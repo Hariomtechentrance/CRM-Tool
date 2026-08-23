@@ -102,7 +102,7 @@ export default function DocumentsPage() {
       </div>
 
       {/* Stats */}
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
         <div style={S.kpi}>
           <div style={{ fontSize: 12, color: "var(--text-ghost)", fontWeight: 500 }}>Total Files</div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>{stats?.total ?? "—"}</div>

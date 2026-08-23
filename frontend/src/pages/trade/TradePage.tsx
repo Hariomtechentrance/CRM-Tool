@@ -20,7 +20,7 @@ const S = {
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
   td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 580, maxHeight: "90vh", overflowY: "auto" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 580, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
   select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
@@ -192,7 +192,8 @@ export default function TradePage() {
         </div>
 
         {loading ? <div style={{ padding:40, textAlign:"center", color:"var(--text-ghost)" }}>Loading...</div> : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="overflow-x-auto">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>{["Doc Number","Type","Party","Date","Expiry","Route","Amount","Status","Actions"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
@@ -239,12 +240,13 @@ export default function TradePage() {
               }
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
       {/* Type Breakdown */}
       {summary && summary.byType.length > 0 && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:12, marginTop:20 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
           {summary.byType.sort((a,b) => b._count - a._count).map(t => (
             <div key={t.type} style={{ background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:10, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>

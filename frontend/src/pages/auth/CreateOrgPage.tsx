@@ -228,7 +228,7 @@ export default function CreateOrgPage() {
                 {...register("name")}
               />
               <Select label="Business Type" options={BUSINESS_TYPES} placeholder="Select type" value={watch("businessType")} onChange={(e) => setValue("businessType", e.target.value)} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <Select label="Base Currency" options={CURRENCIES} value={watch("currency")} onChange={(e) => setValue("currency", e.target.value)} />
                 <Select label="Country" options={COUNTRIES} value={watch("country")} onChange={(e) => setValue("country", e.target.value)} />
               </div>
@@ -258,7 +258,7 @@ export default function CreateOrgPage() {
         {step === 2 && (
           <div style={S.card}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <Input label="Email" type="email" placeholder="info@company.com" leftIcon={<Mail style={{ width: 16, height: 16 }} />} error={errors.email?.message} {...register("email")} />
                 <Input
                   label="Phone" placeholder="+91 98765 43210" maxLength={15} onKeyDown={kPhone}
@@ -277,7 +277,7 @@ export default function CreateOrgPage() {
                 );
               })()}
               <Input label="Address" placeholder="123, MG Road" leftIcon={<MapPin style={{ width: 16, height: 16 }} />} {...register("address")} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <Input label="City" placeholder="Mumbai" maxLength={100} onKeyDown={kAlpha} {...register("city")} />
                 <Input label="State" placeholder="Maharashtra" maxLength={100} onKeyDown={kAlpha} {...register("state")} />
               </div>

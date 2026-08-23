@@ -519,7 +519,7 @@ export default function HRPage() {
             ))}
           </div>
 
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div className="grid-r2" style={{ gap:16 }}>
             {/* Dept breakdown */}
             <div style={S.card}>
               <div style={{fontSize:14,fontWeight:700,color:"var(--text-primary)",marginBottom:14}}>Department Headcount</div>
@@ -975,7 +975,7 @@ export default function HRPage() {
                 {(parseFloat(empForm.basicSalary)||0) > 0 && (
                   <div style={{marginTop:12,background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:"10px 14px"}}>
                     <div style={{fontSize:11,fontWeight:700,color:"#818CF8",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:8}}>Salary Preview (full month)</div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         {l:"Gross",v:salaryPreview.gross,c:"#10b981"},
                         {l:"PF",   v:salaryPreview.pf,   c:"#ef4444"},
@@ -1344,7 +1344,7 @@ export default function HRPage() {
               <div style={{fontSize:12,color:"#818CF8",marginTop:2}}>{payslip.org.address}{payslip.org.city?`, ${payslip.org.city}`:""}{payslip.org.pan?` · PAN: ${payslip.org.pan}`:""}</div>
             </div>
             {/* Employee Info */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+            <div className="grid-r2" style={{ gap:10, marginBottom:16 }}>
               {[
                 {label:"Employee Name",value:payslip.employee.name},
                 {label:"Employee Code",value:payslip.employee.code},
@@ -1371,7 +1371,7 @@ export default function HRPage() {
               ))}
             </div>
             {/* Earnings + Deductions */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+            <div className="grid-r2" style={{ gap:12, marginBottom:16 }}>
               <div>
                 <div style={{fontSize:12,fontWeight:700,color:"#10b981",marginBottom:8}}>EARNINGS</div>
                 {[{l:"Basic Salary",v:payslip.earnings.basic},{l:"HRA",v:payslip.earnings.hra},{l:"Allowances",v:payslip.earnings.allowances}].map(r=>(
@@ -1444,7 +1444,7 @@ export default function HRPage() {
                       <div style={{fontSize:11,color:"var(--text-ghost)"}}>{emp.salaryType==="MONTHLY"?"Monthly CTC":"Daily Rate"}{(emp.hra>0||emp.allowances>0)?` + ₹${(emp.hra+emp.allowances).toLocaleString("en-IN")} HRA/Allow`:""}</div>
                     </div>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
                     {[{label:"Present (this month)",value:emp.thisMonthPresent??0,color:"#10b981"},{label:"Absences",value:atts.filter((a:AttRecord)=>a.status==="ABSENT").length,color:"#ef4444"},{label:"Payrolls",value:pays.length,color:"#6366f1"},{label:"Leave Requests",value:lvs.length,color:"#f59e0b"}].map(k=>(
                       <div key={k.label} style={{background:"var(--bg-hover)",borderRadius:8,padding:"12px 14px"}}>
                         <div style={{fontSize:11,color:"var(--text-ghost)"}}>{k.label}</div>
@@ -1466,7 +1466,8 @@ export default function HRPage() {
                   {pays.length>0&&(
                     <div>
                       <div style={{fontSize:13,fontWeight:700,color:"var(--text-primary)",marginBottom:8}}>Payroll History</div>
-                      <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12}}>
+                      <div className="overflow-x-auto">
+                        <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12}}>
                         <thead><tr>{["Month","Days","Gross","Deductions","Net","Status"].map(h=><th key={h} style={{...S.th,fontSize:10}}>{h}</th>)}</tr></thead>
                         <tbody>
                           {pays.slice(0,6).map((p:Payroll)=>(
@@ -1481,6 +1482,7 @@ export default function HRPage() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   )}
                 </>

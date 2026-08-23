@@ -219,7 +219,7 @@ export default function BatchTrackingPage() {
                   {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
                 </select>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Batch Number *</label>
                   <input value={form.batchNumber} onChange={e => setForm(p => ({ ...p, batchNumber: e.target.value }))} style={S.input} placeholder="e.g. BT-2024-001" />
@@ -229,7 +229,7 @@ export default function BatchTrackingPage() {
                   <input value={form.lotNumber} onChange={e => setForm(p => ({ ...p, lotNumber: e.target.value }))} style={S.input} placeholder="Optional" />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Manufacturing Date</label>
                   <input type="date" value={form.manufacturingDate} onChange={e => setForm(p => ({ ...p, manufacturingDate: e.target.value }))} style={{ ...S.input, colorScheme: "dark" }} />
@@ -239,7 +239,7 @@ export default function BatchTrackingPage() {
                   <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))} style={{ ...S.input, colorScheme: "dark" }} />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Quantity *</label>
                   <input type="number" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} style={S.input} placeholder="0" />

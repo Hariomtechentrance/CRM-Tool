@@ -111,7 +111,7 @@ export default function AccessRequestsPage() {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 24 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {ALL_STATUSES.map(s => {
           const cfg = STATUS_CONFIG[s];
           return (
@@ -199,7 +199,7 @@ export default function AccessRequestsPage() {
                 {/* Expanded panel */}
                 {isExp && (
                   <div style={{ borderTop: "1px solid var(--border,#2a2a4a)", padding: "16px 20px", background: "rgba(0,0,0,0.15)" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                    <div className="grid-r2" style={{ gap: 16, marginBottom: 16 }}>
                       <div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost,#6b7280)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Request Details</div>
                         <div style={{ fontSize: 13, color: "var(--text-primary,#e2e8f0)", lineHeight: 1.8 }}>

@@ -20,7 +20,7 @@ const S = {
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
   td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 560, maxHeight: "90vh", overflowY: "auto" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 560, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   textarea: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const, resize: "vertical" as const, minHeight: 80 },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -110,7 +110,7 @@ export default function BugTrackerPage() {
         </button>
       </div>
 
-      <div style={S.kpiGrid}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Critical", value: totalBySeverity("CRITICAL"), color: "#ef4444", icon: AlertTriangle },
           { label: "Open", value: totalByStatus("OPEN"), color: "#818cf8", icon: Bug },
@@ -146,7 +146,8 @@ export default function BugTrackerPage() {
         {loading ? (
           <div style={{ textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>Loading bugs...</div>
         ) : (
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead>
               <tr>
                 {["Bug", "Severity", "Status", "Project", "Comments", "Actions"].map(h => (
@@ -189,6 +190,7 @@ export default function BugTrackerPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -206,7 +208,7 @@ export default function BugTrackerPage() {
                 <label style={S.label}>Bug Title *</label>
                 <input style={S.input} placeholder="Brief description of the bug" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div>
                   <label style={S.label}>Project</label>
                   <select style={S.select} value={form.projectId} onChange={e => setForm(p => ({ ...p, projectId: e.target.value }))}>
@@ -229,7 +231,7 @@ export default function BugTrackerPage() {
                 <label style={S.label}>Steps to Reproduce</label>
                 <textarea style={{ ...S.textarea, minHeight: 60 }} placeholder="1. Go to...\n2. Click on...\n3. See error" value={form.stepsToRepro} onChange={e => setForm(p => ({ ...p, stepsToRepro: e.target.value }))} />
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div>
                   <label style={S.label}>Expected Result</label>
                   <input style={S.input} placeholder="What should happen?" value={form.expectedResult} onChange={e => setForm(p => ({ ...p, expectedResult: e.target.value }))} />

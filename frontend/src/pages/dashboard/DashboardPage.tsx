@@ -247,7 +247,7 @@ export default function DashboardPage() {
 
           {/* Charts row */}
           {(chartData.length > 0 || leadStages.length > 0) && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Revenue trend */}
               <div style={card}>

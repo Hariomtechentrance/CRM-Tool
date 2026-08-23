@@ -128,7 +128,7 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* People + Projects */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div className="grid-r2" style={{ gap: 14 }}>
 
         {/* Left: TL and PM */}
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>

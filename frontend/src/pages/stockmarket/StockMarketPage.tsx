@@ -17,7 +17,7 @@ const S = {
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
   td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 520, maxHeight: "90vh", overflowY: "auto" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 520, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   textarea: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const, resize: "vertical" as const, minHeight: 80 },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
@@ -147,7 +147,7 @@ export default function StockMarketPage() {
         </div>
       </div>
 
-      <div style={S.kpiGrid}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Active Calls", value: tradeCalls.filter(c => c.status === "ACTIVE").length, color: "#10b981", icon: TrendingUp },
           { label: "Subscriptions", value: subscriptions.filter(s => s.status === "ACTIVE").length, color: "#818cf8", icon: Users },
@@ -201,7 +201,8 @@ export default function StockMarketPage() {
 
       {tab === "reports" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Title", "Symbol", "Type", "Rating", "Target", "Published"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", padding: 32 }}>Loading...</td></tr>
@@ -218,6 +219,7 @@ export default function StockMarketPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -236,7 +238,8 @@ export default function StockMarketPage() {
               {plans.length === 0 && <div style={{ color: "var(--text-ghost)", fontSize: 13 }}>No plans created</div>}
             </div>
           </div>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Party", "Plan", "Amount", "Status", "KYC", "Start Date"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {subscriptions.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", padding: 32 }}>No subscriptions yet</td></tr>
@@ -252,12 +255,14 @@ export default function StockMarketPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {tab === "kyc" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Party", "PAN", "Demat Account", "Risk Profile", "Verified"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {kycRecords.length === 0 ? <tr><td colSpan={5} style={{ ...S.td, textAlign: "center", padding: 32 }}>No KYC records</td></tr>
@@ -272,12 +277,14 @@ export default function StockMarketPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {tab === "alerts" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead><tr>{["Symbol", "Type", "Trigger", "Message", "Active", ""].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {alerts.length === 0 ? <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", padding: 32 }}>No alerts set</td></tr>
@@ -293,6 +300,7 @@ export default function StockMarketPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -309,7 +317,7 @@ export default function StockMarketPage() {
 
             {tab === "calls" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g3}>
+                <div className="grid-r3">
                   <div><label style={S.label}>Symbol *</label><input style={S.input} placeholder="NIFTY50" value={callForm.symbol} onChange={e => setCallForm(p => ({ ...p, symbol: e.target.value }))} /></div>
                   <div><label style={S.label}>Exchange</label>
                     <select style={S.select} value={callForm.exchange} onChange={e => setCallForm(p => ({ ...p, exchange: e.target.value }))}>
@@ -322,7 +330,7 @@ export default function StockMarketPage() {
                     </select>
                   </div>
                 </div>
-                <div style={S.g3}>
+                <div className="grid-r3">
                   <div><label style={S.label}>Entry ₹</label><input type="number" style={S.input} value={callForm.entryPrice} onChange={e => setCallForm(p => ({ ...p, entryPrice: e.target.value }))} /></div>
                   <div><label style={S.label}>Target ₹</label><input type="number" style={S.input} value={callForm.targetPrice} onChange={e => setCallForm(p => ({ ...p, targetPrice: e.target.value }))} /></div>
                   <div><label style={S.label}>Stop Loss ₹</label><input type="number" style={S.input} value={callForm.stopLoss} onChange={e => setCallForm(p => ({ ...p, stopLoss: e.target.value }))} /></div>
@@ -335,7 +343,7 @@ export default function StockMarketPage() {
             {tab === "reports" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div><label style={S.label}>Report Title *</label><input style={S.input} value={reportForm.title} onChange={e => setReportForm(p => ({ ...p, title: e.target.value }))} /></div>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Symbol</label><input style={S.input} placeholder="RELIANCE" value={reportForm.symbol} onChange={e => setReportForm(p => ({ ...p, symbol: e.target.value }))} /></div>
                   <div><label style={S.label}>Rating</label>
                     <select style={S.select} value={reportForm.rating} onChange={e => setReportForm(p => ({ ...p, rating: e.target.value }))}>
@@ -351,7 +359,7 @@ export default function StockMarketPage() {
 
             {tab === "alerts" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={S.g2}>
+                <div className="grid-r2">
                   <div><label style={S.label}>Symbol *</label><input style={S.input} placeholder="NIFTY" value={alertForm.symbol} onChange={e => setAlertForm(p => ({ ...p, symbol: e.target.value }))} /></div>
                   <div><label style={S.label}>Alert Type</label>
                     <select style={S.select} value={alertForm.alertType} onChange={e => setAlertForm(p => ({ ...p, alertType: e.target.value }))}>

@@ -119,7 +119,7 @@ export default function TDSPage() {
 
       {/* KPI Cards */}
       {totals && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
             { label: "Total Entries", value: totals.entries.toString(), color: "#818cf8" },
             { label: "Total Deducted", value: fmt(totals.amount), color: "#818cf8" },
@@ -220,7 +220,7 @@ export default function TDSPage() {
             {error && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
             <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Type</label>
                   <select value={form.type} onChange={e => setForm((p: any) => ({ ...p, type: e.target.value }))} style={{ ...S.input, colorScheme: "dark" }}>
@@ -247,7 +247,7 @@ export default function TDSPage() {
                 <label style={S.label}>Description</label>
                 <input value={form.description} onChange={e => setForm((p: any) => ({ ...p, description: e.target.value }))} style={S.input} placeholder="e.g. Contractor payment for Jan 2025" />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div className="grid-r3" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Base Amount *</label>
                   <input type="number" value={form.baseAmount} onChange={e => setForm((p: any) => ({ ...p, baseAmount: e.target.value }))} style={S.input} placeholder="0" />
@@ -261,7 +261,7 @@ export default function TDSPage() {
                   <input readOnly value={calcAmt} style={{ ...S.input, background: "#6366f110", color: "#818cf8", fontWeight: 700 }} />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid-r2" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>Payment Date</label>
                   <input type="date" value={form.paymentDate} onChange={e => setForm((p: any) => ({ ...p, paymentDate: e.target.value }))} style={{ ...S.input, colorScheme: "dark" }} />

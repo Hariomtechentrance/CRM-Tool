@@ -208,7 +208,7 @@ export default function TeamPage() {
                       </div>
 
                       {/* Stats row */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "1px solid var(--border)" }}>
+                      <div className="grid-r3" style={{ borderBottom: "1px solid var(--border)" }}>
                         {[
                           { label: "Done",    value: memberDone,           color: "#10b981" },
                           { label: "Pending", value: memberTasks.length - memberDone - (memberTasks.filter(t => t.status === "IN_PROGRESS").length), color: "#f59e0b" },

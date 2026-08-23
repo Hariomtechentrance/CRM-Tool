@@ -109,7 +109,7 @@ function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated
                 style={{ display: "block", width: "100%", marginTop: 4, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: 13 }} />
             </div>
           ))}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const }}>Fiscal Year</label>
               <select value={form.fiscalYear} onChange={e => set("fiscalYear", e.target.value)}
@@ -123,7 +123,7 @@ function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated
                 style={{ display: "block", width: "100%", marginTop: 4, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: 13 }} />
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             {[{ label: "Start Date", key: "startDate" }, { label: "End Date", key: "endDate" }].map(({ label, key }) => (
               <div key={key}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const }}>{label}</label>
@@ -232,7 +232,7 @@ export default function BudgetPage() {
 
       {/* KPI row */}
       {summary && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           {[
             { label: "Total Allocated", value: fmt(summary.totalAllocated), color: "#6366f1" },
             { label: "Invoice Spend", value: fmt(summary.actualInvoiceSpend), color: "#f59e0b" },

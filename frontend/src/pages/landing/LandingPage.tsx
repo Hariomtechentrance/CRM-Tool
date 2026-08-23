@@ -65,21 +65,21 @@ export default function LandingPage() {
 
       {/* ── Navbar ── */}
       <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "color-mix(in srgb, var(--bg-card) 82%, transparent)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid var(--border)", padding: "0 clamp(16px,4vw,64px)", display: "flex", alignItems: "center", height: 64, gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px rgba(116,205,232,0.35)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+          <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px rgba(116,205,232,0.35)" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 13, letterSpacing: "-0.5px" }}>FC</span>
           </div>
           <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.4px" }}>FlowCRM</span>
         </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <a href="#features" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-faint)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+          <a href="#features" className="hidden sm:inline-block" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-faint)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
             Features
           </a>
-          <span style={{ width: 1, height: 20, background: "var(--border)", margin: "0 6px" }} />
-          <button onClick={() => navigate("/login")} style={{ padding: "8px 18px", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <span className="hidden sm:inline-block" style={{ width: 1, height: 20, background: "var(--border)", margin: "0 6px" }} />
+          <button onClick={() => navigate("/login")} style={{ padding: "8px clamp(10px,3vw,18px)", borderRadius: 8, background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
             Login
           </button>
-          <button onClick={() => setShowContact(true)} style={{ padding: "8px 18px", borderRadius: 8, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px rgba(116,205,232,0.28)" }}>
+          <button onClick={() => setShowContact(true)} style={{ padding: "8px clamp(10px,3vw,18px)", borderRadius: 8, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px rgba(116,205,232,0.28)", whiteSpace: "nowrap" }}>
             Request Access
           </button>
         </div>

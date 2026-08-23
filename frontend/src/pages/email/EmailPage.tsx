@@ -149,7 +149,7 @@ function ConnectModal({ onClose, onConnected }: { onClose: () => void; onConnect
 
             {err && <div style={{ padding: "8px 12px", borderRadius: 7, background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: 12 }}>{err}</div>}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid-r2" style={{ gap: 10 }}>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={{ fontSize: 11, color: "var(--text-ghost)", display: "block", marginBottom: 4 }}>Account Label</label>
                 <input style={S.input} value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} placeholder='e.g. "My Yahoo"' />
@@ -420,10 +420,10 @@ export default function EmailPage() {
   const displayFolders = folders.length ? folders : DEFAULT_FOLDERS;
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-main)" }}>
+    <div style={{ display: "flex", height: "100vh", overflowX: "auto", overflowY: "hidden", background: "var(--bg-main)" }}>
 
       {/* ── Left sidebar: accounts + folders ── */}
-      <aside style={{ width: 220, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <aside style={{ width: 220, minWidth: 220, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Compose button */}
         <div style={{ padding: "14px 12px 8px" }}>
           <button onClick={() => { setReplyTo(null); setShowCompose(true); }} disabled={accounts.length === 0} style={{ ...S.btn, width: "100%", justifyContent: "center", opacity: accounts.length === 0 ? 0.4 : 1 }}>
@@ -501,7 +501,7 @@ export default function EmailPage() {
       </aside>
 
       {/* ── Message list ── */}
-      <div style={{ width: 320, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ width: 320, minWidth: 320, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Search + refresh */}
         <div style={{ padding: "12px 12px 8px", display: "flex", gap: 6, borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <div style={{ position: "relative", flex: 1 }}>
@@ -555,7 +555,7 @@ export default function EmailPage() {
       </div>
 
       {/* ── Message view / empty state ── */}
-      <main style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <main style={{ flex: 1, minWidth: 320, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {openMessageId && activeAccountId
           ? <MessageView accountId={activeAccountId} messageId={openMessageId} onBack={() => setOpenMessageId(null)} onReply={data => { setReplyTo(data); setShowCompose(true); }} />
           : (

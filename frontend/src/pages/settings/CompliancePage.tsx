@@ -116,7 +116,7 @@ export default function CompliancePage() {
           </div>
         ))}
 
-        <div style={{ marginTop: 16, ...S.g2 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-4">
           <div>
             <label style={S.label}>Data Retention (days)</label>
             <input type="number" style={S.input} value={cfg.dataRetentionDays} min={30} max={3650} onChange={e => set("dataRetentionDays")(Number(e.target.value))} />
@@ -125,7 +125,7 @@ export default function CompliancePage() {
           <div />
         </div>
 
-        <div style={{ marginTop: 16, ...S.g2 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-4">
           <div>
             <label style={S.label}>Privacy Policy URL</label>
             <input type="url" style={S.input} placeholder="https://yourdomain.com/privacy" value={cfg.privacyPolicyUrl} onChange={e => set("privacyPolicyUrl")(e.target.value)} />

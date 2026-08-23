@@ -270,7 +270,8 @@ export default function MyWorkPage() {
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No time logs yet</p>
             </div>
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+              <table className="w-full">
               <thead>
                 <tr style={{ background: "var(--bg-hover)" }}>
                   {["Task", "Hours", "Date", "Notes"].map(h => (
@@ -293,6 +294,7 @@ export default function MyWorkPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}

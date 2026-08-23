@@ -209,7 +209,7 @@ export default function ReconciliationPage() {
 
       {/* KPIs */}
       {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 10, marginBottom: 20 }}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-5">
           {[
             { label: "Total", value: stats.total, color: "var(--text-primary)" },
             { label: "Unmatched", value: stats.unmatched, color: "#f59e0b" },

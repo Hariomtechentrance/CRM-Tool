@@ -562,7 +562,7 @@ export default function RestaurantPage() {
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </FormField>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FormField label="Price (₹) *">
               <input value={menuForm.price} onChange={e => setMenuForm((f: any) => ({ ...f, price: e.target.value }))} type="number" min="0" placeholder="0" style={INPUT_STYLE} />
             </FormField>

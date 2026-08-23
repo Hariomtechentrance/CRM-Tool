@@ -166,7 +166,7 @@ export default function ContactModal({ onClose }: Props) {
           </Field>
 
           {/* Email + Phone — side by side on wider screens */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid-r2" style={{ gap: 12 }}>
             <Field label="Email Address *" icon={<Mail size={15} />} error={errors.email}>
               <input
                 type="email"

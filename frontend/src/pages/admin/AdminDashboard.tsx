@@ -123,7 +123,7 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
             {/* ── Pending Leave Requests ── */}
             <div style={S.card}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>

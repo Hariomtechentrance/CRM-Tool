@@ -69,7 +69,7 @@ export default function BrandingPage() {
       {/* Logo & Color */}
       <div style={S.card}>
         <div style={S.section}><Palette size={15} color="#818cf8" /> Brand Identity</div>
-        <div style={S.g2}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label style={S.label}>Logo URL</label>
             <input style={S.input} placeholder="https://yourdomain.com/logo.png" value={form.logo} onChange={f("logo")} />
@@ -112,7 +112,7 @@ export default function BrandingPage() {
           <label style={S.label}>Invoice Header Text</label>
           <input style={S.input} placeholder="e.g. Tax Invoice — GST Registered" value={form.invoiceHeader} onChange={f("invoiceHeader")} />
         </div>
-        <div style={S.g2}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label style={S.label}>Invoice Footer</label>
             <textarea style={{ ...S.input, minHeight: 72, resize: "vertical" as const }} placeholder="e.g. Thank you for your business. Payment due within 30 days." value={form.invoiceFooter} onChange={f("invoiceFooter")} />

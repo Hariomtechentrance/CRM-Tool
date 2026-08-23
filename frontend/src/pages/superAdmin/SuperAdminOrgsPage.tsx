@@ -199,7 +199,8 @@ export default function SuperAdminOrgsPage() {
         {loading ? (
           <div style={{ padding: 48, textAlign: "center", color: "var(--text-ghost)" }}>Loading organizations…</div>
         ) : (
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead>
               <tr>
                 {["Organization / Owner", "Plan", "Modules", "Team", "Invoices", "Joined", "Status", "Actions"].map(h => (
@@ -297,6 +298,7 @@ export default function SuperAdminOrgsPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -320,7 +322,7 @@ export default function SuperAdminOrgsPage() {
             <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 
               {/* Stats row */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {[["Members", selected._count.members, "#818cf8"], ["Parties", selected._count.parties, "#34d399"], ["Invoices", selected._count.invoices, "#fbbf24"]].map(([k, v, c]) => (
                   <div key={String(k)} style={{ background: "var(--bg-hover)", borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
                     <div style={{ fontSize: 22, fontWeight: 700, color: String(c) }}>{v}</div>
@@ -352,7 +354,8 @@ export default function SuperAdminOrgsPage() {
                     ) : orgMembers.length === 0 ? (
                       <div style={{ padding: 24, textAlign: "center", color: "var(--text-ghost)", fontSize: 13 }}>No members found.</div>
                     ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <div className="overflow-x-auto">
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ background: "var(--bg-hover)" }}>
                             {["Member", "Role", "Status", "Last Login", "Joined"].map(h => (
@@ -395,13 +398,14 @@ export default function SuperAdminOrgsPage() {
                           })}
                         </tbody>
                       </table>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
 
               {/* Status & Plan */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div className="grid-r2" style={{ gap: 14 }}>
                 <div>
                   <label style={S.label}>Access Status</label>
                   <select style={S.select} value={editForm.isActive ? "active" : "inactive"} onChange={e => setEditForm(p => ({ ...p, isActive: e.target.value === "active" }))}>
@@ -453,7 +457,7 @@ export default function SuperAdminOrgsPage() {
                         <ToggleLeft size={12} /> Disable All
                       </button>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    <div className="grid-r2" style={{ gap: 6 }}>
                       {ALL_MODULES.map(mod => {
                         const enabled = editForm.enabledModules.includes(mod.key);
                         return (

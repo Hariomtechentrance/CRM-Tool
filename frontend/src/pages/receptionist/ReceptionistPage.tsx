@@ -194,7 +194,7 @@ export default function ReceptionistPage() {
       {/* ══ DASHBOARD ══ */}
       {tab === "dashboard" && (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+          <div className="grid-r2" style={{ gap: 12, marginBottom: 20 }}>
             <div style={CARD}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <Users size={16} color="#10b981" />
@@ -253,7 +253,8 @@ export default function ReceptionistPage() {
           </div>
 
           <div style={CARD}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>{["Badge","Name","Phone","Company","Meeting","Check-in","Status","Action"].map(h => (
                 <th key={h} style={{ textAlign: "left", padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>{h}</th>
               ))}</tr></thead>
@@ -280,6 +281,7 @@ export default function ReceptionistPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -305,7 +307,8 @@ export default function ReceptionistPage() {
           </div>
 
           <div style={CARD}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>{["Type","Courier Co.","Tracking #","From","To","Description","Status","Date","Action"].map(h => (
                 <th key={h} style={{ textAlign: "left", padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>{h}</th>
               ))}</tr></thead>
@@ -333,6 +336,7 @@ export default function ReceptionistPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -340,16 +344,16 @@ export default function ReceptionistPage() {
       {/* ── Check-in Modal ── */}
       {showVisitorModal && (
         <Modal title="Check In Visitor" onClose={() => setShowVisitorModal(false)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Full Name *"><input value={visitorForm.name} onChange={e => setVisitorForm(f => ({ ...f, name: e.target.value }))} placeholder="Visitor name" style={INPUT_STYLE} /></FF>
             <FF label="Phone"><input value={visitorForm.phone} onChange={e => setVisitorForm(f => ({ ...f, phone: e.target.value }))} onKeyDown={kPhone} maxLength={15} placeholder="+91 98765…" style={INPUT_STYLE} /></FF>
           </div>
           <FF label="Company / Organization"><input value={visitorForm.company} onChange={e => setVisitorForm(f => ({ ...f, company: e.target.value }))} style={INPUT_STYLE} /></FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Purpose of Visit"><input value={visitorForm.purpose} onChange={e => setVisitorForm(f => ({ ...f, purpose: e.target.value }))} placeholder="Meeting, Delivery, Interview…" style={INPUT_STYLE} /></FF>
             <FF label="Whom to Meet"><input value={visitorForm.whomToMeet} onChange={e => setVisitorForm(f => ({ ...f, whomToMeet: e.target.value }))} placeholder="Employee / department" style={INPUT_STYLE} /></FF>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="ID Type"><input value={visitorForm.idType} onChange={e => setVisitorForm(f => ({ ...f, idType: e.target.value }))} placeholder="Aadhaar, PAN, License…" style={INPUT_STYLE} /></FF>
             <FF label="ID Number"><input value={visitorForm.idNumber} onChange={e => setVisitorForm(f => ({ ...f, idNumber: e.target.value }))} style={INPUT_STYLE} /></FF>
           </div>
@@ -368,17 +372,17 @@ export default function ReceptionistPage() {
               <option value="OUTGOING">Outgoing (dispatched from us)</option>
             </select>
           </FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="grid-r2" style={{ gap: 10 }}>
             <FF label="Courier Company"><input value={courierForm.courierCompany} onChange={e => setCourierForm(f => ({ ...f, courierCompany: e.target.value }))} placeholder="BlueDart, FedEx, DTDC…" style={INPUT_STYLE} /></FF>
             <FF label="Tracking Number"><input value={courierForm.trackingNumber} onChange={e => setCourierForm(f => ({ ...f, trackingNumber: e.target.value }))} style={INPUT_STYLE} /></FF>
           </div>
           {courierForm.type === "INCOMING" ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid-r2" style={{ gap: 10 }}>
               <FF label="Sender Name/Company"><input value={courierForm.senderName} onChange={e => setCourierForm(f => ({ ...f, senderName: e.target.value }))} style={INPUT_STYLE} /></FF>
               <FF label="For (Recipient)"><input value={courierForm.recipientName} onChange={e => setCourierForm(f => ({ ...f, recipientName: e.target.value }))} placeholder="Employee / department" style={INPUT_STYLE} /></FF>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid-r2" style={{ gap: 10 }}>
               <FF label="Sent By"><input value={courierForm.recipientName} onChange={e => setCourierForm(f => ({ ...f, recipientName: e.target.value }))} placeholder="Employee / department" style={INPUT_STYLE} /></FF>
               <FF label="Recipient (destination)"><input value={courierForm.senderName} onChange={e => setCourierForm(f => ({ ...f, senderName: e.target.value }))} style={INPUT_STYLE} /></FF>
             </div>
@@ -393,7 +397,7 @@ export default function ReceptionistPage() {
       {selectedVisitor && (
         <Modal title={selectedVisitor.name} onClose={() => setSelectedVisitor(null)}>
           <div style={{ marginBottom: 12 }}>{badge(selectedVisitor.status, VISITOR_COLOR[selectedVisitor.status] || "#818cf8")}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div className="grid-r2" style={{ gap: 10, marginBottom: 14 }}>
             {[
               { label: "Badge", val: selectedVisitor.badgeNumber || "—" },
               { label: "Phone", val: selectedVisitor.phone || "—" },

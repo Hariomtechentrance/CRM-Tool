@@ -215,7 +215,7 @@ export default function EInvoicePage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         {[
           { icon: Clock, label: "Pending IRN", value: invoices.length, color: "#f59e0b" },
           { icon: CheckCircle, label: "IRN Generated today", value: 0, color: "#10b981" },

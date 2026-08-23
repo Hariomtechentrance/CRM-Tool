@@ -129,7 +129,8 @@ export default function TeamDashboardPage() {
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <table className="w-full">
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead>
               <tr style={{ background: "var(--bg-hover)" }}>
                 {["Employee", "Department", "Today", "Projects", "Tasks Progress", "Action"].map(h => (
@@ -189,6 +190,7 @@ export default function TeamDashboardPage() {
               })}
             </tbody>
           </table>
+          </div>
           {filtered.length === 0 && (
             <div className="text-center py-12">
               <AlertCircle style={{ width: 28, height: 28, color: "var(--text-ghost)", margin: "0 auto 8px" }} />
@@ -215,7 +217,7 @@ export default function TeamDashboardPage() {
             </div>
 
             {/* Task stats */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
               {[["To Do", selEmp.tasks.todo, "#94a3b8"], ["In Progress", selEmp.tasks.inProgress, "#fbbf24"], ["Done", selEmp.tasks.done, "#4ade80"]].map(([l, v, c]) => (
                 <div key={String(l)} className="rounded-xl p-3 text-center" style={{ background: "var(--bg-hover)" }}>
                   <p className="text-xl font-bold" style={{ color: String(c) }}>{v}</p>

@@ -18,7 +18,7 @@ const S = {
   th: { textAlign: "left" as const, padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, borderBottom: "1px solid var(--border)" },
   td: { padding: "12px 12px", fontSize: 13, color: "var(--text-sec)", borderBottom: "1px solid var(--bg-hover)" },
   modal: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 480, maxHeight: "90vh", overflowY: "auto" as const },
+  modalBox: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, width: 480, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto" as const },
   input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
   select: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const, boxSizing: "border-box" as const },
@@ -137,7 +137,7 @@ export default function TimeTrackingPage() {
       </div>
 
       {summary && (
-        <div style={S.kpiGrid}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
             { label: "Total Hours", value: summary.totalHours.toFixed(1), color: "#818cf8", icon: Clock },
             { label: "Billable Hours", value: summary.billableHours.toFixed(1), color: "#10b981", icon: DollarSign },
@@ -170,7 +170,8 @@ export default function TimeTrackingPage() {
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead>
               <tr>{["Date", "Project", "Description", "Hours", "Billable", "Approved"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
@@ -191,11 +192,12 @@ export default function TimeTrackingPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {tab === "summary" && summary && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="grid-r2" style={{ gap: 20 }}>
           <div style={S.card}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Hours by Project</div>
             {Object.entries(summary.byProject).map(([pid, hrs]) => {
@@ -230,7 +232,8 @@ export default function TimeTrackingPage() {
 
       {tab === "sla" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead>
               <tr>{["Policy Name", "First Response", "Resolution", "Applies To", "Tickets"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
@@ -248,12 +251,14 @@ export default function TimeTrackingPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {tab === "allocation" && (
         <div style={S.card}>
-          <table style={S.table}>
+          <div className="overflow-x-auto">
+            <table style={S.table}>
             <thead>
               <tr>{["Project", "User ID", "Role", "Allocation %", "Start Date", "End Date"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
             </thead>
@@ -279,6 +284,7 @@ export default function TimeTrackingPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -298,7 +304,7 @@ export default function TimeTrackingPage() {
                   {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div>
                   <label style={S.label}>Hours *</label>
                   <input type="number" min="0.25" step="0.25" style={S.input} placeholder="1.5" value={form.hours} onChange={e => setForm(p => ({ ...p, hours: e.target.value }))} />
@@ -334,7 +340,7 @@ export default function TimeTrackingPage() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><label style={S.label}>Policy Name</label><input style={S.input} value={slaForm.name} onChange={e => setSLAForm(p => ({ ...p, name: e.target.value }))} /></div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>First Response (hours)</label><input type="number" style={S.input} value={slaForm.firstResponseHours} onChange={e => setSLAForm(p => ({ ...p, firstResponseHours: e.target.value }))} /></div>
                 <div><label style={S.label}>Resolution (hours)</label><input type="number" style={S.input} value={slaForm.resolutionHours} onChange={e => setSLAForm(p => ({ ...p, resolutionHours: e.target.value }))} /></div>
               </div>
@@ -365,7 +371,7 @@ export default function TimeTrackingPage() {
                 </select>
               </div>
               <div><label style={S.label}>User ID *</label><input style={S.input} placeholder="User ID" value={allocForm.userId} onChange={e => setAllocForm(p => ({ ...p, userId: e.target.value }))} /></div>
-              <div style={S.g2}>
+              <div className="grid-r2">
                 <div><label style={S.label}>Role</label><input style={S.input} placeholder="e.g. Developer" value={allocForm.role} onChange={e => setAllocForm(p => ({ ...p, role: e.target.value }))} /></div>
                 <div><label style={S.label}>Allocation %</label><input type="number" min="0" max="100" style={S.input} value={allocForm.allocationPct} onChange={e => setAllocForm(p => ({ ...p, allocationPct: e.target.value }))} /></div>
               </div>
