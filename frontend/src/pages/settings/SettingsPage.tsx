@@ -334,7 +334,7 @@ export default function SettingsPage() {
                     <div>
                       <label style={S.label}>Modules</label>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {ALL_MODULES.map(m => {
+                        {ALL_MODULES.filter(m => activeOrg?.enabledModules?.includes(m.key)).map(m => {
                           const on = empForm.modules.includes(m.key);
                           return (
                             <button type="button" key={m.key}

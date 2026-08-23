@@ -4,8 +4,9 @@ import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const ORG_SLUG = "city-care-clinic";
-const DOCTOR_PASSWORD = "Doctor@123";
+const ORG_SLUG = process.env.DOCTOR_LOGINS_ORG_SLUG || "city-care-clinic";
+if (!process.env.DOCTOR_LOGINS_PASSWORD) throw new Error("Set DOCTOR_LOGINS_PASSWORD env var before running this script.");
+const DOCTOR_PASSWORD: string = process.env.DOCTOR_LOGINS_PASSWORD;
 
 async function main() {
   const org = await prisma.organization.findUnique({ where: { slug: ORG_SLUG }, select: { id: true, name: true } });

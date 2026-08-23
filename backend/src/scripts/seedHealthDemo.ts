@@ -41,8 +41,8 @@ async function main() {
   }
 
   /* ── 2. Create admin user ─────────────────────────────────── */
-  const adminHash  = await bcrypt.hash("Clinic@123",  10);
-  const doctorHash = await bcrypt.hash("Doctor@123",  10);
+  const adminHash  = await bcrypt.hash(process.env.HEALTH_DEMO_ADMIN_PASSWORD  || "Clinic@123", 10);
+  const doctorHash = await bcrypt.hash(process.env.HEALTH_DEMO_DOCTOR_PASSWORD || "Doctor@123",  10);
 
   let adminUser = await prisma.user.findUnique({ where: { email: "admin@citycare.demo" } });
   if (!adminUser) {

@@ -4,8 +4,9 @@ import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const ORG_SLUG = "hi";
-const PASSWORD = "Module@123";
+const ORG_SLUG = process.env.MODULE_LOGINS_ORG_SLUG || "hi";
+if (!process.env.MODULE_LOGINS_PASSWORD) throw new Error("Set MODULE_LOGINS_PASSWORD env var before running this script.");
+const PASSWORD: string = process.env.MODULE_LOGINS_PASSWORD;
 
 const MODULES: { key: string; label: string }[] = [
   { key: "CRM",                  label: "CRM & Contacts" },

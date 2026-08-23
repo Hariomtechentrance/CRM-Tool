@@ -153,6 +153,22 @@ export async function createProject(req: OrgRequest, res: Response): Promise<voi
       return;
     }
 
+    // Never trust a client-supplied partyId/quotationId at face value — verify
+    // it actually belongs to this org before linking, or a cross-tenant id
+    // could leak another organization's client name/quotation into this one.
+    let verifiedPartyId: string | null = null;
+    if (partyId) {
+      const party = await prisma.party.findFirst({ where: { id: partyId, organizationId: orgId }, select: { id: true } });
+      if (!party) { badRequest(res, "Party not found"); return; }
+      verifiedPartyId = party.id;
+    }
+    let verifiedQuotationId: string | null = null;
+    if (quotationId) {
+      const quotation = await prisma.quotation.findFirst({ where: { id: quotationId, organizationId: orgId }, select: { id: true } });
+      if (!quotation) { badRequest(res, "Quotation not found"); return; }
+      verifiedQuotationId = quotation.id;
+    }
+
     const project = await prisma.wBAProject.create({
       data: {
         organizationId: orgId,
@@ -162,8 +178,8 @@ export async function createProject(req: OrgRequest, res: Response): Promise<voi
         category: category as any,
         resources: resources || null,
         clientDeadline: clientDeadline ? new Date(clientDeadline) : null,
-        partyId: partyId || null,
-        quotationId: quotationId || null,
+        partyId: verifiedPartyId,
+        quotationId: verifiedQuotationId,
         createdById: req.userId!,
         members: {
           create: level === "OWNER"
@@ -200,6 +216,17 @@ export async function updateProject(req: OrgRequest, res: Response): Promise<voi
     const { projectName, clientName, description, category, status, resources, clientDeadline, partyId } =
       req.body as Record<string, any>;
 
+    let verifiedPartyId: string | null | undefined = undefined;
+    if (partyId !== undefined) {
+      if (partyId) {
+        const party = await prisma.party.findFirst({ where: { id: partyId, organizationId: orgId }, select: { id: true } });
+        if (!party) { badRequest(res, "Party not found"); return; }
+        verifiedPartyId = party.id;
+      } else {
+        verifiedPartyId = null;
+      }
+    }
+
     const project = await prisma.wBAProject.update({
       where: { id },
       data: {
@@ -210,7 +237,7 @@ export async function updateProject(req: OrgRequest, res: Response): Promise<voi
         ...(status !== undefined && { status }),
         ...(resources !== undefined && { resources: resources || null }),
         ...(clientDeadline !== undefined && { clientDeadline: clientDeadline ? new Date(clientDeadline) : null }),
-        ...(partyId !== undefined && { partyId: partyId || null }),
+        ...(verifiedPartyId !== undefined && { partyId: verifiedPartyId }),
       },
       include: PROJECT_INCLUDE,
     });

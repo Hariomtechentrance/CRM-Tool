@@ -604,7 +604,11 @@ export async function createOrgEmployee(req: OrgRequest, res: Response): Promise
     if (preset.defaultModules === "ALL_ENABLED") {
       moduleKeys = orgModules;
     } else {
-      moduleKeys = modules && modules.length > 0 ? modules : [...preset.defaultModules];
+      // A caller-supplied module list (Staff/Intern) can only grant modules
+      // the org actually has enabled — never trust the client alone here.
+      moduleKeys = modules && modules.length > 0
+        ? modules.filter((m) => orgModules.includes(m))
+        : [...preset.defaultModules];
     }
 
     // A Project Manager runs whatever delivery-pipeline module the org has —
