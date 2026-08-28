@@ -29,17 +29,45 @@ let fallbackTransporter: ReturnType<typeof makeTransporter> | null = null;
 
 interface SendMailOptions { to: string; subject: string; html: string; }
 
+// Resend's HTTP API works over plain HTTPS (443), sidestepping any host-level
+// block on outbound SMTP ports. Preferred whenever configured; SMTP (with its
+// own 465/587 fallback below) remains as a secondary path.
+async function sendViaResend(mail: { from: string; to: string; subject: string; html: string }): Promise<void> {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(mail),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Resend API error (${res.status}): ${body}`);
+  }
+}
+
 export async function sendEmail({ to, subject, html }: SendMailOptions) {
   // Always log so developers can see emails in console
-  console.log(`\n📧 [EMAIL] To: ${to} | Subject: ${subject}\n`);
+  console.log(`[email] to=${to} subject="${subject}"`);
+
+  const mail = { from: process.env.EMAIL_FROM || "FlowCRM <noreply@flowcrm.in>", to, subject, html };
+
+  if (process.env.RESEND_API_KEY) {
+    try {
+      await sendViaResend(mail);
+      return;
+    } catch (err) {
+      console.error("[Email] Resend send failed:", err);
+      throw new Error("Email delivery failed. Please try again later.");
+    }
+  }
 
   // Skip actual send only if SMTP is not configured (host/user missing)
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
     if (process.env.NODE_ENV !== "production") return; // dev without SMTP — just log
-    throw new Error("SMTP not configured. Set SMTP_HOST and SMTP_USER in your environment.");
+    throw new Error("Email delivery is not configured. Set RESEND_API_KEY or SMTP_HOST/SMTP_USER in your environment.");
   }
-
-  const mail = { from: process.env.EMAIL_FROM || "FlowCRM <noreply@flowcrm.in>", to, subject, html };
 
   try {
     await primaryTransporter.sendMail(mail);

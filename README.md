@@ -12,7 +12,7 @@ A multi-tenant SaaS CRM/ERP platform for any business type. Manage customers, in
 | Backend | Node.js 20, Express 5, TypeScript, Prisma v5 |
 | Database | PostgreSQL 16 |
 | Auth | JWT (access + refresh tokens), bcrypt |
-| Email | Nodemailer (SMTP) |
+| Email | Resend API (HTTP), with SMTP fallback via Nodemailer |
 | File Storage | Local disk (multer) — swap for S3 in production |
 | Deployment | Render / Docker + nginx |
 
