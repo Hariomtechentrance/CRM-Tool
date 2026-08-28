@@ -1,4 +1,4 @@
-# FlowCRM
+# BusinessOS
 
 A multi-tenant SaaS CRM/ERP platform for any business type. Manage customers, invoices, inventory, HR, projects, leads, deals, documents and more — all in one place.
 
@@ -114,7 +114,7 @@ Open [http://localhost:5173](http://localhost:5173).
    - `DATABASE_URL` — your PostgreSQL connection string (use Render Postgres or Neon)
    - `JWT_ACCESS_SECRET` — 64-char random hex string
    - `JWT_REFRESH_SECRET` — different 64-char random hex string
-   - `FRONTEND_URL` — your Render app URL (e.g. `https://flowcrm.onrender.com`)
+   - `FRONTEND_URL` — your Render app URL (e.g. `https://businessos.onrender.com`)
    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` — optional
 
 ---
@@ -139,7 +139,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=you@gmail.com
 SMTP_PASS=your_gmail_app_password
-EMAIL_FROM=FlowCRM <noreply@yourdomain.com>
+EMAIL_FROM=BusinessOS <noreply@yourdomain.com>
 ```
 
 > **Gmail App Password**: Google Account → Security → 2-Step Verification → App Passwords.

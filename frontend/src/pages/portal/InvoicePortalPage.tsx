@@ -244,7 +244,7 @@ export default function InvoicePortalPage() {
         </div>
 
         <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", marginTop: 20 }}>
-          Powered by FlowCRM · This is a secure invoice portal
+          Powered by BusinessOS · This is a secure invoice portal
         </p>
       </div>
       <style>{`@media print { .no-print { display: none !important; } }`}</style>

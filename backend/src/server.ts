@@ -317,7 +317,7 @@ app.get("/api/health", async (_req, res) => {
       circuitBreaker: dbBreaker.getState(),
       pid: process.pid,
       timestamp: new Date().toISOString(),
-      app: "FlowCRM API",
+      app: "BusinessOS API",
     });
   } catch (err) {
     dbBreaker.fail();
@@ -434,7 +434,7 @@ app.use(errorHandler);
 
 // ── Start server ─────────────────────────────────────────────
 const server = app.listen(PORT, () => {
-  console.log(`\n  FlowCRM API  ->  http://localhost:${PORT}`);
+  console.log(`\n  BusinessOS API  ->  http://localhost:${PORT}`);
   console.log(`  Health       ->  http://localhost:${PORT}/api/health`);
   console.log(`  Env          ->  ${process.env.NODE_ENV || "development"}\n`);
   startCronJobs();

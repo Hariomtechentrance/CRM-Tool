@@ -135,7 +135,7 @@ export default function ContactModal({ onClose }: Props) {
             Request an Account
           </h2>
           <p style={{ fontSize: 13, color: "var(--text-faint)", margin: 0, lineHeight: 1.5 }}>
-            Fill in the details below and our team will contact you to set up your organisation on BL-CRM.
+            Fill in the details below and our team will contact you to set up your organisation on BusinessOS.
           </p>
         </div>
         <button

@@ -131,7 +131,7 @@ export async function uploadDocuments(req: OrgRequest, res: Response): Promise<v
       let fileName: string;
 
       if (useCloudinary) {
-        const folder = `blcrm/${orgId}/${entityType.toLowerCase()}`;
+        const folder = `businessos/${orgId}/${entityType.toLowerCase()}`;
         const publicId = uuidv4();
         const { secure_url, public_id } = await uploadToCloudinary(file.buffer, folder, publicId);
         filePath = secure_url;

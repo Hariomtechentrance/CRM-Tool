@@ -14,6 +14,6 @@ export const useThemeStore = create<ThemeState>()(
       toggleTheme: () => set(s => ({ theme: s.theme === "dark" ? "light" : "dark" })),
       setTheme: (theme) => set({ theme }),
     }),
-    { name: "flowcrm-theme" }
+    { name: "businessos-theme" }
   )
 );

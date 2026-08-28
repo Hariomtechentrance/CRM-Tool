@@ -207,7 +207,7 @@ export async function testWebhook(req: OrgRequest, res: Response): Promise<void>
     const webhook = await db().webhookEndpoint.findFirst({ where: { id, organizationId: orgId } });
     if (!webhook) { notFound(res, "Webhook not found"); return; }
 
-    const payload = { event: "ping", timestamp: new Date().toISOString(), data: { message: "Test ping from FlowCRM" } };
+    const payload = { event: "ping", timestamp: new Date().toISOString(), data: { message: "Test ping from BusinessOS" } };
     const result = await dispatchWebhook(webhook.url, webhook.secret, payload);
 
     // Record delivery
@@ -281,9 +281,9 @@ export async function dispatchWebhook(
         headers: {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(body),
-          "X-FlowCRM-Signature": `sha256=${sig}`,
-          "X-FlowCRM-Event": (payload as any).event ?? "unknown",
-          "User-Agent": "FlowCRM-Webhooks/1.0",
+          "X-BusinessOS-Signature": `sha256=${sig}`,
+          "X-BusinessOS-Event": (payload as any).event ?? "unknown",
+          "User-Agent": "BusinessOS-Webhooks/1.0",
         },
         timeout: 10000,
       },

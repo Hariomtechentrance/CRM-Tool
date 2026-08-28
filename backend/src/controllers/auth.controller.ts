@@ -68,11 +68,11 @@ async function sendLoginAlert(user: { name: string; email: string }, ip: string,
   try {
     await sendEmail({
       to: user.email,
-      subject: "New login detected — FlowCRM",
+      subject: "New login detected — BusinessOS",
       html: `
         <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px">
           <h2 style="color:#ef4444;margin:0 0 8px">New Login Detected</h2>
-          <p style="color:#555">Hi ${user.name}, a new login to your FlowCRM account was detected.</p>
+          <p style="color:#555">Hi ${user.name}, a new login to your BusinessOS account was detected.</p>
           <div style="background:#f9f9f9;border-radius:8px;padding:16px;margin:20px 0">
             <div style="margin-bottom:8px"><span style="color:#888">Browser: </span><strong>${browser}</strong></div>
             <div style="margin-bottom:8px"><span style="color:#888">OS: </span><strong>${os}</strong></div>
@@ -127,7 +127,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       try {
         await sendEmail({
           to: email,
-          subject: "Verify your BL-CRM account",
+          subject: "Verify your BusinessOS account",
           html: verifyEmailTemplate(name, emailVerifyToken!),
         });
       } catch (emailErr) {
@@ -338,7 +338,7 @@ export async function forgotPassword(req: Request, res: Response): Promise<void>
 
     await sendEmail({
       to: user.email,
-      subject: "Reset your BL-CRM password",
+      subject: "Reset your BusinessOS password",
       html: resetPasswordTemplate(user.name, resetToken),
     });
 

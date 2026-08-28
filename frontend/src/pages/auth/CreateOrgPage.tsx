@@ -170,7 +170,7 @@ export default function CreateOrgPage() {
             {step === 1 ? "Create your organization" : step === 2 ? "Contact & tax details" : "Choose your modules"}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 5 }}>
-            {step === 1 ? "Set up your company workspace on FlowCRM."
+            {step === 1 ? "Set up your company workspace on BusinessOS."
              : step === 2 ? "Optional — fill these anytime in Settings."
              : `${selectedModules.length} module${selectedModules.length !== 1 ? "s" : ""} selected · You can change this later in Settings.`}
           </p>

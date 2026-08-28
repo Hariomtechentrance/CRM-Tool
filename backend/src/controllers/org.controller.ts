@@ -219,7 +219,7 @@ export async function inviteMember(req: OrgRequest, res: Response): Promise<void
       data: { email, organizationId: req.organizationId!, role, allowedModules: allowedModules ?? [], invitedById: req.userId!, expiresAt },
     });
 
-    const subject = `You're invited to join ${org!.name} on FlowCRM`;
+    const subject = `You're invited to join ${org!.name} on BusinessOS`;
     const html = inviteEmailTemplate(org!.name, inviter!.name, invite.token, role, allowedModules ?? []);
 
     // Try the inviter's connected Gmail first; fall back to SMTP
@@ -316,7 +316,7 @@ export async function acceptInvite(req: AuthRequest, res: Response): Promise<voi
 }
 
 // ── Register a brand-new account directly from an invite ──────
-// Public — no auth. Used when the invited email has no existing FlowCRM
+// Public — no auth. Used when the invited email has no existing BusinessOS
 // account yet. The invite link itself (sent to a real inbox by an org
 // admin) is treated as proof of email ownership, so no separate
 // verification step is required — same trust model as a password-reset
@@ -428,7 +428,7 @@ export async function resendInvite(req: OrgRequest, res: Response): Promise<void
     const org = await prisma.organization.findUnique({ where: { id: req.organizationId }, select: { name: true } });
     const inviter = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true } });
 
-    const subject = `Reminder: You're invited to join ${org!.name} on FlowCRM`;
+    const subject = `Reminder: You're invited to join ${org!.name} on BusinessOS`;
     const html = inviteEmailTemplate(org!.name, inviter!.name, invite.token, invite.role, invite.allowedModules);
 
     const sentViaGmail = await sendInviteViaGmail(req.userId!, invite.email, subject, html);

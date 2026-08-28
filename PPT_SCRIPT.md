@@ -1,19 +1,19 @@
-# BL-CRM — Complete PPT Script
+# BusinessOS — Complete PPT Script
 # Ready to paste into Gamma / Canva / Tome / Beautiful.ai / PowerPoint AI
 
 ---
 
 ## SLIDE 1 — TITLE SLIDE
 
-**Title:** BL-CRM — Complete Business Management Platform
+**Title:** BusinessOS — Complete Business Management Platform
 **Subtitle:** One System for Sales, Operations, Finance, HR & Compliance
 **Tag Line:** Built for Indian Businesses — Multi-Industry, Multi-Language, Multi-Organisation
 
 ---
 
-## SLIDE 2 — WHAT IS BL-CRM?
+## SLIDE 2 — WHAT IS BusinessOS?
 
-**Title:** What is BL-CRM?
+**Title:** What is BusinessOS?
 
 **Points:**
 - All-in-one cloud software to run your entire business from one screen
@@ -29,9 +29,9 @@
 
 ## SLIDE 3 — THE PROBLEM IT SOLVES
 
-**Title:** Why Businesses Need BL-CRM
+**Title:** Why Businesses Need BusinessOS
 
-**Left Column (Before BL-CRM):**
+**Left Column (Before BusinessOS):**
 - Customer data scattered in phones and WhatsApp
 - Excel sheets that nobody updates
 - No idea which leads are pending follow-up
@@ -40,7 +40,7 @@
 - HR done in separate software
 - Compliance ignored — risk of legal penalties
 
-**Right Column (After BL-CRM):**
+**Right Column (After BusinessOS):**
 - All customers in one searchable database
 - Leads auto-assigned, follow-ups never missed
 - Invoices with GST auto-calculated in 60 seconds
@@ -968,7 +968,7 @@ Patient returns → Full history visible instantly
 
 ## SLIDE 36 — INDUSTRY FIT
 
-**Title:** Who Is BL-CRM Built For?
+**Title:** Who Is BusinessOS Built For?
 
 | Industry | Primary Modules |
 |----------|----------------|
@@ -993,7 +993,7 @@ Patient returns → Full history visible instantly
 
 ## SLIDE 37 — COMPLETE WORKFLOW EXAMPLE (TRADING COMPANY)
 
-**Title:** Day in the Life — Trading Company Using BL-CRM
+**Title:** Day in the Life — Trading Company Using BusinessOS
 
 ```
 8:30 AM — Open Dashboard
@@ -1036,7 +1036,7 @@ Patient returns → Full history visible instantly
 
 ## SLIDE 38 — KEY NUMBERS
 
-**Title:** BL-CRM — By the Numbers
+**Title:** BusinessOS — By the Numbers
 
 - **40+** Modules in one platform
 - **12** Indian languages + English
@@ -1053,9 +1053,9 @@ Patient returns → Full history visible instantly
 
 ## SLIDE 39 — COMPETITOR COMPARISON
 
-**Title:** Why BL-CRM over Others?
+**Title:** Why BusinessOS over Others?
 
-| Feature | BL-CRM | Zoho CRM | Tally | Excel |
+| Feature | BusinessOS | Zoho CRM | Tally | Excel |
 |---------|--------|----------|-------|-------|
 | CRM + ERP in one | ✅ | Partial | ❌ | ❌ |
 | Indian GST built-in | ✅ | Paid add-on | ✅ | Manual |
@@ -1071,7 +1071,7 @@ Patient returns → Full history visible instantly
 
 ## SLIDE 40 — HOW TO START TODAY
 
-**Title:** Get Started with BL-CRM in Under 10 Minutes
+**Title:** Get Started with BusinessOS in Under 10 Minutes
 
 **Step 1** — Register your account (2 minutes)
 - Name, email, password → verify email
@@ -1089,13 +1089,13 @@ Patient returns → Full history visible instantly
 **Step 5** — Invite your team (2 minutes)
 - Admin Panel → Team → Invite members with roles
 
-**You're live. Start using BL-CRM today.**
+**You're live. Start using BusinessOS today.**
 
 ---
 
 ## SLIDE 41 — THANK YOU / CONTACT SLIDE
 
-**Title:** BL-CRM — One Platform. Every Business.
+**Title:** BusinessOS — One Platform. Every Business.
 
 **Tagline:** From your first customer to your thousandth — we grow with you.
 

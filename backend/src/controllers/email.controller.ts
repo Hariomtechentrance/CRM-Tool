@@ -60,8 +60,8 @@ export async function sendEmail(req: OrgRequest, res: Response): Promise<void> {
     const toEmail: string = req.body.toEmail;
     const ccEmail: string | undefined = req.body.ccEmail || undefined;
 
-    const fromEmail = process.env.SMTP_USER || "noreply@blcrm.in";
-    const fromName = process.env.SMTP_FROM_NAME || "BL-CRM";
+    const fromEmail = process.env.SMTP_USER || "noreply@busiinessos.co.in";
+    const fromName = process.env.SMTP_FROM_NAME || "BusinessOS";
 
     let emailStatus: "SENT" | "FAILED" = "SENT";
     let errorMsg: string | undefined;

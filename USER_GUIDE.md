@@ -1,4 +1,4 @@
-# BL-CRM — Complete User Guide
+# BusinessOS — Complete User Guide
 
 **For:** New users who want to learn how to use every feature step by step
 **Language:** Simple English — no technical terms
@@ -1773,7 +1773,7 @@ Click **API Keys** tab if you want to connect external apps (your own software, 
 
 ## 39. Super Admin (Platform Owner Only)
 
-This is a completely separate panel, accessible only to the platform owner (the person who owns the BL-CRM business itself).
+This is a completely separate panel, accessible only to the platform owner (the person who owns the BusinessOS business itself).
 
 ### Access
 
@@ -2638,4 +2638,4 @@ Use this table to quickly see which modules are most important for your business
 
 ---
 
-*BL-CRM — Built for Indian businesses. For questions, contact your system administrator.*
+*BusinessOS — Built for Indian businesses. For questions, contact your system administrator.*

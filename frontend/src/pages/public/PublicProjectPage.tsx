@@ -298,7 +298,7 @@ export default function PublicProjectPage() {
       <div style={{ textAlign: "center", padding: "16px 24px 32px", borderTop: "1px solid #1a1a30" }}>
         <span style={{ fontSize: 11, color: "#3e3e6a" }}>
           Powered by{" "}
-          <span style={{ color: "#6366f1", fontWeight: 700 }}>FlowCRM</span>
+          <span style={{ color: "#6366f1", fontWeight: 700 }}>BusinessOS</span>
           {data.sharedAt && ` · Shared ${new Date(data.sharedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`}
         </span>
       </div>

@@ -34,7 +34,7 @@ export default function AcceptInvitePage() {
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ── New-account creation (for invitees with no existing FlowCRM account) ──
+  // ── New-account creation (for invitees with no existing BusinessOS account) ──
   const [mode, setMode] = useState<"create" | "existing">("create");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -136,7 +136,7 @@ export default function AcceptInvitePage() {
                 <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>
                   {ROLE_LABELS[invite.role] || invite.role}
                 </span>
-                <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>on FlowCRM</span>
+                <span style={{ fontSize: 12, color: "var(--text-ghost)" }}>on BusinessOS</span>
               </div>
             </div>
             {isAuthenticated ? (
@@ -190,7 +190,7 @@ export default function AcceptInvitePage() {
                   {creating ? "Creating account…" : "Create Account & Join"}
                 </button>
                 <button onClick={() => { setMode("existing"); setErrorMsg(""); }} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 12, cursor: "pointer", marginTop: 12, width: "100%", fontWeight: 600 }}>
-                  Already have a FlowCRM account? Log in instead
+                  Already have a BusinessOS account? Log in instead
                 </button>
               </>
             ) : (

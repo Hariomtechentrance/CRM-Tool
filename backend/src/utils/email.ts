@@ -51,7 +51,7 @@ export async function sendEmail({ to, subject, html }: SendMailOptions) {
   // Always log so developers can see emails in console
   console.log(`[email] to=${to} subject="${subject}"`);
 
-  const mail = { from: process.env.EMAIL_FROM || "FlowCRM <noreply@flowcrm.in>", to, subject, html };
+  const mail = { from: process.env.EMAIL_FROM || "BusinessOS <noreply@busiinessos.co.in>", to, subject, html };
 
   if (process.env.RESEND_API_KEY) {
     try {
@@ -98,11 +98,11 @@ function emailLayout(title: string, body: string): string {
   <tr><td align="center">
     <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
       <tr><td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:28px 40px;text-align:center">
-        <span style="color:#fff;font-size:22px;font-weight:800;letter-spacing:-0.5px">BL-CRM</span>
+        <span style="color:#fff;font-size:22px;font-weight:800;letter-spacing:-0.5px">BusinessOS</span>
       </td></tr>
       <tr><td style="padding:36px 40px">${body}</td></tr>
       <tr><td style="padding:20px 40px;background:#f8f8fc;text-align:center;font-size:12px;color:#9090b0;border-top:1px solid #ebebf5">
-        &copy; ${new Date().getFullYear()} BL-CRM &middot; Automated message, please do not reply.
+        &copy; ${new Date().getFullYear()} BusinessOS &middot; Automated message, please do not reply.
       </td></tr>
     </table>
   </td></tr>
@@ -126,7 +126,7 @@ function frontendBase(): string {
 export function verifyEmailTemplate(name: string, token: string): string {
   const url = `${frontendBase()}/verify-email?token=${token}`;
   return emailLayout("Verify your email", `
-    ${h1(`Welcome to BL-CRM, ${name}!`)}
+    ${h1(`Welcome to BusinessOS, ${name}!`)}
     ${p("Thanks for signing up. Please verify your email address to activate your account.")}
     ${btn(url, "Verify Email Address")}
     ${note("This link expires in 24 hours. If you didn't create this account, you can safely ignore this email.")}
@@ -163,11 +163,11 @@ export function inviteEmailTemplate(
       </div>`
     : "";
 
-  return emailLayout(`You're invited to join ${orgName} on FlowCRM`, `
+  return emailLayout(`You're invited to join ${orgName} on BusinessOS`, `
     ${h1(`You're Invited to Join ${orgName}!`)}
-    ${p(`<strong style="color:#1a1a2e">${inviterName}</strong> has invited you to join <strong style="color:#6366f1">${orgName}</strong> on FlowCRM as a <strong style="color:#1a1a2e">${roleLabel}</strong>.`)}
+    ${p(`<strong style="color:#1a1a2e">${inviterName}</strong> has invited you to join <strong style="color:#6366f1">${orgName}</strong> on BusinessOS as a <strong style="color:#1a1a2e">${roleLabel}</strong>.`)}
     ${allowedModules.length > 0 ? `<p style="margin:4px 0 6px;font-size:14px;color:#505070;line-height:1.6">You'll have access to the following modules:</p>${moduleChips}` : ""}
-    ${p("FlowCRM is an all-in-one business platform — CRM, inventory, sales, accounts, HR, and more.")}
+    ${p("BusinessOS is an all-in-one business platform — CRM, inventory, sales, accounts, HR, and more.")}
     ${btn(url, "Accept Invitation & Join")}
     ${note("This invitation expires in 48 hours. If you weren't expecting this, you can safely ignore this email.")}
   `);

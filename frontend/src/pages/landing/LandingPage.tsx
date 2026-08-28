@@ -47,7 +47,7 @@ const WHY = [
 const STEPS = [
   { n: "01", title: "Admin Creates Your Account",    desc: "Your organisation admin creates your user account and invites you to the platform." },
   { n: "02", title: "Enable the Modules You Need",   desc: "Turn on only the features relevant to your business — CRM, HR, inventory or all of them." },
-  { n: "03", title: "Start Working",                  desc: "Add parties, products, employees and let FlowCRM handle the calculations, alerts and reports." },
+  { n: "03", title: "Start Working",                  desc: "Add parties, products, employees and let BusinessOS handle the calculations, alerts and reports." },
 ];
 
 export default function LandingPage() {
@@ -69,7 +69,7 @@ export default function LandingPage() {
           <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px rgba(116,205,232,0.35)" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 13, letterSpacing: "-0.5px" }}>FC</span>
           </div>
-          <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.4px" }}>FlowCRM</span>
+          <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.4px" }}>BusinessOS</span>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
           <a href="#features" className="hidden sm:inline-block" style={{ padding: "8px 14px", borderRadius: 8, background: "transparent", border: "none", color: "var(--text-faint)", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "none" }}>
@@ -263,9 +263,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Why FlowCRM ── */}
+      {/* ── Why BusinessOS ── */}
       <section style={{ padding: "60px clamp(16px,4vw,64px)", background: "var(--bg-card)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-        <h2 style={{ textAlign: "center", fontSize: "clamp(20px,3vw,30px)", fontWeight: 800, margin: "0 0 40px" }}>Why FlowCRM?</h2>
+        <h2 style={{ textAlign: "center", fontSize: "clamp(20px,3vw,30px)", fontWeight: 800, margin: "0 0 40px" }}>Why BusinessOS?</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 18, maxWidth: 960, marginInline: "auto" }}>
           {WHY.map(w => (
             <div key={w.title} className="lift" style={{ background: "var(--bg-main)", borderRadius: 14, padding: 22, border: "1px solid var(--border)" }}>
@@ -340,7 +340,7 @@ export default function LandingPage() {
           <div style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "white", fontWeight: 800, fontSize: 10 }}>FC</span>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)" }}>FlowCRM</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)" }}>BusinessOS</span>
         </div>
         <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>
           Built for Indian businesses · GST-compliant · Multi-org · Secure

@@ -396,7 +396,7 @@ export default function PatientPortalPage() {
       )}
 
       <div style={{ marginTop: 40, fontSize: 12, color: "#374151", textAlign: "center" }}>
-        &copy; {new Date().getFullYear()} BL-CRM Health · Your data is secure and private.
+        &copy; {new Date().getFullYear()} BusinessOS Health · Your data is secure and private.
       </div>
     </div>
   );

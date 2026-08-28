@@ -14,8 +14,8 @@ export async function setup2FA(req: AuthRequest, res: Response): Promise<void> {
     if (user.twoFactorEnabled) { badRequest(res, "2FA is already enabled"); return; }
 
     const secret = speakeasy.generateSecret({
-      name: `FlowCRM (${user.email})`,
-      issuer: "FlowCRM",
+      name: `BusinessOS (${user.email})`,
+      issuer: "BusinessOS",
     });
 
     // Store the temp secret (not yet confirmed)

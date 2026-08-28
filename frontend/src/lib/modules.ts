@@ -1,4 +1,4 @@
-// Central registry of all FlowCRM modules.
+// Central registry of all BusinessOS modules.
 // The `key` is stored in enabledModules[] in the DB.
 
 export interface ModuleDefinition {

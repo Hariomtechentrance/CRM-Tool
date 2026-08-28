@@ -1,7 +1,7 @@
 {
-  "name": "flowcrm-backend",
+  "name": "businessos-backend",
   "version": "1.0.0",
-  "description": "FlowCRM API server — multi-tenant CRM/ERP backend (Express, Prisma, PostgreSQL)",
+  "description": "BusinessOS API server — multi-tenant CRM/ERP backend (Express, Prisma, PostgreSQL)",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",

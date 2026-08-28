@@ -33,7 +33,7 @@ i18n
     detection: {
       order: ["localStorage", "navigator"],
       caches: ["localStorage"],
-      lookupLocalStorage: "flowcrm_lang",
+      lookupLocalStorage: "businessos_lang",
     },
     interpolation: { escapeValue: false },
     react: { useSuspense: false },

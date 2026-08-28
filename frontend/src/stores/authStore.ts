@@ -175,7 +175,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "flowcrm-auth",
+      name: "businessos-auth",
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

@@ -222,10 +222,10 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
     if (sendWelcomeEmail) {
       sendEmail({
         to: email,
-        subject: "Your FlowCRM account has been created",
+        subject: "Your BusinessOS account has been created",
         html: `
           <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:24px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0">
-            <h2 style="color:#111827;margin:0 0 8px">Welcome to FlowCRM${result.org ? ` — ${result.org.name}` : ""}</h2>
+            <h2 style="color:#111827;margin:0 0 8px">Welcome to BusinessOS${result.org ? ` — ${result.org.name}` : ""}</h2>
             <p style="color:#374151;font-size:14px">An administrator has created an account for you.</p>
             <table style="font-size:14px;color:#374151;border-collapse:collapse">
               <tr><td style="padding:4px 12px 4px 0;color:#6b7280">Email</td><td><strong>${email}</strong></td></tr>

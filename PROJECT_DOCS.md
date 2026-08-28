@@ -1,4 +1,4 @@
-# FlowCRM — Project Documentation
+# BusinessOS — Project Documentation
 
 > Multi-tenant SaaS CRM/ERP platform built for import-export businesses.
 > Manage parties, inventory, purchases, sales, finance, HR, leads, projects, and more — all in one place.
@@ -25,7 +25,7 @@
 
 ## 1. Project Overview
 
-**FlowCRM** is a full-stack, multi-organisation CRM/ERP platform. Each company (organisation) gets its own isolated workspace with role-based access control. The platform owner (Super Admin) can manage all organisations from a separate admin panel.
+**BusinessOS** is a full-stack, multi-organisation CRM/ERP platform. Each company (organisation) gets its own isolated workspace with role-based access control. The platform owner (Super Admin) can manage all organisations from a separate admin panel.
 
 **Key capabilities:**
 - Multi-tenant: unlimited organisations, each with their own data
@@ -57,7 +57,7 @@
 ## 3. Folder Structure
 
 ```
-BL-CRM/
+BusinessOS/
 ├── backend/
 │   ├── prisma/
 │   │   └── schema.prisma        # Database schema
@@ -155,7 +155,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_gmail@gmail.com
 SMTP_PASS=your_gmail_app_password   # Generate at: Google Account → Security → App Passwords
-SMTP_FROM_NAME=FlowCRM
+SMTP_FROM_NAME=BusinessOS
 ```
 
 ### Frontend — `frontend/.env`
@@ -176,13 +176,13 @@ Open two terminals (or PowerShell windows):
 
 **Terminal 1 — Backend:**
 ```bash
-cd BL-CRM/backend
+cd BusinessOS/backend
 npm install
 ```
 
 **Terminal 2 — Frontend:**
 ```bash
-cd BL-CRM/frontend
+cd BusinessOS/frontend
 npm install
 ```
 
@@ -190,13 +190,13 @@ npm install
 
 **Terminal 1 — Backend (runs on port 5000):**
 ```bash
-cd BL-CRM/backend
+cd BusinessOS/backend
 npm run dev
 ```
 
 **Terminal 2 — Frontend (runs on port 5173):**
 ```bash
-cd BL-CRM/frontend
+cd BusinessOS/frontend
 npm run dev
 ```
 
@@ -232,7 +232,7 @@ http://localhost:5000/api/health
 To populate the database with realistic demo data (35 days of operations):
 
 ```bash
-cd BL-CRM/backend
+cd BusinessOS/backend
 npm run db:seed
 ```
 
@@ -543,4 +543,4 @@ Configure SMTP in `backend/.env`. For Gmail:
 
 ---
 
-*Last updated: May 2026 — FlowCRM v2*
+*Last updated: May 2026 — BusinessOS v2*

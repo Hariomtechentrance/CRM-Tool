@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 
 const PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-const SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@flowcrm.in";
+const SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@busiinessos.co.in";
 
 export function isPushConfigured(): boolean {
   return !!(PUBLIC_KEY && PRIVATE_KEY);

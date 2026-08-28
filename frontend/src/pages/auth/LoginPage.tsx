@@ -218,7 +218,7 @@ export default function LoginPage() {
             <span style={{ color: "white", fontWeight: 800, fontSize: 16 }}>FC</span>
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Welcome back</h1>
-          <p style={{ fontSize: 14, color: "var(--text-faint)", marginTop: 6 }}>Sign in to your FlowCRM account</p>
+          <p style={{ fontSize: 14, color: "var(--text-faint)", marginTop: 6 }}>Sign in to your BusinessOS account</p>
         </div>
 
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>

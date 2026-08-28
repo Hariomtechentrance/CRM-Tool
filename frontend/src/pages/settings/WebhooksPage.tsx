@@ -244,7 +244,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
               </button>
             </div>
             <p className="text-[10px] mt-1" style={{ color: "var(--text-ghost)" }}>
-              Verify with: <code>HMAC-SHA256(secret, request_body)</code> → compare to <code>X-FlowCRM-Signature</code> header
+              Verify with: <code>HMAC-SHA256(secret, request_body)</code> → compare to <code>X-BusinessOS-Signature</code> header
             </p>
           </div>
 
@@ -323,8 +323,8 @@ export default function WebhooksPage() {
         <div>
           <p className="text-xs font-semibold mb-1" style={{ color: "#c7d2fe" }}>How webhooks work</p>
           <p className="text-xs" style={{ color: "#818cf8" }}>
-            FlowCRM sends a POST request to your endpoint URL when subscribed events occur. Each request includes an
-            <code className="mx-1 px-1 rounded" style={{ background: "#312e81" }}>X-FlowCRM-Signature</code>
+            BusinessOS sends a POST request to your endpoint URL when subscribed events occur. Each request includes an
+            <code className="mx-1 px-1 rounded" style={{ background: "#312e81" }}>X-BusinessOS-Signature</code>
             header — verify it with your secret using HMAC-SHA256 to ensure authenticity.
           </p>
         </div>

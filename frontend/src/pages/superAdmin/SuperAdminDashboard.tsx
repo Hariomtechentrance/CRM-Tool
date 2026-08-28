@@ -35,7 +35,7 @@ export default function SuperAdminDashboard() {
   return (
     <div style={S.page}>
       <h1 style={S.title}>Platform Dashboard</h1>
-      <p style={S.subtitle}>Overview of all organizations and users on FlowCRM</p>
+      <p style={S.subtitle}>Overview of all organizations and users on BusinessOS</p>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[

@@ -1,6 +1,6 @@
 {
-  "name": "FlowCRM",
-  "short_name": "FlowCRM",
+  "name": "BusinessOS",
+  "short_name": "BusinessOS",
   "description": "All-in-one CRM & ERP for import-export businesses",
   "start_url": "/",
   "display": "standalone",

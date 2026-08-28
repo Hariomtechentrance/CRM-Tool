@@ -49,8 +49,8 @@ export async function dispatchAlert(params: AlertParams): Promise<void> {
             <h2 style="color:#f59e0b;margin:0 0 8px">${title}</h2>
             <p style="color:#555;margin:0 0 16px">Hi ${r.name},</p>
             <p style="color:#555">${message}</p>
-            ${appUrl ? `<p style="margin-top:24px"><a href="${appUrl}${link}" style="background:#6366f1;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">Open in FlowCRM</a></p>` : ""}
-            <p style="color:#888;font-size:13px;margin-top:24px">— ${org?.name ?? "FlowCRM"}</p>
+            ${appUrl ? `<p style="margin-top:24px"><a href="${appUrl}${link}" style="background:#6366f1;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">Open in BusinessOS</a></p>` : ""}
+            <p style="color:#888;font-size:13px;margin-top:24px">— ${org?.name ?? "BusinessOS"}</p>
           </div>
         `,
       });

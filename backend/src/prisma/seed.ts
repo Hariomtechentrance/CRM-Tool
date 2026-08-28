@@ -696,7 +696,7 @@ async function seedImportExportOrg() {
     data: {
       organizationId: orgId,
       name: "E-Commerce Platform Integration",
-      description: "Integrate BL-CRM with MegaMart Online's ordering portal for automated order sync",
+      description: "Integrate BusinessOS with MegaMart Online's ordering portal for automated order sync",
       status: "ACTIVE",
       startDate: daysAgo(30),
       endDate: daysAgo(-15), // future

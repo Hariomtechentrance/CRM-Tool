@@ -142,7 +142,7 @@ export default function LeadCaptureFormPage() {
         </div>
         <h2 className="text-2xl font-bold mb-3" style={{ color: "#111" }}>Submitted!</h2>
         <p className="text-base" style={{ color: "#374151" }}>{successMessage}</p>
-        <p className="text-sm mt-4" style={{ color: "#9ca3af" }}>Powered by FlowCRM</p>
+        <p className="text-sm mt-4" style={{ color: "#9ca3af" }}>Powered by BusinessOS</p>
       </div>
     </div>
   );
@@ -201,7 +201,7 @@ export default function LeadCaptureFormPage() {
           </div>
 
           <div className="px-8 py-4 text-center" style={{ borderTop: "1px solid #f3f4f6" }}>
-            <p className="text-xs" style={{ color: "#d1d5db" }}>Powered by FlowCRM</p>
+            <p className="text-xs" style={{ color: "#d1d5db" }}>Powered by BusinessOS</p>
           </div>
         </div>
       </div>
