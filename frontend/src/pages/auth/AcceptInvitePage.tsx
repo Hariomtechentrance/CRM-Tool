@@ -111,7 +111,7 @@ export default function AcceptInvitePage() {
       <div style={S.card}>
         {/* Logo */}
         <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 20, boxShadow: "0 8px 28px rgba(99,102,241,0.4)" }}>
-          <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>FC</span>
+          <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>BO</span>
         </div>
 
         {status === "loading" && (

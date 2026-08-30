@@ -164,7 +164,7 @@ export default function CreateOrgPage() {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 13, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 28px rgba(99,102,241,0.4)" }}>
-            <span style={{ color: "white", fontWeight: 800, fontSize: 15 }}>FC</span>
+            <span style={{ color: "white", fontWeight: 800, fontSize: 15 }}>BO</span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
             {step === 1 ? "Create your organization" : step === 2 ? "Contact & tax details" : "Choose your modules"}

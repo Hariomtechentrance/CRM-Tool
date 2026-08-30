@@ -286,7 +286,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         <div className="flex items-center justify-center flex-shrink-0" style={{ height: 54, width: "100%", borderBottom: "1px solid var(--sb-border)" }}>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-lg"
             style={{ background: "linear-gradient(135deg,var(--sb-accent),#2e9cc4)" }}>
-            FC
+            BO
           </div>
         </div>
 

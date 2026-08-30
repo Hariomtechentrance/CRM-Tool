@@ -67,7 +67,7 @@ export default function LandingPage() {
       <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "color-mix(in srgb, var(--bg-card) 82%, transparent)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid var(--border)", padding: "0 clamp(16px,4vw,64px)", display: "flex", alignItems: "center", height: 64, gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
           <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px rgba(116,205,232,0.35)" }}>
-            <span style={{ color: "white", fontWeight: 800, fontSize: 13, letterSpacing: "-0.5px" }}>FC</span>
+            <span style={{ color: "white", fontWeight: 800, fontSize: 13, letterSpacing: "-0.5px" }}>BO</span>
           </div>
           <span style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.4px" }}>BusinessOS</span>
         </div>
@@ -338,7 +338,7 @@ export default function LandingPage() {
       <footer style={{ padding: "24px clamp(16px,4vw,64px)", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ color: "white", fontWeight: 800, fontSize: 10 }}>FC</span>
+            <span style={{ color: "white", fontWeight: 800, fontSize: 10 }}>BO</span>
           </div>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)" }}>BusinessOS</span>
         </div>
