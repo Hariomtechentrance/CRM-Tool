@@ -564,12 +564,12 @@ export async function listOrgModuleRequests(req: OrgRequest, res: Response): Pro
 // the admin picks the exact module(s) for that person at creation time.
 export const JOB_ROLES: Record<string, { label: string; memberRole: MemberRole; defaultModules: string[] | "ALL_ENABLED" }> = {
   MANAGER:         { label: "Manager",          memberRole: MemberRole.MANAGER,    defaultModules: "ALL_ENABLED" },
-  ACCOUNTANT:      { label: "Accountant",        memberRole: MemberRole.ACCOUNTANT, defaultModules: ["ACCOUNTS", "REPORTS"] },
-  PROJECT_MANAGER: { label: "Project Manager",   memberRole: MemberRole.MANAGER,    defaultModules: ["PROJECTS", "HR"] },
-  EXECUTIVE:       { label: "Executive",         memberRole: MemberRole.STAFF,      defaultModules: ["CRM", "MARKETING"] },
+  ACCOUNTANT:      { label: "Accountant",        memberRole: MemberRole.ACCOUNTANT, defaultModules: ["ACCOUNTS", "REPORTS", "PURCHASE"] },
+  PROJECT_MANAGER: { label: "Project Manager",   memberRole: MemberRole.MANAGER,    defaultModules: ["PROJECTS", "HR", "REPORTS"] },
+  EXECUTIVE:       { label: "Executive",         memberRole: MemberRole.STAFF,      defaultModules: ["CRM", "MARKETING", "TELECALLING"] },
   STAFF:           { label: "Staff",             memberRole: MemberRole.STAFF,      defaultModules: [] },
   INTERN:          { label: "Intern",            memberRole: MemberRole.STAFF,      defaultModules: [] },
-  HR:              { label: "HR",                memberRole: MemberRole.STAFF,      defaultModules: ["HR"] },
+  HR:              { label: "HR",                memberRole: MemberRole.STAFF,      defaultModules: ["HR", "REPORTS"] },
 };
 
 // ── Add employee directly — sets their password immediately, no email

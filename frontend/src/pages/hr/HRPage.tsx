@@ -94,6 +94,17 @@ const ORG_ROLES = [
   { value:"HR",              label:"HR Manager" },
   { value:"MANAGEMENT",      label:"Management" },
 ];
+// Job roles for a login account — mirrors backend JOB_ROLES; sets default module access
+const LOGIN_JOB_ROLES = [
+  { value:"MANAGER",         label:"Manager (all modules)" },
+  { value:"PROJECT_MANAGER", label:"Project Manager" },
+  { value:"ACCOUNTANT",      label:"Accountant" },
+  { value:"EXECUTIVE",       label:"Executive / Sales" },
+  { value:"HR",              label:"HR" },
+  { value:"STAFF",           label:"Staff (no modules yet)" },
+  { value:"INTERN",          label:"Intern (no modules yet)" },
+];
+const loginEmpty = { create:false, email:"", password:"", jobRole:"STAFF" };
 
 const empEmpty = { employeeCode:"", name:"", email:"", phone:"", designation:"", department:"", employmentType:"FULL_TIME", joiningDate:"", salaryType:"MONTHLY", basicSalary:"", dailyRate:"", hra:"0", allowances:"0", pfEnabled:"", esiEnabled:"", orgRole:"EMPLOYEE", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" };
 const attEmpty = { employeeId:"", date:now.toISOString().slice(0,10), status:"PRESENT", checkIn:"", checkOut:"", notes:"" };
@@ -115,6 +126,7 @@ export default function HRPage() {
   // Role-based access levels within the HR module
   const role = activeOrg?.role ?? "STAFF";
   const isHRManager = role === "OWNER" || role === "ADMIN" || role === "MANAGER";
+  const isOrgAdmin = role === "OWNER" || role === "ADMIN";
 
   // White Band Associates HR customisations: fixed designation/department lists,
   // its own salary types, no HRA/allowance, no payroll, Half-Day leave.
@@ -137,6 +149,7 @@ export default function HRPage() {
   const [showEmpModal, setShowEmpModal] = useState(false);
   const [editId, setEditId] = useState<string|null>(null);
   const [empForm, setEmpForm] = useState({...empEmpty});
+  const [loginForm, setLoginForm] = useState({...loginEmpty});
   const [showEmpDetail, setShowEmpDetail] = useState(false);
   const [detailEmp, setDetailEmp] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -300,7 +313,7 @@ export default function HRPage() {
     }
     return `EMP-${String(max + 1).padStart(4, "0")}`;
   };
-  const openAdd = () => { setEditId(null); setEmpForm({...empEmpty, ...(wbaOrg ? { salaryType:"FIXED" } : {})}); setError(""); setShowEmpModal(true); };
+  const openAdd = () => { setEditId(null); setEmpForm({...empEmpty, ...(wbaOrg ? { salaryType:"FIXED" } : {})}); setLoginForm({...loginEmpty}); setError(""); setShowEmpModal(true); };
   const openEdit = (e: Employee) => {
     setEditId(e.id);
     setEmpForm({ employeeCode:e.employeeCode, name:e.name, email:"", phone:"", designation:e.designation||"", department:e.department||"", employmentType:e.employmentType, joiningDate:new Date(e.joiningDate).toISOString().slice(0,10), salaryType:e.salaryType||"MONTHLY", basicSalary:String(e.basicSalary), dailyRate:String(e.dailyRate||""), hra:String(e.hra||0), allowances:String(e.allowances||0), pfEnabled:(e as any).pfEnabled!=null?String((e as any).pfEnabled):"", esiEnabled:(e as any).esiEnabled!=null?String((e as any).esiEnabled):"", orgRole:(e as any).orgRole||"EMPLOYEE", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" });
@@ -328,8 +341,22 @@ export default function HRPage() {
         esiEnabled:   empForm.esiEnabled===""?undefined:empForm.esiEnabled==="true",
         orgRole:      empForm.orgRole||"EMPLOYEE",
       };
-      if (editId) await api.patch(`/hr/${editId}`, payload);
-      else await api.post("/hr", payload);
+      if (editId) {
+        await api.patch(`/hr/${editId}`, payload);
+      } else {
+        const r = await api.post("/hr", payload);
+        // Optionally provision a login account for the new employee
+        if (isOrgAdmin && loginForm.create) {
+          const email = (loginForm.email || empForm.email || "").trim();
+          if (!email || !loginForm.password) {
+            setError("Login account needs an email and a temporary password.");
+            setSaving(false); return;
+          }
+          await api.post(`/hr/${r.data.data.id}/login`, {
+            email, password: loginForm.password, jobRole: loginForm.jobRole,
+          });
+        }
+      }
       setShowEmpModal(false); loadBase();
     } catch (e) { setError(errMsg(e)); }
     setSaving(false);
@@ -1033,6 +1060,33 @@ export default function HRPage() {
                 <div><label style={S.label}>Bank Account</label><input style={S.input} value={empForm.bankAccount} onChange={e=>ef("bankAccount",e.target.value)} onKeyDown={kDigits} maxLength={18}/></div>
                 <div><label style={S.label}>IFSC Code</label><input style={S.input} value={empForm.bankIfsc} onChange={e=>ef("bankIfsc",e.target.value.toUpperCase())} onKeyDown={kIFSC} maxLength={11}/></div>
               </div>
+
+              {/* Optional: create a login account for this employee (Owner/Admin only, new employees only) */}
+              {!editId && isOrgAdmin && (
+                <div style={{background:"var(--bg-hover)",borderRadius:8,padding:"12px 14px"}}>
+                  <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,fontWeight:600,color:"var(--text-primary)",cursor:"pointer"}}>
+                    <input type="checkbox" checked={loginForm.create} onChange={e=>setLoginForm(p=>({...p,create:e.target.checked}))}/>
+                    Create a login account for this employee
+                  </label>
+                  {loginForm.create && (
+                    <>
+                      <div style={{fontSize:11,color:"var(--text-ghost)",margin:"8px 0 10px"}}>
+                        They can sign in immediately with this email + temporary password, then reset it via the link sent to their email. The job role sets their default module access (adjust per-person under Admin → Module Access).
+                      </div>
+                      <div className="grid-r2">
+                        <div><label style={S.label}>Login Email *</label><input type="email" style={S.input} value={loginForm.email} onChange={e=>setLoginForm(p=>({...p,email:e.target.value}))} placeholder={empForm.email||"name@company.com"}/></div>
+                        <div><label style={S.label}>Temporary Password *</label><input style={S.input} value={loginForm.password} onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))} placeholder="Min 8 chars, mixed case + number"/></div>
+                      </div>
+                      <div style={{marginTop:10}}>
+                        <label style={S.label}>Job Role (default module access)</label>
+                        <select style={S.select} value={loginForm.jobRole} onChange={e=>setLoginForm(p=>({...p,jobRole:e.target.value}))}>
+                          {LOGIN_JOB_ROLES.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             {editId&&<div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--border)"}}><DocumentsPanel entityType="EMPLOYEE" entityId={editId} compact/></div>}
             <div style={{display:"flex",gap:10,marginTop:20,justifyContent:"flex-end"}}>

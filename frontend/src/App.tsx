@@ -37,6 +37,7 @@ import EWayBillPage from "@/pages/gst/EWayBillPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTeamPage from "@/pages/admin/AdminTeamPage";
+import AdminAccessPage from "@/pages/admin/AdminAccessPage";
 import DirectoryPage from "@/pages/directory/DirectoryPage";
 import AdminModulesPage from "@/pages/admin/AdminModulesPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
@@ -140,6 +141,7 @@ export default function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="team"      element={<AdminTeamPage />} />
+          <Route path="access"    element={<AdminAccessPage />} />
           <Route path="modules"   element={<AdminModulesPage />} />
           <Route path="settings"   element={<AdminSettingsPage />} />
           <Route path="logs"       element={<AdminLogsPage />} />

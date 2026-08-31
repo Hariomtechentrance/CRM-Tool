@@ -3,7 +3,7 @@ import { authenticate } from "../middleware/auth";
 import { requireOrgContext, requireRole } from "../middleware/orgContext";
 import { requireModuleAccess } from "../middleware/requireModuleAccess";
 import {
-  listEmployees, getEmployee, createEmployee, updateEmployee, deleteEmployee,
+  listEmployees, getEmployee, createEmployee, updateEmployee, deleteEmployee, createEmployeeLogin,
   markAttendance, listAttendance, bulkMarkAttendance,
   generatePayroll, listPayrolls, autoGeneratePayroll, markPayrollPaid,
   createLeaveRequest, updateLeaveStatus, listLeaveRequests,
@@ -81,6 +81,7 @@ router.patch("/expenses/:id/paid",    requireRole("MANAGER"), markExpensePaid);
 // Employees (MANAGER+ to create/update; OWNER/ADMIN already bypass via requireModuleAccess)
 router.get("/",        requireRole("MANAGER"), listEmployees);
 router.post("/",       requireRole("MANAGER"), createEmployee);
+router.post("/:id/login", requireRole("MANAGER"), createEmployeeLogin); // controller further restricts to OWNER/ADMIN
 router.get("/:id",     requireRole("MANAGER"), getEmployee);
 router.patch("/:id",   requireRole("MANAGER"), updateEmployee);
 router.delete("/:id",  requireRole("MANAGER"), deleteEmployee);

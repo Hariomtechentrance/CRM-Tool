@@ -3,13 +3,14 @@ import { Outlet, Navigate, NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import {
   LayoutDashboard, Users, Puzzle, Settings, ScrollText,
-  LogOut, ChevronLeft, Shield, Menu, X, ClipboardCheck,
+  LogOut, ChevronLeft, Shield, Menu, X, ClipboardCheck, KeyRound,
 } from "lucide-react";
 
 const navLinks = [
   { to: "/admin/dashboard", icon: LayoutDashboard,  label: "Dashboard" },
-  { to: "/admin/team",      icon: Users,             label: "Team & Access" },
-  { to: "/admin/modules",   icon: Puzzle,            label: "Modules" },
+  { to: "/admin/team",      icon: Users,             label: "Team & Invites" },
+  { to: "/admin/access",    icon: KeyRound,          label: "Module Access" },
+  { to: "/admin/modules",   icon: Puzzle,            label: "Org Modules" },
   { to: "/admin/approvals", icon: ClipboardCheck,    label: "Approvals" },
   { to: "/admin/settings",  icon: Settings,          label: "Org Settings" },
   { to: "/admin/logs",      icon: ScrollText,        label: "Audit Logs" },

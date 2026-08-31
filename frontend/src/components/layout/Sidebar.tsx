@@ -207,12 +207,6 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
   const canSee = (key: string) => isOrgAdmin || moduleAccess.includes(key);
 
-  // Visibility rules for each section
-  const role = activeOrg?.role ?? "VIEWER";
-  const roleLevel: Record<string, number> = { OWNER:6, ADMIN:5, MANAGER:4, ACCOUNTANT:3, STAFF:2, VIEWER:1 };
-  const userLevel = roleLevel[role] ?? 1;
-  const isManager = userLevel >= 4; // MANAGER and above
-
   // Employee-level functional roles from HR profile
   const orgRole = employeeProfile?.orgRole ?? null; // PROJECT_MANAGER | TEAM_LEAD | HR | MANAGEMENT | EMPLOYEE
   const isPM   = orgRole === "PROJECT_MANAGER";
@@ -225,7 +219,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const showSales    = isOrgAdmin || canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
   const showFinance  = (isOrgAdmin || canSee("ACCOUNTS")) && !wbaOrg;
   const showAdmin    = isOrgAdmin && !wbaOrg;
-  const showComm     = (isOrgAdmin || isManager || moduleAccess.length > 0) && !wbaOrg;
+  const showComm     = (canSee("CRM") || canSee("MARKETING")) && !wbaOrg;
   const showPMDash   = (isOrgAdmin || isPM) && !wbaOrg;
   const showTeamPage = isTL;
 

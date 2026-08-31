@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
-import { Users, Shield, Check, X, Clock, CheckCircle, XCircle, Mail, UserPlus, ChevronDown, ChevronUp, Send, Trash2, AlertCircle } from "lucide-react";
+import { Users, Shield, Check, Clock, CheckCircle, XCircle, Mail, UserPlus, ChevronDown, ChevronUp, Send, Trash2, AlertCircle } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import ModuleAccessMatrix from "@/components/admin/ModuleAccessMatrix";
 
 const S = {
   title: { fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 } as React.CSSProperties,
@@ -14,11 +15,6 @@ const S = {
   input: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" as const },
   select: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", colorScheme: "dark" as const },
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 6 } as React.CSSProperties,
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  OWNER: "#ef4444", ADMIN: "#f59e0b", MANAGER: "#6366f1",
-  STAFF: "#818cf8", ACCOUNTANT: "#10b981", VIEWER: "var(--text-ghost)",
 };
 
 // Department presets — pre-select typical modules + suggested role for each department
@@ -181,61 +177,7 @@ export default function AdminTeamPage() {
               <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 16 }}>
                 Click any module cell to grant/revoke access instantly. OWNER/ADMIN always have full access.
               </p>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left", padding: "8px 12px", color: "var(--text-ghost)", fontWeight: 700, fontSize: 11, textTransform: "uppercase", borderBottom: "1px solid var(--border)", minWidth: 200, position: "sticky", left: 0, background: "var(--bg-card)", zIndex: 1 }}>Member</th>
-                      <th style={{ textAlign: "center", padding: "8px 10px", color: "var(--text-ghost)", fontWeight: 700, fontSize: 11, textTransform: "uppercase", borderBottom: "1px solid var(--border)", minWidth: 80 }}>Role</th>
-                      <th style={{ textAlign: "center", padding: "8px 10px", color: "var(--text-ghost)", fontWeight: 700, fontSize: 11, textTransform: "uppercase", borderBottom: "1px solid var(--border)", minWidth: 100 }}>Last Login</th>
-                      {ALL_MODULES.map((mod) => (
-                        <th key={mod.key} style={{ textAlign: "center", padding: "6px 4px", color: "var(--text-ghost)", fontWeight: 700, fontSize: 10, borderBottom: "1px solid var(--border)", minWidth: 70, writingMode: "vertical-rl" as const, transform: "rotate(180deg)", height: 90, verticalAlign: "bottom" }}>
-                          {mod.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((m) => {
-                      const isAdmin = ["OWNER", "ADMIN"].includes(m.role);
-                      const grantedKeys = new Set(m.user.moduleAccess.map((a) => a.moduleKey));
-                      const rc = ROLE_COLORS[m.role] || "var(--text-ghost)";
-                      return (
-                        <tr key={m.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                          <td style={{ padding: "10px 12px", position: "sticky", left: 0, background: "var(--bg-card)", zIndex: 1 }}>
-                            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{m.user.name}</div>
-                            <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{m.user.email}</div>
-                          </td>
-                          <td style={{ textAlign: "center", padding: "10px 8px" }}>
-                            <span style={{ fontSize: 10, padding: "3px 7px", borderRadius: 5, background: rc + "20", color: rc, fontWeight: 700 }}>{m.role}</span>
-                          </td>
-                          <td style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "var(--text-ghost)" }}>
-                            {m.user.lastLoginAt ? new Date(m.user.lastLoginAt).toLocaleDateString("en-IN") : "Never"}
-                          </td>
-                          {ALL_MODULES.map((mod) => {
-                            const has = isAdmin || grantedKeys.has(mod.key);
-                            return (
-                              <td key={mod.key} style={{ textAlign: "center", padding: "6px 4px" }}>
-                                <button
-                                  onClick={() => !isAdmin && toggleAccess(m.user.id, mod.key, grantedKeys.has(mod.key))}
-                                  title={isAdmin ? "Admin — full access" : has ? "Click to revoke" : "Click to grant"}
-                                  style={{
-                                    width: 26, height: 26, borderRadius: 6, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center",
-                                    background: has ? (isAdmin ? "#6366f130" : "#10b98130") : "var(--bg-hover)",
-                                    border: `1px solid ${has ? (isAdmin ? "#6366f160" : "#10b98160") : "var(--border)"}`,
-                                    cursor: isAdmin ? "default" : "pointer",
-                                  }}>
-                                  {has ? <Check size={12} color={isAdmin ? "#818cf8" : "#10b981"} /> : <X size={10} color="var(--text-ghost)" />}
-                                </button>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <ModuleAccessMatrix members={members} onToggle={toggleAccess} enabledModules={activeOrg?.enabledModules} />
             </div>
           )}
 

@@ -1,9 +1,13 @@
 import { Response } from "express";
+import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
-import { ok, created, badRequest, notFound, serverError } from "../utils/response";
+import { MemberRole } from "@prisma/client";
+import { ok, created, badRequest, notFound, serverError, conflict, forbidden } from "../utils/response";
 import { isWBAOrg } from "../utils/wbaOrg";
+import { JOB_ROLES } from "./org.controller";
+import { isStrongPassword } from "./auth.controller";
 
 const DESIGNATION_OPTIONS = [
   "Developer", "Senior Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer",
@@ -223,6 +227,78 @@ export async function updateEmployee(req: OrgRequest, res: Response): Promise<vo
       data: { ...data.data, ...(data.data.joiningDate && { joiningDate: new Date(data.data.joiningDate) }) },
     });
     ok(res, emp);
+  } catch (e) { serverError(res, e); }
+}
+
+const employeeLoginSchema = z.object({
+  email:    z.string().email(),
+  password: z.string().min(1),
+  jobRole:  z.string().min(1),
+  modules:  z.array(z.string()).optional(),
+});
+
+// ── Create a login account for an existing employee (Owner/Admin only) ──
+// Provisions User + OrganizationMember + module access, mirroring the
+// admin "add employee" flow, and links it to this employee record.
+export async function createEmployeeLogin(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only the Owner or an Admin can create login accounts"); return;
+    }
+    const parsed = employeeLoginSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Invalid data", parsed.error.flatten()); return; }
+    const { email, password, jobRole, modules } = parsed.data;
+
+    const preset = JOB_ROLES[jobRole];
+    if (!preset) { badRequest(res, "A valid job role is required"); return; }
+    const strength = isStrongPassword(password);
+    if (!strength.ok) { badRequest(res, strength.reason || "Password is too weak"); return; }
+
+    const employee = await prisma.employee.findFirst({
+      where: { id: req.params.id as string, organizationId: req.organizationId! },
+    });
+    if (!employee) { notFound(res, "Employee not found"); return; }
+    if (employee.userId) { badRequest(res, "This employee already has a login account"); return; }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (await prisma.user.findUnique({ where: { email: normalizedEmail } })) {
+      conflict(res, "A user with this email already exists"); return;
+    }
+
+    const org = await prisma.organization.findUnique({
+      where: { id: req.organizationId! }, select: { enabledModules: true },
+    });
+    const orgModules = org?.enabledModules ?? [];
+    let moduleKeys: string[] = preset.defaultModules === "ALL_ENABLED"
+      ? orgModules
+      : (modules && modules.length > 0 ? modules.filter((m) => orgModules.includes(m)) : [...preset.defaultModules]);
+    if ((jobRole === "PROJECT_MANAGER" || jobRole === "EXECUTIVE") && orgModules.includes("WBA") && !moduleKeys.includes("WBA")) {
+      moduleKeys = [...moduleKeys, "WBA"];
+    }
+
+    const hash = await bcrypt.hash(password, 12);
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { name: employee.name, email: normalizedEmail, password: hash, isActive: true, isEmailVerified: true },
+      });
+      await tx.organizationMember.create({
+        data: { userId: user.id, organizationId: req.organizationId!, role: preset.memberRole },
+      });
+      if (moduleKeys.length > 0) {
+        await tx.userModuleAccess.createMany({
+          data: moduleKeys.map((moduleKey) => ({ userId: user.id, organizationId: req.organizationId!, moduleKey, grantedById: req.userId! })),
+        });
+      }
+      await tx.employee.update({
+        where: { id: employee.id },
+        data: { userId: user.id, orgRole: jobRole, email: employee.email || normalizedEmail },
+      });
+      return user;
+    });
+
+    created(res, {
+      userId: result.id, email: result.email, role: preset.memberRole, modules: moduleKeys,
+    }, "Login account created");
   } catch (e) { serverError(res, e); }
 }
 
