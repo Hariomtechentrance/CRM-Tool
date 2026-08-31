@@ -116,8 +116,18 @@ export default function SettingsPage() {
   const EMPTY_EMP_FORM = { name: "", jobRole: "STAFF", description: "", email: "", password: "", confirmPassword: "", phone: "", modules: [] as string[] };
 
   const addEmployee = async () => {
-    setAddingEmployee(true);
     setAddEmployeeError("");
+    // Catch the common mistakes client-side so the admin gets an instant,
+    // specific message instead of a round-trip that may fail opaquely.
+    if (empForm.password !== empForm.confirmPassword) {
+      setAddEmployeeError("Passwords do not match.");
+      return;
+    }
+    if (empForm.password.length < 8) {
+      setAddEmployeeError("Password must be at least 8 characters.");
+      return;
+    }
+    setAddingEmployee(true);
     try {
       await api.post("/organizations/current/employees", empForm);
       setAddEmployeeDone(true);
@@ -125,7 +135,18 @@ export default function SettingsPage() {
       setMembers(Array.isArray(mRes.data.data) ? mRes.data.data : []);
       setTimeout(() => { setAddEmployeeDone(false); setShowAddEmployee(false); setEmpForm(EMPTY_EMP_FORM); }, 2000);
     } catch (e: any) {
-      setAddEmployeeError(e?.response?.data?.message || "Could not add employee.");
+      // Distinguish "the server said no" from "we never reached the server" —
+      // the old catch-all hid timeouts and connection failures behind a
+      // generic message that gave the admin nothing to act on.
+      const serverMsg = e?.response?.data?.message;
+      setAddEmployeeError(
+        serverMsg ||
+        (e?.code === "ECONNABORTED"
+          ? "The server took too long to respond. Refresh the team list before retrying — the employee may already have been created."
+          : !e?.response
+            ? "Can't reach the server. Check your connection (and that the API is running) and try again."
+            : "Could not add employee.")
+      );
     }
     setAddingEmployee(false);
   };
@@ -375,7 +396,7 @@ export default function SettingsPage() {
                 </div>
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                   <button onClick={() => setShowAddEmployee(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
-                  <button onClick={addEmployee} style={S.btn} disabled={addingEmployee || !empForm.name || !empForm.email || !empForm.password}>
+                  <button onClick={addEmployee} style={S.btn} disabled={addingEmployee || !empForm.name || !empForm.email || !empForm.password || !empForm.confirmPassword}>
                     {addingEmployee ? "Adding..." : "Add Employee"}
                   </button>
                 </div>

@@ -16,7 +16,7 @@ import { sendEmail, inviteEmailTemplate } from "../utils/email";
 import { isStrongPassword } from "./auth.controller";
 import { hashToken } from "../utils/tokenHash";
 import { signAccessToken, signRefreshToken, getRefreshExpiryDate } from "../lib/jwt";
-import { MemberRole } from "@prisma/client";
+import { MemberRole, Prisma } from "@prisma/client";
 import { google } from "googleapis";
 
 // ── Create Organization ──────────────────────────────────────
@@ -596,6 +596,18 @@ export async function createOrgEmployee(req: OrgRequest, res: Response): Promise
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) { conflict(res, "A user with this email already exists"); return; }
 
+    // An employee record with this email may already exist from the HR module
+    // (which creates employees without a login). Creating a second one here
+    // would leave two rows for the same person — flag it instead.
+    const existingEmployee = await prisma.employee.findFirst({
+      where: { organizationId: req.organizationId!, email: normalizedEmail },
+      select: { id: true },
+    });
+    if (existingEmployee) {
+      conflict(res, "An employee with this email already exists in this organization. Remove or edit that record first.");
+      return;
+    }
+
     const preset = JOB_ROLES[jobRole];
     const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { enabledModules: true } });
     const orgModules = org?.enabledModules ?? [];
@@ -656,6 +668,12 @@ export async function createOrgEmployee(req: OrgRequest, res: Response): Promise
       jobRole, role: preset.memberRole, modules: moduleKeys, employeeId: result.employee.id,
     }, "Employee added");
   } catch (err) {
+    // Turn known DB constraint failures into an actionable 409 rather than a
+    // bare 500 the UI can only render as a generic "Could not add employee".
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      conflict(res, "That email or employee code is already in use in this organization.");
+      return;
+    }
     serverError(res, err);
   }
 }
