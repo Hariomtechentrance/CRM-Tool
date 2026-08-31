@@ -25,6 +25,15 @@ services:
         value: 15m
       - key: JWT_REFRESH_EXPIRES_IN
         value: 7d
+      # RBAC permission matrix: "false" = report-only (log, don't block).
+      # Flip to "true" after a release cycle of clean RBAC_WOULD_BLOCK logs.
+      - key: RBAC_ENFORCE
+        value: "false"
+      # Set to "none" if the frontend is on a different domain than this API
+      # (e.g. separate *.onrender.com hosts) — otherwise the auth cookie is not
+      # sent on XHR and login fails. "lax" is correct only for a shared domain.
+      - key: AUTH_COOKIE_SAMESITE
+        value: "none"
       - key: FRONTEND_URL
         sync: false
       - key: SMTP_HOST

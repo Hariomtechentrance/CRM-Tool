@@ -15,7 +15,7 @@ const db = () => (prisma as any);
 // (RFC1918, loopback, link-local incl. cloud metadata 169.254.169.254, etc.)
 // so a malicious/compromised org admin can't use webhooks to probe the
 // hosting infrastructure's internal network or steal cloud credentials.
-function isBlockedIP(ip: string): boolean {
+export function isBlockedIP(ip: string): boolean {
   const type = net.isIP(ip);
   if (type === 4) {
     const [a, b] = ip.split(".").map(Number);
@@ -39,15 +39,28 @@ function isBlockedIP(ip: string): boolean {
 }
 
 async function assertPublicUrl(url: string): Promise<void> {
+  await resolvePinnedIp(url);
+}
+
+// Resolve the hostname, validate EVERY answer, and return a single pinned IP to
+// connect to. Callers must connect to this exact IP (not re-resolve the name),
+// which closes the DNS-rebinding TOCTOU: without pinning, the name could resolve
+// to a public IP during validation and to 169.254.169.254 during the request.
+export async function resolvePinnedIp(url: string): Promise<{ ip: string; family: number; hostname: string }> {
   const parsed = new URL(url);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("Only http/https webhook URLs are allowed");
   }
+  if (parsed.port && !["", "80", "443", "8443"].includes(parsed.port)) {
+    throw new Error("Webhook URL port not allowed");
+  }
   if (parsed.hostname === "localhost") throw new Error("Webhook URL resolves to a blocked address");
   const addresses = await dns.promises.lookup(parsed.hostname, { all: true });
+  if (!addresses.length) throw new Error("Webhook URL does not resolve");
   for (const { address } of addresses) {
     if (isBlockedIP(address)) throw new Error("Webhook URL resolves to a blocked address");
   }
+  return { ip: addresses[0].address, family: addresses[0].family, hostname: parsed.hostname };
 }
 
 // Supported webhook events
@@ -256,16 +269,20 @@ export async function dispatchWebhook(
   secret: string,
   payload: object
 ): Promise<{ success: boolean; statusCode: number | null; body: string }> {
-  // Re-validate at dispatch time too — the target hostname could have been
-  // re-pointed at an internal IP since the webhook was created (DNS rebinding).
+  // Resolve + validate the hostname NOW and connect to that exact IP. The
+  // hostname could have been re-pointed at an internal IP since the webhook was
+  // created; pinning the validated IP for the connection closes the rebinding
+  // race that a plain re-validate-then-reconnect still leaves open.
+  let pin: { ip: string; family: number; hostname: string };
   try {
-    await assertPublicUrl(url);
+    pin = await resolvePinnedIp(url);
   } catch {
     return { success: false, statusCode: null, body: "Blocked: webhook URL resolves to a disallowed address" };
   }
 
   const body = JSON.stringify(payload);
   const sig = crypto.createHmac("sha256", secret).update(body).digest("hex");
+  const MAX_RESP_BYTES = 64 * 1024;
 
   return new Promise((resolve) => {
     const parsed = new URL(url);
@@ -274,11 +291,15 @@ export async function dispatchWebhook(
 
     const req = lib.request(
       {
-        hostname: parsed.hostname,
-        port: parsed.port || (isHttps ? 443 : 80),
+        host: pin.ip,                       // connect to the validated IP, not the name
+        servername: isHttps ? pin.hostname : undefined, // keep TLS SNI/cert check on the real host
+        port: parsed.port ? Number(parsed.port) : (isHttps ? 443 : 80),
         path: parsed.pathname + parsed.search,
         method: "POST",
+        // Force the socket to the pinned IP — defeats any re-resolution.
+        lookup: (_h: string, _o: unknown, cb: (e: Error | null, a: string, f: number) => void) => cb(null, pin.ip, pin.family),
         headers: {
+          Host: parsed.host,               // correct virtual-host routing on the target
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(body),
           "X-BusinessOS-Signature": `sha256=${sig}`,
@@ -289,7 +310,12 @@ export async function dispatchWebhook(
       },
       (res) => {
         let data = "";
-        res.on("data", (chunk) => (data += chunk));
+        let bytes = 0;
+        res.on("data", (chunk) => {
+          bytes += chunk.length;
+          if (bytes <= MAX_RESP_BYTES) data += chunk;
+          else req.destroy();
+        });
         res.on("end", () => resolve({ success: (res.statusCode ?? 0) < 300, statusCode: res.statusCode ?? null, body: data }));
       }
     );

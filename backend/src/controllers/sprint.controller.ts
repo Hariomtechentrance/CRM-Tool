@@ -162,6 +162,10 @@ export async function logTime(req: OrgRequest, res: Response): Promise<void> {
     const task = await prisma.task.findFirst({ where: { id: taskId, organizationId: orgId } });
     if (!task) { notFound(res, "Task not found"); return; }
 
+    // Tenant-isolation: the employee being logged against must be in this org.
+    const emp = await prisma.employee.findFirst({ where: { id: employeeId, organizationId: orgId }, select: { id: true } });
+    if (!emp) { notFound(res, "Employee not found"); return; }
+
     const log = await db().timeLog.create({
       data: {
         taskId,

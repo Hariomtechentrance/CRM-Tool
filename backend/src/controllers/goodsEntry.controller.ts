@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
-import { ok, serverError } from "../utils/response";
+import { ok, notFound, serverError } from "../utils/response";
 
 export async function listGoodsEntries(req: OrgRequest, res: Response): Promise<void> {
   try {
@@ -80,6 +80,9 @@ export async function updateGoodsEntry(req: OrgRequest, res: Response): Promise<
     const orgId = req.organizationId!;
     const { id } = req.params;
     const { status, remarks, personName } = req.body;
+    // Tenant-isolation guard: only touch rows that belong to the caller's org
+    const existing = await prisma.goodsEntry.findFirst({ where: { id: id as string, organizationId: orgId } });
+    if (!existing) { notFound(res, "Entry not found"); return; }
     const entry = await prisma.goodsEntry.update({
       where: { id: id as string },
       data: { status, remarks, personName },
@@ -92,6 +95,9 @@ export async function deleteGoodsEntry(req: OrgRequest, res: Response): Promise<
   try {
     const orgId = req.organizationId!;
     const { id } = req.params;
+    // Tenant-isolation guard: only delete rows that belong to the caller's org
+    const existing = await prisma.goodsEntry.findFirst({ where: { id: id as string, organizationId: orgId } });
+    if (!existing) { notFound(res, "Entry not found"); return; }
     await prisma.goodsEntry.delete({ where: { id: id as string } });
     ok(res, null, "Deleted");
   } catch (e) { serverError(res, e); }

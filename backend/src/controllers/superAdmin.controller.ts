@@ -3,10 +3,11 @@ import { randomInt } from "crypto";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
-import { AuthRequest } from "../middleware/auth";
+import { AuthRequest, invalidateUserSecState } from "../middleware/auth";
 import { ok, created, serverError, badRequest } from "../utils/response";
 import { uniqueOrgSlug } from "../utils/slug";
 import { sendEmail } from "../utils/email";
+import { writeAuditLog, getIp } from "../utils/auditLog";
 
 const updateOrgSchema = z.object({
   isActive:       z.boolean().optional(),
@@ -250,7 +251,21 @@ export async function toggleUserActive(req: AuthRequest, res: Response): Promise
     const user = await prisma.user.findUnique({ where: { id }, select: { isActive: true } });
     if (!user) { res.status(404).json({ success: false, message: "User not found" }); return; }
     const updated = await prisma.user.update({ where: { id }, data: { isActive: !user.isActive } });
+    invalidateUserSecState(id);
     ok(res, { user: updated });
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Recovery: clear a user's 2FA when they've lost their authenticator ──
+export async function adminDisable2FA(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const target = await prisma.user.findUnique({ where: { id }, select: { id: true, email: true, twoFactorEnabled: true } });
+    if (!target) { res.status(404).json({ success: false, message: "User not found" }); return; }
+    await prisma.user.update({ where: { id }, data: { twoFactorEnabled: false, twoFactorSecret: null } });
+    invalidateUserSecState(id);
+    writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "ADMIN_2FA_DISABLED", resource: "User", resourceId: id, description: `Super admin cleared 2FA for ${target.email}`, ipAddress: getIp(req as any) });
+    ok(res, null, "2FA disabled for user");
   } catch (e) { serverError(res, e); }
 }
 
@@ -266,6 +281,7 @@ export async function makeSuperAdmin(req: AuthRequest, res: Response): Promise<v
     }
 
     const updated = await prisma.user.update({ where: { id }, data: { isSuperAdmin: parsed.data.isSuperAdmin } });
+    invalidateUserSecState(id);
     ok(res, { user: updated });
   } catch (e) { serverError(res, e); }
 }

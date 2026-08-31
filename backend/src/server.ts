@@ -6,6 +6,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import hpp from "hpp";
+import cookieParser from "cookie-parser";
 import { prisma } from "./lib/prisma";
 import { requestTimeout } from "./middleware/requestTimeout";
 import { withCache } from "./middleware/cacheMiddleware";
@@ -15,6 +16,7 @@ import { redis } from "./lib/redisClient";
 import { RedisStore } from "rate-limit-redis";
 import { v4 as uuidv4 } from "uuid";
 import { sanitizeInputs, enforceContentType } from "./middleware/sanitize";
+import { verifyRequestOrigin } from "./middleware/verifyRequestOrigin";
 import { replayGuard } from "./middleware/replayGuard";
 import authRoutes from "./routes/auth.routes";
 import orgRoutes from "./routes/org.routes";
@@ -207,6 +209,10 @@ app.use(cors({
 // ── Body parsing ─────────────────────────────────────────────
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: false, limit: "2mb" }));  // extended:false prevents prototype pollution
+app.use(cookieParser());
+
+// ── CSRF: verify Origin/Referer on cookie-authenticated writes ─
+app.use("/api", verifyRequestOrigin);
 
 // ── HTTP Parameter Pollution protection ──────────────────────
 // Prevents attacks that send duplicate query params (?role=user&role=admin)
@@ -294,15 +300,40 @@ const strictLimiter = rateLimit({
   skipSuccessfulRequests: false,
 });
 
+// ── Fail-closed backstop for credential endpoints ────────────
+// The limiters above use `passOnStoreError: true`, so if Redis is unreachable
+// they stop limiting entirely — a brute-force window. These in-memory limiters
+// have no external store and therefore always apply (per worker). They are set
+// looser than the Redis limits so they only bite when Redis is actually down.
+const authLimiterLocal = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  message: { success: false, message: "Too many requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const strictLimiterLocal = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: "Too many attempts. Please wait 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ── Replay-attack guard ───────────────────────────────────────
 // Requires X-Request-Timestamp (Unix ms) within ±5 min of server time
 // on all high-value mutating auth endpoints.
-app.use("/api/auth/login",          replayGuard, authLimiter);
-app.use("/api/auth/register",       replayGuard, authLimiter);
-app.use("/api/auth/forgot-password",replayGuard, strictLimiter);
-app.use("/api/auth/reset-password", replayGuard, strictLimiter);
-app.use("/api/auth/refresh",        replayGuard, authLimiter);
-app.use("/api/2fa",                 replayGuard, strictLimiter);
+app.use("/api/auth/login",          replayGuard, authLimiterLocal,   authLimiter);
+app.use("/api/auth/register",       replayGuard, authLimiterLocal,   authLimiter);
+app.use("/api/auth/forgot-password",replayGuard, strictLimiterLocal, strictLimiter);
+app.use("/api/auth/reset-password", replayGuard, strictLimiterLocal, strictLimiter);
+app.use("/api/auth/refresh",        replayGuard, authLimiterLocal,   authLimiter);
+app.use("/api/auth/google-login",   authLimiterLocal,   authLimiter);
+app.use("/api/auth/verify-phone-2fa", strictLimiterLocal, strictLimiter);
+app.use("/api/auth/verify-2fa-login", strictLimiterLocal, strictLimiter);
+app.use("/api/auth/change-password", authLimiterLocal,   authLimiter);
+app.use("/api/auth/claim-super-admin", strictLimiterLocal, strictLimiter);
+app.use("/api/2fa",                 replayGuard, strictLimiterLocal, strictLimiter);
 app.use("/api/gst",                 heavyLimiter);
 app.use("/api",                     apiLimiter);
 

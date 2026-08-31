@@ -12,7 +12,10 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number"),
   // Optional Firebase-verified fields
   phone:                 z.string().max(20).optional(),
-  firebaseEmailVerified: z.boolean().optional(),
+  // NOTE: email-verified status is NEVER accepted from the client. It is derived
+  // server-side only (SMTP token flow, or a verified Firebase/Google sign-in via
+  // the dedicated /auth/google-login endpoint). A client-supplied boolean here
+  // would let anyone self-register as "verified" and bypass email verification.
 });
 
 export const loginSchema = z.object({

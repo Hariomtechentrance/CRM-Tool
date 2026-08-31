@@ -166,6 +166,16 @@ export async function createShipment(req: OrgRequest, res: Response): Promise<vo
     const data = shipmentSchema.safeParse(req.body);
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
 
+    // Tenant-isolation: the referenced sales order must belong to this org,
+    // otherwise a user could dispatch another org's order by guessing its id.
+    if (data.data.salesOrderId) {
+      const owns = await prisma.salesOrder.findFirst({
+        where: { id: data.data.salesOrderId, organizationId: req.organizationId! },
+        select: { id: true },
+      });
+      if (!owns) { notFound(res, "Sales order not found"); return; }
+    }
+
     const shipmentNumber = await generateShipmentNumber(req.organizationId!);
     const shipment = await prisma.shipment.create({
       data: {

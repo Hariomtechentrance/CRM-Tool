@@ -14,8 +14,11 @@ import { ok, created, badRequest, forbidden, notFound, serverError, conflict } f
 import { uniqueOrgSlug } from "../utils/slug";
 import { sendEmail, inviteEmailTemplate } from "../utils/email";
 import { isStrongPassword } from "./auth.controller";
+import { invalidateUserSecState } from "../middleware/auth";
+import { writeAuditLog, getIp } from "../utils/auditLog";
 import { hashToken } from "../utils/tokenHash";
 import { signAccessToken, signRefreshToken, getRefreshExpiryDate } from "../lib/jwt";
+import { setAuthCookies } from "../lib/authCookies";
 import { MemberRole, Prisma } from "@prisma/client";
 import { google } from "googleapis";
 
@@ -196,6 +199,14 @@ export async function inviteMember(req: OrgRequest, res: Response): Promise<void
 
     const { email, role, allowedModules } = parsed.data;
 
+    // An invite can never mint an OWNER, and only an OWNER may invite an ADMIN.
+    if (role === MemberRole.OWNER) {
+      forbidden(res, "Cannot invite a member as OWNER"); return;
+    }
+    if (role === MemberRole.ADMIN && req.memberRole !== MemberRole.OWNER) {
+      forbidden(res, "Only the organization owner can invite an ADMIN"); return;
+    }
+
     // Check if already a member
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -228,6 +239,7 @@ export async function inviteMember(req: OrgRequest, res: Response): Promise<void
       await sendEmail({ to: email, subject, html });
     }
 
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "MEMBER_INVITED", resource: "OrgInvite", resourceId: invite.id, description: `Invited ${email} as ${role}`, ipAddress: getIp(req as any) });
     created(res, { id: invite.id, email, role, allowedModules: invite.allowedModules }, "Invitation sent successfully");
   } catch (err) {
     serverError(res, err);
@@ -380,6 +392,7 @@ export async function registerViaInvite(req: Request, res: Response): Promise<vo
       data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
     });
 
+    setAuthCookies(res, accessToken, refreshToken);
     created(res, {
       accessToken, refreshToken,
       user: { id: user.id, name: user.name, email: user.email, avatar: null, isSuperAdmin: false },
@@ -477,6 +490,12 @@ export async function updateMemberRole(req: OrgRequest, res: Response): Promise<
     const parsed = updateMemberRoleSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Invalid role"); return; }
 
+    // Ownership can only be transferred through a dedicated, deliberate flow —
+    // never minted here (would let an ADMIN silently create co-owners / escalate).
+    if (parsed.data.role === MemberRole.OWNER) {
+      forbidden(res, "Ownership cannot be assigned from this endpoint"); return;
+    }
+
     // Prevent changing owner's role
     const target = await prisma.organizationMember.findFirst({
       where: { userId: memberId, organizationId: req.organizationId! },
@@ -484,10 +503,20 @@ export async function updateMemberRole(req: OrgRequest, res: Response): Promise<
     if (!target) { notFound(res, "Member not found"); return; }
     if (target.role === MemberRole.OWNER) { forbidden(res, "Cannot change the owner's role"); return; }
 
+    // Only an OWNER may grant or revoke ADMIN. An ADMIN cannot mint peer admins,
+    // promote themselves, or demote another admin.
+    const touchesAdmin = target.role === MemberRole.ADMIN || parsed.data.role === MemberRole.ADMIN;
+    if (touchesAdmin && req.memberRole !== MemberRole.OWNER) {
+      forbidden(res, "Only the organization owner can change ADMIN roles"); return;
+    }
+    if (memberId === req.userId) { forbidden(res, "You cannot change your own role"); return; }
+
     await prisma.organizationMember.update({
       where: { userId_organizationId: { userId: memberId, organizationId: req.organizationId! } },
       data: { role: parsed.data.role },
     });
+    invalidateUserSecState(memberId);
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "MEMBER_ROLE_CHANGED", resource: "OrganizationMember", resourceId: memberId, description: `Role ${target.role} -> ${parsed.data.role}`, ipAddress: getIp(req as any) });
     ok(res, null, "Role updated");
   } catch (err) {
     serverError(res, err);
@@ -512,6 +541,11 @@ export async function removeMember(req: OrgRequest, res: Response): Promise<void
       where: { userId_organizationId: { userId: memberId, organizationId: req.organizationId! } },
       data: { isActive: false },
     });
+    // Cut live access: revoke this user's refresh tokens for the whole platform
+    // is too broad (they may belong to other orgs), so just drop cached auth
+    // state — requireOrgContext re-checks membership.isActive on the next call.
+    invalidateUserSecState(memberId);
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "MEMBER_REMOVED", resource: "OrganizationMember", resourceId: memberId, description: `Removed member (was ${target.role})`, ipAddress: getIp(req as any) });
     ok(res, null, "Member removed");
   } catch (err) {
     serverError(res, err);

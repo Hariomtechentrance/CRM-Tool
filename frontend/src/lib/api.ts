@@ -4,44 +4,61 @@ import { useAuthStore } from "@/stores/authStore";
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
+// The REFRESH token now lives only in an httpOnly cookie (bos_refresh) that JS
+// cannot read — so an XSS can no longer steal a durable credential and keep a
+// session alive forever. The short-lived ACCESS token is still mirrored in
+// localStorage for now because several pages read it directly; moving that to a
+// cookie too is a follow-up. `withCredentials` makes the browser send the
+// cookies on every call.
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 15000,
+  withCredentials: true,
 });
 
-// ── Request interceptor — attach access token, org context & replay guard ─
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+// ── One-time migration off the localStorage refresh token ─────
+// Pre-cookie sessions still have refreshToken in localStorage and no cookie.
+// Redeem it once (body form, still accepted) so the server sets cookies, then
+// delete it. After this, refresh is cookie-only.
+let legacyMigration: Promise<void> | null = null;
+function migrateLegacyRefreshToken(): Promise<void> {
+  if (legacyMigration) return legacyMigration;
+  const legacy = localStorage.getItem("refreshToken");
+  if (!legacy) { legacyMigration = Promise.resolve(); return legacyMigration; }
+  legacyMigration = axios
+    .post(`${BASE_URL}/auth/refresh`, { refreshToken: legacy },
+      { withCredentials: true, headers: { "X-Request-Timestamp": String(Date.now()) } })
+    .then(({ data }) => {
+      const at = data?.data?.accessToken;
+      if (at) { localStorage.setItem("accessToken", at); useAuthStore.setState({ accessToken: at }); }
+    })
+    .catch(() => { /* dead token — next 401 sends the user to login */ })
+    .finally(() => { localStorage.removeItem("refreshToken"); });
+  return legacyMigration;
+}
+
+// ── Request interceptor — access token, org context, replay guard ─
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  await migrateLegacyRefreshToken();
   const token = localStorage.getItem("accessToken");
   const orgId = localStorage.getItem("activeOrgId");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   if (orgId) config.headers["x-organization-id"] = orgId;
-  // Replay-attack prevention: server rejects requests whose timestamp
-  // is more than 5 minutes stale, so replayed captures expire quickly.
   config.headers["x-request-timestamp"] = String(Date.now());
   return config;
 });
 
-// ── Response interceptor — auto refresh token on 401 ────────
+// ── Response interceptor — auto refresh on 401 ────────────────
 let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
-
-function subscribeRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
-}
-function notifyRefresh(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-}
+let refreshSubscribers: ((token: string | null) => void)[] = [];
+function subscribeRefresh(cb: (token: string | null) => void) { refreshSubscribers.push(cb); }
+function notifyRefresh(token: string | null) { refreshSubscribers.forEach((cb) => cb(token)); refreshSubscribers = []; }
 
 // ── Cross-tab refresh coordination ──────────────────────────
-// The refresh token is single-use and rotated server-side on every redemption.
-// All tabs of the app share the same localStorage tokens, so if two tabs' access
-// tokens expire around the same time, both would otherwise race to redeem the
-// SAME refresh token — the server accepts the first and rejects the second as
-// already-used, which forces a full logout even though the session is fine.
-// A tab that finds another tab already refreshing waits for that tab's result
-// (via the native `storage` event) instead of redeeming the token itself.
+// Refresh is single-use + rotated server-side, and replaying a rotated-away
+// token now revokes the whole session family — so only one tab may redeem at a
+// time. Others wait for the shared lock to clear, then retry (cookie is fresh).
 const REFRESH_LOCK_KEY = "authRefreshLock";
 const REFRESH_LOCK_TTL = 8000;
 
@@ -51,53 +68,39 @@ function acquireRefreshLock(): boolean {
   localStorage.setItem(REFRESH_LOCK_KEY, String(Date.now()));
   return true;
 }
+function releaseRefreshLock() { localStorage.removeItem(REFRESH_LOCK_KEY); }
 
-function releaseRefreshLock() {
-  localStorage.removeItem(REFRESH_LOCK_KEY);
-}
-
-function waitForTokenFromOtherTab(): Promise<string> {
+function waitForOtherTabRefresh(): Promise<string | null> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       window.removeEventListener("storage", onStorage);
-      reject(new Error("Timed out waiting for another tab to refresh the session"));
+      reject(new Error("Timed out waiting for another tab to refresh"));
     }, REFRESH_LOCK_TTL + 2000);
-
     function onStorage(e: StorageEvent) {
       if (e.key === "accessToken" && e.newValue) {
-        clearTimeout(timer);
-        window.removeEventListener("storage", onStorage);
-        resolve(e.newValue);
-      } else if (e.key === REFRESH_LOCK_KEY && e.newValue === null && !localStorage.getItem("accessToken")) {
-        // The refreshing tab released the lock without ever setting a new
-        // access token — its refresh attempt genuinely failed.
-        clearTimeout(timer);
-        window.removeEventListener("storage", onStorage);
-        reject(new Error("Session refresh failed in another tab"));
+        clearTimeout(timer); window.removeEventListener("storage", onStorage); resolve(e.newValue);
+      } else if (e.key === REFRESH_LOCK_KEY && e.newValue === null) {
+        clearTimeout(timer); window.removeEventListener("storage", onStorage);
+        resolve(localStorage.getItem("accessToken"));
       }
     }
     window.addEventListener("storage", onStorage);
   });
 }
 
-async function performRefresh(refreshToken: string): Promise<string> {
-  // This bare axios.post (not the `api` instance) deliberately skips the request
-  // interceptor to avoid recursive interception — but /auth/refresh sits behind the
-  // replayGuard middleware (server.ts) which requires this header on every call,
-  // so it must be attached here explicitly or every refresh attempt gets a 400.
-  const { data } = await axios.post(
-    `${BASE_URL}/auth/refresh`,
-    { refreshToken },
-    { headers: { "X-Request-Timestamp": String(Date.now()) } }
-  );
-  const { accessToken, refreshToken: newRefresh } = data.data;
-  localStorage.setItem("accessToken", accessToken);
-  localStorage.setItem("refreshToken", newRefresh);
-  // Keep the Zustand-persisted copy in sync too — otherwise logout() (which reads
-  // refreshToken from the store) would keep revoking an already-rotated-out token,
-  // and the store's tokens would silently drift from the ones actually in use.
-  useAuthStore.setState({ accessToken, refreshToken: newRefresh });
-  return accessToken;
+async function performRefresh(): Promise<string | null> {
+  // Cookie carries the refresh token; body is empty. /auth/refresh is behind
+  // replayGuard, hence the timestamp header.
+  const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {}, {
+    withCredentials: true,
+    headers: { "X-Request-Timestamp": String(Date.now()) },
+  });
+  const at: string | null = data?.data?.accessToken ?? null;
+  if (at) {
+    localStorage.setItem("accessToken", at);
+    useAuthStore.setState({ accessToken: at });
+  }
+  return at;
 }
 
 api.interceptors.response.use(
@@ -106,7 +109,6 @@ api.interceptors.response.use(
     const original = error.config as (InternalAxiosRequestConfig & { _retry?: boolean; _dbRetry?: number }) | undefined;
     if (!original) return Promise.reject(error);
 
-    // Auto-retry on 503 (database waking up from Neon auto-suspend) up to 3 times
     if (error.response?.status === 503 && (error.response.data as { retryable?: boolean })?.retryable) {
       const retries = original._dbRetry ?? 0;
       if (retries < 3) {
@@ -116,50 +118,38 @@ api.interceptors.response.use(
       }
     }
 
-    // Don't intercept auth endpoints — let login/register handle their own errors
-    const isAuthRoute = original.url?.includes("/auth/login") || original.url?.includes("/auth/register") || original.url?.includes("/auth/forgot") || original.url?.includes("/auth/reset");
+    const isAuthRoute = original.url?.includes("/auth/login") || original.url?.includes("/auth/register")
+      || original.url?.includes("/auth/forgot") || original.url?.includes("/auth/reset")
+      || original.url?.includes("/auth/refresh");
     if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) {
-        clearAuthStorage();
-        window.location.href = loginRedirectUrl();
-        return Promise.reject(error);
-      }
       original._retry = true;
 
-      // Same-tab concurrent requests: queue behind the in-flight refresh.
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeRefresh((newToken) => {
-            original.headers.Authorization = `Bearer ${newToken}`;
-            resolve(api(original));
-          });
-        });
+        return new Promise((resolve, reject) => subscribeRefresh((token) => {
+          if (token) { original.headers.Authorization = `Bearer ${token}`; resolve(api(original)); }
+          else reject(error);
+        }));
       }
 
-      // Cross-tab: another tab is already refreshing — piggyback on its result
-      // rather than redeeming the same single-use refresh token ourselves.
       if (!acquireRefreshLock()) {
         try {
-          const newToken = await waitForTokenFromOtherTab();
-          original.headers.Authorization = `Bearer ${newToken}`;
+          const token = await waitForOtherTabRefresh();
+          if (token) original.headers.Authorization = `Bearer ${token}`;
           return api(original);
         } catch {
-          clearAuthStorage();
-          window.location.href = loginRedirectUrl();
-          return Promise.reject(error);
+          hardLogout(); return Promise.reject(error);
         }
       }
 
       isRefreshing = true;
       try {
-        const accessToken = await performRefresh(refreshToken);
-        notifyRefresh(accessToken);
-        original.headers.Authorization = `Bearer ${accessToken}`;
+        const token = await performRefresh();
+        notifyRefresh(token);
+        if (token) original.headers.Authorization = `Bearer ${token}`;
         return api(original);
       } catch {
-        clearAuthStorage();
-        window.location.href = loginRedirectUrl();
+        notifyRefresh(null);
+        hardLogout();
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
@@ -170,18 +160,13 @@ api.interceptors.response.use(
   }
 );
 
-function clearAuthStorage() {
+function hardLogout() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("activeOrgId");
   localStorage.removeItem("authRefreshLock");
-  // Also wipe the Zustand persist store so isAuthenticated resets to false on reload,
-  // preventing the redirect loop: / → /dashboard (stale auth) → 401 → /login → repeat
   localStorage.removeItem("businessos-auth");
-}
-
-function loginRedirectUrl() {
-  return window.location.pathname.startsWith("/super-admin") ? "/super-admin/login" : "/login";
+  window.location.href = window.location.pathname.startsWith("/super-admin") ? "/super-admin/login" : "/login";
 }
 
 export default api;

@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   register, verifyEmail, login, refreshToken, logout, getMe,
   forgotPassword, resetPassword, claimSuperAdmin,
-  changePassword, unlockAccount, googleLogin, verifyPhone2FA,
+  changePassword, unlockAccount, googleLogin, verifyPhone2FA, verify2FALogin,
 } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth";
 import { requireSuperAdmin } from "../middleware/superAdmin";
@@ -22,5 +22,6 @@ router.post("/claim-super-admin", authenticate, claimSuperAdmin);
 router.post("/unlock/:userId",  authenticate, requireSuperAdmin, unlockAccount);
 router.post("/google-login",    googleLogin);
 router.post("/verify-phone-2fa", verifyPhone2FA);
+router.post("/verify-2fa-login", verify2FALogin);
 
 export default router;

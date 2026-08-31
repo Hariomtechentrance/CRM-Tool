@@ -173,6 +173,15 @@ export async function createPOSSale(req: OrgRequest, res: Response): Promise<voi
     });
     if (!session) { notFound(res, "Open POS session not found"); return; }
 
+    // Tenant-isolation: an optional linked party must belong to this org.
+    if (data.data.partyId) {
+      const owns = await prisma.party.findFirst({
+        where: { id: data.data.partyId, organizationId: req.organizationId! },
+        select: { id: true },
+      });
+      if (!owns) { notFound(res, "Party not found"); return; }
+    }
+
     const count = await prisma.pOSSale.count({ where: { organizationId: req.organizationId! } });
     const receiptNumber = `RCP-${String(count + 1).padStart(6, "0")}`;
 
@@ -210,10 +219,10 @@ export async function createPOSSale(req: OrgRequest, res: Response): Promise<voi
       data: { totalSales: { increment: total } },
     });
 
-    // Deduct stock
+    // Deduct stock — only for products that belong to this organization.
     for (const item of data.data.items) {
       if (item.productId) {
-        const product = await prisma.product.findUnique({ where: { id: item.productId } });
+        const product = await prisma.product.findFirst({ where: { id: item.productId, organizationId: req.organizationId! } });
         if (product) {
           const newStock = Math.max(0, product.currentStock - item.quantity);
           await prisma.$transaction([

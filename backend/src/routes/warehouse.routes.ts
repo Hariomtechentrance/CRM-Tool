@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth";
 import { requireOrgContext } from "../middleware/orgContext";
+import { requirePermission } from "../middleware/requirePermission";
 import {
   listWarehouses, createWarehouse, updateWarehouse,
   createTransfer, completeTransfer, listTransfers,
@@ -10,11 +11,11 @@ const router = Router();
 router.use(authenticate, requireOrgContext);
 
 router.get("/transfers", listTransfers);
-router.post("/transfers", createTransfer);
-router.patch("/transfers/:id/complete", completeTransfer);
+router.post("/transfers", requirePermission("warehouse:transfer"), createTransfer);
+router.patch("/transfers/:id/complete", requirePermission("warehouse:transfer"), completeTransfer);
 
 router.get("/", listWarehouses);
-router.post("/", createWarehouse);
-router.patch("/:id", updateWarehouse);
+router.post("/", requirePermission("warehouse:create"), createWarehouse);
+router.patch("/:id", requirePermission("warehouse:update"), updateWarehouse);
 
 export default router;
