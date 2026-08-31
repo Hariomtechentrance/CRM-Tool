@@ -15,7 +15,6 @@ model User {
   avatar              String?
   isEmailVerified     Boolean               @default(false)
   emailVerifyToken    String?               @unique
-  emailVerifyExpiry   DateTime?
   passwordResetToken  String?               @unique
   passwordResetExpiry DateTime?
   isSuperAdmin        Boolean               @default(false)

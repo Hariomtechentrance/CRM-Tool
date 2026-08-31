@@ -124,14 +124,12 @@ export async function register(req: Request, res: Response): Promise<void> {
     // or the dedicated Google/Firebase sign-in endpoint — never self-asserted.
     const smtpConfigured = process.env.NODE_ENV === "production" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     const emailVerifyToken = smtpConfigured ? uuidv4() : null;
-    const emailVerifyExpiry = smtpConfigured ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null; // 24h
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user: any = await withRetry<any>(() => (prisma as any).user.create({
       data: {
         name, email, password: hashedPassword,
         emailVerifyToken,
-        emailVerifyExpiry,
         isEmailVerified: !smtpConfigured,
         phone:         phone || null,
         phoneVerified: !!phone,
@@ -149,7 +147,7 @@ export async function register(req: Request, res: Response): Promise<void> {
         console.error("[Register] Email failed, auto-verifying user:", emailErr);
         await prisma.user.update({
           where: { id: user.id },
-          data: { isEmailVerified: true, emailVerifyToken: null, emailVerifyExpiry: null },
+          data: { isEmailVerified: true, emailVerifyToken: null },
         });
       }
     }
@@ -172,17 +170,9 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
     const user = await prisma.user.findUnique({ where: { emailVerifyToken: token } });
     if (!user) { badRequest(res, "Invalid or expired verification token"); return; }
 
-    const expiry = (user as any).emailVerifyExpiry as Date | null;
-    if (expiry && new Date(expiry) < new Date()) {
-      // Burn the stale token so it can't be reused; user must request a new link.
-      await prisma.user.update({ where: { id: user.id }, data: { emailVerifyToken: null, emailVerifyExpiry: null } });
-      badRequest(res, "Verification link has expired. Please request a new one.");
-      return;
-    }
-
     await prisma.user.update({
       where: { id: user.id },
-      data: { isEmailVerified: true, emailVerifyToken: null, emailVerifyExpiry: null },
+      data: { isEmailVerified: true, emailVerifyToken: null },
     });
 
     ok(res, null, "Email verified successfully. You can now log in.");
