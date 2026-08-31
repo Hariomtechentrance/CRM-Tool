@@ -665,7 +665,11 @@ export async function listOrgDirectory(req: OrgRequest, res: Response): Promise<
   try {
     const employees = await prisma.employee.findMany({
       where: { organizationId: req.organizationId!, status: "ACTIVE" },
-      select: { id: true, name: true, designation: true, department: true, orgRole: true },
+      select: {
+        id: true, name: true, designation: true, department: true, orgRole: true,
+        employeeCode: true, email: true, phone: true,
+        employmentType: true, joiningDate: true,
+      },
       orderBy: { name: "asc" },
     });
     ok(res, employees);

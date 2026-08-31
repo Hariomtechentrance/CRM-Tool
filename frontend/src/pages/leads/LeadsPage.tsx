@@ -4,6 +4,8 @@ import api from "@/lib/api";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import { useTranslation } from 'react-i18next';
 import { kPhone, kAlpha } from "@/lib/fieldRules";
+import { useAuthStore } from "@/stores/authStore";
+import { isWBAOrg } from "@/lib/org";
 
 const LEAD_FIELD_FILTER: Record<string, React.KeyboardEventHandler<HTMLInputElement>> = { phone: kPhone, phone2: kPhone, city: kAlpha };
 const LEAD_FIELD_MAXLEN: Record<string, number> = { phone: 15, phone2: 15, city: 100 };
@@ -39,7 +41,7 @@ interface Lead {
   id: string; name: string; company?: string; email?: string; phone?: string; phone2?: string;
   city?: string; industry?: string; source: string; status: string; value?: number;
   score: number; leadGrade?: string; isDoNotCall: boolean; tags: string[]; notes?: string;
-  nextFollowUpDate?: string; lastContactedAt?: string; assignedToId?: string;
+  nextFollowUpDate?: string; noFollowUp?: boolean; lastContactedAt?: string; assignedToId?: string;
   assignedTo?: { name: string } | null;
   createdAt: string; campaign?: { name: string } | null;
   _count?: { activities: number; appointments: number };
@@ -48,11 +50,15 @@ interface Lead {
 interface Employee { id: string; name: string; designation?: string; }
 
 // ── Activity Log Modal ────────────────────────────────────────
-function LogActivityModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ type: "CALL", subject: "", description: "", outcome: "", callOutcome: "", duration: "", followUpDate: "" });
+function LogActivityModal({ lead, wbaOrg, onClose, onSaved }: { lead: Lead; wbaOrg: boolean; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({ type: "CALL", subject: "", description: "", outcome: "", callOutcome: "", duration: "", followUpDate: "", noFollowUp: false });
   const [saving, setSaving] = useState(false);
-  const f = (k: string) => (v: string) => setForm(p => ({
+  const f = (k: string) => (v: string | boolean) => setForm(p => ({
 ...p, [k]: v }));
+
+  // WBA: for an Answered call or a Wrong Number, offer "no follow-up needed"
+  const canSkipFollowUp = wbaOrg && form.type === "CALL" && (form.callOutcome === "ANSWERED" || form.callOutcome === "WRONG_NUMBER");
+  const skipFollowUp = canSkipFollowUp && form.noFollowUp;
 
   async function save() {
     if (!form.description.trim()) return;
@@ -64,7 +70,8 @@ function LogActivityModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () 
         outcome: form.outcome || undefined,
         callOutcome: form.callOutcome || undefined,
         duration: form.duration ? parseInt(form.duration) : undefined,
-        followUpDate: form.followUpDate || undefined,
+        followUpDate: skipFollowUp ? undefined : (form.followUpDate || undefined),
+        noFollowUp: skipFollowUp || undefined,
       });
       onSaved(); onClose();
     } finally { setSaving(false); }
@@ -112,9 +119,17 @@ function LogActivityModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () 
             )}
             <div>
               <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Schedule Follow-up</label>
-              <input style={{ ...S.inp, width: "100%" }} type="datetime-local" value={form.followUpDate} onChange={e => f("followUpDate")(e.target.value)} />
+              {skipFollowUp
+                ? <div className="text-xs" style={{ color: "var(--text-ghost)", padding: "9px 0" }}>No follow-up scheduled</div>
+                : <input style={{ ...S.inp, width: "100%" }} type="datetime-local" value={form.followUpDate} onChange={e => f("followUpDate")(e.target.value)} />}
             </div>
           </div>
+          {canSkipFollowUp && (
+            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: "var(--text-secondary)" }}>
+              <input type="checkbox" checked={form.noFollowUp} onChange={e => f("noFollowUp")(e.target.checked)} />
+              No follow-up needed for this lead
+            </label>
+          )}
         </div>
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
@@ -384,13 +399,21 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
 }
 
 // ── Lead Card ─────────────────────────────────────────────────
-function LeadCard({ lead, employees, onLog, onBook, onEdit, onRefresh }: {
-  lead: Lead; employees: Employee[]; onLog: () => void; onBook: () => void; onEdit: () => void; onRefresh: () => void;
+function LeadCard({ lead, employees, wbaOrg, onLog, onBook, onEdit, onRefresh }: {
+  lead: Lead; employees: Employee[]; wbaOrg: boolean; onLog: () => void; onBook: () => void; onEdit: () => void; onRefresh: () => void;
 }) {
   const now = new Date();
-  const followUpDate = lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate) : null;
-  const isOverdue = followUpDate && followUpDate < now;
-  const isDueToday = followUpDate && !isOverdue && followUpDate.toDateString() === now.toDateString();
+  const closed = lead.status === "WON" || lead.status === "LOST";
+  const explicitFollowUp = lead.nextFollowUpDate ? new Date(lead.nextFollowUpDate) : null;
+  // WBA: with no follow-up date set, a lead is due 48h after last contact (or creation),
+  // unless it's been explicitly marked "no follow-up needed".
+  const implicitDue = (wbaOrg && !explicitFollowUp && !lead.noFollowUp && !closed)
+    ? new Date(new Date(lead.lastContactedAt ?? lead.createdAt).getTime() + 48 * 3600 * 1000)
+    : null;
+  const followUpDate = explicitFollowUp ?? implicitDue;
+  const isImplied = !explicitFollowUp && !!implicitDue;
+  const isOverdue = !!followUpDate && followUpDate < now && !closed;
+  const isDueToday = !!followUpDate && !isOverdue && followUpDate.toDateString() === now.toDateString();
   const assignee = employees.find(e => e.id === lead.assignedToId);
 
   async function convertToDeal() {
@@ -429,8 +452,9 @@ function LeadCard({ lead, employees, onLog, onBook, onEdit, onRefresh }: {
       {followUpDate && (
         <div className="flex items-center gap-1.5 mb-2.5 text-xs px-2 py-1.5 rounded-lg" style={{ background: isOverdue ? "#450a0a" : isDueToday ? "#451a03" : "#1e1b4b", color: isOverdue ? "#f87171" : isDueToday ? "#fbbf24" : "#818cf8" }}>
           <Clock style={{ width: 10, height: 10 }} />
-          {isOverdue ? "⚠ Overdue: " : isDueToday ? "Today: " : "Follow-up: "}
+          {isOverdue ? "⚠ Overdue: " : isDueToday ? "Today: " : isImplied ? "Follow-up by: " : "Follow-up: "}
           {followUpDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} {followUpDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+          {isImplied && <span style={{ opacity: 0.7, marginLeft: 4 }}>(auto)</span>}
         </div>
       )}
 
@@ -466,6 +490,8 @@ function LeadCard({ lead, employees, onLog, onBook, onEdit, onRefresh }: {
 // ── Main Page ─────────────────────────────────────────────────
 export default function LeadsPage() {
   const { t } = useTranslation();
+  const { activeOrg } = useAuthStore();
+  const wbaOrg = isWBAOrg(activeOrg);
   const [tab, setTab] = useState<"queue"|"all"|"kanban">("queue");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -627,7 +653,7 @@ export default function LeadsPage() {
         <>
           <div className="grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
             {leads.map(lead => (
-              <LeadCard key={lead.id} lead={lead} employees={employees}
+              <LeadCard key={lead.id} lead={lead} employees={employees} wbaOrg={wbaOrg}
                 onLog={() => setLogLead(lead)} onBook={() => setBookLead(lead)}
                 onEdit={() => setEditLead(lead)} onRefresh={load} />
             ))}
@@ -644,7 +670,7 @@ export default function LeadsPage() {
 
       {showAdd && <LeadFormModal employees={employees} campaigns={campaigns} onClose={() => { setShowAdd(false); if (searchParams.get("quickAdd")) { searchParams.delete("quickAdd"); setSearchParams(searchParams, { replace: true }); } }} onSaved={load} />}
       {editLead && <LeadFormModal lead={editLead} employees={employees} campaigns={campaigns} onClose={() => setEditLead(null)} onSaved={load} />}
-      {logLead && <LogActivityModal lead={logLead} onClose={() => setLogLead(null)} onSaved={load} />}
+      {logLead && <LogActivityModal lead={logLead} wbaOrg={wbaOrg} onClose={() => setLogLead(null)} onSaved={load} />}
       {bookLead && <BookAppointmentModal lead={bookLead} onClose={() => setBookLead(null)} onSaved={load} />}
       {showImport && <ImportModal campaigns={campaigns} onClose={() => setShowImport(false)} onImported={load} />}
     </div>

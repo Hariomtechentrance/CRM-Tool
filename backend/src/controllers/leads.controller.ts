@@ -4,6 +4,7 @@ import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
 import { ok, created, badRequest, notFound, serverError } from "../utils/response";
 import { bustCache } from "../middleware/cacheMiddleware";
+import { isWBAOrgId, LEAD_DEFAULT_FOLLOWUP_MS } from "../utils/wbaOrg";
 
 const db = () => (prisma as any);
 
@@ -37,6 +38,7 @@ const activitySchema = z.object({
   callOutcome: z.enum(["ANSWERED", "NO_ANSWER", "BUSY", "CALLBACK_REQUESTED", "WRONG_NUMBER", "VOICEMAIL"]).optional(),
   duration: z.number().int().positive().optional(),
   followUpDate: z.string().optional(),
+  noFollowUp: z.boolean().optional(), // "no follow-up needed" — suppresses the auto-overdue rule
 });
 
 const campaignSchema = z.object({
@@ -73,6 +75,19 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
         { phone2: { contains: search } },
         { city: { contains: search, mode: "insensitive" } },
       ];
+    }
+
+    // White Band Associates: once a lead's client has reached Service Delivery
+    // (a WBAProject exists for its party), drop it out of Lead Management.
+    if (await isWBAOrgId(req.organizationId!)) {
+      const sdProjects = await db().wBAProject.findMany({
+        where: { organizationId: req.organizationId!, partyId: { not: null } },
+        select: { partyId: true },
+      });
+      const sdPartyIds = [...new Set(sdProjects.map((p: { partyId: string | null }) => p.partyId).filter(Boolean))];
+      if (sdPartyIds.length > 0) {
+        where.AND = [...(where.AND ?? []), { OR: [{ partyId: null }, { partyId: { notIn: sdPartyIds } }] }];
+      }
     }
 
     const orderBy: any = myQueue === "true"
@@ -166,7 +181,7 @@ export async function addLeadActivity(req: OrgRequest, res: Response): Promise<v
     const lead = await db().lead.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
 
-    const { followUpDate, ...rest } = data.data;
+    const { followUpDate, noFollowUp, ...rest } = data.data;
     const act = await db().leadActivity.create({
       data: {
         leadId: req.params.id as string,
@@ -176,12 +191,18 @@ export async function addLeadActivity(req: OrgRequest, res: Response): Promise<v
       },
     });
 
-    // Auto-update lead lastContactedAt and nextFollowUpDate
+    // Auto-update lead lastContactedAt and nextFollowUpDate.
+    // "No follow-up needed" wins: it clears any pending follow-up and flags the
+    // lead so the 48h auto-overdue rule skips it. A real follow-up date clears the flag.
     await db().lead.update({
       where: { id: req.params.id as string },
       data: {
         lastContactedAt: new Date(),
-        ...(followUpDate && { nextFollowUpDate: new Date(followUpDate) }),
+        ...(noFollowUp
+          ? { noFollowUp: true, nextFollowUpDate: null }
+          : followUpDate
+            ? { nextFollowUpDate: new Date(followUpDate), noFollowUp: false }
+            : {}),
         ...(rest.type === "CALL" && { status: lead.status === "NEW" ? "CONTACTED" : lead.status }),
       },
     });
@@ -283,6 +304,24 @@ export async function getLeadStats(req: OrgRequest, res: Response): Promise<void
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 86400000);
 
+    // White Band Associates: a lead is overdue past its follow-up date, or — when
+    // no follow-up date was set — 48h after last contact (or creation). Leads
+    // explicitly marked "no follow-up needed" are never overdue.
+    const wba = await isWBAOrgId(orgId);
+    const cutoff = new Date(now.getTime() - LEAD_DEFAULT_FOLLOWUP_MS);
+    const overdueWhere = wba
+      ? {
+          organizationId: orgId,
+          status: { notIn: ["WON", "LOST"] },
+          noFollowUp: false,
+          OR: [
+            { nextFollowUpDate: { lt: now } },
+            { nextFollowUpDate: null, lastContactedAt: { lt: cutoff } },
+            { nextFollowUpDate: null, lastContactedAt: null, createdAt: { lt: cutoff } },
+          ],
+        }
+      : { organizationId: orgId, nextFollowUpDate: { lt: startOfDay }, status: { notIn: ["WON", "LOST"] } };
+
     const [total, won, lost, byStatus, bySource, pipeline, todayFollowUps, overdue, myQueue] = await Promise.all([
       db().lead.count({ where: { organizationId: orgId } }),
       db().lead.count({ where: { organizationId: orgId, status: "WON" } }),
@@ -291,7 +330,7 @@ export async function getLeadStats(req: OrgRequest, res: Response): Promise<void
       db().lead.groupBy({ by: ["source"], where: { organizationId: orgId }, _count: true }),
       db().lead.aggregate({ where: { organizationId: orgId, status: { notIn: ["WON", "LOST"] } }, _sum: { value: true } }),
       db().lead.count({ where: { organizationId: orgId, nextFollowUpDate: { gte: startOfDay, lt: endOfDay }, status: { notIn: ["WON", "LOST"] } } }),
-      db().lead.count({ where: { organizationId: orgId, nextFollowUpDate: { lt: startOfDay }, status: { notIn: ["WON", "LOST"] } } }),
+      db().lead.count({ where: overdueWhere }),
       db().lead.count({ where: { organizationId: orgId, assignedToId: req.userId, status: { notIn: ["WON", "LOST"] } } }),
     ]);
 

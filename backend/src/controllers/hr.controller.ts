@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
 import { ok, created, badRequest, notFound, serverError } from "../utils/response";
+import { isWBAOrg } from "../utils/wbaOrg";
 
 const DESIGNATION_OPTIONS = [
   "Developer", "Senior Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer",
@@ -17,8 +18,32 @@ const DESIGNATION_OPTIONS = [
   "Other",
 ];
 
+// White Band Associates uses a fixed, service-line designation list
+const WBA_DESIGNATION_OPTIONS = [
+  "VAPT Intern", "GRC Intern", "Sales Intern", "Cyber Security Analyst",
+  "Sales Manager", "Sales Executive", "Networking Tutor", "Linux Tutor",
+  "CS Tutor", "Ethical Hacking Tutor",
+];
+
+// Next EMP-#### code for an org — scans every employee (any status) so codes never collide
+async function generateEmployeeCode(organizationId: string): Promise<string> {
+  const rows = await prisma.employee.findMany({
+    where: { organizationId },
+    select: { employeeCode: true },
+  });
+  const taken = new Set(rows.map((r) => r.employeeCode));
+  let max = 0;
+  for (const r of rows) {
+    const m = /^EMP-(\d+)$/i.exec(r.employeeCode.trim());
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  let n = max + 1;
+  while (taken.has(`EMP-${String(n).padStart(4, "0")}`)) n += 1;
+  return `EMP-${String(n).padStart(4, "0")}`;
+}
+
 const employeeSchema = z.object({
-  employeeCode:  z.string().min(1),
+  employeeCode:  z.string().min(1).max(20).optional(), // blank → auto-generated (EMP-####)
   name:          z.string().min(1),
   email:         z.string().email().optional(),
   phone:         z.string().optional(),
@@ -26,7 +51,7 @@ const employeeSchema = z.object({
   department:    z.string().optional(),
   employmentType:z.enum(["FULL_TIME","PART_TIME","CONTRACT","INTERN"]).default("FULL_TIME"),
   joiningDate:   z.string(),
-  salaryType:    z.enum(["MONTHLY","DAILY"]).default("MONTHLY"),
+  salaryType:    z.enum(["MONTHLY","DAILY","FIXED","UNPAID","INCENTIVE"]).default("MONTHLY"),
   basicSalary:   z.number().min(0).default(0),
   dailyRate:     z.number().min(0).optional(),
   hra:           z.number().min(0).default(0),
@@ -171,13 +196,17 @@ export async function createEmployee(req: OrgRequest, res: Response): Promise<vo
     const data = employeeSchema.safeParse(req.body);
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
 
+    // Employee code is auto-generated (EMP-####) when the client doesn't supply one
+    const employeeCode = data.data.employeeCode?.trim()
+      || await generateEmployeeCode(req.organizationId!);
+
     const exists = await prisma.employee.findUnique({
-      where: { organizationId_employeeCode: { organizationId: req.organizationId!, employeeCode: data.data.employeeCode } },
+      where: { organizationId_employeeCode: { organizationId: req.organizationId!, employeeCode } },
     });
     if (exists) { badRequest(res, "Employee code already exists"); return; }
 
     const emp = await prisma.employee.create({
-      data: { ...data.data, joiningDate: new Date(data.data.joiningDate), organizationId: req.organizationId! },
+      data: { ...data.data, employeeCode, joiningDate: new Date(data.data.joiningDate), organizationId: req.organizationId! },
     });
     created(res, emp);
   } catch (e) { serverError(res, e); }
@@ -894,8 +923,14 @@ export async function getMyProfile(req: OrgRequest, res: Response): Promise<void
 }
 
 // ── Return available designation options ────────────────────
-export async function getDesignations(_req: OrgRequest, res: Response): Promise<void> {
-  ok(res, DESIGNATION_OPTIONS);
+export async function getDesignations(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { id: req.organizationId! },
+      select: { id: true, slug: true, name: true },
+    });
+    ok(res, isWBAOrg(org) ? WBA_DESIGNATION_OPTIONS : DESIGNATION_OPTIONS);
+  } catch (e) { serverError(res, e); }
 }
 
 // ── Delete employee ─────────────────────────────────────────

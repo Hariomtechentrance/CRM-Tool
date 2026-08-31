@@ -1137,6 +1137,9 @@ enum LeaveStatus {
 enum SalaryType {
   MONTHLY
   DAILY
+  FIXED
+  UNPAID
+  INCENTIVE
 }
 
 model Employee {
@@ -1521,6 +1524,7 @@ model Lead {
   leadGrade        String?
   isDoNotCall      Boolean    @default(false)
   nextFollowUpDate DateTime?
+  noFollowUp       Boolean    @default(false)
   lastContactedAt  DateTime?
   convertedAt      DateTime?
   partyId          String?

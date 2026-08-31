@@ -12,6 +12,7 @@ import {
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { getNavModules } from "@/lib/modules";
+import { isWBAOrg } from "@/lib/org";
 import type { OrganizationSummary } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -125,6 +126,8 @@ function FlyoutLinkRow({ href, label, Icon, onClick, end }: FlyoutLink & { onCli
 function OrgSwitcherRail({ open, onToggle, onClose }: { open: boolean; onToggle: () => void; onClose: () => void }) {
   const { organizations, activeOrg, setActiveOrg } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
+  // White Band Associates is a single fixed org — no spinning up more from here
+  const canAddOrg = isOrgAdmin && !isWBAOrg(activeOrg);
   const { t } = useTranslation();
   if (!activeOrg) return null;
 
@@ -157,7 +160,7 @@ function OrgSwitcherRail({ open, onToggle, onClose }: { open: boolean; onToggle:
               {activeOrg.id === org.id && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "var(--sb-accent)" }} />}
             </button>
           ))}
-          {isOrgAdmin && (
+          {canAddOrg && (
             <div style={{ borderTop: "1px solid var(--sb-border)" }} className="mt-1 pt-1">
               <NavLink
                 to="/create-org"
@@ -215,12 +218,15 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const isPM   = orgRole === "PROJECT_MANAGER";
   const isTL   = orgRole === "TEAM_LEAD";
 
+  // White Band Associates hides PM Dashboard, Communication, Finance & Tax and Admin & Tools for every login
+  const wbaOrg = isWBAOrg(activeOrg);
+
   const showIT       = isOrgAdmin || canSee("PROJECTS");
   const showSales    = isOrgAdmin || canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
-  const showFinance  = isOrgAdmin || canSee("ACCOUNTS");
-  const showAdmin    = isOrgAdmin;
-  const showComm     = isOrgAdmin || isManager || moduleAccess.length > 0;
-  const showPMDash   = isOrgAdmin || isPM;
+  const showFinance  = (isOrgAdmin || canSee("ACCOUNTS")) && !wbaOrg;
+  const showAdmin    = isOrgAdmin && !wbaOrg;
+  const showComm     = (isOrgAdmin || isManager || moduleAccess.length > 0) && !wbaOrg;
+  const showPMDash   = (isOrgAdmin || isPM) && !wbaOrg;
   const showTeamPage = isTL;
 
   const commLinks: FlyoutLink[] = [

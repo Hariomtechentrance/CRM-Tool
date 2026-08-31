@@ -5,6 +5,7 @@ import DocumentsPanel from "@/components/DocumentsPanel";
 import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, kPAN, kIFSC } from "@/lib/fieldRules";
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "@/stores/authStore";
+import { isWBAOrg, WBA_DESIGNATIONS, WBA_DEPARTMENTS, WBA_SALARY_TYPES, WBA_LEAVE_TYPES } from "@/lib/org";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const now = new Date();
@@ -114,6 +115,12 @@ export default function HRPage() {
   // Role-based access levels within the HR module
   const role = activeOrg?.role ?? "STAFF";
   const isHRManager = role === "OWNER" || role === "ADMIN" || role === "MANAGER";
+
+  // White Band Associates HR customisations: fixed designation/department lists,
+  // its own salary types, no HRA/allowance, no payroll, Half-Day leave.
+  const wbaOrg = isWBAOrg(activeOrg);
+  const designationOpts: string[] = wbaOrg ? [...WBA_DESIGNATIONS] : DESIGNATION_OPTS;
+  const leaveTypeOpts: string[] = wbaOrg ? [...WBA_LEAVE_TYPES] : LEAVE_TYPES;
 
   const [tab, setTab] = useState<Tab>("overview");
   const [summary, setSummary] = useState<Summary|null>(null);
@@ -283,7 +290,17 @@ export default function HRPage() {
   useEffect(() => { if (tab==="expenses") loadExpenses(); }, [tab, loadExpenses]);
 
   // ── Employee CRUD ──
-  const openAdd = () => { setEditId(null); setEmpForm({...empEmpty}); setError(""); setShowEmpModal(true); };
+  // Next auto employee code (EMP-####) from the loaded roster — shown as a hint;
+  // the backend generates the authoritative code when the field is left blank.
+  const nextEmployeeCode = () => {
+    let max = 0;
+    for (const e of employees) {
+      const m = /^EMP-(\d+)$/i.exec((e.employeeCode || "").trim());
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    }
+    return `EMP-${String(max + 1).padStart(4, "0")}`;
+  };
+  const openAdd = () => { setEditId(null); setEmpForm({...empEmpty, ...(wbaOrg ? { salaryType:"FIXED" } : {})}); setError(""); setShowEmpModal(true); };
   const openEdit = (e: Employee) => {
     setEditId(e.id);
     setEmpForm({ employeeCode:e.employeeCode, name:e.name, email:"", phone:"", designation:e.designation||"", department:e.department||"", employmentType:e.employmentType, joiningDate:new Date(e.joiningDate).toISOString().slice(0,10), salaryType:e.salaryType||"MONTHLY", basicSalary:String(e.basicSalary), dailyRate:String(e.dailyRate||""), hra:String(e.hra||0), allowances:String(e.allowances||0), pfEnabled:(e as any).pfEnabled!=null?String((e as any).pfEnabled):"", esiEnabled:(e as any).esiEnabled!=null?String((e as any).esiEnabled):"", orgRole:(e as any).orgRole||"EMPLOYEE", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" });
@@ -300,6 +317,7 @@ export default function HRPage() {
     try {
       const payload = {
         ...empForm,
+        employeeCode: empForm.employeeCode.trim() || undefined, // blank → backend auto-generates EMP-####
         basicSalary:  parseFloat(empForm.basicSalary)||0,
         dailyRate:    empForm.salaryType==="DAILY"?(parseFloat(empForm.dailyRate)||0):undefined,
         hra:          parseFloat(empForm.hra)||0,
@@ -458,13 +476,15 @@ export default function HRPage() {
       {id:"overview"    as Tab, label:"Overview",    icon:<TrendingUp size={14}/>},
       {id:"employees"   as Tab, label:"Employees",   icon:<Users size={14}/>},
       {id:"attendance"  as Tab, label:"Attendance",  icon:<Calendar size={14}/>},
-      {id:"payroll"     as Tab, label:"Payroll",     icon:<DollarSign size={14}/>},
+      // Payroll is disabled for White Band Associates
+      ...(wbaOrg ? [] : [{id:"payroll" as Tab, label:"Payroll", icon:<DollarSign size={14}/>}]),
     ] : []),
     {id:"leaves"      as Tab, label:"Leaves",      icon:<Clock size={14}/>},
-    ...(isHRManager ? [
+    // Performance & Expenses are disabled for White Band Associates
+    ...(isHRManager && !wbaOrg ? [
       {id:"performance" as Tab, label:"Performance", icon:<Target size={14}/>},
     ] : []),
-    {id:"expenses"    as Tab, label:"Expenses",    icon:<Receipt size={14}/>},
+    ...(wbaOrg ? [] : [{id:"expenses" as Tab, label:"Expenses", icon:<Receipt size={14}/>}]),
   ];
 
   return (
@@ -903,7 +923,7 @@ export default function HRPage() {
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div className="grid-r2">
-                <div><label style={S.label}>Employee Code *</label><input style={S.input} value={empForm.employeeCode} onChange={e=>ef("employeeCode",e.target.value)} placeholder="EMP-001" onKeyDown={kAlphaNum} maxLength={20}/></div>
+                <div><label style={S.label}>Employee Code</label><input style={S.input} value={empForm.employeeCode} onChange={e=>ef("employeeCode",e.target.value)} placeholder={editId ? "EMP-001" : `Auto: ${nextEmployeeCode()}`} onKeyDown={kAlphaNum} maxLength={20}/>{!editId && <div style={{fontSize:11,color:"var(--text-ghost)",marginTop:3}}>Leave blank to auto-generate</div>}</div>
                 <div><label style={S.label}>Full Name *</label><input style={S.input} value={empForm.name} onChange={e=>ef("name",e.target.value)} onKeyDown={kName} maxLength={100}/></div>
               </div>
               <div className="grid-r2">
@@ -915,10 +935,17 @@ export default function HRPage() {
                   <label style={S.label}>Designation / Post *</label>
                   <select style={S.select} value={empForm.designation} onChange={e=>ef("designation",e.target.value)}>
                     <option value="">Select post...</option>
-                    {DESIGNATION_OPTS.map(d=><option key={d} value={d}>{d}</option>)}
+                    {designationOpts.map(d=><option key={d} value={d}>{d}</option>)}
+                    {empForm.designation && !designationOpts.includes(empForm.designation) && <option value={empForm.designation}>{empForm.designation}</option>}
                   </select>
                 </div>
-                <div><label style={S.label}>Department</label><input style={S.input} value={empForm.department} onChange={e=>ef("department",e.target.value)} maxLength={100}/></div>
+                <div><label style={S.label}>Department</label>{wbaOrg
+                  ? <select style={S.select} value={empForm.department} onChange={e=>ef("department",e.target.value)}>
+                      <option value="">Select department...</option>
+                      {WBA_DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}
+                      {empForm.department && !(WBA_DEPARTMENTS as readonly string[]).includes(empForm.department) && <option value={empForm.department}>{empForm.department}</option>}
+                    </select>
+                  : <input style={S.input} value={empForm.department} onChange={e=>ef("department",e.target.value)} maxLength={100}/>}</div>
               </div>
               <div className="grid-r2">
                 <div>
@@ -936,13 +963,20 @@ export default function HRPage() {
               <div style={{background:"var(--bg-hover)",borderRadius:8,padding:"12px 14px"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"var(--text-ghost)",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:10}}>Salary Structure</div>
                 <div className="grid-r2" style={{marginBottom:10}}>
-                  <div><label style={S.label}>Salary Type</label><select style={S.select} value={empForm.salaryType} onChange={e=>ef("salaryType",e.target.value)}><option value="MONTHLY">Monthly (Fixed)</option><option value="DAILY">Daily Rate</option></select></div>
-                  {empForm.salaryType==="MONTHLY"
-                    ? <div><label style={S.label}>Monthly CTC (₹)</label><input type="number" style={S.input} value={empForm.basicSalary} onChange={e=>ef("basicSalary",e.target.value)} onKeyDown={kDecimal} placeholder="e.g. 25000"/></div>
-                    : <div><label style={S.label}>Daily Rate (₹/day)</label><input type="number" style={S.input} value={empForm.dailyRate} onChange={e=>ef("dailyRate",e.target.value)} onKeyDown={kDecimal}/></div>
+                  <div><label style={S.label}>Salary Type</label><select style={S.select} value={empForm.salaryType} onChange={e=>ef("salaryType",e.target.value)}>
+                    {wbaOrg
+                      ? <>{WBA_SALARY_TYPES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
+                          {empForm.salaryType && !WBA_SALARY_TYPES.some(s=>s.value===empForm.salaryType) && <option value={empForm.salaryType}>{empForm.salaryType}</option>}</>
+                      : <><option value="MONTHLY">Monthly (Fixed)</option><option value="DAILY">Daily Rate</option></>}
+                  </select></div>
+                  {wbaOrg
+                    ? (empForm.salaryType!=="UNPAID" && <div><label style={S.label}>Amount (₹)</label><input type="number" style={S.input} value={empForm.basicSalary} onChange={e=>ef("basicSalary",e.target.value)} onKeyDown={kDecimal} placeholder="e.g. 25000"/></div>)
+                    : (empForm.salaryType==="MONTHLY"
+                      ? <div><label style={S.label}>Monthly CTC (₹)</label><input type="number" style={S.input} value={empForm.basicSalary} onChange={e=>ef("basicSalary",e.target.value)} onKeyDown={kDecimal} placeholder="e.g. 25000"/></div>
+                      : <div><label style={S.label}>Daily Rate (₹/day)</label><input type="number" style={S.input} value={empForm.dailyRate} onChange={e=>ef("dailyRate",e.target.value)} onKeyDown={kDecimal}/></div>)
                   }
                 </div>
-                {(orgHR.enableHRA || orgHR.enableAllowances) && (
+                {!wbaOrg && (orgHR.enableHRA || orgHR.enableAllowances) && (
                   <div className="grid-r2">
                     {orgHR.enableHRA && (
                       <div><label style={S.label}>HRA (₹/month)</label><input type="number" style={S.input} value={empForm.hra} onChange={e=>ef("hra",e.target.value)} onKeyDown={kDecimal} placeholder="0"/></div>
@@ -972,7 +1006,7 @@ export default function HRPage() {
                   </label>
                 </div>
                 {/* Salary preview */}
-                {(parseFloat(empForm.basicSalary)||0) > 0 && (
+                {!wbaOrg && (parseFloat(empForm.basicSalary)||0) > 0 && (
                   <div style={{marginTop:12,background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:"10px 14px"}}>
                     <div style={{fontSize:11,fontWeight:700,color:"#818CF8",textTransform:"uppercase" as const,letterSpacing:"0.05em",marginBottom:8}}>Salary Preview (full month)</div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1160,7 +1194,7 @@ export default function HRPage() {
             {error&&<div style={S.err}>{error}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div><label style={S.label}>Employee *</label><select style={S.select} value={leaveForm.employeeId} onChange={e=>lf("employeeId",e.target.value)}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}</select></div>
-              <div><label style={S.label}>Leave Type</label><select style={S.select} value={leaveForm.leaveType} onChange={e=>lf("leaveType",e.target.value)}>{LEAVE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+              <div><label style={S.label}>Leave Type</label><select style={S.select} value={leaveForm.leaveType} onChange={e=>lf("leaveType",e.target.value)}>{leaveTypeOpts.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
               <div className="grid-r2">
                 <div><label style={S.label}>From *</label><input type="date" style={S.input} value={leaveForm.fromDate} onChange={e=>lf("fromDate",e.target.value)}/></div>
                 <div><label style={S.label}>To *</label><input type="date" style={S.input} value={leaveForm.toDate} onChange={e=>lf("toDate",e.target.value)}/></div>
@@ -1187,7 +1221,7 @@ export default function HRPage() {
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div><label style={S.label}>Employee *</label><select style={S.select} value={lbForm.employeeId} onChange={e=>setLbForm(p=>({...p,employeeId:e.target.value}))}><option value="">Select...</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}</select></div>
               <div className="grid-r2">
-                <div><label style={S.label}>Leave Type</label><select style={S.select} value={lbForm.leaveType} onChange={e=>setLbForm(p=>({...p,leaveType:e.target.value}))}>{LEAVE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+                <div><label style={S.label}>Leave Type</label><select style={S.select} value={lbForm.leaveType} onChange={e=>setLbForm(p=>({...p,leaveType:e.target.value}))}>{leaveTypeOpts.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
                 <div><label style={S.label}>Year</label><select style={S.select} value={lbForm.year} onChange={e=>setLbForm(p=>({...p,year:e.target.value}))}>{years.map(y=><option key={y} value={String(y)}>{y}</option>)}</select></div>
               </div>
               <div className="grid-r2">
