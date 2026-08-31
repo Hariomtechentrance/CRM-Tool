@@ -34,8 +34,36 @@ export async function requireOrgContext(
   }
   req.organizationId = orgId;
   req.memberRole = member.role;
+
+  // ── Read-only role enforcement ──────────────────────────────
+  // VIEWER is the lowest role and is defined as read-only, but almost no route
+  // file adds an explicit requireRole, so without this a VIEWER member could
+  // POST/PUT/PATCH/DELETE across the whole app. Block write verbs for VIEWER at
+  // the context layer; a short allowlist keeps genuinely personal actions
+  // (marking notifications read, registering a push token, posting a comment,
+  // running a search/export) working.
+  if (member.role === MemberRole.VIEWER && WRITE_METHODS.has(req.method)) {
+    const p = req.baseUrl + req.path;
+    const allowed = VIEWER_WRITE_ALLOW.some((frag) => p.includes(frag));
+    if (!allowed) {
+      forbidden(res, "Your role is read-only in this organization.");
+      return;
+    }
+  }
   next();
 }
+
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+// Path fragments a VIEWER may still write to (self-scoped / non-destructive).
+const VIEWER_WRITE_ALLOW = [
+  "/notifications",
+  "/push",
+  "/comments",
+  "/search",
+  "/time-tracking",
+  "/2fa",
+  "/sessions",
+];
 
 const roleHierarchy: Record<MemberRole, number> = {
   OWNER: 6,

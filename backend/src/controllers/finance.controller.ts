@@ -129,6 +129,24 @@ export async function addPayment(req: OrgRequest, res: Response): Promise<void> 
     const data = paymentSchema.safeParse(req.body);
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
 
+    // Tenant-isolation: every foreign key on the payment must belong to the
+    // caller's organization. Without this, an authenticated user in org A could
+    // post a payment against org B's invoice ID and flip its balance/status.
+    if (data.data.invoiceId) {
+      const owns = await prisma.invoice.findFirst({
+        where: { id: data.data.invoiceId, organizationId: req.organizationId! },
+        select: { id: true },
+      });
+      if (!owns) { notFound(res, "Invoice not found"); return; }
+    }
+    if (data.data.partyId) {
+      const owns = await prisma.party.findFirst({
+        where: { id: data.data.partyId, organizationId: req.organizationId! },
+        select: { id: true },
+      });
+      if (!owns) { notFound(res, "Party not found"); return; }
+    }
+
     const payment = await prisma.payment.create({
       data: {
         organizationId: req.organizationId!,
@@ -143,7 +161,9 @@ export async function addPayment(req: OrgRequest, res: Response): Promise<void> 
     });
 
     if (data.data.invoiceId) {
-      const inv = await prisma.invoice.findUnique({ where: { id: data.data.invoiceId } });
+      const inv = await prisma.invoice.findFirst({
+        where: { id: data.data.invoiceId, organizationId: req.organizationId! },
+      });
       if (inv) {
         const paidAmount = inv.paidAmount + data.data.amount;
         const balanceDue = Math.max(0, inv.total - paidAmount);

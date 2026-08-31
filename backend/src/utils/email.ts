@@ -90,6 +90,21 @@ export async function sendEmail({ to, subject, html }: SendMailOptions) {
   }
 }
 
+// ── HTML escaping ────────────────────────────────────────────
+// Every value that originates from user input (names, org names, inviter
+// names) must be escaped before it goes into an email body, otherwise a user
+// called e.g. `<a href="http://evil">Click</a>` gets that markup rendered in
+// the recipient's mail client. The global request sanitizer is regex-based and
+// not a substitute for context-correct output encoding here.
+export function esc(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ── Shared layout wrapper ────────────────────────────────────
 function emailLayout(title: string, body: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
@@ -124,9 +139,9 @@ function frontendBase(): string {
 }
 
 export function verifyEmailTemplate(name: string, token: string): string {
-  const url = `${frontendBase()}/verify-email?token=${token}`;
+  const url = `${frontendBase()}/verify-email?token=${encodeURIComponent(token)}`;
   return emailLayout("Verify your email", `
-    ${h1(`Welcome to BusinessOS, ${name}!`)}
+    ${h1(`Welcome to BusinessOS, ${esc(name)}!`)}
     ${p("Thanks for signing up. Please verify your email address to activate your account.")}
     ${btn(url, "Verify Email Address")}
     ${note("This link expires in 24 hours. If you didn't create this account, you can safely ignore this email.")}
@@ -154,18 +169,20 @@ export function inviteEmailTemplate(
   role = "STAFF",
   allowedModules: string[] = [],
 ): string {
-  const url = `${frontendBase()}/accept-invite?token=${token}`;
-  const roleLabel = ROLE_LABELS[role] || role;
+  const url = `${frontendBase()}/accept-invite?token=${encodeURIComponent(token)}`;
+  const roleLabel = ROLE_LABELS[role] || esc(role);
+  const orgNameSafe = esc(orgName);
+  const inviterNameSafe = esc(inviterName);
 
   const moduleChips = allowedModules.length > 0
     ? `<div style="margin:16px 0;display:flex;flex-wrap:wrap;gap:6px">
-        ${allowedModules.map(k => `<span style="display:inline-block;padding:4px 10px;border-radius:20px;background:#eff0ff;color:#4f46e5;font-size:12px;font-weight:600;border:1px solid #c7d2fe">${MODULE_LABELS[k] || k}</span>`).join("")}
+        ${allowedModules.map(k => `<span style="display:inline-block;padding:4px 10px;border-radius:20px;background:#eff0ff;color:#4f46e5;font-size:12px;font-weight:600;border:1px solid #c7d2fe">${MODULE_LABELS[k] || esc(k)}</span>`).join("")}
       </div>`
     : "";
 
-  return emailLayout(`You're invited to join ${orgName} on BusinessOS`, `
-    ${h1(`You're Invited to Join ${orgName}!`)}
-    ${p(`<strong style="color:#1a1a2e">${inviterName}</strong> has invited you to join <strong style="color:#6366f1">${orgName}</strong> on BusinessOS as a <strong style="color:#1a1a2e">${roleLabel}</strong>.`)}
+  return emailLayout(`You're invited to join ${orgNameSafe} on BusinessOS`, `
+    ${h1(`You're Invited to Join ${orgNameSafe}!`)}
+    ${p(`<strong style="color:#1a1a2e">${inviterNameSafe}</strong> has invited you to join <strong style="color:#6366f1">${orgNameSafe}</strong> on BusinessOS as a <strong style="color:#1a1a2e">${roleLabel}</strong>.`)}
     ${allowedModules.length > 0 ? `<p style="margin:4px 0 6px;font-size:14px;color:#505070;line-height:1.6">You'll have access to the following modules:</p>${moduleChips}` : ""}
     ${p("BusinessOS is an all-in-one business platform — CRM, inventory, sales, accounts, HR, and more.")}
     ${btn(url, "Accept Invitation & Join")}
@@ -175,10 +192,10 @@ export function inviteEmailTemplate(
 
 // ── Password reset ───────────────────────────────────────────
 export function resetPasswordTemplate(name: string, token: string): string {
-  const url = `${frontendBase()}/reset-password?token=${token}`;
+  const url = `${frontendBase()}/reset-password?token=${encodeURIComponent(token)}`;
   return emailLayout("Reset your password", `
     ${h1("Reset Your Password")}
-    ${p(`Hi <strong style="color:#1a1a2e">${name}</strong>, we received a request to reset your password.`)}
+    ${p(`Hi <strong style="color:#1a1a2e">${esc(name)}</strong>, we received a request to reset your password.`)}
     ${btn(url, "Reset Password")}
     ${note("This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.")}
   `);

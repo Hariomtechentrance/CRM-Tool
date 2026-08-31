@@ -4,7 +4,7 @@ import { requireSuperAdmin } from "../middleware/superAdmin";
 import {
   getSuperAdminStats, listAllOrganizations, getOrganizationDetail,
   updateOrganization, listAllUsers, createUser, toggleUserActive, makeSuperAdmin,
-  listModuleRequests, resolveModuleRequest,
+  adminDisable2FA, listModuleRequests, resolveModuleRequest,
 } from "../controllers/superAdmin.controller";
 import { listDemoRequests, updateDemoRequest } from "../controllers/contact.controller";
 
@@ -19,6 +19,7 @@ router.get("/users",         listAllUsers);
 router.post("/users",        createUser);
 router.patch("/users/:id/toggle-active", toggleUserActive);
 router.patch("/users/:id/super-admin",   makeSuperAdmin);
+router.post("/users/:id/disable-2fa",    adminDisable2FA);
 
 // Demo / access requests from landing page
 router.get("/demo-requests",         listDemoRequests);

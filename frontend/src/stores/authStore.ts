@@ -51,7 +51,9 @@ export const useAuthStore = create<AuthState>()(
 
       setAuth: (data: AuthResponse) => {
         localStorage.setItem("accessToken", data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
+        // Refresh token is NOT stored in JS anymore — it lives only in the
+        // httpOnly `bos_refresh` cookie the API set alongside this response.
+        localStorage.removeItem("refreshToken");
         // Normalise: ensure every org has enabledModules array (legacy orgs may not)
         const orgs = data.organizations.map((o) => ({ ...o, enabledModules: o.enabledModules ?? [] }));
         const firstOrg = orgs[0] || null;
@@ -64,7 +66,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: data.user,
           accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
+          refreshToken: null,
           organizations: orgs,
           activeOrg: firstOrg,
           isAuthenticated: true,
@@ -97,9 +99,10 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        const { refreshToken } = get();
         try {
-          if (refreshToken) await api.post("/auth/logout", { refreshToken });
+          // The httpOnly bos_refresh cookie identifies the session to revoke;
+          // no body needed. Legacy body kept harmless for the migration window.
+          await api.post("/auth/logout", {});
         } catch { /* ignore */ }
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
@@ -179,7 +182,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
+        // refreshToken intentionally NOT persisted — it lives in an httpOnly cookie.
         organizations: state.organizations,
         activeOrg: state.activeOrg,
         isAuthenticated: state.isAuthenticated,

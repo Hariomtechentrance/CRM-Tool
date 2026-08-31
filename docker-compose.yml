@@ -37,6 +37,11 @@ services:
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      # nginx proxies /api to the backend, so the browser sees one origin →
+      # SameSite=Lax is correct here. NOTE: the auth cookie is Secure in
+      # production, so this stack MUST sit behind HTTPS (TLS terminator / CDN).
+      AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-lax}
+      RBAC_ENFORCE: ${RBAC_ENFORCE:-false}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}

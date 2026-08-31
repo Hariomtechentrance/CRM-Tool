@@ -3,7 +3,9 @@ import bcrypt from "bcryptjs";
 import { timingSafeEqual } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
+import speakeasy from "speakeasy";
 import { hashToken } from "../utils/tokenHash";
+import { setAuthCookies, clearAuthCookies, REFRESH_COOKIE } from "../lib/authCookies";
 import { prisma, withRetry } from "../lib/prisma";
 import {
   signAccessToken,
@@ -28,13 +30,23 @@ import {
   serverError,
   notFound,
 } from "../utils/response";
-import { sendEmail, verifyEmailTemplate, resetPasswordTemplate } from "../utils/email";
+import { sendEmail, verifyEmailTemplate, resetPasswordTemplate, esc } from "../utils/email";
 import { writeAuditLog, getIp } from "../utils/auditLog";
-import { AuthRequest } from "../middleware/auth";
+import { AuthRequest, invalidateUserSecState } from "../middleware/auth";
 
 const MAX_FAIL  = 5;
-const LOCK_MS   = 15 * 60 * 1000; // 15 min
 const PASS_MIN_LENGTH = 8;
+
+// Progressive lockout. A flat 15-minute account lock keyed only on email is a
+// denial-of-service handle: anyone who knows a victim's address can lock them
+// out on demand. Instead the FIRST lock is short (1 min — an honest typo barely
+// notices) and each further lock without a successful login in between grows,
+// capped at 1 hour. Brute-force protection proper is the per-IP rate limiter.
+const LOCK_STEPS_MS = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000];
+export function lockDurationFor(totalFailures: number): number {
+  const step = Math.floor(totalFailures / MAX_FAIL) - 1;
+  return LOCK_STEPS_MS[Math.max(0, Math.min(step, LOCK_STEPS_MS.length - 1))];
+}
 
 // ── Password strength check ───────────────────────────────────
 export function isStrongPassword(password: string): { ok: boolean; reason?: string } {
@@ -72,13 +84,13 @@ async function sendLoginAlert(user: { name: string; email: string }, ip: string,
       html: `
         <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px">
           <h2 style="color:#ef4444;margin:0 0 8px">New Login Detected</h2>
-          <p style="color:#555">Hi ${user.name}, a new login to your BusinessOS account was detected.</p>
+          <p style="color:#555">Hi ${esc(user.name)}, a new login to your BusinessOS account was detected.</p>
           <div style="background:#f9f9f9;border-radius:8px;padding:16px;margin:20px 0">
-            <div style="margin-bottom:8px"><span style="color:#888">Browser: </span><strong>${browser}</strong></div>
-            <div style="margin-bottom:8px"><span style="color:#888">OS: </span><strong>${os}</strong></div>
-            <div><span style="color:#888">IP Address: </span><strong>${ip}</strong></div>
+            <div style="margin-bottom:8px"><span style="color:#888">Browser: </span><strong>${esc(browser)}</strong></div>
+            <div style="margin-bottom:8px"><span style="color:#888">OS: </span><strong>${esc(os)}</strong></div>
+            <div><span style="color:#888">IP Address: </span><strong>${esc(ip)}</strong></div>
           </div>
-          <p style="color:#555">If this was you, no action needed. If not, <a href="${process.env.FRONTEND_URL || ""}/settings" style="color:#6366f1">secure your account immediately</a>.</p>
+          <p style="color:#555">If this was you, no action needed. If not, <a href="${(process.env.FRONTEND_URL || "").split(",")[0]}/settings" style="color:#6366f1">secure your account immediately</a>.</p>
         </div>
       `,
     });
@@ -92,7 +104,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors);
       return;
     }
-    const { name, email, password, phone, firebaseEmailVerified } = parsed.data;
+    const { name, email, password, phone } = parsed.data;
 
     const existing = await withRetry<any>(() => prisma.user.findUnique({ where: { email } }));
     if (existing) {
@@ -107,17 +119,20 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    // Firebase-verified registration skips SMTP email flow
-    const firebaseVerified = !!firebaseEmailVerified;
-    const smtpConfigured = !firebaseVerified && process.env.NODE_ENV === "production" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+    // Email verification is required whenever SMTP is configured in production.
+    // A verified status can only be obtained through the SMTP token link below
+    // or the dedicated Google/Firebase sign-in endpoint — never self-asserted.
+    const smtpConfigured = process.env.NODE_ENV === "production" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     const emailVerifyToken = smtpConfigured ? uuidv4() : null;
+    const emailVerifyExpiry = smtpConfigured ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null; // 24h
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user: any = await withRetry<any>(() => (prisma as any).user.create({
       data: {
         name, email, password: hashedPassword,
         emailVerifyToken,
-        isEmailVerified: firebaseVerified || !smtpConfigured,
+        emailVerifyExpiry,
+        isEmailVerified: !smtpConfigured,
         phone:         phone || null,
         phoneVerified: !!phone,
       },
@@ -134,7 +149,7 @@ export async function register(req: Request, res: Response): Promise<void> {
         console.error("[Register] Email failed, auto-verifying user:", emailErr);
         await prisma.user.update({
           where: { id: user.id },
-          data: { isEmailVerified: true, emailVerifyToken: null },
+          data: { isEmailVerified: true, emailVerifyToken: null, emailVerifyExpiry: null },
         });
       }
     }
@@ -157,9 +172,17 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
     const user = await prisma.user.findUnique({ where: { emailVerifyToken: token } });
     if (!user) { badRequest(res, "Invalid or expired verification token"); return; }
 
+    const expiry = (user as any).emailVerifyExpiry as Date | null;
+    if (expiry && new Date(expiry) < new Date()) {
+      // Burn the stale token so it can't be reused; user must request a new link.
+      await prisma.user.update({ where: { id: user.id }, data: { emailVerifyToken: null, emailVerifyExpiry: null } });
+      badRequest(res, "Verification link has expired. Please request a new one.");
+      return;
+    }
+
     await prisma.user.update({
       where: { id: user.id },
-      data: { isEmailVerified: true, emailVerifyToken: null },
+      data: { isEmailVerified: true, emailVerifyToken: null, emailVerifyExpiry: null },
     });
 
     ok(res, null, "Email verified successfully. You can now log in.");
@@ -190,14 +213,20 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid) {
+      // loginAttempts accumulates across lock cycles so repeat offenders get
+      // progressively longer locks; a successful login resets it to 0.
       const attempts = (user.loginAttempts || 0) + 1;
-      const lockData = attempts >= MAX_FAIL
-        ? { loginAttempts: 0, lockedUntil: new Date(Date.now() + LOCK_MS) }
-        : { loginAttempts: attempts };
-      await prisma.user.update({ where: { id: user.id }, data: lockData });
-      writeAuditLog({ userEmail: user.email, userName: user.name, action: "LOGIN_FAILED", resource: "User", resourceId: user.id, description: attempts >= MAX_FAIL ? "Account locked after max failed attempts" : "Invalid password", ipAddress: getIp(req as any) });
-      unauthorized(res, attempts >= MAX_FAIL
-        ? "Too many failed attempts. Account locked for 15 minutes."
+      const locking = attempts % MAX_FAIL === 0;
+      const lockMs = locking ? lockDurationFor(attempts) : 0;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: locking
+          ? { loginAttempts: attempts, lockedUntil: new Date(Date.now() + lockMs) }
+          : { loginAttempts: attempts },
+      });
+      writeAuditLog({ userEmail: user.email, userName: user.name, action: "LOGIN_FAILED", resource: "User", resourceId: user.id, description: locking ? `Account locked ${Math.round(lockMs / 60000)}m after ${attempts} failed attempts` : "Invalid password", ipAddress: getIp(req as any) });
+      unauthorized(res, locking
+        ? `Too many failed attempts. Account locked for ${Math.round(lockMs / 60000)} minute${lockMs > 60000 ? "s" : ""}.`
         : "Invalid email or password."
       );
       return;
@@ -215,51 +244,111 @@ export async function login(req: Request, res: Response): Promise<void> {
       await prisma.user.update({ where: { id: user.id }, data: { isEmailVerified: true, emailVerifyToken: null } });
     }
 
-    const memberships = await prisma.organizationMember.findMany({
-      where: { userId: user.id, isActive: true },
-      include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
-    });
+    // ── Two-factor challenge ────────────────────────────────────
+    // Password was correct but the account has TOTP enabled: do NOT issue a
+    // session yet. Hand back a short-lived challenge token the client exchanges
+    // via /auth/verify-2fa-login together with a valid 6-digit code.
+    if (user.twoFactorEnabled) {
+      const challengeToken = jwt.sign(
+        { userId: user.id, action: "totp_2fa" },
+        process.env.JWT_ACCESS_SECRET!,
+        { expiresIn: "5m", algorithm: "HS256" },
+      );
+      writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_2FA_CHALLENGE", resource: "User", resourceId: user.id, description: "Password OK — awaiting TOTP", ipAddress: getIp(req as any) });
+      ok(res, { requires2FA: true, method: "totp", tempToken: challengeToken });
+      return;
+    }
 
-    const accessToken = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
-    const tokenId = uuidv4();
-    const refreshToken = signRefreshToken({ userId: user.id, tokenId });
-
-    await prisma.refreshToken.create({
-      data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
-    });
-
-    // ── Session tracking ─────────────────────────────────────
-    const ip = ((req.headers["x-forwarded-for"] as string) || "").split(",")[0].trim() || req.socket.remoteAddress || "unknown";
-    const ua = req.headers["user-agent"] || "";
-    const { browser, os } = parseUA(ua);
-
-    // Check if this IP is new for this user
-    const existingSession = await (prisma as any).userSession.findFirst({ where: { userId: user.id, ipAddress: ip } });
-
-    // Mark previous sessions as not current
-    await (prisma as any).userSession.updateMany({ where: { userId: user.id, isCurrent: true }, data: { isCurrent: false } });
-
-    await (prisma as any).userSession.create({
-      data: { userId: user.id, tokenId, device: os, browser, os, ipAddress: ip, isCurrent: true, lastActiveAt: new Date() },
-    });
-
-    // Send suspicious login alert if new IP
-    sendLoginAlert(user, ip, ua, !existingSession);
-
-    ok(res, {
-      accessToken, refreshToken,
-      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
-      organizations: memberships.map((m) => ({ ...m.organization, role: m.role })),
-    });
+    await finalizeLogin(req, res, user);
   } catch (err) { serverError(res, err); }
+}
+
+// ── Verify a TOTP code and complete a 2FA-gated login ─────────
+export async function verify2FALogin(req: Request, res: Response): Promise<void> {
+  try {
+    const { tempToken, token } = req.body as { tempToken?: string; token?: string };
+    if (!tempToken || !token) { badRequest(res, "tempToken and token are required"); return; }
+
+    let payload: any;
+    try {
+      payload = jwt.verify(tempToken, process.env.JWT_ACCESS_SECRET!, { algorithms: ["HS256"] });
+    } catch {
+      unauthorized(res, "Your verification session expired. Please sign in again.");
+      return;
+    }
+    if (payload.action !== "totp_2fa") { unauthorized(res, "Invalid challenge token"); return; }
+
+    const user: any = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user || !user.isActive) { unauthorized(res, "Account not found or disabled"); return; }
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+      // 2FA was turned off between the two calls — nothing to verify, just log in.
+      await finalizeLogin(req, res, user);
+      return;
+    }
+
+    const valid = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: "base32",
+      token: String(token).replace(/\s/g, ""),
+      window: 1,
+    });
+    if (!valid) {
+      writeAuditLog({ userId: user.id, userEmail: user.email, action: "LOGIN_2FA_FAILED", resource: "User", resourceId: user.id, description: "Invalid TOTP code", ipAddress: getIp(req as any) });
+      unauthorized(res, "Invalid authentication code.");
+      return;
+    }
+
+    await finalizeLogin(req, res, user);
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Shared: issue tokens + session + login response ──────────
+async function finalizeLogin(req: Request, res: Response, user: any): Promise<void> {
+  const memberships = await prisma.organizationMember.findMany({
+    where: { userId: user.id, isActive: true },
+    include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
+  });
+
+  const accessToken = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
+  const tokenId = uuidv4();
+  const refreshToken = signRefreshToken({ userId: user.id, tokenId });
+
+  await prisma.refreshToken.create({
+    data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
+  });
+
+  // ── Session tracking ─────────────────────────────────────
+  const ip = ((req.headers["x-forwarded-for"] as string) || "").split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+  const ua = req.headers["user-agent"] || "";
+  const { browser, os } = parseUA(ua);
+
+  const existingSession = await (prisma as any).userSession.findFirst({ where: { userId: user.id, ipAddress: ip } });
+  await (prisma as any).userSession.updateMany({ where: { userId: user.id, isCurrent: true }, data: { isCurrent: false } });
+  await (prisma as any).userSession.create({
+    data: { userId: user.id, tokenId, device: os, browser, os, ipAddress: ip, isCurrent: true, lastActiveAt: new Date() },
+  });
+
+  sendLoginAlert(user, ip, ua, !existingSession);
+  writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_SUCCESS", resource: "User", resourceId: user.id, description: `Login from ${browser} on ${os}${existingSession ? "" : " (new device/IP)"}`, ipAddress: ip, userAgent: ua });
+
+  // httpOnly cookies for the browser SPA; tokens also in the body for header clients.
+  setAuthCookies(res, accessToken, refreshToken);
+
+  ok(res, {
+    accessToken, refreshToken,
+    user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
+    organizations: memberships.map((m: any) => ({ ...m.organization, role: m.role })),
+  });
 }
 
 export async function refreshToken(req: Request, res: Response): Promise<void> {
   try {
-    const parsed = refreshTokenSchema.safeParse(req.body);
-    if (!parsed.success) { badRequest(res, "Refresh token required"); return; }
+    // Accept the refresh token from the httpOnly cookie (browser SPA) or the
+    // request body (header/API clients + the one-time localStorage migration).
+    const cookieToken = (req as any).cookies?.[REFRESH_COOKIE] as string | undefined;
+    const token = cookieToken || (refreshTokenSchema.safeParse(req.body).success ? req.body.refreshToken : undefined);
+    if (!token) { badRequest(res, "Refresh token required"); return; }
 
-    const { refreshToken: token } = parsed.data;
     let payload;
     try {
       payload = verifyRefreshToken(token);
@@ -269,7 +358,19 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     }
 
     const stored = await prisma.refreshToken.findUnique({ where: { token: hashToken(token) } });
-    if (!stored || stored.expiresAt < new Date()) {
+    if (!stored) {
+      // The token has a valid signature but is not in the store — it was already
+      // rotated away. Either the legitimate client retried, or a stolen token is
+      // being replayed. Treat as compromise: nuke the whole family so neither
+      // party keeps a working session, and force a fresh login.
+      await prisma.refreshToken.deleteMany({ where: { userId: payload.userId } });
+      await (prisma as any).userSession.updateMany({ where: { userId: payload.userId }, data: { isActive: false } });
+      invalidateUserSecState(payload.userId);
+      writeAuditLog({ userId: payload.userId, action: "REFRESH_TOKEN_REUSE", resource: "RefreshToken", description: "Rotated-away refresh token replayed — all sessions revoked", ipAddress: getIp(req as any) });
+      unauthorized(res, "Session security check failed. Please log in again.");
+      return;
+    }
+    if (stored.expiresAt < new Date()) {
       unauthorized(res, "Refresh token expired or revoked");
       return;
     }
@@ -288,6 +389,7 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       data: { id: newTokenId, token: hashToken(newRefreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
     });
 
+    setAuthCookies(res, newAccessToken, newRefreshToken);
     ok(res, { accessToken: newAccessToken, refreshToken: newRefreshToken });
   } catch (err) {
     serverError(res, err);
@@ -296,10 +398,11 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
 
 export async function logout(req: Request, res: Response): Promise<void> {
   try {
-    const { refreshToken: token } = req.body;
+    const token = (req as any).cookies?.[REFRESH_COOKIE] || req.body?.refreshToken;
     if (token) {
       await prisma.refreshToken.deleteMany({ where: { token: hashToken(token) } });
     }
+    clearAuthCookies(res);
     ok(res, null, "Logged out successfully");
   } catch (err) {
     serverError(res, err);
@@ -461,6 +564,7 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
     // Revoke all refresh tokens + sessions for security
     await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
     await (prisma as any).userSession.updateMany({ where: { userId: user.id }, data: { isActive: false } });
+    invalidateUserSecState(user.id); // drop cached auth state so live access tokens die now
 
     ok(res, null, "Password reset successfully. Please log in.");
   } catch (err) {
@@ -495,6 +599,12 @@ export async function changePassword(req: AuthRequest, res: Response): Promise<v
       where: { id: req.userId },
       data: { password: hashed, lastPasswordChange: new Date(), passwordHistory: [...history.slice(-4), hashed] },
     });
+
+    // Kill every other session: revoke refresh tokens and drop cached auth state
+    // so still-valid access tokens issued before this change stop working.
+    await prisma.refreshToken.deleteMany({ where: { userId: req.userId! } });
+    await (prisma as any).userSession.updateMany({ where: { userId: req.userId! }, data: { isActive: false } });
+    invalidateUserSecState(req.userId!);
 
     writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "PASSWORD_CHANGED", resource: "User", resourceId: req.userId, description: "User changed their password", ipAddress: getIp(req as any) });
     ok(res, null, "Password changed successfully");
@@ -553,6 +663,7 @@ export async function googleLogin(req: Request, res: Response): Promise<void> {
       include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
     });
 
+    setAuthCookies(res, accessToken, refreshToken);
     ok(res, {
       accessToken, refreshToken,
       user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
@@ -606,6 +717,7 @@ export async function verifyPhone2FA(req: Request, res: Response): Promise<void>
       include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
     });
 
+    setAuthCookies(res, accessToken, refreshToken);
     ok(res, {
       accessToken, refreshToken,
       user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
@@ -617,11 +729,15 @@ export async function verifyPhone2FA(req: Request, res: Response): Promise<void>
 // ── Unlock account (admin) ────────────────────────────────────
 export async function unlockAccount(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
+    const target = await (prisma as any).user.findUnique({ where: { id: userId }, select: { id: true, email: true } });
+    if (!target) { notFound(res, "User not found"); return; }
     await (prisma as any).user.update({
       where: { id: userId },
       data: { loginAttempts: 0, lockedUntil: null },
     });
+    invalidateUserSecState(userId);
+    writeAuditLog({ userId: req.userId, userEmail: req.userEmail, action: "ACCOUNT_UNLOCKED", resource: "User", resourceId: userId, description: `Super admin unlocked account ${target.email}`, ipAddress: getIp(req as any) });
     ok(res, null, "Account unlocked");
   } catch (err) { serverError(res, err); }
 }

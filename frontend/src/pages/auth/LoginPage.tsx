@@ -29,7 +29,7 @@ const FEATURES = [
   { icon: Globe,      text: "Works for any business type or industry" },
 ];
 
-type Step = "credentials" | "phone-2fa";
+type Step = "credentials" | "phone-2fa" | "totp-2fa";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -95,6 +95,12 @@ export default function LoginPage() {
         await sendPhoneOtp(d.phone);
         return;
       }
+      if (d?.requires2FA) {         // TOTP authenticator-app 2FA
+        setTempToken(d.tempToken);
+        setOtp("");
+        setStep("totp-2fa");
+        return;
+      }
       setAuth(d as AuthResponse);
       navigate("/dashboard");
     } catch (err) {
@@ -118,6 +124,20 @@ export default function LoginPage() {
       const msg = e?.code === "auth/invalid-verification-code" ? "Incorrect OTP. Please try again."
                 : getApiError(e);
       setApiError(msg);
+    }
+    setLoading(false);
+  }
+
+  // ── Step 2 (TOTP): verify authenticator code ─────────────────
+  async function handleVerifyTotp() {
+    if (otp.length !== 6) { setApiError("Enter the 6-digit code"); return; }
+    setLoading(true); setApiError("");
+    try {
+      const res = await api.post("/auth/verify-2fa-login", { tempToken, token: otp });
+      setAuth(res.data.data as AuthResponse);
+      navigate("/dashboard");
+    } catch (e) {
+      setApiError(getApiError(e));
     }
     setLoading(false);
   }
@@ -151,6 +171,52 @@ export default function LoginPage() {
     verifierRef.current = null;
     await sendPhoneOtp(phone);
     setLoading(false);
+  }
+
+  // ── TOTP (authenticator app) 2FA screen ─────────────────────
+  if (step === "totp-2fa") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ width: "100%", maxWidth: 420 }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
+              <ShieldCheck size={22} color="white" />
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Two-Factor Verification</h1>
+            <p style={{ fontSize: 14, color: "var(--text-faint)" }}>
+              Enter the 6-digit code from your authenticator app
+            </p>
+          </div>
+
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 28px 24px" }}>
+            {apiError && (
+              <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 13, color: "#f87171" }}>
+                {apiError}
+              </div>
+            )}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+                Authentication Code
+              </label>
+              <input
+                value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onKeyDown={e => { if (e.key === "Enter") handleVerifyTotp(); }}
+                placeholder="• • • • • •" maxLength={6} autoFocus
+                style={{ width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 9, padding: "10px 16px", color: "var(--text-primary)", fontSize: 22, letterSpacing: "0.4em", textAlign: "center", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+              />
+            </div>
+            <button onClick={handleVerifyTotp} disabled={loading || otp.length !== 6}
+              style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, cursor: loading || otp.length !== 6 ? "not-allowed" : "pointer", opacity: loading || otp.length !== 6 ? 0.6 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}>
+              {loading ? "Verifying…" : "Verify & Sign In →"}
+            </button>
+            <button onClick={() => { setStep("credentials"); setOtp(""); setApiError(""); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 12, margin: "14px auto 0", padding: 0 }}>
+              <ArrowLeft size={12} /> Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── Phone 2FA screen ─────────────────────────────────────────

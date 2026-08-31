@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth";
 import { requireOrgContext } from "../middleware/orgContext";
+import { requirePermission } from "../middleware/requirePermission";
 import {
   listSalesOrders, getSalesOrder, createSalesOrder, updateSalesOrderStatus,
   listShipments, createShipment, updateShipmentStatus,
@@ -10,12 +11,12 @@ const router = Router();
 router.use(authenticate, requireOrgContext);
 
 router.get("/shipments", listShipments);
-router.post("/shipments", createShipment);
-router.patch("/shipments/:id/status", updateShipmentStatus);
+router.post("/shipments", requirePermission("sales:create"), createShipment);
+router.patch("/shipments/:id/status", requirePermission("sales:update"), updateShipmentStatus);
 
 router.get("/", listSalesOrders);
-router.post("/", createSalesOrder);
+router.post("/", requirePermission("sales:create"), createSalesOrder);
 router.get("/:id", getSalesOrder);
-router.patch("/:id/status", updateSalesOrderStatus);
+router.patch("/:id/status", requirePermission("sales:update"), updateSalesOrderStatus);
 
 export default router;

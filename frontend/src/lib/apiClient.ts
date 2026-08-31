@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/authStore";
 
 const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
-export const apiClient = axios.create({ baseURL: API });
+export const apiClient = axios.create({ baseURL: API, withCredentials: true });
 
 apiClient.interceptors.request.use((config) => {
   const { accessToken, activeOrg } = useAuthStore.getState();
