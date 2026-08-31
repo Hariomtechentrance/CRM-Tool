@@ -24,6 +24,20 @@ const NOSQL_OPS = /^\$|^\./;
 // Prototype-pollution keys — must never appear in user data
 const PROTO_KEYS = /^(__proto__|constructor|prototype)$/;
 
+// ── Credential / secret fields ────────────────────────────────
+// These are hashed or compared verbatim and NEVER rendered as HTML, so the
+// XSS/SSTI passes below add no security value — they only silently corrupt the
+// value. A password like `Deploy${2026}!` would get `${2026}` stripped, so the
+// stored hash no longer matches what the user typed and the strength check
+// rejects a password the user actually entered ("must contain a number", etc.).
+// For these fields we still drop null bytes and enforce the length cap, but
+// skip every content-rewriting pass.
+const SECRET_KEYS = new Set([
+  "password", "confirmpassword", "currentpassword", "newpassword", "oldpassword",
+  "passwordconfirmation", "secret", "clientsecret", "token", "otp", "totp",
+  "twofactortoken", "twofatoken", "backupcode", "recoverycode",
+]);
+
 // ── ReDoS / LPDoS guards ──────────────────────────────────────
 // Hard cap per string field — prevents catastrophic backtracking and
 // resource exhaustion from huge single-field payloads.
@@ -31,9 +45,12 @@ const MAX_STRING_LENGTH = 50_000; // 50 KB per field
 // Hard cap on array length — prevents O(n) blowup in recursive sanitiser
 const MAX_ARRAY_LENGTH = 500;
 
-function sanitizeString(val: string): string {
+function sanitizeString(val: string, opts: { secret?: boolean } = {}): string {
   // 1. Truncate first — protects all subsequent regex passes from ReDoS
   if (val.length > MAX_STRING_LENGTH) val = val.slice(0, MAX_STRING_LENGTH);
+
+  // Credential fields: strip null bytes only — never rewrite the content.
+  if (opts.secret) return val.replace(NULL_BYTES, "");
 
   return val
     .replace(NULL_BYTES,      "")   // null-byte injection
@@ -49,16 +66,16 @@ function sanitizeString(val: string): string {
     .replace(SSTI_SPRING_EL,  "");  // #{ … }
 }
 
-function sanitizeValue(val: unknown, depth = 0): unknown {
+function sanitizeValue(val: unknown, depth = 0, secret = false): unknown {
   // LPDoS: stop recursing at depth 10
   if (depth > 10) return val;
 
-  if (typeof val === "string") return sanitizeString(val);
+  if (typeof val === "string") return sanitizeString(val, { secret });
 
   if (Array.isArray(val)) {
     // LPDoS: truncate oversized arrays before iterating
     const safe = val.length > MAX_ARRAY_LENGTH ? val.slice(0, MAX_ARRAY_LENGTH) : val;
-    return safe.map(item => sanitizeValue(item, depth + 1));
+    return safe.map(item => sanitizeValue(item, depth + 1, secret));
   }
 
   if (val !== null && typeof val === "object") {
@@ -68,7 +85,9 @@ function sanitizeValue(val: unknown, depth = 0): unknown {
       if (NOSQL_OPS.test(key)) continue;
       // Block prototype-pollution keys
       if (PROTO_KEYS.test(key)) continue;
-      result[key] = sanitizeValue((val as Record<string, unknown>)[key], depth + 1);
+      // Credential fields are hashed/compared verbatim — don't rewrite them.
+      const isSecret = SECRET_KEYS.has(key.toLowerCase());
+      result[key] = sanitizeValue((val as Record<string, unknown>)[key], depth + 1, isSecret);
     }
     return result;
   }
