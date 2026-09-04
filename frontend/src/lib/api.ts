@@ -10,10 +10,15 @@ const BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:5
 // localStorage for now because several pages read it directly; moving that to a
 // cookie too is a follow-up. `withCredentials` makes the browser send the
 // cookies on every call.
+// 30 s default (was 15 s): the backend is on Render's free tier, which cold-starts
+// in 30–60 s after idling. 15 s meant the first request of the day always failed
+// even though the server was on its way up. Individual calls that expect to hit a
+// cold server (login, the login-page warm-up ping) pass a longer per-request
+// `timeout` on top of this.
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
-  timeout: 15000,
+  timeout: 30000,
   withCredentials: true,
 });
 

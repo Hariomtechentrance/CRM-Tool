@@ -31,12 +31,29 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -o pipefail   # fail the step if pg_dump fails, not just gzip
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::DATABASE_URL secret is not set — nothing to back up."
+            exit 1
+          fi
           TIMESTAMP=$(date +"%Y-%m-%d_%H-%M")
           FILENAME="backup_${{ steps.backup_type.outputs.type }}_${TIMESTAMP}.sql.gz"
+
           pg_dump "$DATABASE_URL" | gzip > "$FILENAME"
+
+          # Guard against "green but empty" backups: a real dump of this schema
+          # is hundreds of KB minimum. Anything under 10 KB means pg_dump failed
+          # or the database is empty — treat it as a failed backup.
+          BYTES=$(wc -c < "$FILENAME")
+          echo "Backup file: $FILENAME  ($BYTES bytes)"
+          if [ "$BYTES" -lt 10240 ]; then
+            echo "::error::Backup is only $BYTES bytes — pg_dump almost certainly failed. Contents:"
+            gunzip -c "$FILENAME" | head -c 2000
+            exit 1
+          fi
+
           echo "BACKUP_FILE=$FILENAME" >> $GITHUB_ENV
-          SIZE=$(du -sh "$FILENAME" | cut -f1)
-          echo "Backup created: $FILENAME ($SIZE)"
+          echo "Backup OK: $FILENAME ($(du -sh "$FILENAME" | cut -f1))"
 
       - name: Upload backup as GitHub artifact
         uses: actions/upload-artifact@v4

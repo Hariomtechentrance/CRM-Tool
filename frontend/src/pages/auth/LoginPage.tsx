@@ -45,6 +45,8 @@ export default function LoginPage() {
   const [loading,   setLoading]   = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
+  const [warming,   setWarming]   = useState(false);
+
   const [showContact, setShowContact] = useState(false);
   const recaptchaRef     = useRef<HTMLDivElement>(null);
   const verifierRef      = useRef<RecaptchaVerifier | null>(null);
@@ -63,6 +65,20 @@ export default function LoginPage() {
 
   useEffect(() => {
     return () => { verifierRef.current?.clear?.(); };
+  }, []);
+
+  // ── Warm up the API on mount ────────────────────────────────
+  // The backend runs on Render's free tier, which cold-starts (30–60 s) after
+  // ~15 min idle. Firing a health ping the instant this page loads means the
+  // server is already booting while the user types — their actual sign-in then
+  // hits a warm server instead of timing out. `warming` drives a hint shown
+  // only if the ping is still outstanding after 2.5 s.
+  useEffect(() => {
+    const slow = setTimeout(() => setWarming(true), 2500);
+    api.get("/health", { timeout: 60000 })
+      .catch(() => {})
+      .finally(() => { clearTimeout(slow); setWarming(false); });
+    return () => clearTimeout(slow);
   }, []);
 
   // ── Send Firebase phone OTP ──────────────────────────────────
@@ -85,7 +101,7 @@ export default function LoginPage() {
   const onSubmit = async (data: FormData) => {
     setApiError("");
     try {
-      const res = await api.post("/auth/login", data);
+      const res = await api.post("/auth/login", data, { timeout: 60000 });
       const d   = res.data.data;
       if (d?.requiresPhone2FA) {
         setTempToken(d.tempToken);
@@ -285,6 +301,11 @@ export default function LoginPage() {
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Welcome back</h1>
           <p style={{ fontSize: 14, color: "var(--text-faint)", marginTop: 6 }}>Sign in to your BusinessOS account</p>
+          {warming && (
+            <p style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 8 }}>
+              Waking up the server… the first sign-in after a quiet spell can take up to a minute.
+            </p>
+          )}
         </div>
 
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px 36px", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>

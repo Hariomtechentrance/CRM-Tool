@@ -425,8 +425,13 @@ async function runAppointmentReminders() {
 }
 
 // ── Keep-alive ping ───────────────────────────────────────────
-// Prevents Render free tier from sleeping (spins down after 15 min idle).
-// Runs every 13 min so there's always activity before the 15 min cutoff.
+// Render free tier spins a service down after ~15 min with no inbound HTTP
+// traffic. Hitting our own PUBLIC url (RENDER_EXTERNAL_URL) sends a request out
+// to the internet and back in as real inbound traffic, which resets that idle
+// timer. Runs every 5 min so there's always fresh activity well before the
+// cutoff. NOTE: this only works while the process is alive — after a deploy or
+// crash the server is already asleep and can't ping itself. The external
+// pinger in .github/workflows/keep-alive.yml covers that case.
 function runKeepAlive() {
   const base = process.env.RENDER_EXTERNAL_URL || `http://localhost:${process.env.PORT || 10000}`;
   const url  = `${base}/api/health`;
@@ -441,8 +446,9 @@ function runKeepAlive() {
 
 // ── Register all cron jobs ────────────────────────────────────
 export function startCronJobs() {
-  // Keep-alive — every 13 min to prevent Render free tier sleep
-  cron.schedule("*/13 * * * *", runKeepAlive);
+  // Keep-alive — every 5 min to prevent Render free tier sleep (15 min idle cutoff)
+  cron.schedule("*/5 * * * *", runKeepAlive);
+  runKeepAlive(); // fire once on boot so the idle timer starts fresh immediately
 
   // Payment reminders — daily at 9:00 AM
   cron.schedule("0 9 * * *", runPaymentReminders, { timezone: "Asia/Kolkata" });
