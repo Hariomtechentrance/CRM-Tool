@@ -53,7 +53,13 @@ jobs:
           TIMESTAMP=$(date +"%Y-%m-%d_%H-%M")
           FILENAME="backup_${{ steps.backup_type.outputs.type }}_${TIMESTAMP}.sql.gz"
 
-          pg_dump "$DATABASE_URL" | gzip > "$FILENAME"
+          # GitHub secrets often carry a trailing newline from copy-paste, which
+          # ends up glued to the last query param (e.g. channel_binding=require\n
+          # -> "invalid channel_binding value"). A Postgres URL never contains
+          # whitespace, so strip all of it.
+          DB_URL="$(printf '%s' "$DATABASE_URL" | tr -d '[:space:]')"
+
+          pg_dump "$DB_URL" | gzip > "$FILENAME"
 
           # Guard against "green but empty" backups: a real dump of this schema
           # is hundreds of KB minimum. Anything under 10 KB means pg_dump failed
