@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { CheckCircle, Clock, AlertCircle, User, Users, Briefcase, Activity, Calendar, TrendingUp } from "lucide-react";
+import TodaysFollowUps from "@/components/TodaysFollowUps";
 
 const today = new Date();
 
@@ -107,6 +108,8 @@ export default function EmployeeDashboard() {
           <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{department}{empCode ? ` · ${empCode}` : ""}</div>
         </div>
       </div>
+
+      <TodaysFollowUps />
 
       {/* KPI Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>

@@ -13,6 +13,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { formatCurrency, cn } from "@/lib/utils";
 import api from "@/lib/api";
 import EmployeeDashboard from "./EmployeeDashboard";
+import TodaysFollowUps from "@/components/TodaysFollowUps";
 
 interface Stats {
   members: number; parties: number; invoices: number; orders: number;
@@ -152,6 +153,8 @@ export default function DashboardPage() {
         <div style={{ padding: 60, textAlign: "center", color: "var(--text-ghost)" }}>{t("dash_loading")}</div>
       ) : (
         <>
+          <TodaysFollowUps />
+
           {/* KPI Row — financial (bento: revenue is the featured hero card) */}
           {(canSee("ACCOUNTS") || canSee("DISPATCH")) && (
             <div className={bentoLayout ? "bento-kpi" : undefined} style={bentoLayout ? undefined : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>

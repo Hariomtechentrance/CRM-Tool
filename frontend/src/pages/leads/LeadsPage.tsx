@@ -538,6 +538,17 @@ export default function LeadsPage() {
     api.get("/leads/campaigns").then(r => setCampaigns(r.data.data ?? [])).catch(() => {});
   }, [load]);
 
+  // Deep link from the dashboard's "Today's Follow-ups" panel: ?open=<leadId>
+  // opens that lead's Log Activity modal directly instead of making them hunt for it.
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId) return;
+    api.get(`/leads/${openId}`).then(r => setLogLead(r.data.data)).catch(() => {});
+    const next = new URLSearchParams(searchParams);
+    next.delete("open");
+    setSearchParams(next, { replace: true });
+  }, [searchParams]);
+
   const kanbanCols = Object.entries(STATUS_CONFIG).map(([s, cfg]) => ({ status: s, ...cfg, leads: leads.filter(l => l.status === s) }));
 
   return (

@@ -54,7 +54,7 @@ const campaignSchema = z.object({
 // ── List leads ────────────────────────────────────────────────
 export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, source, search, assignedToId, grade, myQueue, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, source, search, assignedToId, grade, myQueue, followUp, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId! };
 
@@ -65,6 +65,16 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
     if (myQueue === "true") {
       where.assignedToId = req.userId;
       where.status = { notIn: ["WON", "LOST"] };
+    }
+    // "Due today" worklist: anything with a follow-up date at or before the end
+    // of today, not already won/lost, and not explicitly flagged no-follow-up.
+    // Used by the dashboard's Today's Follow-ups panel — platform-wide, not WBA-specific.
+    if (followUp === "due") {
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      where.status = { notIn: ["WON", "LOST"] };
+      where.noFollowUp = false;
+      where.nextFollowUpDate = { lte: endOfToday };
     }
     if (search) {
       where.OR = [
@@ -90,7 +100,7 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
       }
     }
 
-    const orderBy: any = myQueue === "true"
+    const orderBy: any = (myQueue === "true" || followUp === "due")
       ? [{ nextFollowUpDate: "asc" }, { score: "desc" }]
       : { createdAt: "desc" };
 
@@ -102,7 +112,20 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
       }),
       db().lead.count({ where }),
     ]);
-    ok(res, { leads, total, page: parseInt(page), limit: parseInt(limit) });
+
+    // assignedToId has no Prisma relation to User, so for the "due today"
+    // worklist (which spans assignees) we attach display names manually.
+    let leadsOut: any[] = leads;
+    if (followUp === "due") {
+      const assigneeIds = [...new Set(leads.map((l: any) => l.assignedToId).filter(Boolean))];
+      const assignees = assigneeIds.length
+        ? await prisma.user.findMany({ where: { id: { in: assigneeIds as string[] } }, select: { id: true, name: true } })
+        : [];
+      const nameById = new Map(assignees.map((u) => [u.id, u.name]));
+      leadsOut = leads.map((l: any) => ({ ...l, assignedTo: l.assignedToId ? { name: nameById.get(l.assignedToId) ?? "Unknown" } : null }));
+    }
+
+    ok(res, { leads: leadsOut, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (e) { serverError(res, e); }
 }
 
