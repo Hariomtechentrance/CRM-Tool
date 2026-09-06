@@ -96,7 +96,7 @@ const STEPS = ["Basic Info", "Contact & Tax", "Select Modules"];
 
 export default function CreateOrgPage() {
   const navigate = useNavigate();
-  const { addOrganization, isAuthenticated, organizations } = useAuthStore();
+  const { addOrganization, isAuthenticated, organizations, user } = useAuthStore();
   const [apiError, setApiError] = useState("");
 
   // If user already has an org, skip this page entirely
@@ -106,6 +106,11 @@ export default function CreateOrgPage() {
   }
   if (organizations.length > 0) {
     navigate("/dashboard", { replace: true });
+    return null;
+  }
+  // Super admins have no org membership by design — this wizard isn't for them.
+  if (user?.isSuperAdmin) {
+    navigate("/super-admin/dashboard", { replace: true });
     return null;
   }
   const [step, setStep] = useState(1);

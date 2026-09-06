@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 
 export default function AppLayout() {
-  const { isAuthenticated, organizations, activeOrg, isOrgAdmin, syncModulesFromOrg, loadModuleAccess, loadEmployeeProfile } = useAuthStore();
+  const { user, isAuthenticated, organizations, activeOrg, isOrgAdmin, syncModulesFromOrg, loadModuleAccess, loadEmployeeProfile } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -39,6 +39,9 @@ export default function AppLayout() {
   }, []);
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Super admins have no org membership by design — send them to their own
+  // portal instead of bouncing them into the org-onboarding wizard.
+  if (organizations.length === 0 && user?.isSuperAdmin) return <Navigate to="/super-admin/dashboard" replace />;
   if (organizations.length === 0) return <Navigate to="/create-org" replace />;
 
   return (

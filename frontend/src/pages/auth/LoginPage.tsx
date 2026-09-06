@@ -118,7 +118,7 @@ export default function LoginPage() {
         return;
       }
       setAuth(d as AuthResponse);
-      navigate("/dashboard");
+      navigate(d.user.isSuperAdmin ? "/super-admin/dashboard" : "/dashboard");
     } catch (err) {
       setApiError(getApiError(err));
     }
@@ -134,8 +134,9 @@ export default function LoginPage() {
       await auth?.signOut(); // we use our own JWT session
 
       const res = await api.post("/auth/verify-phone-2fa", { tempToken, firebaseIdToken });
-      setAuth(res.data.data as AuthResponse);
-      navigate("/dashboard");
+      const authData = res.data.data as AuthResponse;
+      setAuth(authData);
+      navigate(authData.user.isSuperAdmin ? "/super-admin/dashboard" : "/dashboard");
     } catch (e: any) {
       const msg = e?.code === "auth/invalid-verification-code" ? "Incorrect OTP. Please try again."
                 : getApiError(e);
@@ -150,8 +151,9 @@ export default function LoginPage() {
     setLoading(true); setApiError("");
     try {
       const res = await api.post("/auth/verify-2fa-login", { tempToken, token: otp });
-      setAuth(res.data.data as AuthResponse);
-      navigate("/dashboard");
+      const authData = res.data.data as AuthResponse;
+      setAuth(authData);
+      navigate(authData.user.isSuperAdmin ? "/super-admin/dashboard" : "/dashboard");
     } catch (e) {
       setApiError(getApiError(e));
     }
@@ -170,8 +172,9 @@ export default function LoginPage() {
       await auth.signOut(); // CRM uses its own JWT
 
       const res = await api.post("/auth/google-login", { idToken });
-      setAuth(res.data.data as AuthResponse);
-      navigate("/dashboard");
+      const authData = res.data.data as AuthResponse;
+      setAuth(authData);
+      navigate(authData.user.isSuperAdmin ? "/super-admin/dashboard" : "/dashboard");
     } catch (e: any) {
       if (e?.code === "auth/popup-closed-by-user") { setLoading(false); return; }
       setApiError(getApiError(e));
