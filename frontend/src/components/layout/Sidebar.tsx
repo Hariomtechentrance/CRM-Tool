@@ -205,7 +205,10 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const toggleFlyout = (key: string) => setFlyout(f => (f === key ? null : key));
   const closeAll = () => { setFlyout(null); onClose?.(); };
 
-  const canSee = (key: string) => isOrgAdmin || moduleAccess.includes(key);
+  // moduleAccess already equals enabledModules for OWNER/ADMIN (seeded by
+  // syncModulesFromOrg) — an isOrgAdmin bypass here would show nav for
+  // modules the org never enabled at all, not just skip per-user grants.
+  const canSee = (key: string) => moduleAccess.includes(key);
 
   // Employee-level functional roles from HR profile
   const orgRole = employeeProfile?.orgRole ?? null; // PROJECT_MANAGER | TEAM_LEAD | HR | MANAGEMENT | EMPLOYEE
@@ -215,12 +218,12 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   // White Band Associates hides PM Dashboard, Communication, Finance & Tax and Admin & Tools for every login
   const wbaOrg = isWBAOrg(activeOrg);
 
-  const showIT       = isOrgAdmin || canSee("PROJECTS");
-  const showSales    = isOrgAdmin || canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
-  const showFinance  = (isOrgAdmin || canSee("ACCOUNTS")) && !wbaOrg;
-  const showAdmin    = isOrgAdmin && !wbaOrg;
+  const showIT       = canSee("PROJECTS");
+  const showSales    = canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
+  const showFinance  = canSee("ACCOUNTS") && !wbaOrg;
+  const showAdmin    = isOrgAdmin && !wbaOrg; // org management, not module-gated
   const showComm     = (canSee("CRM") || canSee("MARKETING")) && !wbaOrg;
-  const showPMDash   = (isOrgAdmin || isPM) && !wbaOrg;
+  const showPMDash   = (canSee("PROJECTS") || isPM) && !wbaOrg;
   const showTeamPage = isTL;
 
   const commLinks: FlyoutLink[] = [

@@ -10,16 +10,18 @@ interface Props {
 }
 
 export default function AccessGate({ moduleKey, children }: Props) {
-  const { moduleAccess, activeOrg } = useAuthStore();
-  const isAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
+  const { moduleAccess } = useAuthStore();
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
 
   const mod = ALL_MODULES.find((m) => m.key === moduleKey);
 
-  // OWNER/ADMIN always has access; check moduleAccess for others
-  if (isAdmin || moduleAccess.includes(moduleKey)) {
+  // moduleAccess already equals the org's enabledModules for OWNER/ADMIN (see
+  // authStore.setAuth / syncModulesFromOrg) — so this one check is correct for
+  // every role. It must NOT also bypass for isAdmin: that would let an
+  // OWNER/ADMIN reach a module the org never enabled, just by knowing the URL.
+  if (moduleAccess.includes(moduleKey)) {
     return <>{children}</>;
   }
 

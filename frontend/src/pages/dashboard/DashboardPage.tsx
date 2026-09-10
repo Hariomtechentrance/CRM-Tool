@@ -130,7 +130,9 @@ export default function DashboardPage() {
     ?.filter(s => !["RECEIVED", "CANCELLED"].includes(s.status))
     ?.reduce((sum, s) => sum + s._count._all, 0) ?? 0;
 
-  const canSee = (key: string) => isOrgAdmin || moduleAccess.includes(key);
+  // moduleAccess already equals enabledModules for OWNER/ADMIN — an isOrgAdmin
+  // bypass here would show widgets for modules the org never enabled at all.
+  const canSee = (key: string) => moduleAccess.includes(key);
   const bentoLayout = canSee("ACCOUNTS") && canSee("DISPATCH") && canSee("PURCHASE");
 
   return (
@@ -249,10 +251,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts row */}
-          {(chartData.length > 0 || leadStages.length > 0) && (
+          {((canSee("ACCOUNTS") && chartData.length > 0) || (canSee("MARKETING") && leadStages.length > 0)) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Revenue trend */}
+              {canSee("ACCOUNTS") && chartData.length > 0 && (
               <div style={card}>
                 <div style={cardHeader}>
                   <div>
@@ -277,8 +280,10 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                 </div>
               </div>
+              )}
 
               {/* Lead pipeline */}
+              {canSee("MARKETING") && leadStages.length > 0 && (
               <div style={card}>
                 <div style={cardHeader}>
                   <div>
@@ -303,6 +308,7 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                 </div>
               </div>
+              )}
             </div>
           )}
 
