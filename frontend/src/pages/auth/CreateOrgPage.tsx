@@ -303,7 +303,10 @@ export default function CreateOrgPage() {
         {step === 3 && (
           <div>
             {MODULE_CATEGORIES.map((cat) => {
-              const mods = ALL_MODULES.filter((m) => m.category === cat.key);
+              // Restricted modules (e.g. Cars) are super-admin-grant-only —
+              // not offered here, request one instead from Admin → Modules.
+              const mods = ALL_MODULES.filter((m) => m.category === cat.key && !m.restricted);
+              if (mods.length === 0) return null;
               return (
                 <div key={cat.key} style={{ marginBottom: 24 }}>
                   {/* Category header */}

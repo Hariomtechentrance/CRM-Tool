@@ -12,6 +12,7 @@ export interface ModuleDefinition {
   accentBg: string;        // rgba bg
   accentBorder: string;    // rgba border
   defaultFor: string[];    // businessType values that pre-select this module
+  restricted?: boolean;    // super-admin-grant-only — hidden from self-service org creation/module requests
 }
 
 export const ALL_MODULES: ModuleDefinition[] = [
@@ -307,6 +308,19 @@ export const ALL_MODULES: ModuleDefinition[] = [
     accentBg: "rgba(47,184,166,0.1)",
     accentBorder: "rgba(47,184,166,0.2)",
     defaultFor: ["IT_SERVICES", "CONSULTING"],
+  },
+  {
+    key: "CARS",
+    label: "Car Resale",
+    description: "Buyer leads, sold-vehicle records and insurance renewal tracking for used-car resale.",
+    href: "/cars",
+    category: "industry",
+    iconName: "Car",
+    accentColor: "#38BDF8",
+    accentBg: "rgba(56,189,248,0.1)",
+    accentBorder: "rgba(56,189,248,0.2)",
+    defaultFor: [], // not auto-selected for any business type — enabled explicitly per org
+    restricted: true, // only the super admin can grant this, at org-creation time or via module-request approval
   },
 ];
 

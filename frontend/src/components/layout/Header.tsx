@@ -1,6 +1,6 @@
 import { Bell, LogOut, User, ChevronDown, AlertCircle, AlertTriangle, Info, X, Menu, Search, Users, TrendingUp, Briefcase, Receipt, Package, Sun, Moon, CheckCircle, HeartPulse, BellRing, Plus, ShieldCheck, Check } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
 import api from "@/lib/api";
@@ -8,6 +8,7 @@ import { getInitials } from "@/lib/utils";
 import { isPushSupported, isPushSubscribed, enablePushNotifications } from "@/lib/pushNotifications";
 import { WBA_CATEGORIES } from "@/pages/wba/WBAPage";
 import { LeadFormModal } from "@/pages/leads/LeadsPage";
+import { LeadModal as CarLeadModal } from "@/pages/cars/CarsPage";
 
 interface Alert {
   id: string;
@@ -62,12 +63,14 @@ interface HeaderProps { onMenuToggle?: () => void; }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout, activeOrg } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [showQuickLead, setShowQuickLead] = useState(false);
+  const [showQuickCarLead, setShowQuickCarLead] = useState(false);
   const [showQuickProject, setShowQuickProject] = useState(false);
   const quickAddRef = useRef<HTMLDivElement>(null);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null); // null = unknown/checking
@@ -174,6 +177,9 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   }, []);
 
   const hasWBA = activeOrg?.enabledModules?.includes("WBA");
+  // On the Cars page, "quick add lead" should create a car buyer lead, not a
+  // CRM/Marketing one — they're different entities with different fields.
+  const onCarsPage = location.pathname.startsWith("/cars");
 
   const handleLogout = async () => {
     await logout();
@@ -296,13 +302,13 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               boxShadow: "0 20px 60px var(--shadow)", zIndex: 100, overflow: "hidden", padding: 6,
             }}>
               <button
-                onClick={() => { setShowQuickLead(true); setQuickAddOpen(false); }}
+                onClick={() => { onCarsPage ? setShowQuickCarLead(true) : setShowQuickLead(true); setQuickAddOpen(false); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors cursor-pointer"
                 style={{ color: "var(--text-sec)", background: "transparent", border: "none", textAlign: "left" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-sec)"; }}
               >
-                <TrendingUp size={15} color="#f59e0b" /> New Lead
+                <TrendingUp size={15} color="#f59e0b" /> {onCarsPage ? "New Car Lead" : "New Lead"}
               </button>
               {hasWBA && (
                 <button
@@ -541,6 +547,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       </div>
     </header>
     {showQuickLead && <QuickAddLeadWrapper onClose={() => setShowQuickLead(false)} />}
+    {showQuickCarLead && <CarLeadModal lead={null} onClose={() => setShowQuickCarLead(false)} onSaved={() => {}} />}
     {showQuickProject && <QuickAddProjectModal onClose={() => setShowQuickProject(false)} />}
     </>
   );

@@ -60,6 +60,7 @@ const ALL_MODULES = [
   { key: "SERVICES",            label: "Services",       desc: "Service catalog & contracts" },
   { key: "STOCK_MARKET",        label: "Stock Market",   desc: "Advisory & trade calls" },
   { key: "HEALTH",              label: "Health",         desc: "Clinic & patient management" },
+  { key: "CARS",                label: "Car Resale",     desc: "Buyer leads, vehicles & insurance renewals" },
 ];
 
 interface OrgOwner {

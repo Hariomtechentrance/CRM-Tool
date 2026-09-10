@@ -22,6 +22,13 @@ import { setAuthCookies } from "../lib/authCookies";
 import { MemberRole, Prisma } from "@prisma/client";
 import { google } from "googleapis";
 
+// Modules a self-service org owner can never grant themselves — only the
+// super admin can enable these, either at org-creation time (via the
+// /super-admin/users endpoint, which is trusted and bypasses this) or later
+// by approving an OrgModuleRequest. Keep in sync with `restricted` flags in
+// frontend/src/lib/modules.ts.
+const SUPER_ADMIN_ONLY_MODULES = ["CARS"];
+
 // ── Create Organization ──────────────────────────────────────
 export async function createOrganization(req: AuthRequest, res: Response): Promise<void> {
   try {
@@ -30,9 +37,15 @@ export async function createOrganization(req: AuthRequest, res: Response): Promi
 
     const slug = await uniqueOrgSlug(parsed.data.name);
 
+    // Self-service org creation is not a trusted path for gated modules —
+    // silently drop any, same backstop as updateOrganization() below.
+    const requestedModules: string[] = (parsed.data as any).enabledModules ?? [];
+    const allowedModules = requestedModules.filter((m) => !SUPER_ADMIN_ONLY_MODULES.includes(m));
+
     const org = await prisma.organization.create({
       data: {
         ...parsed.data,
+        enabledModules: allowedModules,
         slug,
         members: {
           create: { userId: req.userId!, role: MemberRole.OWNER },
@@ -41,7 +54,7 @@ export async function createOrganization(req: AuthRequest, res: Response): Promi
     });
 
     // Auto-grant all enabled modules to the Owner
-    const modules: string[] = (parsed.data as any).enabledModules ?? [];
+    const modules: string[] = allowedModules;
     if (modules.length > 0) {
       await prisma.userModuleAccess.createMany({
         data: modules.map((moduleKey) => ({ userId: req.userId!, organizationId: org.id, moduleKey })),

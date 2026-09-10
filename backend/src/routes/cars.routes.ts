@@ -1,0 +1,37 @@
+import { Router } from "express";
+import { authenticate } from "../middleware/auth";
+import { requireOrgContext } from "../middleware/orgContext";
+import { requireModuleAccess } from "../middleware/requireModuleAccess";
+import {
+  listCarLeads, getCarLead, createCarLead, updateCarLead, deleteCarLead,
+  bulkImportCarLeads, convertCarLead,
+  listVehicles, getVehicle, createVehicle, updateVehicle,
+  addInsurance, updateInsurance, listExpiringInsurance,
+  getCarsStats, getSalesReport, getMonthlyLeadReport,
+} from "../controllers/cars.controller";
+
+const router = Router();
+router.use(authenticate, requireOrgContext, requireModuleAccess("CARS"));
+
+router.get("/stats",                 getCarsStats);
+router.get("/sales-report",          getSalesReport);
+router.get("/leads/monthly-report",  getMonthlyLeadReport);
+
+router.get("/leads",                 listCarLeads);
+router.post("/leads",                createCarLead);
+router.post("/leads/bulk-import",    bulkImportCarLeads);
+router.get("/leads/:id",             getCarLead);
+router.patch("/leads/:id",           updateCarLead);
+router.delete("/leads/:id",          deleteCarLead);
+router.post("/leads/:id/convert",    convertCarLead);
+
+router.get("/vehicles",              listVehicles);
+router.post("/vehicles",             createVehicle);
+router.get("/vehicles/:id",          getVehicle);
+router.patch("/vehicles/:id",        updateVehicle);
+router.post("/vehicles/:vehicleId/insurance", addInsurance);
+
+router.get("/insurance/expiring",    listExpiringInsurance);
+router.patch("/insurance/:id",       updateInsurance);
+
+export default router;

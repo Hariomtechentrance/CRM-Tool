@@ -271,6 +271,11 @@ model Organization {
   visitors    Visitor[]
   courierLogs CourierLog[]
 
+  // Phase 8 — Car Resale
+  carLeads          CarLead[]
+  vehicles          Vehicle[]
+  vehicleInsurances VehicleInsurance[]
+
   // Universal
   customFields CustomField[]
   smsLogs      SMSLog[]
@@ -3921,4 +3926,137 @@ model WBAProjectMember {
 
   @@unique([wbaProjectId, employeeId])
   @@index([employeeId])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Phase 8 — Car Resale ("Cars" module)
+// Buyer leads → converted into a sold Vehicle → insurance renewal tracking.
+// Independent of the CRM/Leads module by design (a distinct business line,
+// no calling/telecalling integration).
+// ═══════════════════════════════════════════════════════════════
+
+enum CarLeadStatus {
+  NEW
+  HOT
+  WARM
+  COLD
+  URGENT
+  CONTACTED
+  NOT_INTERESTED
+  CONVERTED
+  LOST
+}
+
+// Matches the client's own tracking-sheet channels (Insta/META/SEO/REF/RS/DS/CTE)
+// so the dropdown speaks their language, not a generic CRM's.
+enum CarLeadSource {
+  WALK_IN
+  PHONE
+  WEBSITE
+  INSTAGRAM
+  META_ADS
+  SEO
+  REFERRAL
+  RS
+  DS
+  CTE
+  OTHER
+}
+
+model CarLead {
+  id                 String        @id @default(cuid())
+  organizationId     String
+  name               String
+  phone              String?
+  email              String?
+  interestedMake     String? // e.g. "Maruti Suzuki"
+  interestedModel    String? // e.g. "Swift"
+  budgetMin          Float?
+  budgetMax          Float?
+  tradeInVehicle     String? // free text, e.g. "2018 Honda City to exchange"
+  source             CarLeadSource @default(OTHER)
+  status             CarLeadStatus @default(NEW)
+  notes              String?
+  isDoNotCall        Boolean       @default(false)
+  testDriveDone      Boolean       @default(false)
+  lastContactedAt    DateTime? // last call attempt — set manually, no calling integration
+  assignedToId       String? // User.id — no FK relation (loose ref, same convention as Lead.assignedToId)
+  nextFollowUpDate   DateTime?
+  convertedVehicleId String?       @unique
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vehicle      Vehicle?     @relation(fields: [convertedVehicleId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([assignedToId])
+}
+
+enum VehicleStatus {
+  IN_STOCK
+  RESERVED
+  SOLD
+}
+
+model Vehicle {
+  id             String        @id @default(cuid())
+  organizationId String
+  make           String
+  model          String
+  variant        String?
+  year           Int?
+  registrationNo String?
+  chassisNo      String?
+  engineNo       String?
+  color          String?
+  odometer       Int?
+  fuelType       String?
+  transmission   String?
+  purchasePrice  Float? // what the dealership paid to acquire this used vehicle
+  salePrice      Float?
+  status         VehicleStatus @default(IN_STOCK)
+  ownerName      String? // buyer, once sold
+  ownerPhone     String?
+  ownerEmail     String?
+  soldAt         DateTime?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  insurances   VehicleInsurance[]
+  sourceLead   CarLead?
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+enum InsuranceType {
+  THIRD_PARTY
+  COMPREHENSIVE
+  ZERO_DEP
+}
+
+model VehicleInsurance {
+  id             String        @id @default(cuid())
+  organizationId String
+  vehicleId      String
+  provider       String
+  policyNumber   String?
+  type           InsuranceType @default(THIRD_PARTY)
+  startDate      DateTime
+  endDate        DateTime
+  premium        Float?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vehicle      Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([vehicleId])
+  @@index([organizationId, endDate])
 }

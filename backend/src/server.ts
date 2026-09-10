@@ -86,6 +86,7 @@ import pushRoutes from "./routes/push.routes";
 import chatbotRoutes from "./routes/chatbot.routes";
 import contactRoutes from "./routes/contact.routes";
 import wbaRoutes from "./routes/wba.routes";
+import carsRoutes from "./routes/cars.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -454,6 +455,7 @@ app.use("/api/contact",       contactRoutes);
 // the same URL (access level, staff-scoped visibility) — withCache keys only
 // on orgId+URL, so it would serve one user's response to another.
 app.use("/api/wba",           wbaRoutes);
+app.use("/api/cars",          withCache(20_000), carsRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

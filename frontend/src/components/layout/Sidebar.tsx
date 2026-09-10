@@ -7,7 +7,7 @@ import {
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
   MonitorCheck, ClipboardList, ClipboardCheck, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
   Phone, TrendingUp, Heart, Sliders, Palette, Scale,
-  UtensilsCrossed, Hotel, FolderKanban, UsersRound,
+  UtensilsCrossed, Hotel, FolderKanban, UsersRound, Car,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -26,7 +26,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HeadphonesIcon: Headphones,
   UtensilsCrossed, Hotel,
   Phone, TrendingUp, Heart, Briefcase,
-  ClipboardCheck, ShieldCheck,
+  ClipboardCheck, ShieldCheck, Car,
 };
 
 const MOD_I18N_KEY: Record<string, string> = {
