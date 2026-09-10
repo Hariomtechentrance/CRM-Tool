@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.2.2",
+    "@hookform/resolvers": "^5.7.1",
     "@tailwindcss/vite": "^4.3.0",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^24.12.2",
