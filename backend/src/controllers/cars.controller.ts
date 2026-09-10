@@ -41,12 +41,17 @@ const vehicleSchema = z.object({
   fuelType: z.string().optional(),
   transmission: z.string().optional(),
   purchasePrice: z.number().optional(),
+  sellerName: z.string().optional(),
+  sellerPhone: z.string().optional(),
+  sellerEmail: z.string().email().optional().or(z.literal("")),
+  purchasedAt: z.string().optional(),
   salePrice: z.number().optional(),
   status: z.enum(["IN_STOCK", "RESERVED", "SOLD"]).default("IN_STOCK"),
   ownerName: z.string().optional(),
   ownerPhone: z.string().optional(),
   ownerEmail: z.string().email().optional().or(z.literal("")),
   soldAt: z.string().optional(),
+  assignedToId: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -66,12 +71,21 @@ const insuranceSchema = z.object({
 
 export async function listCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, search, assignedToId, dnc, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, search, assignedToId, dnc, followUp, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId! };
     if (status) where.status = status;
     if (assignedToId) where.assignedToId = assignedToId;
     if (dnc === "true") where.isDoNotCall = true;
+    // "Due today or overdue" worklist — same shape as the CRM Leads module's
+    // equivalent filter, used by the dashboard's Today's Follow-ups panel.
+    if (followUp === "due") {
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      where.status = { notIn: ["CONVERTED", "LOST", "NOT_INTERESTED"] };
+      where.isDoNotCall = false;
+      where.nextFollowUpDate = { lte: endOfToday };
+    }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -81,11 +95,25 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
         { interestedModel: { contains: search, mode: "insensitive" } },
       ];
     }
+    const orderBy: any = followUp === "due" ? [{ nextFollowUpDate: "asc" }] : { createdAt: "desc" };
     const [leads, total] = await Promise.all([
-      db().carLead.findMany({ where, skip, take: parseInt(limit), orderBy: { createdAt: "desc" } }),
+      db().carLead.findMany({ where, skip, take: parseInt(limit), orderBy }),
       db().carLead.count({ where }),
     ]);
-    ok(res, { leads, total, page: parseInt(page), limit: parseInt(limit) });
+
+    // assignedToId has no Prisma relation to User — attach display names
+    // manually for the cross-assignee "due today" worklist.
+    let leadsOut: any[] = leads;
+    if (followUp === "due") {
+      const assigneeIds = [...new Set(leads.map((l: any) => l.assignedToId).filter(Boolean))];
+      const assignees = assigneeIds.length
+        ? await prisma.user.findMany({ where: { id: { in: assigneeIds as string[] } }, select: { id: true, name: true } })
+        : [];
+      const nameById = new Map(assignees.map((u) => [u.id, u.name]));
+      leadsOut = leads.map((l: any) => ({ ...l, assignedTo: l.assignedToId ? { name: nameById.get(l.assignedToId) ?? "Unknown" } : null }));
+    }
+
+    ok(res, { leads: leadsOut, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (e) { serverError(res, e); }
 }
 
@@ -328,8 +356,11 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
         registrationNo: v.registrationNo, chassisNo: v.chassisNo, engineNo: v.engineNo,
         color: v.color, odometer: v.odometer, fuelType: v.fuelType, transmission: v.transmission,
         purchasePrice: v.purchasePrice, salePrice: v.salePrice, status: v.status,
+        sellerName: v.sellerName, sellerPhone: v.sellerPhone, sellerEmail: v.sellerEmail || undefined,
+        purchasedAt: v.purchasedAt ? new Date(v.purchasedAt) : undefined,
         ownerName: v.ownerName, ownerPhone: v.ownerPhone, ownerEmail: v.ownerEmail || undefined,
         soldAt: v.soldAt ? new Date(v.soldAt) : undefined,
+        assignedToId: v.assignedToId || undefined,
         notes: v.notes,
       },
     });
@@ -350,7 +381,9 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
       data: {
         ...data,
         ownerEmail: data.ownerEmail === "" ? null : data.ownerEmail,
+        sellerEmail: data.sellerEmail === "" ? null : data.sellerEmail,
         soldAt: data.soldAt !== undefined ? (data.soldAt ? new Date(data.soldAt) : null) : undefined,
+        purchasedAt: data.purchasedAt !== undefined ? (data.purchasedAt ? new Date(data.purchasedAt) : null) : undefined,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
