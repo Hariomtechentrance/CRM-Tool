@@ -8,6 +8,7 @@ import {
   listVehicles, getVehicle, createVehicle, updateVehicle,
   addInsurance, updateInsurance, listExpiringInsurance,
   getCarsStats, getSalesReport, getMonthlyLeadReport,
+  listHistoricalStats, bulkImportHistoricalStats, deleteHistoricalStat,
 } from "../controllers/cars.controller";
 
 const router = Router();
@@ -16,6 +17,10 @@ router.use(authenticate, requireOrgContext, requireModuleAccess("CARS"));
 router.get("/stats",                 getCarsStats);
 router.get("/sales-report",          getSalesReport);
 router.get("/leads/monthly-report",  getMonthlyLeadReport);
+
+router.get("/historical-stats",              listHistoricalStats);
+router.post("/historical-stats/bulk-import", bulkImportHistoricalStats);
+router.delete("/historical-stats/:id",       deleteHistoricalStat);
 
 router.get("/leads",                 listCarLeads);
 router.post("/leads",                createCarLead);

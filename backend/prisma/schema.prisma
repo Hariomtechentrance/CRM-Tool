@@ -275,6 +275,7 @@ model Organization {
   carLeads          CarLead[]
   vehicles          Vehicle[]
   vehicleInsurances VehicleInsurance[]
+  carHistoricalStats CarHistoricalStat[]
 
   // Universal
   customFields CustomField[]
@@ -4064,4 +4065,32 @@ model VehicleInsurance {
   @@index([organizationId])
   @@index([vehicleId])
   @@index([organizationId, endDate])
+}
+
+// Pre-digital-adoption monthly totals, imported from a client's own tracking
+// sheet (source/status/sales breakdown per month) — kept separate from real
+// CarLead records so historical bulk numbers never clutter the actual buyer
+// leads list. The Monthly Report merges these in for any month that has one.
+model CarHistoricalStat {
+  id             String   @id @default(cuid())
+  organizationId String
+  month          String // "YYYY-MM"
+  bySource       Json // enquiry counts, e.g. { "INSTAGRAM": 146, "RS": 4, "CTE": 207, ... }
+  hot            Int      @default(0)
+  warm           Int      @default(0)
+  cold           Int      @default(0)
+  notInterested  Int      @default(0)
+  testDrivesDone Int      @default(0)
+  totalEnquiries Int      @default(0)
+  salesBySource  Json // sales/conversions counts, same key shape as bySource
+  lost           Int      @default(0)
+  converted      Int      @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, month])
+  @@index([organizationId])
 }

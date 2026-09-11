@@ -597,6 +597,177 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Historical Stats import — paste a whole tracking-sheet table at once,
+// matching the client's own column order exactly. Pre-software monthly
+// totals, kept separate from real leads.
+// ═══════════════════════════════════════════════════════════════
+const MONTH_NAMES: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+};
+
+function parseMonthLabel(label: string): string | null {
+  const m = label.trim().toLowerCase().match(/^([a-z]{3,})\s*-?\s*(\d{2,4})$/);
+  if (!m) return null;
+  const monthNum = MONTH_NAMES[m[1].slice(0, 3)];
+  if (!monthNum) return null;
+  let year = parseInt(m[2], 10);
+  if (year < 100) year += 2000;
+  return `${year}-${String(monthNum).padStart(2, "0")}`;
+}
+
+interface ParsedHistRow {
+  raw: string; month: string | null;
+  bySource: Record<string, number>; salesBySource: Record<string, number>;
+  hot: number; warm: number; cold: number; notInterested: number;
+  testDrivesDone: number; totalEnquiries: number; lost: number;
+}
+
+function parseHistoricalTsv(text: string): ParsedHistRow[] {
+  const lines = text.split("\n").map(l => l.replace(/\r$/, "")).filter(l => l.trim());
+  const rows: ParsedHistRow[] = [];
+  for (const line of lines) {
+    const cols = line.split("\t").map(c => c.trim());
+    if (cols.length < 2) continue;
+    const month = parseMonthLabel(cols[0]);
+    const n = (i: number) => { const v = parseFloat(cols[i]); return isNaN(v) ? 0 : v; };
+    // Some rows only repeat column headers as data (a pasted sub-header, no real numbers) — skip those.
+    const isAllNumericOrBlank = cols.slice(1).every(c => c === "" || !isNaN(parseFloat(c)));
+    // A row whose data cells aren't numeric is a pasted sub-header, not real
+    // data (e.g. "March-25  Insta  Rajesh  Dhruv...") — treat as unparseable
+    // (month: null) so it's excluded from import, not saved as an empty month.
+    if (!month || !isAllNumericOrBlank) { rows.push({ raw: line, month: isAllNumericOrBlank ? month : null, bySource: {}, salesBySource: {}, hot: 0, warm: 0, cold: 0, notInterested: 0, testDrivesDone: 0, totalEnquiries: 0, lost: 0 }); continue; }
+    rows.push({
+      raw: line, month,
+      bySource: { INSTAGRAM: n(1), RS: n(2), DS: n(3), CTE: n(4), META_ADS: n(5), SEO: n(6), REFERRAL: n(7) },
+      hot: n(8) + n(13), warm: n(9) + n(14), cold: n(10) + n(15),
+      notInterested: n(11), testDrivesDone: n(12), totalEnquiries: n(16),
+      salesBySource: { INSTAGRAM: n(17), RS: n(18), DS: n(19), CTE: n(20), META_ADS: n(21), SEO: n(22), REFERRAL: n(23) },
+      lost: n(24),
+    });
+  }
+  return rows;
+}
+
+function rowHasData(r: ParsedHistRow): boolean {
+  return r.totalEnquiries > 0 || r.hot > 0 || r.warm > 0 || r.cold > 0 || r.notInterested > 0
+    || r.testDrivesDone > 0 || r.lost > 0
+    || Object.values(r.bySource).some(v => v > 0) || Object.values(r.salesBySource).some(v => v > 0);
+}
+
+function HistoricalStatsModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+  const [text, setText] = useState("");
+  const [parsed, setParsed] = useState<ParsedHistRow[] | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
+  const [err, setErr] = useState("");
+
+  function preview() {
+    const rows = parseHistoricalTsv(text);
+    if (rows.length === 0) { setErr("Couldn't find any rows — paste including the header row is fine, it'll be skipped if unparseable."); return; }
+    setErr("");
+    setParsed(rows);
+  }
+
+  async function doImport() {
+    if (!parsed) return;
+    const valid = parsed.filter(r => r.month && rowHasData(r));
+    if (valid.length === 0) { setErr("No rows had both a parseable month and non-zero data — nothing to import."); return; }
+    setImporting(true);
+    try {
+      const r = await api.post("/cars/historical-stats/bulk-import", { rows: valid });
+      setResult(r.data.data);
+      if (r.data.data.created > 0) onImported();
+    } catch (e) { setErr(getApiError(e)); }
+    setImporting(false);
+  }
+
+  const sample = `MONTH\tInsta\tRS\tDS\tCTE\tMETA\tSEO\tREF\tH\tW\tC\tNOT INT\tTD DONE\tHOT\tWARM\tCOLD\tTTL/ENQ\tINSTA\tRS\tDS\tCTE\tMETA\tSEO\tREF\tLOST\t%-SALES\nMay-25\t146\t4\t0\t207`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-3xl mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Import Historical Monthly Data</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
+
+        {result ? (
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1 rounded-xl p-4 text-center" style={{ background: "#064e3b", border: "1px solid #065f46" }}>
+                <div className="text-3xl font-bold" style={{ color: "#4ade80" }}>{result.created}</div>
+                <div className="text-xs" style={{ color: "#6ee7b7" }}>Months Saved</div>
+              </div>
+              <div className="flex-1 rounded-xl p-4 text-center" style={{ background: "#1e1b4b", border: "1px solid #312e81" }}>
+                <div className="text-3xl font-bold" style={{ color: "#818cf8" }}>{result.skipped}</div>
+                <div className="text-xs" style={{ color: "#a5b4fc" }}>Skipped</div>
+              </div>
+            </div>
+            {result.errors.length > 0 && <p className="text-xs text-red-400">{result.errors.join(" · ")}</p>}
+            <button onClick={onClose} style={{ ...S.btn, width: "100%", justifyContent: "center" }}>Done</button>
+          </div>
+        ) : parsed ? (
+          <div className="space-y-3">
+            <p style={{ fontSize: 11, color: "var(--text-ghost)" }}>
+              Review before importing — check each month parsed correctly. "H/W/C" and "HOT/WARM/COLD" columns were added together (assumed to be duplicate sections from the sheet). Rows with no month or that look like a repeated header row are skipped.
+            </p>
+            <div className="table-wrap" style={{ maxHeight: 300, overflowY: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr>
+                    {["Month", "Total Enq.", "Hot", "Warm", "Cold", "Not Int.", "Lost", "TD Done", "Sales (sum)"].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", color: "var(--text-ghost)", borderBottom: "1px solid var(--border)" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {parsed.map((r, i) => {
+                    const willImport = !!r.month && rowHasData(r);
+                    return (
+                    <tr key={i} style={{ opacity: willImport ? 1 : 0.4 }}>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)", color: r.month ? "var(--text-primary)" : "#f87171", fontWeight: 600 }}>
+                        {r.month || `unparsed: "${r.raw.split("\t")[0]}"`}
+                        {r.month && !rowHasData(r) && <span style={{ marginLeft: 6, fontSize: 9, color: "var(--text-ghost)", fontWeight: 400 }}>(empty — skipped)</span>}
+                      </td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{r.totalEnquiries}</td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{r.hot}</td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{r.warm}</td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{r.cold}</td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{r.notInterested}</td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{r.lost}</td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{r.testDrivesDone}</td>
+                      <td style={{ padding: "6px 8px", borderBottom: "1px solid var(--bg-hover)" }}>{Object.values(r.salesBySource).reduce((s, n) => s + n, 0)}</td>
+                    </tr>
+                  );})}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setParsed(null)} style={S.ghost}>Back</button>
+              <button onClick={doImport} disabled={importing} style={S.btn}>{importing ? "Saving…" : `Import ${parsed.filter(r => r.month && rowHasData(r)).length} Months`}</button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>
+              Paste your tracking sheet rows (tab-separated, straight from Excel/Sheets). Column order must match: MONTH, Insta, RS, DS, CTE, META, SEO, REF, H, W, C, NOT INT, TD DONE, HOT, WARM, COLD, TTL/ENQ, then the same 7 sources again for sales, LOST, %-SALES.
+            </p>
+            <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80", overflowX: "auto", whiteSpace: "pre" }}>{sample}</div>
+            <textarea style={{ ...S.inp, width: "100%", resize: "vertical", minHeight: 180, fontFamily: "monospace", fontSize: 11 } as React.CSSProperties} value={text} onChange={e => setText(e.target.value)} placeholder="Paste rows here…" />
+            <div className="flex justify-end gap-3">
+              <button onClick={onClose} style={S.ghost}>Cancel</button>
+              <button onClick={preview} disabled={!text.trim()} style={S.btn}>Preview</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main page
 // ═══════════════════════════════════════════════════════════════
 export default function CarsPage() {
@@ -615,6 +786,7 @@ export default function CarsPage() {
   const [showImport, setShowImport] = useState(false);
   const [insuranceFor, setInsuranceFor] = useState<Vehicle | null>(null);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [showHistoricalImport, setShowHistoricalImport] = useState(false);
   const [markSoldFor, setMarkSoldFor] = useState<Vehicle | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const employeeName = (id?: string) => employees.find(e => e.id === id)?.name;
@@ -693,7 +865,9 @@ export default function CarsPage() {
             </>
           ) : tab === "vehicles" ? (
             <button onClick={() => setShowAddVehicle(true)} style={S.btn}><Plus style={{ width: 13, height: 13 }} /> Add Vehicle</button>
-          ) : null}
+          ) : (
+            <button onClick={() => setShowHistoricalImport(true)} style={S.ghost}><Upload style={{ width: 13, height: 13 }} /> Import Historical Data</button>
+          )}
         </div>
       </div>
 
@@ -916,6 +1090,7 @@ export default function CarsPage() {
                 <tr key={m.month}>
                   <td style={{ padding: "10px 12px", fontSize: 13, color: "var(--text-primary)", fontWeight: 600, borderBottom: "1px solid var(--bg-hover)", whiteSpace: "nowrap" }}>
                     {new Date(`${m.month}-01`).toLocaleDateString("en-IN", { month: "short", year: "2-digit" })}
+                    {m.isHistorical && <span style={{ marginLeft: 6, fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "var(--bg-hover)", color: "var(--text-ghost)", fontWeight: 700 }}>IMPORTED</span>}
                   </td>
                   <td style={{ padding: "10px 12px", fontSize: 13, color: "var(--text-primary)", fontWeight: 700, borderBottom: "1px solid var(--bg-hover)" }}>{m.totalEnquiries}</td>
                   <td style={{ padding: "10px 12px", fontSize: 12, color: "#f87171", borderBottom: "1px solid var(--bg-hover)" }}>{m.byStatus.HOT ?? 0}</td>
@@ -947,6 +1122,23 @@ export default function CarsPage() {
               </div>
             </div>
           )}
+          {monthlyReport.some((m: any) => m.salesBySource) && (
+            <div style={{ padding: "12px 12px 16px" }}>
+              <p style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Sales by Source (imported months)</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(
+                  monthlyReport.reduce((acc: Record<string, number>, m: any) => {
+                    for (const [k, v] of Object.entries((m.salesBySource ?? {}) as Record<string, number>)) acc[k] = (acc[k] ?? 0) + v;
+                    return acc;
+                  }, {})
+                ).filter(([, count]) => (count as number) > 0).map(([src, count]) => (
+                  <span key={src} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: "var(--bg-hover)", color: "var(--text-secondary)" }}>
+                    {SOURCES[src] || src}: <strong style={{ color: "#4ade80" }}>{count as number}</strong>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -955,6 +1147,7 @@ export default function CarsPage() {
       {convertLead && <ConvertModal lead={convertLead} onClose={() => setConvertLead(null)} onConverted={() => { load(); setTab("vehicles"); }} />}
       {insuranceFor && <InsuranceModal vehicle={insuranceFor} onClose={() => setInsuranceFor(null)} onSaved={load} />}
       {showAddVehicle && <AddVehicleModal employees={employees} onClose={() => setShowAddVehicle(false)} onSaved={load} />}
+      {showHistoricalImport && <HistoricalStatsModal onClose={() => setShowHistoricalImport(false)} onImported={load} />}
       {markSoldFor && <MarkSoldModal vehicle={markSoldFor} onClose={() => setMarkSoldFor(null)} onSold={load} />}
     </div>
   );

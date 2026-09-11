@@ -523,14 +523,28 @@ export async function getMonthlyLeadReport(req: OrgRequest, res: Response): Prom
     rangeStart.setDate(1);
     rangeStart.setHours(0, 0, 0, 0);
 
+    const historical = await db().carHistoricalStat.findMany({ where: { organizationId: orgId }, orderBy: { month: "asc" } });
+
+    // Historical months can reach further back than the default rolling
+    // window (e.g. a client's pre-software tracking sheet) — extend the
+    // range to cover the earliest one instead of silently dropping it.
+    if (historical.length > 0) {
+      const earliest = historical[0].month; // "YYYY-MM", sorted ascending
+      const [ey, em] = earliest.split("-").map(Number);
+      const earliestDate = new Date(ey, em - 1, 1);
+      if (earliestDate < rangeStart) rangeStart.setTime(earliestDate.getTime());
+    }
+    const now = new Date();
+    const totalMonths = Math.max(months, (now.getFullYear() - rangeStart.getFullYear()) * 12 + (now.getMonth() - rangeStart.getMonth()) + 1);
+
     const leads = await db().carLead.findMany({
       where: { organizationId: orgId, createdAt: { gte: rangeStart } },
       select: { createdAt: true, source: true, status: true, testDriveDone: true },
     });
 
     // Build one bucket per month, oldest first, even if empty.
-    const buckets: Record<string, { month: string; totalEnquiries: number; bySource: Record<string, number>; byStatus: Record<string, number>; testDrivesDone: number; converted: number }> = {};
-    for (let i = 0; i < months; i++) {
+    const buckets: Record<string, { month: string; totalEnquiries: number; bySource: Record<string, number>; byStatus: Record<string, number>; testDrivesDone: number; converted: number; salesBySource?: Record<string, number>; isHistorical?: boolean }> = {};
+    for (let i = 0; i < totalMonths; i++) {
       const d = new Date(rangeStart); d.setMonth(d.getMonth() + i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       buckets[key] = { month: key, totalEnquiries: 0, bySource: {}, byStatus: {}, testDrivesDone: 0, converted: 0 };
@@ -548,12 +562,98 @@ export async function getMonthlyLeadReport(req: OrgRequest, res: Response): Prom
       if (l.status === "CONVERTED") b.converted++;
     }
 
-    const rows = Object.values(buckets).map((b) => ({
-      ...b,
-      conversionRate: b.totalEnquiries > 0 ? Math.round((b.converted / b.totalEnquiries) * 100) : 0,
-    }));
+    // A historical row, where present, is the authoritative source of truth
+    // for that month (it represents real pre-software business, not a
+    // fallback) — it replaces whatever the live computation produced.
+    for (const h of historical) {
+      buckets[h.month] = {
+        month: h.month,
+        totalEnquiries: h.totalEnquiries,
+        bySource: h.bySource as Record<string, number>,
+        byStatus: { HOT: h.hot, WARM: h.warm, COLD: h.cold, NOT_INTERESTED: h.notInterested, LOST: h.lost, CONVERTED: h.converted },
+        testDrivesDone: h.testDrivesDone,
+        converted: h.converted,
+        salesBySource: h.salesBySource as Record<string, number>,
+        isHistorical: true,
+      };
+    }
+
+    const rows = Object.values(buckets)
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map((b) => ({
+        ...b,
+        conversionRate: b.totalEnquiries > 0 ? Math.round((b.converted / b.totalEnquiries) * 100) : 0,
+      }));
 
     ok(res, { months: rows });
+  } catch (e) { serverError(res, e); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Historical stats (pre-software monthly totals, bulk-imported)
+// ═══════════════════════════════════════════════════════════════
+
+const SOURCE_KEYS = ["INSTAGRAM", "RS", "DS", "CTE", "META_ADS", "SEO", "REFERRAL"];
+
+export async function listHistoricalStats(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const rows = await db().carHistoricalStat.findMany({ where: { organizationId: req.organizationId! }, orderBy: { month: "asc" } });
+    ok(res, rows);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function bulkImportHistoricalStats(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { rows } = req.body as { rows: any[] };
+    if (!Array.isArray(rows) || rows.length === 0) { badRequest(res, "rows array is required"); return; }
+    const orgId = req.organizationId!;
+    let created = 0, skipped = 0;
+    const errors: string[] = [];
+
+    for (const r of rows) {
+      const month = (r.month || "").toString().trim();
+      if (!/^\d{4}-\d{2}$/.test(month)) { skipped++; errors.push(`Skipped row with invalid month: "${r.month}"`); continue; }
+
+      const bySource: Record<string, number> = {};
+      const salesBySource: Record<string, number> = {};
+      for (const key of SOURCE_KEYS) {
+        bySource[key] = Number(r.bySource?.[key]) || 0;
+        salesBySource[key] = Number(r.salesBySource?.[key]) || 0;
+      }
+      const converted = Object.values(salesBySource).reduce((s, n) => s + n, 0);
+
+      await db().carHistoricalStat.upsert({
+        where: { organizationId_month: { organizationId: orgId, month } },
+        create: {
+          organizationId: orgId, month, bySource, salesBySource,
+          hot: Number(r.hot) || 0, warm: Number(r.warm) || 0, cold: Number(r.cold) || 0,
+          notInterested: Number(r.notInterested) || 0, testDrivesDone: Number(r.testDrivesDone) || 0,
+          totalEnquiries: Number(r.totalEnquiries) || 0, lost: Number(r.lost) || 0, converted,
+          notes: r.notes || undefined,
+        },
+        update: {
+          bySource, salesBySource,
+          hot: Number(r.hot) || 0, warm: Number(r.warm) || 0, cold: Number(r.cold) || 0,
+          notInterested: Number(r.notInterested) || 0, testDrivesDone: Number(r.testDrivesDone) || 0,
+          totalEnquiries: Number(r.totalEnquiries) || 0, lost: Number(r.lost) || 0, converted,
+          notes: r.notes || undefined,
+        },
+      });
+      created++;
+    }
+
+    bustCache(req.organizationId!, "/api/cars");
+    ok(res, { created, skipped, errors });
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deleteHistoricalStat(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const existing = await db().carHistoricalStat.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Historical stat not found"); return; }
+    await db().carHistoricalStat.delete({ where: { id: existing.id } });
+    bustCache(req.organizationId!, "/api/cars");
+    ok(res, null, "Deleted");
   } catch (e) { serverError(res, e); }
 }
 
