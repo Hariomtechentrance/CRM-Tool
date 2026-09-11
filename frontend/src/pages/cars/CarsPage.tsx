@@ -637,11 +637,15 @@ function parseHistoricalTsv(text: string): ParsedHistRow[] {
     // data (e.g. "March-25  Insta  Rajesh  Dhruv...") — treat as unparseable
     // (month: null) so it's excluded from import, not saved as an empty month.
     if (!month || !isAllNumericOrBlank) { rows.push({ raw: line, month: isAllNumericOrBlank ? month : null, bySource: {}, salesBySource: {}, hot: 0, warm: 0, cold: 0, notInterested: 0, testDrivesDone: 0, totalEnquiries: 0, lost: 0 }); continue; }
+    const bySource = { INSTAGRAM: n(1), RS: n(2), DS: n(3), CTE: n(4), META_ADS: n(5), SEO: n(6), REFERRAL: n(7) };
+    // Fall back to summing the source columns when the sheet's own "Total
+    // Enquiries" cell is blank — better than silently showing 0.
+    const ttlEnq = n(16) || Object.values(bySource).reduce((s, v) => s + v, 0);
     rows.push({
       raw: line, month,
-      bySource: { INSTAGRAM: n(1), RS: n(2), DS: n(3), CTE: n(4), META_ADS: n(5), SEO: n(6), REFERRAL: n(7) },
+      bySource,
       hot: n(8) + n(13), warm: n(9) + n(14), cold: n(10) + n(15),
-      notInterested: n(11), testDrivesDone: n(12), totalEnquiries: n(16),
+      notInterested: n(11), testDrivesDone: n(12), totalEnquiries: ttlEnq,
       salesBySource: { INSTAGRAM: n(17), RS: n(18), DS: n(19), CTE: n(20), META_ADS: n(21), SEO: n(22), REFERRAL: n(23) },
       lost: n(24),
     });
