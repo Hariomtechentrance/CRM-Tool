@@ -269,7 +269,9 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>Columns: name, phone, email, make, model</p>
+            <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>
+              Works with your own sheet's column names, not just these — Name/Contact/Requirement/Budget/Hot are recognized under many common aliases (e.g. "Contact" or "Mobile" both work as phone). Budget ranges like "5-6lac" are parsed automatically. Any column that isn't recognized is still kept — added to that lead's notes instead of being dropped.
+            </p>
 
             <div>
               <label style={S.label}>Upload a File (.csv or .xlsx)</label>

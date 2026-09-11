@@ -189,6 +189,49 @@ export async function deleteCarLead(req: OrgRequest, res: Response): Promise<voi
 }
 
 // Manual paste / CSV import — mirrors leads.controller.ts's bulkImportLeads.
+// Header aliases a real client's own tracking sheet is likely to use, mapped
+// to the CarLead field they mean — deliberately generous, since the whole
+// point is not silently dropping columns just because they're not exactly
+// "phone" or "model". Every recognized field is checked with `pick()`, and
+// anything left over goes into `notes` labeled by its own header, so a
+// completely unrecognized column still shows up somewhere rather than
+// vanishing.
+const FIELD_ALIASES: Record<string, string[]> = {
+  name: ["name", "full name", "customer name", "customer"],
+  phone: ["phone", "contact", "mobile", "contact no", "contact no.", "contact number", "mobile number", "phone number"],
+  email: ["email", "email address", "e-mail"],
+  model: ["requirement", "model", "car", "vehicle", "interested model", "interested_model"],
+  make: ["make", "brand", "interested make", "interested_make"],
+  budget: ["budget", "budget range"],
+  hotStatus: ["hot", "h", "status"],
+};
+
+function pick(row: Record<string, any>, keys: string[]): string {
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+}
+
+function parseBudgetRange(raw: string): { min?: number; max?: number } {
+  if (!raw) return {};
+  const s = raw.toLowerCase().replace(/,/g, "");
+  const isLac = /lac|lakh|\bl\b/.test(s);
+  const mult = isLac ? 100000 : 1;
+  const range = s.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+  if (range) return { min: parseFloat(range[1]) * mult, max: parseFloat(range[2]) * mult };
+  const single = s.match(/(\d+(?:\.\d+)?)/);
+  if (single) { const v = parseFloat(single[1]) * mult; return { min: v, max: v }; }
+  return {};
+}
+
+const STATUS_CODE_MAP: Record<string, string> = {
+  H: "HOT", HOT: "HOT", W: "WARM", WARM: "WARM", C: "COLD", COLD: "COLD",
+  U: "URGENT", URGENT: "URGENT", NEW: "NEW", LOST: "LOST", CONTACTED: "CONTACTED",
+  "NOT INT": "NOT_INTERESTED", "NOT INTERESTED": "NOT_INTERESTED",
+};
+
 export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
     const { leads: rawLeads, assignedToId } = req.body;
@@ -198,30 +241,54 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
     const orgId = req.organizationId!;
     const results = { created: 0, skipped: 0, errors: [] as string[] };
     const batchSize = 50;
+    const recognizedKeys = new Set(Object.values(FIELD_ALIASES).flat());
 
     for (let i = 0; i < rawLeads.length; i += batchSize) {
       const batch = rawLeads.slice(i, i + batchSize);
       const toCreate: any[] = [];
 
-      for (const row of batch) {
-        const name = (row.name || row.Name || row["Full Name"] || "").toString().trim();
+      for (const rawRow of batch) {
+        // Defensive lowercase — the frontend already normalises keys, but
+        // don't assume every caller does.
+        const row: Record<string, any> = {};
+        for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
+
+        const name = pick(row, FIELD_ALIASES.name);
         if (!name) { results.skipped++; continue; }
-        const phone = (row.phone || row.Phone || row["Mobile"] || "").toString().trim();
+        const phone = pick(row, FIELD_ALIASES.phone);
 
         if (phone) {
           const exists = await db().carLead.findFirst({ where: { organizationId: orgId, phone } });
           if (exists) { results.skipped++; continue; }
         }
 
+        const budget = parseBudgetRange(pick(row, FIELD_ALIASES.budget));
+        const rawStatus = pick(row, FIELD_ALIASES.hotStatus).toUpperCase();
+        const status = STATUS_CODE_MAP[rawStatus] || "NEW";
+
+        // Anything not mapped to a real column is preserved as a labeled
+        // note line, so bulk-importing a client's own sheet never silently
+        // drops data just because a header doesn't match a known alias.
+        const noteLines: string[] = [];
+        if (rawStatus && !STATUS_CODE_MAP[rawStatus]) noteLines.push(`Status (from sheet): ${rawStatus}`);
+        for (const [key, value] of Object.entries(row)) {
+          if (recognizedKeys.has(key)) continue;
+          const v = (value ?? "").toString().trim();
+          if (v) noteLines.push(`${key}: ${v}`);
+        }
+
         toCreate.push({
           organizationId: orgId,
           name,
           phone: phone || undefined,
-          email: (row.email || row.Email || "").toString().trim() || undefined,
-          interestedMake: (row.make || row.Make || row["interested_make"] || "").toString().trim() || undefined,
-          interestedModel: (row.model || row.Model || row["interested_model"] || "").toString().trim() || undefined,
+          email: pick(row, FIELD_ALIASES.email) || undefined,
+          interestedMake: pick(row, FIELD_ALIASES.make) || undefined,
+          interestedModel: pick(row, FIELD_ALIASES.model) || undefined,
+          budgetMin: budget.min,
+          budgetMax: budget.max,
           source: "OTHER",
-          status: "NEW",
+          status,
+          notes: noteLines.length > 0 ? noteLines.join("\n") : undefined,
           assignedToId: assignedToId || undefined,
         });
       }
