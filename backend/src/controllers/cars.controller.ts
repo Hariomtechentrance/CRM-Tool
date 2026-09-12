@@ -279,8 +279,10 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
 
       for (const rawRow of batch) {
         // Defensive lowercase — the frontend already normalises keys, but
-        // don't assume every caller does.
-        const row: Record<string, any> = {};
+        // don't assume every caller does. Object.create(null) means a
+        // sheet column literally named "__proto__" just becomes an own
+        // property here instead of polluting Object.prototype.
+        const row: Record<string, any> = Object.create(null);
         for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
 
         const name = pick(row, FIELD_ALIASES.name);
@@ -565,7 +567,9 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
     const recognizedKeys = new Set(Object.values(VEHICLE_FIELD_ALIASES).flat());
 
     for (const rawRow of rawRows) {
-      const row: Record<string, any> = {};
+      // Object.create(null): a sheet column literally named "__proto__"
+      // must not be able to pollute Object.prototype via row[k] = v below.
+      const row: Record<string, any> = Object.create(null);
       for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
 
       const ownerName = vpick(row, VEHICLE_FIELD_ALIASES.ownerName);
