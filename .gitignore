@@ -38,3 +38,7 @@ Thumbs.db
 
 # ── Claude Code ───────────────────────────────────────────────
 .claude/
+
+# ── macOS/iCloud sync-conflict duplicates (e.g. "SECURITY 2.md") ──
+* 2.*
+* 2
