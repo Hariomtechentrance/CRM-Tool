@@ -28,3 +28,12 @@ export async function isWBAOrgId(organizationId: string): Promise<boolean> {
 
 /** Milliseconds in the default "act within" window for a lead with no follow-up date. */
 export const LEAD_DEFAULT_FOLLOWUP_MS = 48 * 60 * 60 * 1000;
+
+// WBA: assigning a lead to an employee is restricted to this one person, not
+// a role — MANAGER already covers other people (e.g. Akanksha) who must NOT
+// get this power, so the check is by identity rather than by role.
+const WBA_ASSIGNMENT_MANAGER_EMAIL = "c.shubham@whitebandassociates.com";
+
+export function isWBAAssignmentManager(email: string | null | undefined): boolean {
+  return (email ?? "").trim().toLowerCase() === WBA_ASSIGNMENT_MANAGER_EMAIL;
+}

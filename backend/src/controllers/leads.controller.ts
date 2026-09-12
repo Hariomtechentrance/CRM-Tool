@@ -2,9 +2,9 @@ import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
-import { ok, created, badRequest, notFound, serverError } from "../utils/response";
+import { ok, created, badRequest, notFound, forbidden, serverError } from "../utils/response";
 import { bustCache } from "../middleware/cacheMiddleware";
-import { isWBAOrgId, LEAD_DEFAULT_FOLLOWUP_MS } from "../utils/wbaOrg";
+import { isWBAOrgId, isWBAAssignmentManager, LEAD_DEFAULT_FOLLOWUP_MS } from "../utils/wbaOrg";
 
 const db = () => (prisma as any);
 
@@ -39,6 +39,10 @@ const activitySchema = z.object({
   duration: z.number().int().positive().optional(),
   followUpDate: z.string().optional(),
   noFollowUp: z.boolean().optional(), // "no follow-up needed" — suppresses the auto-overdue rule
+  // Logging a call can also record the pipeline-stage decision that came out
+  // of it (e.g. moved to QUALIFIED, or LOST) — same "the call isn't logged
+  // without a status decision" idea as the Cars module's lead editor.
+  status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "NEGOTIATION", "WON", "LOST"]).optional(),
 });
 
 const campaignSchema = z.object({
@@ -150,6 +154,10 @@ export async function createLead(req: OrgRequest, res: Response): Promise<void> 
   try {
     const data = leadSchema.safeParse(req.body);
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
+    // WBA: anyone can add a lead, but only Shubham may assign it to an employee.
+    if (data.data.assignedToId && await isWBAOrgId(req.organizationId!) && !isWBAAssignmentManager(req.userEmail)) {
+      forbidden(res, "Only Shubham can assign a lead to an employee"); return;
+    }
     const { nextFollowUpDate, lastContactedAt, email, ...rest } = data.data;
     const lead = await db().lead.create({
       data: {
@@ -172,6 +180,13 @@ export async function updateLead(req: OrgRequest, res: Response): Promise<void> 
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
     const existing = await db().lead.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Lead not found"); return; }
+
+    // WBA: only Shubham may (re)assign a lead to an employee — anyone else's
+    // attempt to change assignedToId is rejected, not just hidden in the UI.
+    if (data.data.assignedToId !== undefined && data.data.assignedToId !== existing.assignedToId
+      && await isWBAOrgId(req.organizationId!) && !isWBAAssignmentManager(req.userEmail)) {
+      forbidden(res, "Only Shubham can assign a lead to an employee"); return;
+    }
 
     const { nextFollowUpDate, lastContactedAt, email, ...rest } = data.data;
     const lead = await db().lead.update({
@@ -204,7 +219,7 @@ export async function addLeadActivity(req: OrgRequest, res: Response): Promise<v
     const lead = await db().lead.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
 
-    const { followUpDate, noFollowUp, ...rest } = data.data;
+    const { followUpDate, noFollowUp, status, ...rest } = data.data;
     const act = await db().leadActivity.create({
       data: {
         leadId: req.params.id as string,
@@ -213,6 +228,11 @@ export async function addLeadActivity(req: OrgRequest, res: Response): Promise<v
         ...(followUpDate && { followUpDate: new Date(followUpDate) }),
       },
     });
+
+    // An explicit status (the pipeline-stage decision that came out of this
+    // call) wins over the old NEW->CONTACTED auto-bump, which only kicks in
+    // when the caller doesn't send one at all.
+    const newStatus = status ?? (rest.type === "CALL" && lead.status === "NEW" ? "CONTACTED" : undefined);
 
     // Auto-update lead lastContactedAt and nextFollowUpDate.
     // "No follow-up needed" wins: it clears any pending follow-up and flags the
@@ -226,10 +246,15 @@ export async function addLeadActivity(req: OrgRequest, res: Response): Promise<v
           : followUpDate
             ? { nextFollowUpDate: new Date(followUpDate), noFollowUp: false }
             : {}),
-        ...(rest.type === "CALL" && { status: lead.status === "NEW" ? "CONTACTED" : lead.status }),
+        ...(newStatus && { status: newStatus }),
       },
     });
 
+    if (newStatus && newStatus !== lead.status) {
+      fireAutomationRules(req.organizationId!, "status_changed", newStatus, lead.id).catch(() => {});
+    }
+
+    bustCache(req.organizationId!, "/api/leads");
     created(res, act);
   } catch (e) { serverError(res, e); }
 }

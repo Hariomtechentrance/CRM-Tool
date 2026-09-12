@@ -14,6 +14,16 @@ export function isWBAOrg(org?: OrganizationSummary | null): boolean {
   );
 }
 
+// WBA: assigning a lead/project to an employee is restricted to this one
+// person, not a role — matches the same check enforced server-side in
+// backend/src/utils/wbaOrg.ts (the UI hint here is cosmetic; the API call
+// is what actually rejects anyone else's attempt).
+const WBA_ASSIGNMENT_MANAGER_EMAIL = "c.shubham@whitebandassociates.com";
+
+export function isWBAAssignmentManager(email?: string | null): boolean {
+  return (email ?? "").trim().toLowerCase() === WBA_ASSIGNMENT_MANAGER_EMAIL;
+}
+
 /** Designations offered strictly for White Band Associates (VAPT / GRC / training focused). */
 export const WBA_DESIGNATIONS = [
   "VAPT Intern",
