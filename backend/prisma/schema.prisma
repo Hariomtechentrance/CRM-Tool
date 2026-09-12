@@ -3964,15 +3964,21 @@ enum CarLeadSource {
   OTHER
 }
 
+enum CarLeadType {
+  BUYER
+  SELLER
+}
+
 model CarLead {
   id                 String        @id @default(cuid())
   organizationId     String
+  leadType           CarLeadType   @default(BUYER)
   name               String
   phone              String?
   email              String?
-  interestedMake     String? // e.g. "Maruti Suzuki"
-  interestedModel    String? // e.g. "Swift"
-  budgetMin          Float?
+  interestedMake     String? // buyer: car they want to buy · seller: car they want to sell
+  interestedModel    String?
+  budgetMin          Float? // buyer: budget range · seller: asking price range
   budgetMax          Float?
   tradeInVehicle     String? // free text, e.g. "2018 Honda City to exchange"
   source             CarLeadSource @default(OTHER)
@@ -4019,15 +4025,19 @@ model Vehicle {
   sellerName     String? // who they bought it FROM, when acquired directly (not via a lead)
   sellerPhone    String?
   sellerEmail    String?
-  purchasedAt    DateTime? // when the dealership acquired this vehicle
-  salePrice      Float?
-  status         VehicleStatus @default(IN_STOCK)
-  ownerName      String? // buyer, once sold
-  ownerPhone     String?
-  ownerEmail     String?
-  soldAt         DateTime?
-  assignedToId   String? // salesperson responsible — User.id, no FK (same loose-ref convention as CarLead.assignedToId)
-  notes          String?
+  purchasedAt      DateTime? // when the dealership acquired this vehicle
+  registrationDate DateTime? // when the vehicle itself was first registered (RTO), distinct from purchasedAt
+  salePrice        Float?
+  status           VehicleStatus @default(IN_STOCK)
+  ownerName        String? // buyer, once sold
+  ownerPhone       String?
+  ownerEmail       String?
+  ownerAddress     String?
+  soldAt           DateTime?
+  warrantyMonths   Int? // set at time of sale
+  warrantyEndDate  DateTime? // soldAt + warrantyMonths, stored explicitly for easy querying
+  assignedToId     String? // salesperson responsible — User.id, no FK (same loose-ref convention as CarLead.assignedToId)
+  notes            String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -4055,6 +4065,11 @@ model VehicleInsurance {
   startDate      DateTime
   endDate        DateTime
   premium        Float?
+  idv            Float? // Insured Declared Value
+  odAmount       Float? // Own Damage premium component
+  ncb            Float? // No Claim Bonus, as a percentage
+  paymentMode    String?
+  sharing        String? // co-owner/sharing arrangement, free text
   notes          String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt

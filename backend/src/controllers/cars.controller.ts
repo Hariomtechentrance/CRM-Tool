@@ -8,8 +8,17 @@ import { writeAuditLog, getIp } from "../utils/auditLog";
 
 const db = () => (prisma as any);
 
+function computeWarrantyEndDate(soldAt: Date | undefined | null, warrantyMonths: number | undefined | null): Date | undefined {
+  if (!warrantyMonths) return undefined;
+  const base = soldAt ?? new Date();
+  const end = new Date(base);
+  end.setMonth(end.getMonth() + warrantyMonths);
+  return end;
+}
+
 // ── Validators ───────────────────────────────────────────────
 const carLeadSchema = z.object({
+  leadType: z.enum(["BUYER", "SELLER"]).default("BUYER"),
   name: z.string().min(1),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
@@ -26,6 +35,7 @@ const carLeadSchema = z.object({
   lastContactedAt: z.string().optional(),
   assignedToId: z.string().optional(),
   nextFollowUpDate: z.string().optional(),
+  convertedVehicleId: z.string().optional(),
 });
 
 const vehicleSchema = z.object({
@@ -45,12 +55,15 @@ const vehicleSchema = z.object({
   sellerPhone: z.string().optional(),
   sellerEmail: z.string().email().optional().or(z.literal("")),
   purchasedAt: z.string().optional(),
+  registrationDate: z.string().optional(),
   salePrice: z.number().optional(),
   status: z.enum(["IN_STOCK", "RESERVED", "SOLD"]).default("IN_STOCK"),
   ownerName: z.string().optional(),
   ownerPhone: z.string().optional(),
   ownerEmail: z.string().email().optional().or(z.literal("")),
+  ownerAddress: z.string().optional(),
   soldAt: z.string().optional(),
+  warrantyMonths: z.number().int().optional(),
   assignedToId: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -62,6 +75,11 @@ const insuranceSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   premium: z.number().optional(),
+  idv: z.number().optional(),
+  odAmount: z.number().optional(),
+  ncb: z.number().optional(),
+  paymentMode: z.string().optional(),
+  sharing: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -71,7 +89,7 @@ const insuranceSchema = z.object({
 
 export async function listCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, search, assignedToId, dnc, followUp, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, search, assignedToId, dnc, followUp, leadType, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId! };
     if (status) where.status = status;
@@ -86,6 +104,17 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
       where.isDoNotCall = false;
       where.nextFollowUpDate = { lte: endOfToday };
     }
+    // Follow-ups tab: every open lead with any follow-up date at all — past,
+    // today, or scheduled far in the future — buyer and seller leads both.
+    if (followUp === "all") {
+      where.status = { notIn: ["CONVERTED", "LOST", "NOT_INTERESTED"] };
+      where.nextFollowUpDate = { not: null };
+    }
+    // Buyer Leads tab defaults to BUYER for backward compatibility; Seller
+    // Leads passes leadType=SELLER; the Follow-ups tab (followUp=all) shows
+    // both unless a specific leadType is also requested.
+    if (leadType) where.leadType = leadType;
+    else if (followUp !== "all") where.leadType = "BUYER";
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -95,16 +124,16 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
         { interestedModel: { contains: search, mode: "insensitive" } },
       ];
     }
-    const orderBy: any = followUp === "due" ? [{ nextFollowUpDate: "asc" }] : { createdAt: "desc" };
+    const orderBy: any = (followUp === "due" || followUp === "all") ? [{ nextFollowUpDate: "asc" }] : { createdAt: "desc" };
     const [leads, total] = await Promise.all([
       db().carLead.findMany({ where, skip, take: parseInt(limit), orderBy }),
       db().carLead.count({ where }),
     ]);
 
     // assignedToId has no Prisma relation to User — attach display names
-    // manually for the cross-assignee "due today" worklist.
+    // manually for the cross-assignee follow-up worklists.
     let leadsOut: any[] = leads;
-    if (followUp === "due") {
+    if (followUp === "due" || followUp === "all") {
       const assigneeIds = [...new Set(leads.map((l: any) => l.assignedToId).filter(Boolean))];
       const assignees = assigneeIds.length
         ? await prisma.user.findMany({ where: { id: { in: assigneeIds as string[] } }, select: { id: true, name: true } })
@@ -133,6 +162,7 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
     const lead = await db().carLead.create({
       data: {
         organizationId: req.organizationId!,
+        leadType: data.leadType,
         name: data.name,
         phone: data.phone || undefined,
         email: data.email || undefined,
@@ -249,8 +279,10 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
 
       for (const rawRow of batch) {
         // Defensive lowercase — the frontend already normalises keys, but
-        // don't assume every caller does.
-        const row: Record<string, any> = {};
+        // don't assume every caller does. Object.create(null) means a
+        // sheet column literally named "__proto__" just becomes an own
+        // property here instead of polluting Object.prototype.
+        const row: Record<string, any> = Object.create(null);
         for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
 
         const name = pick(row, FIELD_ALIASES.name);
@@ -416,6 +448,7 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
     const parsed = vehicleSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const v = parsed.data;
+    const soldAt = v.soldAt ? new Date(v.soldAt) : undefined;
     const vehicle = await db().vehicle.create({
       data: {
         organizationId: req.organizationId!,
@@ -425,8 +458,12 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
         purchasePrice: v.purchasePrice, salePrice: v.salePrice, status: v.status,
         sellerName: v.sellerName, sellerPhone: v.sellerPhone, sellerEmail: v.sellerEmail || undefined,
         purchasedAt: v.purchasedAt ? new Date(v.purchasedAt) : undefined,
+        registrationDate: v.registrationDate ? new Date(v.registrationDate) : undefined,
         ownerName: v.ownerName, ownerPhone: v.ownerPhone, ownerEmail: v.ownerEmail || undefined,
-        soldAt: v.soldAt ? new Date(v.soldAt) : undefined,
+        ownerAddress: v.ownerAddress,
+        soldAt,
+        warrantyMonths: v.warrantyMonths,
+        warrantyEndDate: computeWarrantyEndDate(soldAt, v.warrantyMonths),
         assignedToId: v.assignedToId || undefined,
         notes: v.notes,
       },
@@ -443,18 +480,173 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
     const parsed = vehicleSchema.partial().safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const data = parsed.data;
+    const soldAt = data.soldAt !== undefined ? (data.soldAt ? new Date(data.soldAt) : null) : undefined;
+    // Recompute warranty end date if either warrantyMonths or soldAt changed
+    // in this update, using whichever soldAt is now in effect.
+    const effectiveSoldAt = soldAt !== undefined ? soldAt : existing.soldAt;
+    const warrantyEndDate = (data.warrantyMonths !== undefined || soldAt !== undefined)
+      ? (computeWarrantyEndDate(effectiveSoldAt, data.warrantyMonths ?? existing.warrantyMonths) ?? null)
+      : undefined;
     const vehicle = await db().vehicle.update({
       where: { id: existing.id },
       data: {
         ...data,
         ownerEmail: data.ownerEmail === "" ? null : data.ownerEmail,
         sellerEmail: data.sellerEmail === "" ? null : data.sellerEmail,
-        soldAt: data.soldAt !== undefined ? (data.soldAt ? new Date(data.soldAt) : null) : undefined,
+        soldAt,
         purchasedAt: data.purchasedAt !== undefined ? (data.purchasedAt ? new Date(data.purchasedAt) : null) : undefined,
+        registrationDate: data.registrationDate !== undefined ? (data.registrationDate ? new Date(data.registrationDate) : null) : undefined,
+        warrantyEndDate,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
     ok(res, vehicle, "Vehicle updated");
+  } catch (e) { serverError(res, e); }
+}
+
+// Header aliases for a real client's vehicle+insurance tracking sheet
+// (NAME/MOB NUMBER/REG NO/DATE OF REG/ADDRESS/ENG NO/CHASSIS NO/MAKE/
+// MODEL-VAR/FUEL/INS TYPE/INS CO NAME/IDV/OD/NCB/PREM/EXPIRY-RENEWAL/
+// PAYMENT MODE/SHARING) — same generous-matching + notes-fallback approach
+// as bulkImportCarLeads, so nothing gets silently dropped here either.
+const VEHICLE_FIELD_ALIASES: Record<string, string[]> = {
+  ownerName: ["name", "owner name", "customer name"],
+  ownerPhone: ["mob numb", "mobile", "mob number", "mobile number", "contact", "phone"],
+  registrationNo: ["reg no", "registration no", "registration number", "reg. no"],
+  registrationDate: ["date of reg", "date of registration", "reg date"],
+  ownerAddress: ["address"],
+  engineNo: ["eng no", "engine no", "engine number"],
+  chassisNo: ["chassis no", "chassis number"],
+  make: ["make"],
+  model: ["model/var", "model", "model / variant", "variant"],
+  fuelType: ["fuel"],
+  insType: ["ins type", "insurance type"],
+  insProvider: ["ins co nam", "ins co name", "insurance company", "insurer"],
+  idv: ["idv"],
+  odAmount: ["od"],
+  ncb: ["ncb"],
+  premium: ["prem", "premium"],
+  expiry: ["expiry/reni", "expiry", "renewal", "expiry/renewal"],
+  paymentMode: ["payment m", "payment mode"],
+  sharing: ["sharing"],
+};
+
+function vpick(row: Record<string, any>, keys: string[]): string {
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== undefined && v !== null) {
+      const s = String(v).trim();
+      if (s && s.toUpperCase() !== "NA") return s;
+    }
+  }
+  return "";
+}
+
+function parseSheetDate(raw: string): Date | undefined {
+  if (!raw) return undefined;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
+const INS_TYPE_MAP: Record<string, string> = {
+  "THIRD PARTY": "THIRD_PARTY", "TP": "THIRD_PARTY", "COMPREHENSIVE": "COMPREHENSIVE",
+  "COMP": "COMPREHENSIVE", "ZERO DEP": "ZERO_DEP", "ZERO DEPRECIATION": "ZERO_DEP", "BUMPER TO BUMPER": "ZERO_DEP",
+};
+
+// Bulk-import vehicles (+ their insurance, if present) from a client's own
+// tracking sheet. Each row creates one SOLD Vehicle (since it names an
+// owner) and, when insurance columns are present, one VehicleInsurance too.
+export async function bulkImportVehicles(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const { vehicles: rawRows, assignedToId } = req.body;
+    if (!Array.isArray(rawRows) || rawRows.length === 0) { badRequest(res, "vehicles array is required"); return; }
+    if (rawRows.length > 1000) { badRequest(res, "Max 1000 rows per import"); return; }
+
+    const orgId = req.organizationId!;
+    const results = { created: 0, skipped: 0, errors: [] as string[] };
+    const recognizedKeys = new Set(Object.values(VEHICLE_FIELD_ALIASES).flat());
+
+    for (const rawRow of rawRows) {
+      // Object.create(null): a sheet column literally named "__proto__"
+      // must not be able to pollute Object.prototype via row[k] = v below.
+      const row: Record<string, any> = Object.create(null);
+      for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
+
+      const ownerName = vpick(row, VEHICLE_FIELD_ALIASES.ownerName);
+      const make = vpick(row, VEHICLE_FIELD_ALIASES.make);
+      const regNo = vpick(row, VEHICLE_FIELD_ALIASES.registrationNo);
+      if (!ownerName && !regNo) { results.skipped++; continue; }
+
+      if (regNo) {
+        const exists = await db().vehicle.findFirst({ where: { organizationId: orgId, registrationNo: regNo } });
+        if (exists) { results.skipped++; continue; }
+      }
+
+      const noteLines: string[] = [];
+      for (const [key, value] of Object.entries(row)) {
+        if (recognizedKeys.has(key)) continue;
+        const v = (value ?? "").toString().trim();
+        if (v && v.toUpperCase() !== "NA") noteLines.push(`${key}: ${v}`);
+      }
+
+      const vehicle = await db().vehicle.create({
+        data: {
+          organizationId: orgId,
+          make: make || "Unknown",
+          model: vpick(row, VEHICLE_FIELD_ALIASES.model) || "Unknown",
+          registrationNo: regNo || undefined,
+          registrationDate: parseSheetDate(vpick(row, VEHICLE_FIELD_ALIASES.registrationDate)),
+          engineNo: vpick(row, VEHICLE_FIELD_ALIASES.engineNo) || undefined,
+          chassisNo: vpick(row, VEHICLE_FIELD_ALIASES.chassisNo) || undefined,
+          fuelType: vpick(row, VEHICLE_FIELD_ALIASES.fuelType) || undefined,
+          status: "SOLD",
+          ownerName: ownerName || undefined,
+          ownerPhone: vpick(row, VEHICLE_FIELD_ALIASES.ownerPhone) || undefined,
+          ownerAddress: vpick(row, VEHICLE_FIELD_ALIASES.ownerAddress) || undefined,
+          assignedToId: assignedToId || undefined,
+          notes: noteLines.length > 0 ? noteLines.join("\n") : undefined,
+        },
+      });
+
+      const insProvider = vpick(row, VEHICLE_FIELD_ALIASES.insProvider);
+      const expiryRaw = vpick(row, VEHICLE_FIELD_ALIASES.expiry);
+      const expiryDate = parseSheetDate(expiryRaw);
+      if (insProvider && expiryDate) {
+        const insTypeRaw = vpick(row, VEHICLE_FIELD_ALIASES.insType).toUpperCase();
+        await db().vehicleInsurance.create({
+          data: {
+            organizationId: orgId,
+            vehicleId: vehicle.id,
+            provider: insProvider,
+            type: INS_TYPE_MAP[insTypeRaw] || "THIRD_PARTY",
+            startDate: expiryDate > new Date() ? new Date(new Date(expiryDate).setFullYear(expiryDate.getFullYear() - 1)) : new Date(),
+            endDate: expiryDate,
+            premium: parseFloat(vpick(row, VEHICLE_FIELD_ALIASES.premium)) || undefined,
+            idv: parseFloat(vpick(row, VEHICLE_FIELD_ALIASES.idv)) || undefined,
+            odAmount: parseFloat(vpick(row, VEHICLE_FIELD_ALIASES.odAmount)) || undefined,
+            ncb: parseFloat(vpick(row, VEHICLE_FIELD_ALIASES.ncb)) || undefined,
+            paymentMode: vpick(row, VEHICLE_FIELD_ALIASES.paymentMode) || undefined,
+            sharing: vpick(row, VEHICLE_FIELD_ALIASES.sharing) || undefined,
+          },
+        });
+      }
+
+      results.created++;
+    }
+
+    bustCache(req.organizationId!, "/api/cars");
+    ok(res, results);
+  } catch (e) { serverError(res, e); }
+}
+
+// Warranty tab: every sold vehicle that has warranty info, soonest-expiring first.
+export async function listWarranties(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const vehicles = await db().vehicle.findMany({
+      where: { organizationId: req.organizationId!, status: "SOLD", warrantyEndDate: { not: null } },
+      orderBy: { warrantyEndDate: "asc" },
+    });
+    ok(res, { vehicles, total: vehicles.length });
   } catch (e) { serverError(res, e); }
 }
 
@@ -480,6 +672,8 @@ export async function addInsurance(req: OrgRequest, res: Response): Promise<void
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         premium: data.premium,
+        idv: data.idv, odAmount: data.odAmount, ncb: data.ncb,
+        paymentMode: data.paymentMode, sharing: data.sharing,
         notes: data.notes,
       },
     });
