@@ -312,8 +312,45 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
 }
 
 // ── Bulk Import Modal ─────────────────────────────────────────
+// Quote-aware — real exports (HubSpot included) routinely quote fields that
+// contain commas (e.g. a company name like "Janata Sahakari Bank, Yeola"), and
+// a plain line.split(",") would silently shift every column after it.
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cur += c; }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ",") { out.push(cur.trim()); cur = ""; }
+      else cur += c;
+    }
+  }
+  out.push(cur.trim());
+  return out;
+}
+
+function parseLeadCsvText(csvText: string): Record<string, string>[] {
+  const lines = csvText.trim().split("\n");
+  const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+  return lines.slice(1).map(line => {
+    const vals = parseCsvLine(line);
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
+    return obj;
+  });
+}
+
 function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onClose: () => void; onImported: () => void }) {
   const [csvText, setCsvText] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [fileRows, setFileRows] = useState<Record<string, any>[] | null>(null);
+  const [fileError, setFileError] = useState("");
   const [source, setSource] = useState("OTHER");
   const [campaignId, setCampaignId] = useState("");
   const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
@@ -321,18 +358,30 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
 
   const sample = `name,phone,email,company,city\nRaj Patel,9876543210,raj@abc.com,ABC Corp,Mumbai\nPriya Singh,9123456789,,XYZ Ltd,Delhi`;
 
+  async function handleFile(file: File) {
+    setFileError(""); setFileName(file.name); setFileRows(null);
+    try {
+      if (file.name.toLowerCase().endsWith(".csv")) {
+        const text = await file.text();
+        setFileRows(parseLeadCsvText(text));
+      } else {
+        const XLSX = await import("xlsx");
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, any>[];
+        setFileRows(rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim().toLowerCase(), v]))));
+      }
+    } catch {
+      setFileError("Could not read this file. Make sure it's a valid .csv or .xlsx file.");
+    }
+  }
+
   async function doImport() {
-    if (!csvText.trim()) return;
+    const rows = fileRows ?? (csvText.trim() ? parseLeadCsvText(csvText) : null);
+    if (!rows || rows.length === 0) return;
     setImporting(true);
     try {
-      const lines = csvText.trim().split("\n");
-      const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-      const rows = lines.slice(1).map(line => {
-        const vals = line.split(",").map(v => v.trim().replace(/^"(.*)"$/, "$1"));
-        const obj: Record<string, string> = {};
-        headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
-        return obj;
-      });
       const r = await api.post("/leads/bulk-import", { leads: rows, source, campaignId: campaignId || undefined });
       setResult(r.data.data);
       if (r.data.data.created > 0) onImported();
@@ -341,6 +390,8 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
     }
     setImporting(false);
   }
+
+  const canImport = !!fileRows?.length || !!csvText.trim();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
@@ -366,8 +417,20 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80" }}>{sample}</div>
-            <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>Supports JustDial, Facebook Leads, IndiaMart CSV exports. Columns: name, phone, email, company, city</p>
+            <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>
+              Works with your own template or a real CRM export — HubSpot's contacts export (First Name/Last Name, Phone Number, Associated Company, Lead Status, etc.) is recognized directly, along with JustDial, Facebook Leads, and IndiaMart exports. Any column that isn't recognized is still kept, added to that lead's notes instead of being dropped.
+            </p>
+            <div>
+              <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Upload a File (.csv or .xlsx)</label>
+              <label style={{ ...S.ghost, width: "100%", justifyContent: "center", cursor: "pointer", padding: "14px" }}>
+                <Upload style={{ width: 14, height: 14 }} />
+                {fileName || "Choose a CSV or Excel file…"}
+                <input type="file" accept=".csv,.xlsx,.xls" style={{ display: "none" }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              </label>
+              {fileError && <p style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{fileError}</p>}
+              {fileRows && <p style={{ fontSize: 11, color: "#4ade80", marginTop: 4 }}>{fileRows.length} row{fileRows.length !== 1 ? "s" : ""} ready to import</p>}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Source</label>
@@ -383,13 +446,16 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
                 </select>
               </div>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Paste CSV Data</label>
-              <textarea style={{ ...S.inp, width: "100%", resize: "vertical", minHeight: 140, fontFamily: "monospace", fontSize: 11 } as React.CSSProperties} value={csvText} onChange={e => setCsvText(e.target.value)} placeholder={sample} />
+            <div className="flex items-center gap-3">
+              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+              <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>or paste CSV text</span>
+              <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
             </div>
+            <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80" }}>{sample}</div>
+            <textarea style={{ ...S.inp, width: "100%", resize: "vertical", minHeight: 100, fontFamily: "monospace", fontSize: 11 } as React.CSSProperties} value={csvText} onChange={e => { setCsvText(e.target.value); setFileRows(null); setFileName(""); }} placeholder={sample} />
             <div className="flex justify-end gap-3">
               <button onClick={onClose} style={S.ghost}>Cancel</button>
-              <button onClick={doImport} disabled={importing || !csvText.trim()} style={S.btn}><Upload style={{ width: 12, height: 12 }} />{importing ? "Importing…" : "Import"}</button>
+              <button onClick={doImport} disabled={importing || !canImport} style={S.btn}><Upload style={{ width: 12, height: 12 }} />{importing ? "Importing…" : "Import"}</button>
             </div>
           </div>
         )}

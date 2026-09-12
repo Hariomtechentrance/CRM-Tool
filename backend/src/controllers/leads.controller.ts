@@ -234,6 +234,50 @@ export async function addLeadActivity(req: OrgRequest, res: Response): Promise<v
   } catch (e) { serverError(res, e); }
 }
 
+// Header aliases wide enough to cover both our own simple template
+// (name,phone,email,company,city) and real CRM exports — HubSpot's contacts
+// export in particular splits First/Last Name, calls the phone column
+// "Phone Number", and names the company column "Associated Company".
+// Same generous-matching + notes-fallback approach as the Cars module's
+// importers, so a real export's columns are never silently dropped.
+const LEAD_FIELD_ALIASES: Record<string, string[]> = {
+  name: ["name", "full name", "contact name"],
+  firstName: ["first name"],
+  lastName: ["last name"],
+  phone: ["phone", "phone number", "mobile", "mobile number", "mobile_phone", "contact number"],
+  email: ["email", "email address", "email_address"],
+  company: ["company", "company name", "company_name", "associated company", "organization"],
+  city: ["city", "location"],
+  industry: ["industry"],
+  leadStatus: ["lead status", "status"],
+  createDate: ["create date", "created date"],
+  lastActivityDate: ["last activity date", "last activity"],
+};
+
+function leadPick(row: Record<string, any>, keys: string[]): string {
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+}
+
+// HubSpot (and similar CRMs') lead-status strings, mapped to our enum —
+// generous on purpose since every export spells these slightly differently.
+const IMPORT_STATUS_MAP: Record<string, string> = {
+  NEW: "NEW", OPEN: "NEW", "OPEN DEAL": "QUALIFIED",
+  "ATTEMPTED TO CONTACT": "CONTACTED", "IN PROGRESS": "CONTACTED", CONNECTED: "CONTACTED", CONTACTED: "CONTACTED",
+  QUALIFIED: "QUALIFIED", "BAD TIMING": "LOST", UNQUALIFIED: "LOST", LOST: "LOST",
+  PROPOSAL: "PROPOSAL", NEGOTIATION: "NEGOTIATION",
+  WON: "WON", CUSTOMER: "WON",
+};
+
+function parseImportDate(raw: string): Date | undefined {
+  if (!raw) return undefined;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
 // ── Bulk import leads from CSV ────────────────────────────────
 export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
@@ -245,25 +289,46 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
 
     const results = { created: 0, skipped: 0, errors: [] as string[] };
     const orgId = req.organizationId!;
+    const recognizedKeys = new Set(Object.values(LEAD_FIELD_ALIASES).flat());
 
     const batchSize = 50;
     for (let i = 0; i < rawLeads.length; i += batchSize) {
       const batch = rawLeads.slice(i, i + batchSize);
       const toCreate: any[] = [];
 
-      for (const row of batch) {
-        const name = (row.name || row.Name || row["Full Name"] || row["first_name"] || "").toString().trim();
+      for (const rawRow of batch) {
+        const row: Record<string, any> = Object.create(null);
+        for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
+
+        const directName = leadPick(row, LEAD_FIELD_ALIASES.name);
+        const combinedName = [leadPick(row, LEAD_FIELD_ALIASES.firstName), leadPick(row, LEAD_FIELD_ALIASES.lastName)].filter(Boolean).join(" ").trim();
+        const name = directName || combinedName;
         if (!name) { results.skipped++; continue; }
 
-        const phone = (row.phone || row.Phone || row["Mobile"] || row["mobile_phone"] || "").toString().trim();
-        const email = (row.email || row.Email || row["email_address"] || "").toString().trim();
-        const company = (row.company || row.Company || row["company_name"] || "").toString().trim();
-        const city = (row.city || row.City || row["location"] || "").toString().trim();
+        const phone = leadPick(row, LEAD_FIELD_ALIASES.phone);
+        const email = leadPick(row, LEAD_FIELD_ALIASES.email);
+        const company = leadPick(row, LEAD_FIELD_ALIASES.company);
+        const city = leadPick(row, LEAD_FIELD_ALIASES.city);
+        const rawStatus = leadPick(row, LEAD_FIELD_ALIASES.leadStatus).toUpperCase();
+        const status = IMPORT_STATUS_MAP[rawStatus] || "NEW";
+        const createdAt = parseImportDate(leadPick(row, LEAD_FIELD_ALIASES.createDate)) ?? new Date();
+        const lastContactedAt = parseImportDate(leadPick(row, LEAD_FIELD_ALIASES.lastActivityDate));
 
         // Deduplicate by phone within same org
         if (phone) {
           const exists = await db().lead.findFirst({ where: { organizationId: orgId, phone } });
           if (exists) { results.skipped++; continue; }
+        }
+
+        // Anything not mapped to a real column (e.g. HubSpot's Record ID,
+        // Contact owner, Primary Associated Company ID) is preserved as a
+        // labeled note line rather than silently dropped.
+        const noteLines: string[] = [];
+        if (rawStatus && !IMPORT_STATUS_MAP[rawStatus]) noteLines.push(`Status (from import): ${rawStatus}`);
+        for (const [key, value] of Object.entries(row)) {
+          if (recognizedKeys.has(key)) continue;
+          const v = (value ?? "").toString().trim();
+          if (v) noteLines.push(`${key}: ${v}`);
         }
 
         toCreate.push({
@@ -274,11 +339,14 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
           email: email || undefined,
           company: company || undefined,
           city: city || undefined,
+          industry: leadPick(row, LEAD_FIELD_ALIASES.industry) || undefined,
           source,
-          status: "NEW",
+          status,
+          notes: noteLines.length > 0 ? noteLines.join("\n") : undefined,
           campaignId: campaignId || undefined,
           assignedToId: assignedToId || undefined,
-          createdAt: new Date(),
+          createdAt,
+          lastContactedAt,
           updatedAt: new Date(),
         });
       }

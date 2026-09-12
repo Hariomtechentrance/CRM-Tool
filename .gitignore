@@ -38,3 +38,6 @@ Thumbs.db
 
 # ── Claude Code ───────────────────────────────────────────────
 .claude/
+
+# ── Client data exports (real contact PII — never commit) ─────
+*.csv
