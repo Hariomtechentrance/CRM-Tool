@@ -340,7 +340,9 @@ function parseLeadCsvText(csvText: string): Record<string, string>[] {
   const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
   return lines.slice(1).map(line => {
     const vals = parseCsvLine(line);
-    const obj: Record<string, string> = {};
+    // Object.create(null): a CSV header literally named "__proto__" must not
+    // be able to pollute Object.prototype via obj[h] = ... below.
+    const obj: Record<string, string> = Object.create(null);
     headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
     return obj;
   });
