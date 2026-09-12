@@ -106,7 +106,7 @@ function dueLabel(dateStr?: string): { text: string; color: string; group: "over
 // ═══════════════════════════════════════════════════════════════
 // Add / Edit Lead modal
 // ═══════════════════════════════════════════════════════════════
-export function LeadModal({ lead, defaultLeadType, onClose, onSaved }: { lead: CarLead | null; defaultLeadType?: "BUYER" | "SELLER"; onClose: () => void; onSaved: () => void }) {
+export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }: { lead: CarLead | null; defaultLeadType?: "BUYER" | "SELLER"; onClose: () => void; onSaved: () => void; onConvert?: (lead: CarLead) => void }) {
   const [form, setForm] = useState({
     leadType: lead?.leadType ?? defaultLeadType ?? "BUYER",
     name: lead?.name ?? "", phone: lead?.phone ?? "", email: lead?.email ?? "",
@@ -119,6 +119,12 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved }: { lead: C
     assignedToId: lead?.assignedToId ?? "",
     nextFollowUpDate: lead?.nextFollowUpDate ? lead.nextFollowUpDate.slice(0, 10) : "",
   });
+  // Captured once at open — an existing lead can't be re-saved until its
+  // status is deliberately changed from whatever it was when opened, so a
+  // call never gets logged (notes/follow-up date updated) without the
+  // status decision that's supposed to go with it.
+  const [initialStatus] = useState(lead?.status ?? null);
+  const statusUnchanged = !!lead && form.status === initialStatus;
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -129,6 +135,7 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved }: { lead: C
 
   async function save() {
     if (!form.name.trim()) { setErr("Name is required"); return; }
+    if (statusUnchanged) { setErr("Update the status before saving — that's what tells the team this lead was actually followed up on."); return; }
     setSaving(true); setErr("");
     try {
       const payload: any = {
@@ -182,25 +189,31 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved }: { lead: C
             </select>
           </div>
           <div>
-            <label style={S.label}>Status</label>
-            <select style={{ ...S.inp, width: "100%" }} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-              {LEAD_STATUSES.filter(s => s !== "CONVERTED").map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
-            </select>
-          </div>
-          <div>
             <label style={S.label}>Assign To</label>
             <select style={{ ...S.inp, width: "100%" }} value={form.assignedToId} onChange={e => setForm({ ...form, assignedToId: e.target.value })}>
               <option value="">Unassigned</option>
               {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
             </select>
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <label style={S.label}>Next Follow-up Date</label>
             <input type="date" style={{ ...S.inp, width: "100%" }} value={form.nextFollowUpDate} onChange={e => setForm({ ...form, nextFollowUpDate: e.target.value })} />
           </div>
           <div className="sm:col-span-2">
             <label style={S.label}>Notes</label>
             <textarea style={{ ...S.inp, width: "100%", minHeight: 70, resize: "vertical" } as React.CSSProperties} placeholder='e.g. "Called twice, not answered"' value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label style={S.label}>
+              Status {lead && (
+                <span style={{ marginLeft: 6, fontWeight: 700, textTransform: "none", letterSpacing: 0, color: statusUnchanged ? "#f87171" : "#4ade80" }}>
+                  {statusUnchanged ? "— update this before saving" : "✓ updated"}
+                </span>
+              )}
+            </label>
+            <select style={{ ...S.inp, width: "100%", border: lead && statusUnchanged ? "1px solid #f87171" : undefined }} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+              {LEAD_STATUSES.filter(s => s !== "CONVERTED").map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
+            </select>
           </div>
         </div>
         <div className="flex items-center gap-4 mt-3">
@@ -213,9 +226,18 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved }: { lead: C
             Test Drive Done
           </label>
         </div>
-        <div className="flex justify-end gap-3 mt-4">
-          <button onClick={onClose} style={S.ghost}>Cancel</button>
-          <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : lead ? "Save Changes" : "Add Lead"}</button>
+        <div className="flex items-center justify-between gap-3 mt-4">
+          <div>
+            {lead && lead.status !== "CONVERTED" && onConvert && (
+              <button onClick={() => onConvert(lead)} style={S.ghost}>
+                {lead.leadType === "SELLER" ? "Buy Car" : "Convert to Sale"} <ArrowRight style={{ width: 12, height: 12 }} />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onClose} style={S.ghost}>Cancel</button>
+            <button onClick={save} disabled={saving || statusUnchanged} style={{ ...S.btn, opacity: statusUnchanged ? 0.5 : 1, cursor: statusUnchanged ? "not-allowed" : "pointer" }}>{saving ? "Saving…" : lead ? "Save Changes" : "Add Lead"}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1126,47 +1148,15 @@ export default function CarsPage() {
           <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No {tab === "sellerleads" ? "seller " : ""}leads yet — add one or import a CSV.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {leads.map(l => {
-              const st = LEAD_STATUS[l.status] || LEAD_STATUS.NEW;
-              return (
-                <div key={l.id} style={S.card}>
-                  <div className="flex items-start justify-between mb-2">
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{l.name}</div>
-                    <div className="flex items-center gap-1">
-                      {l.testDriveDone && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: "#14532d", color: "#4ade80", fontWeight: 700 }}>TD Done</span>}
-                      {l.isDoNotCall && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: "#450a0a", color: "#f87171", fontWeight: 700 }}>DND</span>}
-                      <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
-                    </div>
-                  </div>
-                  {(l.interestedMake || l.interestedModel) && (
-                    <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4 }}>
-                      {l.leadType === "SELLER" ? "Selling: " : "Wants: "}{[l.interestedMake, l.interestedModel].filter(Boolean).join(" ")}
-                    </div>
-                  )}
-                  {(l.budgetMin || l.budgetMax) && (
-                    <div style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 6 }}>
-                      {l.leadType === "SELLER" ? "Asking" : "Budget"}: ₹{(l.budgetMin ?? 0).toLocaleString("en-IN")} – ₹{(l.budgetMax ?? 0).toLocaleString("en-IN")}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 mb-2" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
-                    {l.phone && <span className="flex items-center gap-1"><Phone size={11} /> {l.phone}</span>}
-                    {l.email && <span className="flex items-center gap-1"><Mail size={11} /> {l.email}</span>}
-                  </div>
-                  {l.notes && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 4, fontStyle: "italic" }}>"{l.notes}"</div>}
-                  {employeeName(l.assignedToId) && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 8 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{employeeName(l.assignedToId)}</strong></div>}
-                  <div className="flex items-center gap-2 mt-2">
-                    <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
-                    {l.status !== "CONVERTED" && (
-                      l.leadType === "SELLER" ? (
-                        <button onClick={() => setAcquireLead(l)} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Buy Car <ArrowRight size={11} /></button>
-                      ) : (
-                        <button onClick={() => setConvertLead(l)} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Convert <ArrowRight size={11} /></button>
-                      )
-                    )}
-                  </div>
+            {leads.map(l => (
+              <div key={l.id} style={{ ...S.card, cursor: "pointer" }} onClick={() => { setEditLead(l); setShowLeadModal(true); }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>{l.name}</div>
+                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
+                  <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up <ArrowRight size={11} /></button>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )
       ) : tab === "vehicles" ? (
@@ -1414,7 +1404,15 @@ export default function CarsPage() {
         </div>
       )}
 
-      {showLeadModal && <LeadModal lead={editLead} defaultLeadType={tab === "sellerleads" ? "SELLER" : "BUYER"} onClose={() => setShowLeadModal(false)} onSaved={load} />}
+      {showLeadModal && (
+        <LeadModal
+          lead={editLead}
+          defaultLeadType={tab === "sellerleads" ? "SELLER" : "BUYER"}
+          onClose={() => setShowLeadModal(false)}
+          onSaved={load}
+          onConvert={(l) => { setShowLeadModal(false); if (l.leadType === "SELLER") setAcquireLead(l); else setConvertLead(l); }}
+        />
+      )}
       {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={load} />}
       {convertLead && <ConvertModal lead={convertLead} onClose={() => setConvertLead(null)} onConverted={() => { load(); setTab("vehicles"); }} />}
       {insuranceFor && <InsuranceModal vehicle={insuranceFor} onClose={() => setInsuranceFor(null)} onSaved={load} />}
