@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
-import { CheckCircle, Clock, AlertCircle, User, Users, Briefcase, Activity, Calendar, TrendingUp } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, User, Users, Briefcase, Activity, Calendar, TrendingUp, ShieldCheck } from "lucide-react";
 import TodaysFollowUps from "@/components/TodaysFollowUps";
+import { isWBAOrg } from "@/lib/org";
+import { WBA_CATEGORIES, WBA_STATUSES } from "@/pages/wba/WBAPage";
 
 const today = new Date();
 
@@ -53,9 +55,16 @@ interface MyData {
   projects: Array<{ id: string; name: string; status: string; endDate?: string }>;
 }
 
+interface MyWBAProject {
+  id: string; projectName: string; clientName: string; category: string; status: string;
+  clientDeadline?: string | null; myDeadline?: string | null;
+}
+
 export default function EmployeeDashboard() {
   const { employeeProfile, activeOrg } = useAuthStore();
+  const wbaOrg = isWBAOrg(activeOrg);
   const [data, setData] = useState<MyData | null>(null);
+  const [wbaProjects, setWbaProjects] = useState<MyWBAProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"ALL" | "TODO" | "IN_PROGRESS" | "DONE">("ALL");
 
@@ -65,8 +74,14 @@ export default function EmployeeDashboard() {
       const r = await api.get("/projects/my-tasks");
       setData(r.data.data);
     } catch { /* ignore */ }
+    if (wbaOrg) {
+      try {
+        const r = await api.get("/wba/projects/my");
+        setWbaProjects(r.data.data ?? []);
+      } catch { /* ignore */ }
+    }
     setLoading(false);
-  }, []);
+  }, [wbaOrg]);
 
   const updateStatus = async (taskId: string, status: string) => {
     try { await api.patch(`/projects/tasks/${taskId}`, { status }); load(); }
@@ -185,6 +200,41 @@ export default function EmployeeDashboard() {
           }
         </div>
       </div>
+
+      {wbaOrg && (
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+            <ShieldCheck size={14} /> My Service Delivery Projects
+          </div>
+          {wbaProjects.length === 0
+            ? <div style={{ fontSize: 13, color: "var(--text-ghost)", padding: "16px 0" }}>Not staffed on any project yet.</div>
+            : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
+                {wbaProjects.map(p => {
+                  const st = WBA_STATUSES[p.status] || { label: p.status, color: "#818CF8", bg: "#1e1b4b" };
+                  const deadline = p.myDeadline || p.clientDeadline;
+                  const daysLeft = deadline ? Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000) : null;
+                  return (
+                    <div key={p.id} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "10px 12px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6, marginBottom: 4 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{p.projectName}</div>
+                        <Badge text={st.label} color={st.color} />
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 4 }}>{p.clientName} · {WBA_CATEGORIES[p.category] || p.category}</div>
+                      {daysLeft !== null && (
+                        <div style={{ fontSize: 11, color: daysLeft < 0 ? "#ef4444" : daysLeft < 7 ? "#f59e0b" : "var(--text-ghost)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <Calendar size={10} />
+                          {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d remaining`}{p.myDeadline ? " (your deadline)" : " (client deadline)"}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          }
+        </div>
+      )}
 
       {/* Task List */}
       <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>

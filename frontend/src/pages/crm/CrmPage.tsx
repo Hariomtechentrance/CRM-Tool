@@ -10,6 +10,9 @@ import api from "@/lib/api";
 import { getInitials, formatDateTime } from "@/lib/utils";
 import type { Party, CrmStats, PartyType } from "@/types";
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from "@/stores/authStore";
+import { isWBAOrg } from "@/lib/org";
+import LeadsPage from "@/pages/leads/LeadsPage";
 
 interface FollowUp {
   id: string;
@@ -117,6 +120,11 @@ const TYPE_BADGE: Record<PartyType, { label: string; variant: "blue" | "green" |
 export default function CrmPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { activeOrg } = useAuthStore();
+  const wbaOrg = isWBAOrg(activeOrg);
+  // WBA: leads live inside the CRM module now (Marketing is disabled for
+  // them) — everything else about CRM is unchanged for every other org.
+  const [mainTab, setMainTab] = useState<"parties" | "leads">(wbaOrg ? "leads" : "parties");
   const [activeTab, setActiveTab]   = useState<PartyType | "ALL">("ALL");
   const [search, setSearch]         = useState("");
   const [parties, setParties]       = useState<Party[]>([]);
@@ -149,9 +157,12 @@ export default function CrmPage() {
     finally { setLoading(false); }
   }, [activeTab, search, page]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  // WBA lands on the Leads tab by default — skip fetching Parties data until
+  // that tab is actually opened, so it isn't wasted on every page load.
+  const showingParties = !wbaOrg || mainTab === "parties";
+  useEffect(() => { if (showingParties) fetchStats(); }, [fetchStats, showingParties]);
   useEffect(() => { setPage(1); }, [activeTab, search]);
-  useEffect(() => { fetchParties(); }, [fetchParties]);
+  useEffect(() => { if (showingParties) fetchParties(); }, [fetchParties, showingParties]);
 
   const handleSaved = (party: Party) => {
     fetchParties();
@@ -159,8 +170,34 @@ export default function CrmPage() {
     navigate(`/crm/${party.id}`);
   };
 
+  if (wbaOrg && mainTab === "leads") {
+    return (
+      <div className="space-y-3">
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
+          {(["leads", "parties"] as const).map(t => (
+            <button key={t} onClick={() => setMainTab(t)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${mainTab === t ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+              {t === "leads" ? "Leads" : "Customers / Suppliers"}
+            </button>
+          ))}
+        </div>
+        <LeadsPage />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {wbaOrg && (
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
+          {(["leads", "parties"] as const).map(t => (
+            <button key={t} onClick={() => setMainTab(t)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${mainTab === t ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+              {t === "leads" ? "Leads" : "Customers / Suppliers"}
+            </button>
+          ))}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

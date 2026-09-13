@@ -372,7 +372,7 @@ function ProjectCard({ project, level, myEmployeeId, onChanged }: { project: WBA
           </span>
         ))}
         {project.members.length === 0 && <span style={{ fontSize: 11.5, color: "var(--text-ghost)" }}>Unstaffed</span>}
-        {level === "OWNER" && (
+        {CAN_WRITE.includes(level) && (
           <button onClick={() => setShowAssign(true)}
             style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "#2FB8A6", background: "none", border: "1px dashed rgba(47,184,166,0.4)", borderRadius: 99, padding: "2px 9px", cursor: "pointer" }}>
             <UserPlus size={12} /> Assign team

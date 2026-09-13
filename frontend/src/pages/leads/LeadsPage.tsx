@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { kPhone, kAlpha } from "@/lib/fieldRules";
 import { useAuthStore } from "@/stores/authStore";
 import { isWBAOrg, isWBAAssignmentManager } from "@/lib/org";
+import { WBA_CATEGORIES } from "@/pages/wba/WBAPage";
 
 const LEAD_FIELD_FILTER: Record<string, React.KeyboardEventHandler<HTMLInputElement>> = { phone: kPhone, phone2: kPhone, city: kAlpha };
 const LEAD_FIELD_MAXLEN: Record<string, number> = { phone: 15, phone2: 15, city: 100 };
@@ -495,6 +496,60 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
 }
 
 // ── Lead Card ─────────────────────────────────────────────────
+// ── Convert to Service Delivery project (WBA only) ─────────────
+function ConvertToProjectModal({ lead, onClose, onConverted }: { lead: Lead; onClose: () => void; onConverted: () => void }) {
+  const [category, setCategory] = useState("");
+  const [clientDeadline, setClientDeadline] = useState("");
+  const [resources, setResources] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function save() {
+    if (!category) { setErr("Pick a service category"); return; }
+    setSaving(true); setErr("");
+    try {
+      await api.post(`/leads/${lead.id}/convert`, { category, clientDeadline: clientDeadline || undefined, resources: resources || undefined });
+      onConverted(); onClose();
+    } catch (e: any) {
+      setErr(e.response?.data?.message ?? "Conversion failed");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-sm mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Start Project — {lead.name}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        {err && <p className="text-xs mb-3" style={{ color: "#f87171" }}>{err}</p>}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Service Category *</label>
+            <select style={{ ...S.inp, width: "100%" }} value={category} onChange={e => setCategory(e.target.value)}>
+              <option value="">Select…</option>
+              {Object.entries(WBA_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Client Deadline</label>
+            <input style={{ ...S.inp, width: "100%" }} type="date" value={clientDeadline} onChange={e => setClientDeadline(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Resources</label>
+            <input style={{ ...S.inp, width: "100%" }} value={resources} onChange={e => setResources(e.target.value)} placeholder="Tools, docs, scope notes…" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-4">
+          <button onClick={onClose} style={S.ghost}>Cancel</button>
+          <button onClick={save} disabled={saving || !category} style={S.btn}>{saving ? "Starting…" : "Start Project"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LeadCard({ lead, employees, wbaOrg, onLog, onBook, onEdit, onRefresh }: {
   lead: Lead; employees: Employee[]; wbaOrg: boolean; onLog: () => void; onBook: () => void; onEdit: () => void; onRefresh: () => void;
 }) {
@@ -511,6 +566,7 @@ function LeadCard({ lead, employees, wbaOrg, onLog, onBook, onEdit, onRefresh }:
   const isOverdue = !!followUpDate && followUpDate < now && !closed;
   const isDueToday = !!followUpDate && !isOverdue && followUpDate.toDateString() === now.toDateString();
   const assignee = employees.find(e => e.id === lead.assignedToId);
+  const [showConvert, setShowConvert] = useState(false);
 
   async function convertToDeal() {
     if (!window.confirm(`Convert "${lead.name}" to a Deal?`)) return;
@@ -574,11 +630,12 @@ function LeadCard({ lead, employees, wbaOrg, onLog, onBook, onEdit, onRefresh }:
         <button onClick={onBook} style={{ ...S.ghost, padding: "5px 9px", fontSize: 11 }}><Calendar style={{ width: 10, height: 10 }} /> Book</button>
         <button onClick={onEdit} style={{ ...S.ghost, padding: "5px 9px", fontSize: 11 }}>Edit</button>
         {(lead.status === "QUALIFIED" || lead.status === "PROPOSAL") && (
-          <button onClick={convertToDeal} style={{ ...S.btn, padding: "5px 9px", fontSize: 11, marginLeft: "auto" }}>
-            <ArrowRight style={{ width: 10, height: 10 }} /> Deal
+          <button onClick={wbaOrg ? () => setShowConvert(true) : convertToDeal} style={{ ...S.btn, padding: "5px 9px", fontSize: 11, marginLeft: "auto" }}>
+            <ArrowRight style={{ width: 10, height: 10 }} /> {wbaOrg ? "Start Project" : "Deal"}
           </button>
         )}
       </div>
+      {showConvert && <ConvertToProjectModal lead={lead} onClose={() => setShowConvert(false)} onConverted={onRefresh} />}
     </div>
   );
 }

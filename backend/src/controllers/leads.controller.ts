@@ -387,11 +387,38 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
   } catch (e) { serverError(res, e); }
 }
 
-// ── Convert lead to deal ──────────────────────────────────────
+const WBA_SERVICE_CATEGORIES = ["VAPT", "GRC", "SOC", "DIGITAL_FORENSICS", "AWARENESS_TRAINING", "COACHING"];
+
+// ── Convert lead to deal (or, for WBA, straight to a Service Delivery
+// project — their actual sales process has no separate Deal/Quotation
+// stage before delivery starts) ──────────────────────────────────
 export async function convertLeadToDeal(req: OrgRequest, res: Response): Promise<void> {
   try {
     const lead = await db().lead.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
+
+    if (await isWBAOrgId(req.organizationId!)) {
+      const { category, clientDeadline, resources } = req.body as { category?: string; clientDeadline?: string; resources?: string };
+      if (!category || !WBA_SERVICE_CATEGORIES.includes(category)) {
+        badRequest(res, "A valid service category is required", { category: WBA_SERVICE_CATEGORIES }); return;
+      }
+      const project = await db().wBAProject.create({
+        data: {
+          organizationId: req.organizationId!,
+          projectName: lead.company || lead.name,
+          clientName: lead.company || lead.name,
+          description: lead.notes || undefined,
+          category,
+          resources: resources || undefined,
+          clientDeadline: clientDeadline ? new Date(clientDeadline) : undefined,
+          createdById: req.userId,
+        },
+      });
+      await db().lead.update({ where: { id: req.params.id as string }, data: { status: "WON", convertedAt: new Date() } });
+      bustCache(req.organizationId!, "/api/leads");
+      created(res, { project, message: "Lead converted to a Service Delivery project" });
+      return;
+    }
 
     const deal = await db().deal.create({
       data: {
