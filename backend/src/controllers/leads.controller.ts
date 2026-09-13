@@ -78,7 +78,23 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
       endOfToday.setHours(23, 59, 59, 999);
       where.status = { notIn: ["WON", "LOST"] };
       where.noFollowUp = false;
-      where.nextFollowUpDate = { lte: endOfToday };
+      if (await isWBAOrgId(req.organizationId!)) {
+        // WBA: a lead with no explicit follow-up date is still "due" once it's
+        // gone 48h without contact — same implicit rule getLeadStats already
+        // uses for the Overdue count, so this list and that count agree.
+        // Nested under AND (not assigned to where.OR directly) so it can't
+        // collide with the `search` OR-clause below if both are ever combined.
+        const cutoff = new Date(Date.now() - LEAD_DEFAULT_FOLLOWUP_MS);
+        where.AND = [...(where.AND ?? []), {
+          OR: [
+            { nextFollowUpDate: { lte: endOfToday } },
+            { nextFollowUpDate: null, lastContactedAt: { lt: cutoff } },
+            { nextFollowUpDate: null, lastContactedAt: null, createdAt: { lt: cutoff } },
+          ],
+        }];
+      } else {
+        where.nextFollowUpDate = { lte: endOfToday };
+      }
     }
     if (search) {
       where.OR = [
