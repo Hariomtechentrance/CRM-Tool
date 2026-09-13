@@ -9,17 +9,21 @@ import { MemberRole } from "@prisma/client";
 // (OWNER/ADMIN/MANAGER/STAFF) — a platform ADMIN auto-bypasses every
 // module's access checks org-wide, which makes it impossible to express
 // "the org owner is the only administrator of this module" using the
-// generic role alone. Instead we key off each person's platform-wide Job
-// Role (Employee.orgRole: MANAGER | ACCOUNTANT | PROJECT_MANAGER |
-// EXECUTIVE | STAFF | INTERN | HR — see JOB_ROLES in org.controller.ts),
-// which is set per-person rather than being an org-wide bypass:
+// generic role alone. Instead we key off each person's Employee record —
+// but that record has two independent "role" conventions depending on how
+// it was created: a plain HR-module employee's orgRole comes from
+// ORG_ROLES (EMPLOYEE | TEAM_LEAD | PROJECT_MANAGER | HR | MANAGEMENT —
+// see HRPage.tsx), while an employee created with a login account instead
+// gets one of JOB_ROLES (MANAGER | ACCOUNTANT | PROJECT_MANAGER | EXECUTIVE
+// | STAFF | INTERN | HR — see org.controller.ts). Both "MANAGEMENT" and
+// "MANAGER" are accepted as the same tier here since either can show up:
 //   OWNER      — the org owner: full control, including staffing a
 //                project's team (adding employees to the org itself is a
 //                separate, HR-module permission, not this one).
 //   PM         — orgRole "PROJECT_MANAGER": creates/edits projects, sets
 //                status & deadlines, and staffs the team too.
-//   LEADERSHIP — orgRole "MANAGER": read-only visibility into every
-//                project and every deadline, no write actions.
+//   LEADERSHIP — orgRole "MANAGEMENT" or "MANAGER": read-only visibility
+//                into every project and every deadline, no write actions.
 //   STAFF      — everyone else: sees only projects they're assigned to.
 // Orgs that haven't adopted the orgRole convention fall back to the
 // generic platform role so the module still works out of the box.
@@ -34,7 +38,7 @@ async function getAccessLevel(req: OrgRequest): Promise<WBALevel> {
   });
 
   if (employee?.orgRole === "PROJECT_MANAGER") return "PM";
-  if (employee?.orgRole === "MANAGER") return "LEADERSHIP";
+  if (employee?.orgRole === "MANAGEMENT" || employee?.orgRole === "MANAGER") return "LEADERSHIP";
 
   // Fallback for orgs not using the orgRole convention on their Employee records.
   if (!employee?.orgRole) {
