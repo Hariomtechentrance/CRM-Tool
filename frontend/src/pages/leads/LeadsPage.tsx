@@ -640,6 +640,85 @@ function LeadCard({ lead, employees, wbaOrg, onLog, onBook, onEdit, onRefresh }:
   );
 }
 
+// ── Due / Overdue leads worklist (WBA) — opened from the clickable
+// "Follow-ups Today" / "Overdue" stat tiles ────────────────────
+function DueLeadsModal({ employees, onClose, onChanged }: { employees: Employee[]; onClose: () => void; onChanged: () => void }) {
+  const [items, setItems] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [logLead, setLogLead] = useState<Lead | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await api.get("/leads?followUp=due&limit=200");
+      setItems(r.data.data.leads ?? []);
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const now = new Date();
+  const withDue = items.map(l => {
+    const explicit = l.nextFollowUpDate ? new Date(l.nextFollowUpDate) : null;
+    const implicit = !explicit ? new Date(new Date(l.lastContactedAt ?? l.createdAt).getTime() + 48 * 3600 * 1000) : null;
+    const due = explicit ?? implicit!;
+    return { lead: l, due, overdue: due < now };
+  }).sort((a, b) => a.due.getTime() - b.due.getTime());
+
+  const overdue = withDue.filter(x => x.overdue);
+  const today = withDue.filter(x => !x.overdue);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl w-full max-w-2xl mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
+        <div className="flex items-center justify-between p-5 pb-4">
+          <div>
+            <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Follow-ups Due</h3>
+            <p className="text-xs" style={{ color: "var(--text-ghost)" }}>{overdue.length} overdue · {today.length} due today</p>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        <div className="px-5 pb-5 overflow-y-auto" style={{ flex: 1 }}>
+          {loading ? (
+            <div className="text-center py-10 text-xs" style={{ color: "var(--text-ghost)" }}>Loading…</div>
+          ) : withDue.length === 0 ? (
+            <div className="text-center py-10 text-xs" style={{ color: "var(--text-ghost)" }}>Nothing due — you're all caught up.</div>
+          ) : (
+            <div className="space-y-4">
+              {[["Overdue", overdue, "#f87171"], ["Due Today", today, "#fbbf24"]].map(([label, group, color]: any) => group.length > 0 && (
+                <div key={label}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>{label} ({group.length})</p>
+                  <div className="space-y-2">
+                    {group.map(({ lead, due }: { lead: Lead; due: Date }) => {
+                      const assignee = employees.find(e => e.id === lead.assignedToId);
+                      return (
+                        <div key={lead.id} className="flex items-center justify-between gap-3 rounded-lg p-3" style={{ background: "var(--bg-hover)" }}>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{lead.name}</span>
+                              <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, fontWeight: 700, background: STATUS_CONFIG[lead.status]?.bg, color: STATUS_CONFIG[lead.status]?.color }}>{STATUS_CONFIG[lead.status]?.label}</span>
+                            </div>
+                            <div className="text-xs" style={{ color: "var(--text-ghost)" }}>
+                              {lead.company || lead.phone || "—"}{assignee ? ` · ${assignee.name}` : ""} · {due.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                            </div>
+                          </div>
+                          <button onClick={() => setLogLead(lead)} style={{ ...S.ghost, flexShrink: 0 }}><CheckCircle style={{ width: 12, height: 12 }} /> Log</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      {logLead && <LogActivityModal lead={logLead} wbaOrg onClose={() => setLogLead(null)} onSaved={() => { setLogLead(null); load(); onChanged(); }} />}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────
 export default function LeadsPage() {
   const { t } = useTranslation();
@@ -661,6 +740,7 @@ export default function LeadsPage() {
   const [logLead, setLogLead] = useState<Lead | null>(null);
   const [bookLead, setBookLead] = useState<Lead | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showDueModal, setShowDueModal] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -721,15 +801,18 @@ export default function LeadsPage() {
       {stats && (
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
           {[
-            { label: "Total", value: stats.total, color: "#818cf8" },
-            { label: "My Queue", value: stats.myQueue, color: "#60a5fa" },
-            { label: "Follow-ups Today", value: stats.todayFollowUps, color: "#fbbf24" },
-            { label: "Overdue", value: stats.overdue, color: "#f87171" },
-            { label: "Won", value: stats.won, color: "#4ade80" },
-            { label: "Lost", value: stats.lost, color: "#94a3b8" },
-            { label: "Conv %", value: `${stats.convRate}%`, color: stats.convRate > 20 ? "#4ade80" : "#fbbf24" },
+            { label: "Total", value: stats.total, color: "#818cf8", onClick: () => { setTab("all"); setFilterStatus(""); setSearch(""); setPage(1); } },
+            { label: "My Queue", value: stats.myQueue, color: "#60a5fa", onClick: () => setTab("queue") },
+            { label: "Follow-ups Today", value: stats.todayFollowUps, color: "#fbbf24", onClick: () => setShowDueModal(true) },
+            { label: "Overdue", value: stats.overdue, color: "#f87171", onClick: () => setShowDueModal(true) },
+            { label: "Won", value: stats.won, color: "#4ade80", onClick: () => { setTab("all"); setFilterStatus("WON"); setSearch(""); setPage(1); } },
+            { label: "Lost", value: stats.lost, color: "#94a3b8", onClick: () => { setTab("all"); setFilterStatus("LOST"); setSearch(""); setPage(1); } },
+            { label: "Conv %", value: `${stats.convRate}%`, color: stats.convRate > 20 ? "#4ade80" : "#fbbf24", onClick: undefined },
           ].map(k => (
-            <div key={k.label} style={{ ...S.card, padding: "12px 14px" }}>
+            <div key={k.label} onClick={wbaOrg ? k.onClick : undefined}
+              style={{ ...S.card, padding: "12px 14px", cursor: wbaOrg && k.onClick ? "pointer" : "default" }}
+              onMouseEnter={e => { if (wbaOrg && k.onClick) e.currentTarget.style.borderColor = k.color; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}>
               <div className="text-xl font-bold" style={{ color: k.color }}>{k.value}</div>
               <div className="text-[11px] leading-tight" style={{ color: "var(--text-ghost)" }}>{k.label}</div>
             </div>
@@ -837,6 +920,7 @@ export default function LeadsPage() {
       {logLead && <LogActivityModal lead={logLead} wbaOrg={wbaOrg} onClose={() => setLogLead(null)} onSaved={load} />}
       {bookLead && <BookAppointmentModal lead={bookLead} onClose={() => setBookLead(null)} onSaved={load} />}
       {showImport && <ImportModal campaigns={campaigns} onClose={() => setShowImport(false)} onImported={load} />}
+      {showDueModal && <DueLeadsModal employees={employees} onClose={() => setShowDueModal(false)} onChanged={load} />}
     </div>
   );
 }

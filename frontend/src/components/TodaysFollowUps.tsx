@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PhoneCall, Car, Building2, ArrowUpRight } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
+import { isWBAOrg } from "@/lib/org";
 import api from "@/lib/api";
 
 interface FollowUpItem {
@@ -39,8 +40,12 @@ function dueLabel(dateStr?: string): { text: string; color: string } {
 export default function TodaysFollowUps() {
   const { moduleAccess, activeOrg, user } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
-  const canSeeMarketing = isOrgAdmin || moduleAccess.includes("MARKETING");
+  const wbaOrg = isWBAOrg(activeOrg);
+  // WBA: leads live inside the CRM module now (Marketing is disabled for
+  // them), so CRM access earns the same worklist visibility Marketing would.
+  const canSeeMarketing = isOrgAdmin || moduleAccess.includes("MARKETING") || (wbaOrg && moduleAccess.includes("CRM"));
   const canSeeCars = isOrgAdmin || moduleAccess.includes("CARS");
+  const leadsPath = wbaOrg ? "/crm" : "/marketing";
   const navigate = useNavigate();
   const [items, setItems] = useState<FollowUpItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +94,7 @@ export default function TodaysFollowUps() {
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           {hasLeads && (
-            <button onClick={() => navigate("/marketing")} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={() => navigate(leadsPath)} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
               Leads <ArrowUpRight size={13} />
             </button>
           )}
@@ -107,7 +112,7 @@ export default function TodaysFollowUps() {
           return (
             <div
               key={`${it.kind}-${it.id}`}
-              onClick={() => navigate(isCar ? `/cars?open=${it.id}` : `/marketing?open=${it.id}`)}
+              onClick={() => navigate(isCar ? `/cars?open=${it.id}` : `${leadsPath}?open=${it.id}`)}
               style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", cursor: "pointer",
                 borderBottom: i < arr.length - 1 ? "1px solid var(--bg-hover)" : "none",
