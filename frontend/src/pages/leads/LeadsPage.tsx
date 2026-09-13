@@ -5,7 +5,7 @@ import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import { useTranslation } from 'react-i18next';
 import { kPhone, kAlpha } from "@/lib/fieldRules";
 import { useAuthStore } from "@/stores/authStore";
-import { isWBAOrg } from "@/lib/org";
+import { isWBAOrg, isWBAAssignmentManager } from "@/lib/org";
 
 const LEAD_FIELD_FILTER: Record<string, React.KeyboardEventHandler<HTMLInputElement>> = { phone: kPhone, phone2: kPhone, city: kAlpha };
 const LEAD_FIELD_MAXLEN: Record<string, number> = { phone: 15, phone2: 15, city: 100 };
@@ -51,7 +51,7 @@ interface Employee { id: string; name: string; designation?: string; }
 
 // ── Activity Log Modal ────────────────────────────────────────
 function LogActivityModal({ lead, wbaOrg, onClose, onSaved }: { lead: Lead; wbaOrg: boolean; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ type: "CALL", subject: "", description: "", outcome: "", callOutcome: "", duration: "", followUpDate: "", noFollowUp: false });
+  const [form, setForm] = useState({ type: "CALL", subject: "", description: "", outcome: "", callOutcome: "", duration: "", followUpDate: "", noFollowUp: false, status: lead.status });
   const [saving, setSaving] = useState(false);
   const f = (k: string) => (v: string | boolean) => setForm(p => ({
 ...p, [k]: v }));
@@ -59,9 +59,14 @@ function LogActivityModal({ lead, wbaOrg, onClose, onSaved }: { lead: Lead; wbaO
   // WBA: for an Answered call or a Wrong Number, offer "no follow-up needed"
   const canSkipFollowUp = wbaOrg && form.type === "CALL" && (form.callOutcome === "ANSWERED" || form.callOutcome === "WRONG_NUMBER");
   const skipFollowUp = canSkipFollowUp && form.noFollowUp;
+  // WBA: a logged call isn't saved until it's paired with a status decision —
+  // same rule as the Cars module's lead editor, so a call never gets logged
+  // with the lead's stage left stale.
+  const statusUnchanged = wbaOrg && form.status === lead.status;
 
   async function save() {
     if (!form.description.trim()) return;
+    if (statusUnchanged) return;
     setSaving(true);
     try {
       await api.post(`/leads/${lead.id}/activities`, {
@@ -72,6 +77,7 @@ function LogActivityModal({ lead, wbaOrg, onClose, onSaved }: { lead: Lead; wbaO
         duration: form.duration ? parseInt(form.duration) : undefined,
         followUpDate: skipFollowUp ? undefined : (form.followUpDate || undefined),
         noFollowUp: skipFollowUp || undefined,
+        status: wbaOrg ? form.status : undefined,
       });
       onSaved(); onClose();
     } finally { setSaving(false); }
@@ -130,10 +136,23 @@ function LogActivityModal({ lead, wbaOrg, onClose, onSaved }: { lead: Lead; wbaO
               No follow-up needed for this lead
             </label>
           )}
+          {wbaOrg && (
+            <div>
+              <label className="block text-[11px] font-semibold mb-1" style={{ color: statusUnchanged ? "#f87171" : "#4ade80" }}>
+                Status {statusUnchanged ? "— update this before saving" : "✓ updated"}
+              </label>
+              <select style={{ ...S.inp, width: "100%", border: statusUnchanged ? "1px solid #f87171" : undefined }} value={form.status} onChange={e => f("status")(e.target.value)}>
+                {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
-          <button onClick={save} disabled={saving || !form.description.trim()} style={S.btn}>{saving ? "Saving…" : "Log Activity"}</button>
+          <button onClick={save} disabled={saving || !form.description.trim() || statusUnchanged}
+            style={{ ...S.btn, opacity: (statusUnchanged) ? 0.5 : 1, cursor: statusUnchanged ? "not-allowed" : "pointer" }}>
+            {saving ? "Saving…" : "Log Activity"}
+          </button>
         </div>
       </div>
     </div>
@@ -199,6 +218,12 @@ function BookAppointmentModal({ lead, onClose, onSaved }: { lead: Lead; onClose:
 
 // ── Lead Form Modal ───────────────────────────────────────────
 export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: { lead?: Lead | null; employees: Employee[]; campaigns?: any[]; onClose: () => void; onSaved: () => void }) {
+  const { activeOrg, user } = useAuthStore();
+  // WBA: everyone can add/edit a lead, but only Shubham may assign it to an
+  // employee — enforced server-side too, this just keeps the control from
+  // inviting a rejected request from anyone else.
+  const wbaOrg = isWBAOrg(activeOrg);
+  const canAssign = !wbaOrg || isWBAAssignmentManager(user?.email);
   const [form, setForm] = useState({
     name: lead?.name ?? "", company: lead?.company ?? "", email: lead?.email ?? "",
     phone: lead?.phone ?? "", phone2: lead?.phone2 ?? "", city: lead?.city ?? "",
@@ -273,8 +298,11 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
               <input style={{ ...S.inp, width: "100%" }} type="number" value={form.value} onChange={e => f("value")(e.target.value)} />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Assign To</label>
-              <select style={{ ...S.inp, width: "100%" }} value={form.assignedToId} onChange={e => f("assignedToId")(e.target.value)}>
+              <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>
+                Assign To {!canAssign && <span style={{ fontWeight: 400, textTransform: "none" }}>(Shubham only)</span>}
+              </label>
+              <select style={{ ...S.inp, width: "100%", opacity: canAssign ? 1 : 0.6, cursor: canAssign ? "auto" : "not-allowed" }}
+                value={form.assignedToId} onChange={e => f("assignedToId")(e.target.value)} disabled={!canAssign}>
                 <option value="">Unassigned</option>
                 {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
