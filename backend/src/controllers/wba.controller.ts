@@ -13,10 +13,11 @@ import { MemberRole } from "@prisma/client";
 // Role (Employee.orgRole: MANAGER | ACCOUNTANT | PROJECT_MANAGER |
 // EXECUTIVE | STAFF | INTERN | HR — see JOB_ROLES in org.controller.ts),
 // which is set per-person rather than being an org-wide bypass:
-//   OWNER      — the org owner: full control, the only one who can add
-//                employees or staff a project's team.
+//   OWNER      — the org owner: full control, including staffing a
+//                project's team (adding employees to the org itself is a
+//                separate, HR-module permission, not this one).
 //   PM         — orgRole "PROJECT_MANAGER": creates/edits projects, sets
-//                status & deadlines, but cannot staff the team.
+//                status & deadlines, and staffs the team too.
 //   LEADERSHIP — orgRole "MANAGER": read-only visibility into every
 //                project and every deadline, no write actions.
 //   STAFF      — everyone else: sees only projects they're assigned to.
@@ -182,7 +183,7 @@ export async function createProject(req: OrgRequest, res: Response): Promise<voi
         quotationId: verifiedQuotationId,
         createdById: req.userId!,
         members: {
-          create: level === "OWNER"
+          create: CAN_WRITE.includes(level)
             ? (members || []).map((m) => ({
                 employeeId: m.employeeId,
                 employeeDeadline: m.employeeDeadline ? new Date(m.employeeDeadline) : null,
@@ -249,11 +250,11 @@ export async function updateProject(req: OrgRequest, res: Response): Promise<voi
 }
 
 // ── Assign / update a team member on the project ────────────────
-// Staffing a project is the org owner's call alone.
+// Staffing a project is the org owner's or the Project Manager's call.
 export async function addMember(req: OrgRequest, res: Response): Promise<void> {
   try {
     const level = await getAccessLevel(req);
-    if (level !== "OWNER") { forbidden(res, "Only the org owner can assign employees to a project."); return; }
+    if (!CAN_WRITE.includes(level)) { forbidden(res, "Only the org owner or the Project Manager can assign employees to a project."); return; }
 
     const orgId = req.organizationId!;
     const id = req.params.id as string;
@@ -281,7 +282,7 @@ export async function addMember(req: OrgRequest, res: Response): Promise<void> {
 export async function removeMember(req: OrgRequest, res: Response): Promise<void> {
   try {
     const level = await getAccessLevel(req);
-    if (level !== "OWNER") { forbidden(res, "Only the org owner can update a project's team."); return; }
+    if (!CAN_WRITE.includes(level)) { forbidden(res, "Only the org owner or the Project Manager can update a project's team."); return; }
 
     const orgId = req.organizationId!;
     const id = req.params.id as string;
@@ -350,7 +351,7 @@ export async function convertOpportunity(req: OrgRequest, res: Response): Promis
         quotationId: quotation.id,
         createdById: req.userId!,
         members: {
-          create: level === "OWNER"
+          create: CAN_WRITE.includes(level)
             ? (members || []).map((m) => ({
                 employeeId: m.employeeId,
                 employeeDeadline: m.employeeDeadline ? new Date(m.employeeDeadline) : null,
