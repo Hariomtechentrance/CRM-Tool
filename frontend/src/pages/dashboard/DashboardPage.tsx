@@ -14,6 +14,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import api from "@/lib/api";
 import EmployeeDashboard from "./EmployeeDashboard";
 import TodaysFollowUps from "@/components/TodaysFollowUps";
+import { isWBAOrg } from "@/lib/org";
 
 interface Stats {
   members: number; parties: number; invoices: number; orders: number;
@@ -66,6 +67,7 @@ const cardHeader: React.CSSProperties = { padding: "16px 20px", borderBottom: "1
 export default function DashboardPage() {
   const { activeOrg, moduleAccess, employeeProfile } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
+  const wbaOrg = isWBAOrg(activeOrg);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const currency = activeOrg?.currency || "INR";
@@ -134,6 +136,10 @@ export default function DashboardPage() {
   // bypass here would show widgets for modules the org never enabled at all.
   const canSee = (key: string) => moduleAccess.includes(key);
   const bentoLayout = canSee("ACCOUNTS") && canSee("DISPATCH") && canSee("PURCHASE");
+  // WBA: leads live inside the CRM module now (Marketing is disabled for
+  // them), so CRM access earns the same lead widgets Marketing would.
+  const canSeeLeads = canSee("MARKETING") || (wbaOrg && canSee("CRM"));
+  const leadsHref = wbaOrg ? "/crm" : "/marketing";
 
   return (
     <div className="page-pad" style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 1400 }}>
@@ -158,9 +164,12 @@ export default function DashboardPage() {
           <TodaysFollowUps />
 
           {/* KPI Row — financial (bento: revenue is the featured hero card) */}
-          {(canSee("ACCOUNTS") || canSee("DISPATCH")) && (
+          {/* WBA: no real invoicing happens here (their business is service
+              delivery, not billing through this org), so Total Revenue and
+              Outstanding Dues are hidden — every other org keeps them. */}
+          {((canSee("ACCOUNTS") && !wbaOrg) || canSee("DISPATCH")) && (
             <div className={bentoLayout ? "bento-kpi" : undefined} style={bentoLayout ? undefined : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-              {canSee("ACCOUNTS") && (
+              {canSee("ACCOUNTS") && !wbaOrg && (
                 <div className={cn("lift", bentoLayout && "bento-hero")} style={{
                   position: "relative", overflow: "hidden",
                   background: "linear-gradient(135deg, var(--brand-color), #1a6483 65%, #175671)",
@@ -189,7 +198,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
-              {canSee("ACCOUNTS") && (
+              {canSee("ACCOUNTS") && !wbaOrg && (
                 <div className={cn("lift", bentoLayout && "bento-b")} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(239,68,68,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -234,7 +243,7 @@ export default function DashboardPage() {
               { label: t("dash_team_members"),    value: stats?.members  ?? 0, icon: <Users size={18} />,       bg: "rgba(116,205,232,0.12)",  color: "#74CDE8", show: true },
               { label: t("dash_parties"),        value: stats?.parties  ?? 0, icon: <FileText size={18} />,    bg: "rgba(116,205,232,0.10)", color: "#74CDE8", show: canSee("CRM") },
               { label: t("dash_products"),       value: stats?.products ?? 0, icon: <Package size={18} />,    bg: "rgba(16,185,129,0.1)",   color: "#34D399", show: canSee("INVENTORY") },
-              { label: t("dash_active_leads"),   value: stats?.leads    ?? 0, icon: <TrendingUp size={18} />, bg: "rgba(245,158,11,0.1)",   color: "#FBBF24", show: canSee("MARKETING") },
+              { label: t("dash_active_leads"),   value: stats?.leads    ?? 0, icon: <TrendingUp size={18} />, bg: "rgba(245,158,11,0.1)",   color: "#FBBF24", show: canSeeLeads },
               { label: t("dash_open_tickets"),   value: stats?.tickets  ?? 0, icon: <Headphones size={18} />, bg: "rgba(239,68,68,0.08)",   color: "#F87171", show: canSee("SUPPORT") },
               { label: t("dash_active_tasks"),   value: stats?.tasks    ?? 0, icon: <Clock size={18} />,      bg: "rgba(139,92,246,0.12)",  color: "#C084FC", show: canSee("PROJECTS") },
             ].filter(s => s.show).map(s => (
@@ -251,7 +260,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts row */}
-          {((canSee("ACCOUNTS") && chartData.length > 0) || (canSee("MARKETING") && leadStages.length > 0)) && (
+          {((canSee("ACCOUNTS") && chartData.length > 0) || (canSeeLeads && leadStages.length > 0)) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Revenue trend */}
@@ -283,7 +292,7 @@ export default function DashboardPage() {
               )}
 
               {/* Lead pipeline */}
-              {canSee("MARKETING") && leadStages.length > 0 && (
+              {canSeeLeads && leadStages.length > 0 && (
               <div style={card}>
                 <div style={cardHeader}>
                   <div>
@@ -367,9 +376,9 @@ export default function DashboardPage() {
                     { label: t("dash_action_new_invoice"),   href: "/accounts",  color: "#34D399", show: canSee("ACCOUNTS") },
                     { label: t("dash_action_add_product"),   href: "/inventory", color: "#C084FC", show: canSee("INVENTORY") },
                     { label: t("dash_action_purchase_order"),href: "/purchase",  color: "#F87171", show: canSee("PURCHASE") },
-                    { label: t("dash_action_log_lead"),      href: "/marketing", color: "#60A5FA", show: canSee("MARKETING") },
+                    { label: t("dash_action_log_lead"),      href: leadsHref,    color: "#60A5FA", show: canSeeLeads },
                   ].filter(a => a.show).map(a => (
-                    <button key={a.href} onClick={() => navigate(a.href)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${a.color}20`, background: a.color + "10", color: a.color, fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left" as const }}>
+                    <button key={a.label} onClick={() => navigate(a.href)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${a.color}20`, background: a.color + "10", color: a.color, fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left" as const }}>
                       {a.label} →
                     </button>
                   ))}
@@ -387,7 +396,7 @@ export default function DashboardPage() {
                       { label: t("dash_invoices"),  total: moduleStats.invoiceStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,  color: "#34D399", show: canSee("ACCOUNTS") },
                       { label: t("dash_orders"),    total: moduleStats.orderStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,    color: "#74CDE8", show: canSee("DISPATCH") },
                       { label: t("dash_purchases"), total: moduleStats.purchaseStats?.reduce((s, i) => s + i._count._all, 0) ?? 0, color: "#C084FC", show: canSee("PURCHASE") },
-                      { label: t("dash_leads"),     total: moduleStats.leadStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,     color: "#FBBF24", show: canSee("MARKETING") },
+                      { label: t("dash_leads"),     total: moduleStats.leadStats?.reduce((s, i) => s + i._count._all, 0) ?? 0,     color: "#FBBF24", show: canSeeLeads },
                     ].filter(m => m.show && m.total > 0).map(m => (
                       <div key={m.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--bg-hover)" }}>
                         <span style={{ fontSize: 12, color: "var(--text-sec)" }}>{m.label}</span>
