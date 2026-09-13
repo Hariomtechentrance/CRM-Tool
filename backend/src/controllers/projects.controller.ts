@@ -14,6 +14,22 @@ const projectSchema = z.object({
   partyId: z.string().optional(),
 });
 
+// zod's `.partial()` only skips re-wrapping a field in `.optional()` when the
+// field already reports itself as optional — which a `.default(...)` field
+// does, since it accepts a missing value. That means `.partial()` leaves it
+// as bare `ZodDefault`, so a key the caller never sent still gets filled in
+// with its schema default (e.g. omitting `priority` on a status-only PATCH
+// would silently reset it to "MEDIUM"). Filtering the parsed result down to
+// keys actually present on the raw request body keeps a partial update
+// genuinely partial.
+function onlyProvided<T extends Record<string, unknown>>(body: Record<string, unknown>, parsed: T): Partial<T> {
+  const out: Partial<T> = {};
+  for (const key of Object.keys(body)) {
+    if (key in parsed) out[key as keyof T] = parsed[key as keyof T];
+  }
+  return out;
+}
+
 const taskSchema = z.object({
   projectId: z.string().optional(),
   sprintId: z.string().optional(),
@@ -86,12 +102,13 @@ export async function updateProject(req: OrgRequest, res: Response): Promise<voi
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
     const existing = await prisma.project.findFirst({ where: { id: (req.params.id as string), organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Project not found"); return; }
+    const provided = onlyProvided(req.body, data.data);
     const project = await prisma.project.update({
       where: { id: (req.params.id as string) },
       data: {
-        ...data.data,
-        ...(data.data.startDate && { startDate: new Date(data.data.startDate) }),
-        ...(data.data.endDate && { endDate: new Date(data.data.endDate) }),
+        ...provided,
+        ...(provided.startDate && { startDate: new Date(provided.startDate) }),
+        ...(provided.endDate && { endDate: new Date(provided.endDate) }),
       },
     });
     ok(res, project);
@@ -139,12 +156,13 @@ export async function updateTask(req: OrgRequest, res: Response): Promise<void> 
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
     const existing = await prisma.task.findFirst({ where: { id: (req.params.id as string), organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Task not found"); return; }
+    const provided = onlyProvided(req.body, data.data);
     const task = await prisma.task.update({
       where: { id: (req.params.id as string) },
       data: {
-        ...data.data,
-        ...(data.data.dueDate && { dueDate: new Date(data.data.dueDate) }),
-        ...(data.data.status === "DONE" && { completedAt: new Date() }),
+        ...provided,
+        ...(provided.dueDate && { dueDate: new Date(provided.dueDate) }),
+        ...(provided.status === "DONE" && { completedAt: new Date() }),
       },
     });
     ok(res, task);
