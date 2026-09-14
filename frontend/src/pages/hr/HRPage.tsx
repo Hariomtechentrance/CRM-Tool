@@ -6,6 +6,7 @@ import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, kPAN, kIFSC } from
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "@/stores/authStore";
 import { isWBAOrg, WBA_DESIGNATIONS, WBA_DEPARTMENTS, WBA_SALARY_TYPES, WBA_LEAVE_TYPES } from "@/lib/org";
+import { ALL_MODULES } from "@/lib/modules";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const now = new Date();
@@ -104,7 +105,19 @@ const LOGIN_JOB_ROLES = [
   { value:"STAFF",           label:"Staff (no modules yet)" },
   { value:"INTERN",          label:"Intern (no modules yet)" },
 ];
-const loginEmpty = { create:false, email:"", password:"", jobRole:"STAFF" };
+// Mirrors backend JOB_ROLES' defaultModules — used only to pre-fill the
+// module checklist below when the admin picks a job role; the backend is
+// the source of truth for what actually gets granted either way.
+const JOB_ROLE_DEFAULT_MODULES: Record<string, string[] | "ALL_ENABLED"> = {
+  MANAGER: "ALL_ENABLED",
+  ACCOUNTANT: ["ACCOUNTS", "REPORTS", "PURCHASE"],
+  PROJECT_MANAGER: ["PROJECTS", "HR", "REPORTS"],
+  EXECUTIVE: ["CRM", "MARKETING", "TELECALLING"],
+  STAFF: [],
+  INTERN: [],
+  HR: ["HR", "REPORTS"],
+};
+const loginEmpty = { create:false, email:"", password:"", jobRole:"STAFF", modules:[] as string[] };
 
 const empEmpty = { employeeCode:"", name:"", email:"", phone:"", designation:"", department:"", employmentType:"FULL_TIME", joiningDate:"", salaryType:"MONTHLY", basicSalary:"", dailyRate:"", hra:"0", allowances:"0", pfEnabled:"", esiEnabled:"", orgRole:"EMPLOYEE", bankAccount:"", bankIfsc:"", panNumber:"", pfNumber:"", esiNumber:"", address:"", notes:"" };
 const attEmpty = { employeeId:"", date:now.toISOString().slice(0,10), status:"PRESENT", checkIn:"", checkOut:"", notes:"" };
@@ -353,7 +366,7 @@ export default function HRPage() {
             setSaving(false); return;
           }
           await api.post(`/hr/${r.data.data.id}/login`, {
-            email, password: loginForm.password, jobRole: loginForm.jobRole,
+            email, password: loginForm.password, jobRole: loginForm.jobRole, modules: loginForm.modules,
           });
         }
       }
@@ -1071,18 +1084,49 @@ export default function HRPage() {
                   {loginForm.create && (
                     <>
                       <div style={{fontSize:11,color:"var(--text-ghost)",margin:"8px 0 10px"}}>
-                        They can sign in immediately with this email + temporary password, then reset it via the link sent to their email. The job role sets their default module access (adjust per-person under Admin → Module Access).
+                        They can sign in immediately with this email + temporary password, then reset it via the link sent to their email. Picking a job role fills in the modules it normally gets — check or uncheck anything below to fit this person specifically.
                       </div>
                       <div className="grid-r2">
                         <div><label style={S.label}>Login Email *</label><input type="email" style={S.input} value={loginForm.email} onChange={e=>setLoginForm(p=>({...p,email:e.target.value}))} placeholder={empForm.email||"name@company.com"}/></div>
                         <div><label style={S.label}>Temporary Password *</label><input style={S.input} value={loginForm.password} onChange={e=>setLoginForm(p=>({...p,password:e.target.value}))} placeholder="Min 8 chars, mixed case + number"/></div>
                       </div>
                       <div style={{marginTop:10}}>
-                        <label style={S.label}>Job Role (default module access)</label>
-                        <select style={S.select} value={loginForm.jobRole} onChange={e=>setLoginForm(p=>({...p,jobRole:e.target.value}))}>
+                        <label style={S.label}>Job Role</label>
+                        <select style={S.select} value={loginForm.jobRole} onChange={e=>{
+                          const jobRole = e.target.value;
+                          const preset = JOB_ROLE_DEFAULT_MODULES[jobRole];
+                          const orgModules = activeOrg?.enabledModules ?? [];
+                          const modules = preset === "ALL_ENABLED" ? [...orgModules] : [...(preset ?? [])];
+                          setLoginForm(p=>({...p, jobRole, modules}));
+                        }}>
                           {LOGIN_JOB_ROLES.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
                         </select>
                       </div>
+                      {loginForm.jobRole === "MANAGER" ? (
+                        <div style={{marginTop:10,fontSize:11,color:"var(--text-ghost)",fontStyle:"italic"}}>
+                          Manager always gets every module the organization has enabled — nothing to pick.
+                        </div>
+                      ) : (
+                        <div style={{marginTop:10}}>
+                          <label style={S.label}>Module Access ({loginForm.modules.length} selected)</label>
+                          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))",gap:6,background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:8,padding:10,maxHeight:220,overflowY:"auto"}}>
+                            {ALL_MODULES.filter(m=>(activeOrg?.enabledModules ?? []).includes(m.key)).map(m=>{
+                              const checked = loginForm.modules.includes(m.key);
+                              return (
+                                <label key={m.key} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-sec)",cursor:"pointer"}}>
+                                  <input type="checkbox" checked={checked} onChange={e=>{
+                                    setLoginForm(p=>({
+                                      ...p,
+                                      modules: e.target.checked ? [...p.modules, m.key] : p.modules.filter(k=>k!==m.key),
+                                    }));
+                                  }}/>
+                                  {m.label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
