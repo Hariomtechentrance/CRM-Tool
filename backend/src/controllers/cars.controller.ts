@@ -228,12 +228,45 @@ export async function deleteCarLead(req: OrgRequest, res: Response): Promise<voi
 // vanishing.
 const FIELD_ALIASES: Record<string, string[]> = {
   name: ["name", "full name", "customer name", "customer"],
-  phone: ["phone", "contact", "mobile", "contact no", "contact no.", "contact number", "mobile number", "phone number"],
+  phone: ["phone", "contact", "mobile", "contact no", "contact no.", "contact number", "mobile number", "phone number", "whatsapp number", "whatsapp"],
+  alternatePhone: ["alternate number", "alternate phone", "alt number", "alt phone", "alternate contact"],
   email: ["email", "email address", "e-mail"],
   model: ["requirement", "model", "car", "vehicle", "interested model", "interested_model"],
+  variant: ["variant"],
   make: ["make", "brand", "interested make", "interested_make"],
   budget: ["budget", "budget range"],
+  budgetMin: ["budget minimum", "min budget", "budget min"],
+  budgetMax: ["budget maximum", "max budget", "budget max"],
   hotStatus: ["hot", "h", "status"],
+  city: ["city", "location"],
+  leadSource: ["lead source", "source"],
+  assignedSalesperson: ["assigned salesperson", "salesperson", "sales person", "assigned to"],
+  condition: ["new / used", "new/used", "condition"],
+  purchaseType: ["purchase type"],
+  expectedPurchaseDate: ["expected purchase date", "purchase plan"],
+  fuelType: ["fuel type"],
+  transmission: ["transmission"],
+  bodyType: ["body type"],
+  downPayment: ["down payment"],
+  exchange: ["exchange"],
+  specificChoice: ["specific choice", "color", "colour"],
+  decisionMaker: ["decision maker"],
+  enquiryDate: ["enquiry date"],
+  notes: ["notes", "note", "remark", "remarks"],
+};
+
+// A dealership's own sheet names its lead source however it likes ("CD" for
+// CarDekho, "OLX", etc.) — map the ones we can recognize onto the enum,
+// anything else falls back to OTHER with the original value kept in notes
+// (same convention as STATUS_CODE_MAP below).
+const LEAD_SOURCE_MAP: Record<string, string> = {
+  "WALK IN": "WALK_IN", "WALK-IN": "WALK_IN", WALKIN: "WALK_IN",
+  PHONE: "PHONE", CALL: "PHONE",
+  WEBSITE: "WEBSITE", SITE: "WEBSITE",
+  INSTAGRAM: "INSTAGRAM", INSTA: "INSTAGRAM",
+  "META ADS": "META_ADS", FACEBOOK: "META_ADS", FB: "META_ADS", META: "META_ADS",
+  SEO: "SEO", GOOGLE: "SEO",
+  REFERRAL: "REFERRAL", REFERENCE: "REFERRAL",
 };
 
 function pick(row: Record<string, any>, keys: string[]): string {
@@ -273,6 +306,16 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
     const batchSize = 50;
     const recognizedKeys = new Set(Object.values(FIELD_ALIASES).flat());
 
+    // "Assigned Salesperson" in a dealership's own sheet is a name, not an
+    // id — resolve it against the org's active employee directory (the same
+    // Employee.id convention the "Assign To" dropdown already uses for this
+    // field), matched case-insensitively. Fetched once, not per row.
+    const employees = await db().employee.findMany({
+      where: { organizationId: orgId, status: "ACTIVE" },
+      select: { id: true, name: true },
+    });
+    const employeeByName = new Map(employees.map((e: { id: string; name: string }) => [e.name.trim().toLowerCase(), e.id]));
+
     for (let i = 0; i < rawLeads.length; i += batchSize) {
       const batch = rawLeads.slice(i, i + batchSize);
       const toCreate: any[] = [];
@@ -294,20 +337,61 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
           if (exists) { results.skipped++; continue; }
         }
 
-        const budget = parseBudgetRange(pick(row, FIELD_ALIASES.budget));
+        // Explicit Budget Minimum/Maximum columns win over a single free-text
+        // "budget" column when both are somehow present.
+        const budgetMinCol = pick(row, FIELD_ALIASES.budgetMin);
+        const budgetMaxCol = pick(row, FIELD_ALIASES.budgetMax);
+        const budget = (budgetMinCol || budgetMaxCol)
+          ? { min: budgetMinCol ? parseFloat(budgetMinCol) : undefined, max: budgetMaxCol ? parseFloat(budgetMaxCol) : undefined }
+          : parseBudgetRange(pick(row, FIELD_ALIASES.budget));
+
         const rawStatus = pick(row, FIELD_ALIASES.hotStatus).toUpperCase();
         const status = STATUS_CODE_MAP[rawStatus] || "NEW";
 
-        // Anything not mapped to a real column is preserved as a labeled
-        // note line, so bulk-importing a client's own sheet never silently
-        // drops data just because a header doesn't match a known alias.
+        const rawSource = pick(row, FIELD_ALIASES.leadSource).toUpperCase();
+        const source = LEAD_SOURCE_MAP[rawSource] || "OTHER";
+
+        const salesperson = pick(row, FIELD_ALIASES.assignedSalesperson);
+        const matchedEmployeeId = salesperson ? employeeByName.get(salesperson.toLowerCase()) : undefined;
+
+        const interestedModel = [pick(row, FIELD_ALIASES.model), pick(row, FIELD_ALIASES.variant)].filter(Boolean).join(" ") || undefined;
+
+        const enquiryDate = parseSheetDate(pick(row, FIELD_ALIASES.enquiryDate) || undefined);
+
+        // Anything not mapped to a real CarLead column is preserved as a
+        // labeled note line, so bulk-importing a client's own sheet never
+        // silently drops data just because a header doesn't match a known
+        // field — this covers both truly unrecognized columns and the
+        // recognized-but-schema-less ones (city, down payment, etc.).
         const noteLines: string[] = [];
         if (rawStatus && !STATUS_CODE_MAP[rawStatus]) noteLines.push(`Status (from sheet): ${rawStatus}`);
+        if (rawSource && !LEAD_SOURCE_MAP[rawSource]) noteLines.push(`Lead Source (from sheet): ${rawSource}`);
+        if (salesperson && !matchedEmployeeId) noteLines.push(`Assigned Salesperson (from sheet, no matching employee): ${salesperson}`);
+        const notesFieldMap: [string, string[]][] = [
+          ["Alternate Number", FIELD_ALIASES.alternatePhone],
+          ["City", FIELD_ALIASES.city],
+          ["New/Used", FIELD_ALIASES.condition],
+          ["Purchase Type", FIELD_ALIASES.purchaseType],
+          ["Expected Purchase Date", FIELD_ALIASES.expectedPurchaseDate],
+          ["Fuel Type", FIELD_ALIASES.fuelType],
+          ["Transmission", FIELD_ALIASES.transmission],
+          ["Body Type", FIELD_ALIASES.bodyType],
+          ["Down Payment", FIELD_ALIASES.downPayment],
+          ["Exchange", FIELD_ALIASES.exchange],
+          ["Specific Choice", FIELD_ALIASES.specificChoice],
+          ["Decision Maker", FIELD_ALIASES.decisionMaker],
+        ];
+        for (const [label, keys] of notesFieldMap) {
+          const v = pick(row, keys);
+          if (v) noteLines.push(`${label}: ${v}`);
+        }
         for (const [key, value] of Object.entries(row)) {
           if (recognizedKeys.has(key)) continue;
           const v = (value ?? "").toString().trim();
           if (v) noteLines.push(`${key}: ${v}`);
         }
+        const sheetNotes = pick(row, FIELD_ALIASES.notes);
+        if (sheetNotes) noteLines.push(sheetNotes);
 
         toCreate.push({
           organizationId: orgId,
@@ -315,13 +399,14 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
           phone: phone || undefined,
           email: pick(row, FIELD_ALIASES.email) || undefined,
           interestedMake: pick(row, FIELD_ALIASES.make) || undefined,
-          interestedModel: pick(row, FIELD_ALIASES.model) || undefined,
+          interestedModel,
           budgetMin: budget.min,
           budgetMax: budget.max,
-          source: "OTHER",
+          source,
           status,
           notes: noteLines.length > 0 ? noteLines.join("\n") : undefined,
-          assignedToId: assignedToId || undefined,
+          assignedToId: matchedEmployeeId || assignedToId || undefined,
+          createdAt: enquiryDate ?? undefined,
         });
       }
 
@@ -542,8 +627,18 @@ function vpick(row: Record<string, any>, keys: string[]): string {
   return "";
 }
 
-function parseSheetDate(raw: string): Date | undefined {
-  if (!raw) return undefined;
+function parseSheetDate(raw: string | number | undefined | null): Date | undefined {
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  // A cell Excel itself renders as a date often reaches us as its raw serial
+  // day-count (days since 1899-12-30) instead of a date string — happens
+  // whenever the reader doesn't request cellDates, or a value got typed as
+  // plain text along the way. Detect that shape before falling back to a
+  // normal Date parse, or a real date like "1/1/2026" silently becomes
+  // whatever `new Date(46280)` (46280 *milliseconds* past epoch) means.
+  const numeric = typeof raw === "number" ? raw : (/^\d+(\.\d+)?$/.test(String(raw).trim()) ? parseFloat(String(raw)) : NaN);
+  if (!isNaN(numeric) && numeric > 20000 && numeric < 60000) {
+    return new Date((numeric - 25569) * 86400 * 1000);
+  }
   const d = new Date(raw);
   return isNaN(d.getTime()) ? undefined : d;
 }

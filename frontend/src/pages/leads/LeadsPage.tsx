@@ -398,7 +398,7 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
       } else {
         const XLSX = await import("xlsx");
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
+        const wb = XLSX.read(buf, { type: "array", cellDates: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, any>[];
         setFileRows(rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim().toLowerCase(), v]))));
