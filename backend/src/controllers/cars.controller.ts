@@ -235,11 +235,13 @@ const FIELD_ALIASES: Record<string, string[]> = {
   variant: ["variant"],
   make: ["make", "brand", "interested make", "interested_make"],
   budget: ["budget", "budget range"],
-  budgetMin: ["budget minimum", "min budget", "budget min"],
-  budgetMax: ["budget maximum", "max budget", "budget max"],
+  budgetMin: ["budget minimum", "min budget", "budget min", "minimum acceptable price"],
+  budgetMax: ["budget maximum", "max budget", "budget max", "expected selling price"],
   hotStatus: ["hot", "h", "status"],
   city: ["city", "location"],
+  area: ["area"],
   leadSource: ["lead source", "source"],
+  campaignName: ["campaign name", "campaign"],
   assignedSalesperson: ["assigned salesperson", "salesperson", "sales person", "assigned to"],
   condition: ["new / used", "new/used", "condition"],
   purchaseType: ["purchase type"],
@@ -249,10 +251,28 @@ const FIELD_ALIASES: Record<string, string[]> = {
   bodyType: ["body type"],
   downPayment: ["down payment"],
   exchange: ["exchange"],
-  specificChoice: ["specific choice", "color", "colour"],
+  specificChoice: ["specific choice"],
   decisionMaker: ["decision maker"],
   enquiryDate: ["enquiry date"],
   notes: ["notes", "note", "remark", "remarks"],
+  leadId: ["lead id"],
+  registrationNumber: ["registration number"],
+  colour: ["colour", "color"],
+  manufacturingYear: ["manufacturing year"],
+  registrationYear: ["registration year"],
+  registrationMonth: ["registration month"],
+  kilometres: ["kilometres", "kilometers", "km", "km driven"],
+  owners: ["owners", "no of owners", "number of owners"],
+  rto: ["rto"],
+  insuranceValidTill: ["insurance valid till"],
+  insuranceType: ["insurance type"],
+  insuranceCompany: ["insurance company"],
+  loanHypothecation: ["loan / hypothecation", "loan/hypothecation", "hypothecation"],
+  financeCompany: ["finance company"],
+  loanOutstanding: ["loan outstanding"],
+  serviceHistory: ["service history"],
+  repairEstimate: ["repair estimate"],
+  expectedRetailPrice: ["expected retail selling price"],
 };
 
 // A dealership's own sheet names its lead source however it likes ("CD" for
@@ -297,7 +317,8 @@ const STATUS_CODE_MAP: Record<string, string> = {
 
 export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { leads: rawLeads, assignedToId } = req.body;
+    const { leads: rawLeads, assignedToId, leadType: rawLeadType } = req.body;
+    const leadType = rawLeadType === "SELLER" ? "SELLER" : "BUYER";
     if (!Array.isArray(rawLeads) || rawLeads.length === 0) { badRequest(res, "leads array is required"); return; }
     if (rawLeads.length > 1000) { badRequest(res, "Max 1000 leads per import"); return; }
 
@@ -333,7 +354,10 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
         const phone = pick(row, FIELD_ALIASES.phone);
 
         if (phone) {
-          const exists = await db().carLead.findFirst({ where: { organizationId: orgId, phone } });
+          // Scoped to the same leadType — the same phone number is a real,
+          // separate lead if they're a buyer in one sheet and a seller in
+          // another, not a duplicate of each other.
+          const exists = await db().carLead.findFirst({ where: { organizationId: orgId, phone, leadType } });
           if (exists) { results.skipped++; continue; }
         }
 
@@ -370,6 +394,8 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
         const notesFieldMap: [string, string[]][] = [
           ["Alternate Number", FIELD_ALIASES.alternatePhone],
           ["City", FIELD_ALIASES.city],
+          ["Area", FIELD_ALIASES.area],
+          ["Campaign Name", FIELD_ALIASES.campaignName],
           ["New/Used", FIELD_ALIASES.condition],
           ["Purchase Type", FIELD_ALIASES.purchaseType],
           ["Expected Purchase Date", FIELD_ALIASES.expectedPurchaseDate],
@@ -380,10 +406,34 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
           ["Exchange", FIELD_ALIASES.exchange],
           ["Specific Choice", FIELD_ALIASES.specificChoice],
           ["Decision Maker", FIELD_ALIASES.decisionMaker],
+          ["Lead ID (from sheet)", FIELD_ALIASES.leadId],
+          ["Registration Number", FIELD_ALIASES.registrationNumber],
+          ["Colour", FIELD_ALIASES.colour],
+          ["Manufacturing Year", FIELD_ALIASES.manufacturingYear],
+          ["Registration Year", FIELD_ALIASES.registrationYear],
+          ["Registration Month", FIELD_ALIASES.registrationMonth],
+          ["Kilometres", FIELD_ALIASES.kilometres],
+          ["Owners", FIELD_ALIASES.owners],
+          ["RTO", FIELD_ALIASES.rto],
+          ["Insurance Type", FIELD_ALIASES.insuranceType],
+          ["Insurance Company", FIELD_ALIASES.insuranceCompany],
+          ["Loan / Hypothecation", FIELD_ALIASES.loanHypothecation],
+          ["Finance Company", FIELD_ALIASES.financeCompany],
+          ["Loan Outstanding", FIELD_ALIASES.loanOutstanding],
+          ["Service History", FIELD_ALIASES.serviceHistory],
+          ["Repair Estimate", FIELD_ALIASES.repairEstimate],
+          ["Expected Retail Selling Price", FIELD_ALIASES.expectedRetailPrice],
         ];
         for (const [label, keys] of notesFieldMap) {
           const v = pick(row, keys);
           if (v) noteLines.push(`${label}: ${v}`);
+        }
+        // Insurance Valid Till often arrives as an Excel serial-date number —
+        // format it as a real date rather than dumping a raw serial into notes.
+        const insValidTillRaw = pick(row, FIELD_ALIASES.insuranceValidTill);
+        if (insValidTillRaw) {
+          const d = parseSheetDate(insValidTillRaw);
+          noteLines.push(`Insurance Valid Till: ${d ? d.toISOString().slice(0, 10) : insValidTillRaw}`);
         }
         for (const [key, value] of Object.entries(row)) {
           if (recognizedKeys.has(key)) continue;
@@ -395,6 +445,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
 
         toCreate.push({
           organizationId: orgId,
+          leadType,
           name,
           phone: phone || undefined,
           email: pick(row, FIELD_ALIASES.email) || undefined,
@@ -603,7 +654,7 @@ const VEHICLE_FIELD_ALIASES: Record<string, string[]> = {
   engineNo: ["eng no", "engine no", "engine number"],
   chassisNo: ["chassis no", "chassis number"],
   make: ["make"],
-  model: ["model/var", "model", "model / variant", "variant"],
+  model: ["model/var", "model", "model / variant", "model/varient", "variant"],
   fuelType: ["fuel"],
   insType: ["ins type", "insurance type"],
   insProvider: ["ins co nam", "ins co name", "insurance company", "insurer"],
@@ -611,7 +662,7 @@ const VEHICLE_FIELD_ALIASES: Record<string, string[]> = {
   odAmount: ["od"],
   ncb: ["ncb"],
   premium: ["prem", "premium"],
-  expiry: ["expiry/reni", "expiry", "renewal", "expiry/renewal"],
+  expiry: ["expiry/reni", "expiry", "renewal", "expiry/renewal", "expiry/renewal date"],
   paymentMode: ["payment m", "payment mode"],
   sharing: ["sharing"],
 };

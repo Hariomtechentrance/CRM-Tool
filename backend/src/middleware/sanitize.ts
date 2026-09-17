@@ -42,8 +42,16 @@ const SECRET_KEYS = new Set([
 // Hard cap per string field — prevents catastrophic backtracking and
 // resource exhaustion from huge single-field payloads.
 const MAX_STRING_LENGTH = 50_000; // 50 KB per field
-// Hard cap on array length — prevents O(n) blowup in recursive sanitiser
-const MAX_ARRAY_LENGTH = 500;
+// Hard cap on array length — prevents O(n) blowup in recursive sanitiser.
+// Must stay >= the largest legitimate array any endpoint accepts in one
+// request body — bulk-import endpoints (cars leads/vehicles, historical
+// stats, HubSpot import, etc.) explicitly document and enforce a 1000-row
+// cap of their own, so anything lower here silently truncates a valid,
+// controller-accepted request before the controller ever sees it (no error,
+// no warning — the back half of the array just vanishes). Confirmed this
+// really happened: a 1000-row dealership sheet import silently dropped to
+// 500 rows with no indication to the user.
+const MAX_ARRAY_LENGTH = 1000;
 
 function sanitizeString(val: string, opts: { secret?: boolean } = {}): string {
   // 1. Truncate first — protects all subsequent regex passes from ReDoS
