@@ -41,3 +41,5 @@ Thumbs.db
 
 # ── Client data exports (real contact PII — never commit) ─────
 *.csv
+*.xlsx
+*.xls

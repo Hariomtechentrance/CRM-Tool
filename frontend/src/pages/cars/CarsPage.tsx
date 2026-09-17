@@ -276,7 +276,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
       } else {
         const XLSX = await import("xlsx");
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
+        const wb = XLSX.read(buf, { type: "array", cellDates: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, any>[];
         // Normalise header casing (e.g. "Name" / "Make") to lowercase keys
@@ -328,7 +328,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
         ) : (
           <div className="space-y-3">
             <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>
-              Works with your own sheet's column names, not just these — Name/Contact/Requirement/Budget/Hot are recognized under many common aliases (e.g. "Contact" or "Mobile" both work as phone). Budget ranges like "5-6lac" are parsed automatically. Any column that isn't recognized is still kept — added to that lead's notes instead of being dropped.
+              Works with your own sheet's column names, not just these — Name/Contact/Requirement/Budget/Hot are recognized under many common aliases (e.g. "Contact" or "Mobile" both work as phone), and a full dealership enquiry sheet (Customer Name, WhatsApp Number, City, Lead Source, Assigned Salesperson, Make, Model, Variant, Budget Minimum/Maximum, Down Payment, Exchange, Decision Maker, Enquiry Date, etc.) is recognized directly. Assigned Salesperson is matched to an existing team member by name. Budget ranges like "5-6lac" are parsed automatically when there's no separate Min/Max column. Any column that isn't recognized is still kept — added to that lead's notes instead of being dropped.
             </p>
 
             <div>
@@ -386,7 +386,7 @@ function VehicleImportModal({ onClose, onImported }: { onClose: () => void; onIm
       } else {
         const XLSX = await import("xlsx");
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
+        const wb = XLSX.read(buf, { type: "array", cellDates: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, any>[];
         setFileRows(rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim().toLowerCase(), v]))));
