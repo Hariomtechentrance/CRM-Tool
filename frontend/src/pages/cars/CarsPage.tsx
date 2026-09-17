@@ -258,7 +258,7 @@ function parseCsvText(csvText: string): Record<string, string>[] {
   });
 }
 
-function ImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "SELLER"; onClose: () => void; onImported: () => void }) {
   const [csvText, setCsvText] = useState("");
   const [fileName, setFileName] = useState("");
   const [fileRows, setFileRows] = useState<Record<string, any>[] | null>(null);
@@ -292,7 +292,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
     if (!rows || rows.length === 0) return;
     setImporting(true);
     try {
-      const r = await api.post("/cars/leads/bulk-import", { leads: rows });
+      const r = await api.post("/cars/leads/bulk-import", { leads: rows, leadType });
       setResult(r.data.data);
       if (r.data.data.created > 0) onImported();
     } catch (e: any) {
@@ -307,7 +307,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
       <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Import Leads (CSV)</h3>
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Import {leadType === "SELLER" ? "Seller " : "Buyer "}Leads (CSV)</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
         </div>
         {result ? (
@@ -1413,7 +1413,7 @@ export default function CarsPage() {
           onConvert={(l) => { setShowLeadModal(false); if (l.leadType === "SELLER") setAcquireLead(l); else setConvertLead(l); }}
         />
       )}
-      {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={load} />}
+      {showImport && <ImportModal leadType={tab === "sellerleads" ? "SELLER" : "BUYER"} onClose={() => setShowImport(false)} onImported={load} />}
       {convertLead && <ConvertModal lead={convertLead} onClose={() => setConvertLead(null)} onConverted={() => { load(); setTab("vehicles"); }} />}
       {insuranceFor && <InsuranceModal vehicle={insuranceFor} onClose={() => setInsuranceFor(null)} onSaved={load} />}
       {(showAddVehicle || acquireLead) && (
