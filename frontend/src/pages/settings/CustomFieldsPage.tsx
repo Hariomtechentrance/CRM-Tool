@@ -14,6 +14,9 @@ const ENTITIES = [
   { key: "PATIENT",        label: "Patients" },
   { key: "PURCHASE_ORDER", label: "Purchase Orders" },
   { key: "SALES_ORDER",    label: "Sales Orders" },
+  { key: "CAR_BUYER_LEAD", label: "Cars — Buyer Leads" },
+  { key: "CAR_SELLER_LEAD",label: "Cars — Seller Leads" },
+  { key: "VEHICLE",        label: "Cars — Vehicles" },
 ];
 
 const FIELD_TYPES = [

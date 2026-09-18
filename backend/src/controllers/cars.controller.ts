@@ -315,6 +315,55 @@ const STATUS_CODE_MAP: Record<string, string> = {
   "NOT INT": "NOT_INTERESTED", "NOT INTERESTED": "NOT_INTERESTED",
 };
 
+// "insurance valid till" -> "Insurance Valid Till" — used to label an
+// unrecognized sheet column when we don't have a nicer name for it.
+function titleCaseHeader(s: string): string {
+  return s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
+    .split(" ").map(w => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
+}
+
+// A sheet import used to flatten every column that doesn't map onto a real
+// schema field (city, down payment, insurance type, ...) into one giant
+// `notes` string — technically nothing was lost, but a user looking at the
+// imported record only sees the handful of structured form fields plus one
+// hard-to-read paragraph, so most of an import's data was effectively
+// invisible. This auto-creates one CustomField definition per such column
+// (org+entity scoped, reusing the exact same label -> fieldKey derivation
+// createField() uses so admin-created and auto-created fields never
+// duplicate each other) and returns a key -> fieldId map so the per-row loop
+// can write a proper, individually-labeled CustomFieldValue for each cell
+// instead of a notes line. Field defs are looked up/created once per import,
+// not per row.
+async function upsertImportCustomFieldDefs(
+  orgId: string,
+  entity: string,
+  defs: { key: string; label: string }[]
+): Promise<Map<string, string>> {
+  const fieldIdByKey = new Map<string, string>();
+  for (const { key, label } of defs) {
+    const fieldKey = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    if (!fieldKey) continue;
+    let field = await db().customField.findUnique({
+      where: { organizationId_entity_fieldKey: { organizationId: orgId, entity, fieldKey } },
+    });
+    if (!field) {
+      try {
+        field = await db().customField.create({
+          data: { organizationId: orgId, entity, label, fieldKey, fieldType: "TEXT" },
+        });
+      } catch {
+        // Raced with a concurrent import creating the same field — re-fetch
+        // rather than fail the whole import over a definition that now exists.
+        field = await db().customField.findUnique({
+          where: { organizationId_entity_fieldKey: { organizationId: orgId, entity, fieldKey } },
+        });
+      }
+    }
+    if (field) fieldIdByKey.set(key, field.id);
+  }
+  return fieldIdByKey;
+}
+
 export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
     const { leads: rawLeads, assignedToId, leadType: rawLeadType } = req.body;
@@ -326,6 +375,75 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
     const results = { created: 0, skipped: 0, errors: [] as string[] };
     const batchSize = 50;
     const recognizedKeys = new Set(Object.values(FIELD_ALIASES).flat());
+    const customFieldEntity = leadType === "SELLER" ? "CAR_SELLER_LEAD" : "CAR_BUYER_LEAD";
+
+    // Columns that are recognized but don't map onto a real CarLead column
+    // (city, down payment, insurance type, ...) — each becomes its own
+    // auto-created custom field (see upsertImportCustomFieldDefs) instead of
+    // one flattened notes line, so every column the sheet has shows up as
+    // its own labeled, visible field on the lead afterward.
+    const notesFieldMap: [string, string[]][] = [
+      ["Alternate Number", FIELD_ALIASES.alternatePhone],
+      ["City", FIELD_ALIASES.city],
+      ["Area", FIELD_ALIASES.area],
+      ["Campaign Name", FIELD_ALIASES.campaignName],
+      ["New/Used", FIELD_ALIASES.condition],
+      ["Purchase Type", FIELD_ALIASES.purchaseType],
+      ["Expected Purchase Date", FIELD_ALIASES.expectedPurchaseDate],
+      ["Fuel Type", FIELD_ALIASES.fuelType],
+      ["Transmission", FIELD_ALIASES.transmission],
+      ["Body Type", FIELD_ALIASES.bodyType],
+      ["Down Payment", FIELD_ALIASES.downPayment],
+      ["Exchange", FIELD_ALIASES.exchange],
+      ["Specific Choice", FIELD_ALIASES.specificChoice],
+      ["Decision Maker", FIELD_ALIASES.decisionMaker],
+      ["Lead ID (from sheet)", FIELD_ALIASES.leadId],
+      ["Registration Number", FIELD_ALIASES.registrationNumber],
+      ["Colour", FIELD_ALIASES.colour],
+      ["Manufacturing Year", FIELD_ALIASES.manufacturingYear],
+      ["Registration Year", FIELD_ALIASES.registrationYear],
+      ["Registration Month", FIELD_ALIASES.registrationMonth],
+      ["Kilometres", FIELD_ALIASES.kilometres],
+      ["Owners", FIELD_ALIASES.owners],
+      ["RTO", FIELD_ALIASES.rto],
+      ["Insurance Valid Till", FIELD_ALIASES.insuranceValidTill],
+      ["Insurance Type", FIELD_ALIASES.insuranceType],
+      ["Insurance Company", FIELD_ALIASES.insuranceCompany],
+      ["Loan / Hypothecation", FIELD_ALIASES.loanHypothecation],
+      ["Finance Company", FIELD_ALIASES.financeCompany],
+      ["Loan Outstanding", FIELD_ALIASES.loanOutstanding],
+      ["Service History", FIELD_ALIASES.serviceHistory],
+      ["Repair Estimate", FIELD_ALIASES.repairEstimate],
+      ["Expected Retail Selling Price", FIELD_ALIASES.expectedRetailPrice],
+    ];
+    const notesFieldLabelByKey = new Map<string, string>();
+    for (const [label, keys] of notesFieldMap) notesFieldLabelByKey.set(keys[0], label);
+
+    // Header scan across the whole sheet (cheap, no DB calls) — decides which
+    // custom-field definitions this import needs, and keeps each genuinely
+    // unknown column's original header text to use as its label.
+    const seenKeys = new Map<string, string>();
+    for (const rawRow of rawLeads) {
+      for (const k of Object.keys(rawRow)) {
+        const norm = k.trim().toLowerCase();
+        if (norm && !seenKeys.has(norm)) seenKeys.set(norm, k.trim());
+      }
+    }
+    const extraFieldDefs: { key: string; label: string }[] = [];
+    for (const [norm, original] of seenKeys) {
+      const covered = notesFieldLabelByKey.has(norm);
+      const unknown = !recognizedKeys.has(norm);
+      if (!covered && !unknown) continue; // maps onto a real CarLead column already
+      extraFieldDefs.push({ key: norm, label: notesFieldLabelByKey.get(norm) || titleCaseHeader(original) });
+    }
+    // "(from sheet)" annotations for values that didn't match a known enum —
+    // only defined when the sheet actually has that column.
+    if (FIELD_ALIASES.hotStatus.some(k => seenKeys.has(k))) extraFieldDefs.push({ key: "__status_from_sheet", label: "Status (from sheet)" });
+    if (FIELD_ALIASES.leadSource.some(k => seenKeys.has(k))) extraFieldDefs.push({ key: "__source_from_sheet", label: "Lead Source (from sheet)" });
+    if (FIELD_ALIASES.assignedSalesperson.some(k => seenKeys.has(k))) extraFieldDefs.push({ key: "__salesperson_from_sheet", label: "Assigned Salesperson (from sheet)" });
+
+    const fieldIdByKey = await upsertImportCustomFieldDefs(orgId, customFieldEntity, extraFieldDefs);
+    const customValuesToCreate: { customFieldId: string; entityId: string; value: string }[] = [];
 
     // "Assigned Salesperson" in a dealership's own sheet is a name, not an
     // id — resolve it against the org's active employee directory (the same
@@ -382,68 +500,48 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
 
         const enquiryDate = parseSheetDate(pick(row, FIELD_ALIASES.enquiryDate) || undefined);
 
-        // Anything not mapped to a real CarLead column is preserved as a
-        // labeled note line, so bulk-importing a client's own sheet never
-        // silently drops data just because a header doesn't match a known
-        // field — this covers both truly unrecognized columns and the
-        // recognized-but-schema-less ones (city, down payment, etc.).
-        const noteLines: string[] = [];
-        if (rawStatus && !STATUS_CODE_MAP[rawStatus]) noteLines.push(`Status (from sheet): ${rawStatus}`);
-        if (rawSource && !LEAD_SOURCE_MAP[rawSource]) noteLines.push(`Lead Source (from sheet): ${rawSource}`);
-        if (salesperson && !matchedEmployeeId) noteLines.push(`Assigned Salesperson (from sheet, no matching employee): ${salesperson}`);
-        const notesFieldMap: [string, string[]][] = [
-          ["Alternate Number", FIELD_ALIASES.alternatePhone],
-          ["City", FIELD_ALIASES.city],
-          ["Area", FIELD_ALIASES.area],
-          ["Campaign Name", FIELD_ALIASES.campaignName],
-          ["New/Used", FIELD_ALIASES.condition],
-          ["Purchase Type", FIELD_ALIASES.purchaseType],
-          ["Expected Purchase Date", FIELD_ALIASES.expectedPurchaseDate],
-          ["Fuel Type", FIELD_ALIASES.fuelType],
-          ["Transmission", FIELD_ALIASES.transmission],
-          ["Body Type", FIELD_ALIASES.bodyType],
-          ["Down Payment", FIELD_ALIASES.downPayment],
-          ["Exchange", FIELD_ALIASES.exchange],
-          ["Specific Choice", FIELD_ALIASES.specificChoice],
-          ["Decision Maker", FIELD_ALIASES.decisionMaker],
-          ["Lead ID (from sheet)", FIELD_ALIASES.leadId],
-          ["Registration Number", FIELD_ALIASES.registrationNumber],
-          ["Colour", FIELD_ALIASES.colour],
-          ["Manufacturing Year", FIELD_ALIASES.manufacturingYear],
-          ["Registration Year", FIELD_ALIASES.registrationYear],
-          ["Registration Month", FIELD_ALIASES.registrationMonth],
-          ["Kilometres", FIELD_ALIASES.kilometres],
-          ["Owners", FIELD_ALIASES.owners],
-          ["RTO", FIELD_ALIASES.rto],
-          ["Insurance Type", FIELD_ALIASES.insuranceType],
-          ["Insurance Company", FIELD_ALIASES.insuranceCompany],
-          ["Loan / Hypothecation", FIELD_ALIASES.loanHypothecation],
-          ["Finance Company", FIELD_ALIASES.financeCompany],
-          ["Loan Outstanding", FIELD_ALIASES.loanOutstanding],
-          ["Service History", FIELD_ALIASES.serviceHistory],
-          ["Repair Estimate", FIELD_ALIASES.repairEstimate],
-          ["Expected Retail Selling Price", FIELD_ALIASES.expectedRetailPrice],
-        ];
-        for (const [label, keys] of notesFieldMap) {
+        // Pre-generate the id so custom-field values can reference this lead
+        // even though createMany() (used below, batched) doesn't return the
+        // rows it inserts — same pattern already used for HubSpot lead import.
+        const id: string = require("crypto").randomUUID().replace(/-/g, "").substring(0, 25);
+
+        // Every recognized-but-schema-less column (city, down payment, ...)
+        // and every genuinely unrecognized column becomes its own custom-
+        // field value on this lead — individually labeled and visible in the
+        // Edit Lead modal — instead of one flattened notes line.
+        for (const [, keys] of notesFieldMap) {
           const v = pick(row, keys);
-          if (v) noteLines.push(`${label}: ${v}`);
+          const fieldId = fieldIdByKey.get(keys[0]);
+          if (!v || !fieldId) continue;
+          // Insurance Valid Till often arrives as an Excel serial-date number
+          // — store a real formatted date rather than the raw serial.
+          const display = keys[0] === FIELD_ALIASES.insuranceValidTill[0]
+            ? (parseSheetDate(v)?.toISOString().slice(0, 10) ?? v)
+            : v;
+          customValuesToCreate.push({ customFieldId: fieldId, entityId: id, value: display });
         }
-        // Insurance Valid Till often arrives as an Excel serial-date number —
-        // format it as a real date rather than dumping a raw serial into notes.
-        const insValidTillRaw = pick(row, FIELD_ALIASES.insuranceValidTill);
-        if (insValidTillRaw) {
-          const d = parseSheetDate(insValidTillRaw);
-          noteLines.push(`Insurance Valid Till: ${d ? d.toISOString().slice(0, 10) : insValidTillRaw}`);
+        if (rawStatus && !STATUS_CODE_MAP[rawStatus]) {
+          const fieldId = fieldIdByKey.get("__status_from_sheet");
+          if (fieldId) customValuesToCreate.push({ customFieldId: fieldId, entityId: id, value: rawStatus });
+        }
+        if (rawSource && !LEAD_SOURCE_MAP[rawSource]) {
+          const fieldId = fieldIdByKey.get("__source_from_sheet");
+          if (fieldId) customValuesToCreate.push({ customFieldId: fieldId, entityId: id, value: rawSource });
+        }
+        if (salesperson && !matchedEmployeeId) {
+          const fieldId = fieldIdByKey.get("__salesperson_from_sheet");
+          if (fieldId) customValuesToCreate.push({ customFieldId: fieldId, entityId: id, value: salesperson });
         }
         for (const [key, value] of Object.entries(row)) {
           if (recognizedKeys.has(key)) continue;
           const v = (value ?? "").toString().trim();
-          if (v) noteLines.push(`${key}: ${v}`);
+          const fieldId = fieldIdByKey.get(key);
+          if (v && fieldId) customValuesToCreate.push({ customFieldId: fieldId, entityId: id, value: v });
         }
         const sheetNotes = pick(row, FIELD_ALIASES.notes);
-        if (sheetNotes) noteLines.push(sheetNotes);
 
         toCreate.push({
+          id,
           organizationId: orgId,
           leadType,
           name,
@@ -455,7 +553,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
           budgetMax: budget.max,
           source,
           status,
-          notes: noteLines.length > 0 ? noteLines.join("\n") : undefined,
+          notes: sheetNotes || undefined,
           assignedToId: matchedEmployeeId || assignedToId || undefined,
           createdAt: enquiryDate ?? undefined,
         });
@@ -465,6 +563,10 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
         await db().carLead.createMany({ data: toCreate, skipDuplicates: true });
         results.created += toCreate.length;
       }
+    }
+
+    if (customValuesToCreate.length > 0) {
+      await db().customFieldValue.createMany({ data: customValuesToCreate, skipDuplicates: true });
     }
 
     bustCache(req.organizationId!, "/api/cars");
@@ -712,6 +814,25 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
     const results = { created: 0, skipped: 0, errors: [] as string[] };
     const recognizedKeys = new Set(Object.values(VEHICLE_FIELD_ALIASES).flat());
 
+    // Header scan across the whole sheet — every column that doesn't map
+    // onto a real Vehicle field gets its own auto-created custom field
+    // (same "every column stays visible" approach used for car leads)
+    // instead of being flattened into one notes blob.
+    const seenKeys = new Map<string, string>();
+    for (const rawRow of rawRows) {
+      for (const k of Object.keys(rawRow)) {
+        const norm = k.trim().toLowerCase();
+        if (norm && !seenKeys.has(norm)) seenKeys.set(norm, k.trim());
+      }
+    }
+    const extraFieldDefs: { key: string; label: string }[] = [];
+    for (const [norm, original] of seenKeys) {
+      if (recognizedKeys.has(norm)) continue;
+      extraFieldDefs.push({ key: norm, label: titleCaseHeader(original) });
+    }
+    const fieldIdByKey = await upsertImportCustomFieldDefs(orgId, "VEHICLE", extraFieldDefs);
+    const customValuesToCreate: { customFieldId: string; entityId: string; value: string }[] = [];
+
     for (const rawRow of rawRows) {
       // Object.create(null): a sheet column literally named "__proto__"
       // must not be able to pollute Object.prototype via row[k] = v below.
@@ -726,13 +847,6 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
       if (regNo) {
         const exists = await db().vehicle.findFirst({ where: { organizationId: orgId, registrationNo: regNo } });
         if (exists) { results.skipped++; continue; }
-      }
-
-      const noteLines: string[] = [];
-      for (const [key, value] of Object.entries(row)) {
-        if (recognizedKeys.has(key)) continue;
-        const v = (value ?? "").toString().trim();
-        if (v && v.toUpperCase() !== "NA") noteLines.push(`${key}: ${v}`);
       }
 
       const vehicle = await db().vehicle.create({
@@ -750,9 +864,16 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
           ownerPhone: vpick(row, VEHICLE_FIELD_ALIASES.ownerPhone) || undefined,
           ownerAddress: vpick(row, VEHICLE_FIELD_ALIASES.ownerAddress) || undefined,
           assignedToId: assignedToId || undefined,
-          notes: noteLines.length > 0 ? noteLines.join("\n") : undefined,
         },
       });
+
+      for (const [key, value] of Object.entries(row)) {
+        if (recognizedKeys.has(key)) continue;
+        const v = (value ?? "").toString().trim();
+        if (!v || v.toUpperCase() === "NA") continue;
+        const fieldId = fieldIdByKey.get(key);
+        if (fieldId) customValuesToCreate.push({ customFieldId: fieldId, entityId: vehicle.id, value: v });
+      }
 
       const insProvider = vpick(row, VEHICLE_FIELD_ALIASES.insProvider);
       const expiryRaw = vpick(row, VEHICLE_FIELD_ALIASES.expiry);
@@ -778,6 +899,10 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
       }
 
       results.created++;
+    }
+
+    if (customValuesToCreate.length > 0) {
+      await db().customFieldValue.createMany({ data: customValuesToCreate, skipDuplicates: true });
     }
 
     bustCache(req.organizationId!, "/api/cars");

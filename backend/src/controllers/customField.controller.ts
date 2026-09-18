@@ -6,7 +6,7 @@ import { ok, created, notFound, badRequest, serverError } from "../utils/respons
 // Use (prisma as any) because CustomField model was added after last successful generate
 const db = () => (prisma as any);
 
-const VALID_ENTITIES = ["PARTY","LEAD","INVOICE","PRODUCT","EMPLOYEE","TICKET","PROJECT","PATIENT","PURCHASE_ORDER","SALES_ORDER"];
+const VALID_ENTITIES = ["PARTY","LEAD","INVOICE","PRODUCT","EMPLOYEE","TICKET","PROJECT","PATIENT","PURCHASE_ORDER","SALES_ORDER","CAR_BUYER_LEAD","CAR_SELLER_LEAD","VEHICLE"];
 
 // ── Field definitions ────────────────────────────────────────
 
