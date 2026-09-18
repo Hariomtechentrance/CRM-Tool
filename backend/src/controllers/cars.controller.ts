@@ -836,6 +836,26 @@ function parseSheetDate(raw: string | number | undefined | null): Date | undefin
   if (!isNaN(numeric) && numeric > 20000 && numeric < 60000) {
     return new Date((numeric - 25569) * 86400 * 1000);
   }
+  // Plain-text dates on these sheets are consistently DD-MM-YYYY / DD/MM/YYYY
+  // / DD.MM.YYYY (the Indian convention every dealership sheet this feature
+  // targets uses) — JS's native Date parser assumes US MM/DD/YYYY instead,
+  // which either silently swaps day and month (e.g. "01-07-2027" — meant
+  // 1 July 2027 — reads as 7 January) or returns Invalid Date outright
+  // whenever the day is > 12. Confirmed this actually happened: the real
+  // Insurance CSV's "01-07-2027" / "01-12-2026" / "01-03-2027" expiry dates
+  // were all silently misread as January instead of July/December/March.
+  // Parse this shape explicitly before falling back to the native parser.
+  const dmy = String(raw).trim().match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+  if (dmy) {
+    const day = parseInt(dmy[1], 10);
+    const month = parseInt(dmy[2], 10);
+    let year = parseInt(dmy[3], 10);
+    if (year < 100) year += year < 70 ? 2000 : 1900;
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      const d = new Date(Date.UTC(year, month - 1, day));
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
   const d = new Date(raw);
   return isNaN(d.getTime()) ? undefined : d;
 }
