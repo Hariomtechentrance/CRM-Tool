@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Plus, Search, X, Upload, Phone, Mail, Car, ShieldAlert,
+  Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
   AlertTriangle, CheckCircle, ArrowRight, Pencil,
 } from "lucide-react";
 import api from "@/lib/api";
@@ -15,6 +15,68 @@ const S = {
   card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 } as React.CSSProperties,
   label: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 5 },
 };
+
+// ── Downloadable import templates ──────────────────────────────
+// Exact header sets the bulk-import endpoints already recognize (see
+// FIELD_ALIASES / VEHICLE_FIELD_ALIASES in cars.controller.ts) — one sample
+// row included so a user can see the expected shape, not just column names.
+const BUYER_TEMPLATE_HEADERS = [
+  "Enquiry Date", "Customer Name", "WhatsApp Number", "Alternate Number", "Email", "City",
+  "Lead Source", "Assigned Salesperson", "New / Used", "Purchase Type", "Expected Purchase Date",
+  "Make", "Model", "Variant", "Fuel Type", "Transmission", "Body Type",
+  "Budget Minimum", "Budget Maximum", "Down Payment", "Exchange", "Specific Choice",
+  "Decision Maker", "Notes",
+];
+const BUYER_TEMPLATE_SAMPLE = [
+  "14/09/2026", "Raj Patel", "9876543210", "9876500000", "raj@example.com", "Nashik",
+  "Walk In", "Dhruv", "Used", "Purchase", "15 days",
+  "Maruti Suzuki", "Swift", "ZDI", "Diesel", "Manual", "Hatchback",
+  "500000", "600000", "100000", "No", "White",
+  "Self", "Wants a test drive first",
+];
+
+const SELLER_TEMPLATE_HEADERS = [
+  "Lead ID", "Enquiry Date", "Customer Name", "WhatsApp Number", "Alternate Number", "Email",
+  "City", "Area", "Lead Source", "Campaign Name", "Assigned Salesperson", "Registration Number",
+  "Brand", "Model", "Variant", "Fuel Type", "Transmission", "Manufacturing Year",
+  "Registration Year", "Registration Month", "Colour", "Kilometres", "Owners", "RTO",
+  "Insurance Valid Till", "Insurance Type", "Insurance Company", "Loan / Hypothecation",
+  "Finance Company", "Loan Outstanding", "Service History", "Expected Selling Price",
+  "Minimum Acceptable Price", "Repair Estimate", "Expected Retail Selling Price",
+];
+const SELLER_TEMPLATE_SAMPLE = [
+  "SELL-0001", "14/09/2026", "Rajesh Sali", "9850070496", "9823470496", "rajesh@example.com",
+  "Nashik", "Satpur", "Google", "", "Dhruv", "MH15BN0101",
+  "Skoda", "Octavia", "1.9 TDI", "Diesel", "Manual", "2006",
+  "2006", "July", "Black", "100000", "1", "Nashik",
+  "30/06/2026", "Comprehensive", "Bajaj Allianz", "",
+  "", "", "", "300000",
+  "280000", "20000", "320000",
+];
+
+const VEHICLE_TEMPLATE_HEADERS = [
+  "NAME", "MOB NUMBER", "REG NO", "DATE OF REG", "ADDRESS", "ENG NO", "CHASSIS NO",
+  "MAKE", "MODEL/VARIENT", "FUEL", "INS TYPE", "INS CO NAME", "IDV", "OD", "NCB", "PREM",
+  "EXPIRY/RENEWAL DATE", "PAYMENT MODE", "SHARING",
+];
+const VEHICLE_TEMPLATE_SAMPLE = [
+  "Anita Sali", "9850070496", "MH15BN0101", "01/07/2006", "Nashik", "12456789", "123456789",
+  "Skoda", "Octavia 1.9 TDI", "Diesel", "Comprehensive", "Bajaj Allianze", "275000", "7800", "50", "12000",
+  "07/01/2027", "Cheque", "No",
+];
+
+function csvCell(v: string): string {
+  return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+function downloadCsvTemplate(filename: string, headers: string[], sample: string[]): void {
+  const csv = [headers, sample].map(row => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const LEAD_STATUS: Record<string, { label: string; color: string; bg: string }> = {
   NEW:            { label: "New",            color: "#818cf8", bg: "#1e1b4b" },
@@ -1129,11 +1191,21 @@ export default function CarsPage() {
         <div className="flex items-center gap-2">
           {tab === "leads" || tab === "sellerleads" ? (
             <>
+              <button
+                onClick={() => tab === "sellerleads"
+                  ? downloadCsvTemplate("car-seller-leads-template.csv", SELLER_TEMPLATE_HEADERS, SELLER_TEMPLATE_SAMPLE)
+                  : downloadCsvTemplate("car-buyer-leads-template.csv", BUYER_TEMPLATE_HEADERS, BUYER_TEMPLATE_SAMPLE)}
+                style={S.ghost}
+              ><Download style={{ width: 13, height: 13 }} /> Export Template</button>
               <button onClick={() => setShowImport(true)} style={S.ghost}><Upload style={{ width: 13, height: 13 }} /> Import CSV</button>
               <button onClick={() => { setEditLead(null); setShowLeadModal(true); }} style={S.btn}><Plus style={{ width: 13, height: 13 }} /> Add {tab === "sellerleads" ? "Seller " : ""}Lead</button>
             </>
           ) : tab === "vehicles" ? (
             <>
+              <button
+                onClick={() => downloadCsvTemplate("car-vehicles-insurance-template.csv", VEHICLE_TEMPLATE_HEADERS, VEHICLE_TEMPLATE_SAMPLE)}
+                style={S.ghost}
+              ><Download style={{ width: 13, height: 13 }} /> Export Template</button>
               <button onClick={() => setShowVehicleImport(true)} style={S.ghost}><Upload style={{ width: 13, height: 13 }} /> Import CSV</button>
               <button onClick={() => setShowAddVehicle(true)} style={S.btn}><Plus style={{ width: 13, height: 13 }} /> Add Vehicle</button>
             </>
