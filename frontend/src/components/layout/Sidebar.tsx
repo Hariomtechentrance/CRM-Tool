@@ -217,11 +217,16 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
   // White Band Associates hides PM Dashboard, Communication, Finance & Tax and Admin & Tools for every login
   const wbaOrg = isWBAOrg(activeOrg);
+  // Cars-module orgs (small dealerships) don't need enterprise admin tooling
+  // (Webhooks, Compliance, Branding, Audit Trail, etc.) surfaced to them —
+  // same treatment as WBA hiding Admin & Tools, just keyed off the CARS
+  // module instead of a specific org.
+  const carsOrg = canSee("CARS");
 
   const showIT       = canSee("PROJECTS");
   const showSales    = canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
   const showFinance  = canSee("ACCOUNTS") && !wbaOrg;
-  const showAdmin    = isOrgAdmin && !wbaOrg; // org management, not module-gated
+  const showAdmin    = isOrgAdmin && !wbaOrg && !carsOrg; // org management, not module-gated
   const showComm     = (canSee("CRM") || canSee("MARKETING")) && !wbaOrg;
   const showPMDash   = (canSee("PROJECTS") || isPM) && !wbaOrg;
   const showTeamPage = isTL;
