@@ -364,6 +364,80 @@ async function upsertImportCustomFieldDefs(
   return fieldIdByKey;
 }
 
+// Columns that are recognized but don't map onto a real CarLead column, split
+// by lead type (a buyer's purchase-intent columns are never relevant on a
+// seller lead, and vice versa — matches what the real Buyer/Seller sheets
+// actually contain). Shared between bulkImportCarLeads (which only creates a
+// field the first time a sheet column needing it shows up) and
+// ensureStandardCarCustomFields (which pre-creates the full set below so the
+// Edit Lead modal shows every field from the start, not just after an
+// import has happened to run for this org).
+const BUYER_LEAD_EXTRA_FIELDS: [string, string[]][] = [
+  ["Alternate Number", FIELD_ALIASES.alternatePhone],
+  ["City", FIELD_ALIASES.city],
+  ["New/Used", FIELD_ALIASES.condition],
+  ["Purchase Type", FIELD_ALIASES.purchaseType],
+  ["Expected Purchase Date", FIELD_ALIASES.expectedPurchaseDate],
+  ["Fuel Type", FIELD_ALIASES.fuelType],
+  ["Transmission", FIELD_ALIASES.transmission],
+  ["Body Type", FIELD_ALIASES.bodyType],
+  ["Down Payment", FIELD_ALIASES.downPayment],
+  ["Exchange", FIELD_ALIASES.exchange],
+  ["Specific Choice", FIELD_ALIASES.specificChoice],
+  ["Decision Maker", FIELD_ALIASES.decisionMaker],
+];
+const SELLER_LEAD_EXTRA_FIELDS: [string, string[]][] = [
+  ["Lead ID (from sheet)", FIELD_ALIASES.leadId],
+  ["Alternate Number", FIELD_ALIASES.alternatePhone],
+  ["City", FIELD_ALIASES.city],
+  ["Area", FIELD_ALIASES.area],
+  ["Campaign Name", FIELD_ALIASES.campaignName],
+  ["Registration Number", FIELD_ALIASES.registrationNumber],
+  ["Fuel Type", FIELD_ALIASES.fuelType],
+  ["Transmission", FIELD_ALIASES.transmission],
+  ["Manufacturing Year", FIELD_ALIASES.manufacturingYear],
+  ["Registration Year", FIELD_ALIASES.registrationYear],
+  ["Registration Month", FIELD_ALIASES.registrationMonth],
+  ["Colour", FIELD_ALIASES.colour],
+  ["Kilometres", FIELD_ALIASES.kilometres],
+  ["Owners", FIELD_ALIASES.owners],
+  ["RTO", FIELD_ALIASES.rto],
+  ["Insurance Valid Till", FIELD_ALIASES.insuranceValidTill],
+  ["Insurance Type", FIELD_ALIASES.insuranceType],
+  ["Insurance Company", FIELD_ALIASES.insuranceCompany],
+  ["Loan / Hypothecation", FIELD_ALIASES.loanHypothecation],
+  ["Finance Company", FIELD_ALIASES.financeCompany],
+  ["Loan Outstanding", FIELD_ALIASES.loanOutstanding],
+  ["Service History", FIELD_ALIASES.serviceHistory],
+  ["Repair Estimate", FIELD_ALIASES.repairEstimate],
+  ["Expected Retail Selling Price", FIELD_ALIASES.expectedRetailPrice],
+];
+const CAR_LEAD_SHEET_ANNOTATIONS: { key: string; label: string }[] = [
+  { key: "__source_from_sheet", label: "Lead Source (from sheet)" },
+  { key: "__salesperson_from_sheet", label: "Assigned Salesperson (from sheet)" },
+];
+
+// Makes sure every org sees the full Buyer/Seller custom-field catalog from
+// the moment they open the Cars module — not only after a bulk import has
+// actually run once for this org. Without this, a brand-new org (or a lead
+// added by hand before any import) would show no "Custom Fields" section at
+// all in the Edit Lead modal, even though the Buyer/Seller template promises
+// ~14 / ~26 extra fields. A single COUNT query short-circuits every call
+// after the first, so this stays cheap on repeat page loads.
+async function ensureStandardCarCustomFields(orgId: string): Promise<void> {
+  const specs: [string, [string, string[]][]][] = [
+    ["CAR_BUYER_LEAD", BUYER_LEAD_EXTRA_FIELDS],
+    ["CAR_SELLER_LEAD", SELLER_LEAD_EXTRA_FIELDS],
+  ];
+  for (const [entity, list] of specs) {
+    const wantCount = list.length + CAR_LEAD_SHEET_ANNOTATIONS.length;
+    const existing = await db().customField.count({ where: { organizationId: orgId, entity } });
+    if (existing >= wantCount) continue;
+    const defs = list.map(([label, keys]) => ({ key: keys[0], label })).concat(CAR_LEAD_SHEET_ANNOTATIONS);
+    await upsertImportCustomFieldDefs(orgId, entity, defs);
+  }
+}
+
 export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
     const { leads: rawLeads, assignedToId, leadType: rawLeadType } = req.body;
@@ -381,41 +455,11 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
     // (city, down payment, insurance type, ...) — each becomes its own
     // auto-created custom field (see upsertImportCustomFieldDefs) instead of
     // one flattened notes line, so every column the sheet has shows up as
-    // its own labeled, visible field on the lead afterward.
-    const notesFieldMap: [string, string[]][] = [
-      ["Alternate Number", FIELD_ALIASES.alternatePhone],
-      ["City", FIELD_ALIASES.city],
-      ["Area", FIELD_ALIASES.area],
-      ["Campaign Name", FIELD_ALIASES.campaignName],
-      ["New/Used", FIELD_ALIASES.condition],
-      ["Purchase Type", FIELD_ALIASES.purchaseType],
-      ["Expected Purchase Date", FIELD_ALIASES.expectedPurchaseDate],
-      ["Fuel Type", FIELD_ALIASES.fuelType],
-      ["Transmission", FIELD_ALIASES.transmission],
-      ["Body Type", FIELD_ALIASES.bodyType],
-      ["Down Payment", FIELD_ALIASES.downPayment],
-      ["Exchange", FIELD_ALIASES.exchange],
-      ["Specific Choice", FIELD_ALIASES.specificChoice],
-      ["Decision Maker", FIELD_ALIASES.decisionMaker],
-      ["Lead ID (from sheet)", FIELD_ALIASES.leadId],
-      ["Registration Number", FIELD_ALIASES.registrationNumber],
-      ["Colour", FIELD_ALIASES.colour],
-      ["Manufacturing Year", FIELD_ALIASES.manufacturingYear],
-      ["Registration Year", FIELD_ALIASES.registrationYear],
-      ["Registration Month", FIELD_ALIASES.registrationMonth],
-      ["Kilometres", FIELD_ALIASES.kilometres],
-      ["Owners", FIELD_ALIASES.owners],
-      ["RTO", FIELD_ALIASES.rto],
-      ["Insurance Valid Till", FIELD_ALIASES.insuranceValidTill],
-      ["Insurance Type", FIELD_ALIASES.insuranceType],
-      ["Insurance Company", FIELD_ALIASES.insuranceCompany],
-      ["Loan / Hypothecation", FIELD_ALIASES.loanHypothecation],
-      ["Finance Company", FIELD_ALIASES.financeCompany],
-      ["Loan Outstanding", FIELD_ALIASES.loanOutstanding],
-      ["Service History", FIELD_ALIASES.serviceHistory],
-      ["Repair Estimate", FIELD_ALIASES.repairEstimate],
-      ["Expected Retail Selling Price", FIELD_ALIASES.expectedRetailPrice],
-    ];
+    // its own labeled, visible field on the lead afterward. Buyer vs. seller
+    // get their own field list (see the module-level constants above) since
+    // a buyer's purchase-intent columns and a seller's car-condition columns
+    // don't overlap.
+    const notesFieldMap = leadType === "SELLER" ? SELLER_LEAD_EXTRA_FIELDS : BUYER_LEAD_EXTRA_FIELDS;
     const notesFieldLabelByKey = new Map<string, string>();
     for (const [label, keys] of notesFieldMap) notesFieldLabelByKey.set(keys[0], label);
 
@@ -1204,6 +1248,10 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
         where: { organizationId: orgId },
         include: { insurances: { orderBy: { endDate: "desc" }, take: 1 } },
       }),
+      // Runs once per org (a COUNT query short-circuits every call after) —
+      // this is what puts the full Custom Fields section on every Edit Lead
+      // modal from the start, not only after a bulk import has ever run.
+      ensureStandardCarCustomFields(orgId),
     ]);
 
     const expiringSoon = allVehiclesWithLatestPolicy.filter(
