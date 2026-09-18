@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
+import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 
 const S = {
   inp: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", color: "var(--text-primary)", fontSize: 12, outline: "none" } as React.CSSProperties,
@@ -226,6 +227,13 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
             Test Drive Done
           </label>
         </div>
+        {lead && (
+          // Anything a bulk import found on the sheet that isn't one of the
+          // fields above (city, down payment, insurance details, etc.) shows
+          // up here as its own labeled field — imported data isn't silently
+          // buried in the Notes box.
+          <CustomFieldRenderer entity={form.leadType === "SELLER" ? "CAR_SELLER_LEAD" : "CAR_BUYER_LEAD"} entityId={lead.id} />
+        )}
         <div className="flex items-center justify-between gap-3 mt-4">
           <div>
             {lead && lead.status !== "CONVERTED" && onConvert && (
@@ -697,6 +705,72 @@ function AddVehicleModal({ employees, lead, onClose, onSaved }: { employees: Emp
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Read-only vehicle detail view — core fields plus every column a bulk
+// import found that didn't map onto one of them (registration/insurance/
+// loan details, etc.), shown individually via CustomFieldRenderer instead
+// of being buried in the vehicle's notes field.
+// ═══════════════════════════════════════════════════════════════
+function VehicleDetailModal({ vehicle, onClose }: { vehicle: Vehicle; onClose: () => void }) {
+  const row = (label: string, value?: string | number | null) => value === undefined || value === null || value === "" ? null : (
+    <div>
+      <label style={S.label}>{label}</label>
+      <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{value}</div>
+    </div>
+  );
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{vehicle.make} {vehicle.model} {vehicle.variant ? `(${vehicle.variant})` : ""}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {row("Registration No.", vehicle.registrationNo)}
+          {row("Chassis No.", vehicle.chassisNo)}
+          {row("Engine No.", vehicle.engineNo)}
+          {row("Fuel Type", vehicle.fuelType)}
+          {row("Transmission", vehicle.transmission)}
+          {row("Colour", vehicle.color)}
+          {row("Odometer", vehicle.odometer)}
+          {row("Registration Date", vehicle.registrationDate ? new Date(vehicle.registrationDate).toLocaleDateString("en-IN") : undefined)}
+          {row("Status", VEHICLE_STATUS[vehicle.status]?.label || vehicle.status)}
+          {row("Owner / Buyer", vehicle.ownerName)}
+          {row("Owner Phone", vehicle.ownerPhone)}
+          {row("Owner Address", vehicle.ownerAddress)}
+          {row("Seller", vehicle.sellerName)}
+          {row("Seller Phone", vehicle.sellerPhone)}
+        </div>
+        {vehicle.insurances?.[0] && (
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Insurance</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {row("Provider", vehicle.insurances[0].provider)}
+              {row("Type", vehicle.insurances[0].type)}
+              {row("Valid Till", new Date(vehicle.insurances[0].endDate).toLocaleDateString("en-IN"))}
+              {row("Premium", vehicle.insurances[0].premium)}
+              {row("IDV", vehicle.insurances[0].idv)}
+              {row("OD Amount", vehicle.insurances[0].odAmount)}
+              {row("NCB", vehicle.insurances[0].ncb)}
+              {row("Payment Mode", vehicle.insurances[0].paymentMode)}
+            </div>
+          </div>
+        )}
+        {vehicle.notes && (
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+            <label style={S.label}>Notes</label>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", whiteSpace: "pre-wrap" }}>{vehicle.notes}</div>
+          </div>
+        )}
+        <CustomFieldRenderer entity="VEHICLE" entityId={vehicle.id} readOnly />
+        <div className="flex justify-end mt-4">
+          <button onClick={onClose} style={S.ghost}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Mark an in-stock vehicle as Sold (independent of the lead-convert flow)
 // ═══════════════════════════════════════════════════════════════
 function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose: () => void; onSold: () => void }) {
@@ -975,6 +1049,7 @@ export default function CarsPage() {
   const [showVehicleImport, setShowVehicleImport] = useState(false);
   const [showHistoricalImport, setShowHistoricalImport] = useState(false);
   const [markSoldFor, setMarkSoldFor] = useState<Vehicle | null>(null);
+  const [detailVehicle, setDetailVehicle] = useState<Vehicle | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const employeeName = (id?: string) => employees.find(e => e.id === id)?.name;
 
@@ -1235,6 +1310,7 @@ export default function CarsPage() {
                               <button onClick={() => setMarkSoldFor(v)} style={{ ...S.btn, fontSize: 11, padding: "5px 10px" }}>Mark Sold</button>
                             )}
                             <button onClick={() => setInsuranceFor(v)} style={{ ...S.ghost, fontSize: 11, padding: "5px 10px" }}>+ Insurance</button>
+                            <button onClick={() => setDetailVehicle(v)} style={{ ...S.ghost, fontSize: 11, padding: "5px 10px" }}>Details</button>
                           </div>
                         </td>
                       </tr>
@@ -1416,6 +1492,7 @@ export default function CarsPage() {
       {showImport && <ImportModal leadType={tab === "sellerleads" ? "SELLER" : "BUYER"} onClose={() => setShowImport(false)} onImported={load} />}
       {convertLead && <ConvertModal lead={convertLead} onClose={() => setConvertLead(null)} onConverted={() => { load(); setTab("vehicles"); }} />}
       {insuranceFor && <InsuranceModal vehicle={insuranceFor} onClose={() => setInsuranceFor(null)} onSaved={load} />}
+      {detailVehicle && <VehicleDetailModal vehicle={detailVehicle} onClose={() => setDetailVehicle(null)} />}
       {(showAddVehicle || acquireLead) && (
         <AddVehicleModal employees={employees} lead={acquireLead} onClose={() => { setShowAddVehicle(false); setAcquireLead(null); }} onSaved={() => { load(); if (acquireLead) setTab("vehicles"); }} />
       )}
