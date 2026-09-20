@@ -1,12 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, X, Upload, Phone, Mail, Car, ShieldAlert,
-  AlertTriangle, CheckCircle, ArrowRight, Pencil,
+  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
+import DocumentsPanel from "@/components/DocumentsPanel";
+import {
+  VEHICLE_MAKES, modelsForMake, variantsForModel,
+  FUEL_TYPES, TRANSMISSION_TYPES, INSURANCE_PROVIDERS, yearOptions,
+} from "@/lib/vehicleCatalog";
 
 const S = {
   inp: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", color: "var(--text-primary)", fontSize: 12, outline: "none" } as React.CSSProperties,
@@ -102,6 +107,191 @@ function dueLabel(dateStr?: string): { text: string; color: string; group: "over
   if (days > 0) return { text: `${days}d overdue`, color: "#f87171", group: "overdue" };
   if (days === 0) return { text: "Due today", color: "#fbbf24", group: "today" };
   return { text: due.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), color: "var(--text-ghost)", group: "upcoming" };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Reusable catalog dropdowns — every list here (makes, insurance providers,
+// fuel/transmission types, model/variant per make) is a curated but
+// necessarily incomplete reference set, so every one of these always offers
+// an "Other (type manually)" escape hatch. Fully controlled: picking Other
+// stores the OTHER sentinel until real text is typed, so the parent never
+// needs its own "is this custom?" state.
+// ═══════════════════════════════════════════════════════════════
+const CATALOG_OTHER = "__OTHER__";
+
+function CatalogSelect({ value, onChange, options, placeholder = "Select…", disabled }: {
+  value: string; onChange: (v: string) => void; options: readonly string[]; placeholder?: string; disabled?: boolean;
+}) {
+  const isCustom = value === CATALOG_OTHER || (value !== "" && !options.includes(value));
+  if (isCustom) {
+    return (
+      <div className="flex gap-1">
+        <input style={{ ...S.inp, width: "100%" }} placeholder="Type manually…" autoFocus={value === CATALOG_OTHER}
+          value={value === CATALOG_OTHER ? "" : value} onChange={e => onChange(e.target.value)} />
+        <button type="button" onClick={() => onChange("")} title="Back to list"
+          style={{ ...S.ghost, padding: "0 9px", fontSize: 13 }}>↩</button>
+      </div>
+    );
+  }
+  return (
+    <select style={{ ...S.inp, width: "100%" }} disabled={disabled} value={value}
+      onChange={e => onChange(e.target.value)}>
+      <option value="">{placeholder}</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+      <option value={CATALOG_OTHER}>Other (type manually)</option>
+    </select>
+  );
+}
+
+// Multi-select checkbox dropdown — e.g. a vehicle that runs on Petrol + CNG,
+// or a listing that supports both Manual and Automatic. Stored as a plain
+// comma-joined string (no schema change needed on either fuelType or
+// transmission, both already free-text columns), parsed back into a list of
+// checkboxes on render. Always includes a free-text "Other" add so an
+// uncatalogued fuel/transmission type isn't blocked either.
+function MultiCatalogSelect({ value, onChange, options, placeholder = "Select…" }: {
+  value: string; onChange: (v: string) => void; options: readonly string[]; placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [customText, setCustomText] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selected = value ? value.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  function toggle(opt: string) {
+    const next = selected.includes(opt) ? selected.filter(s => s !== opt) : [...selected, opt];
+    onChange(next.join(", "));
+  }
+  function addCustom() {
+    const t = customText.trim();
+    if (!t || selected.includes(t)) { setCustomText(""); return; }
+    onChange([...selected, t].join(", "));
+    setCustomText("");
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ ...S.inp, width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", gap: 6 }}>
+        <span style={{ color: selected.length ? "var(--text-primary)" : "var(--text-ghost)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selected.length ? selected.join(", ") : placeholder}
+        </span>
+        <span style={{ fontSize: 9, color: "var(--text-ghost)", flexShrink: 0 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, zIndex: 30,
+          background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8,
+          padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", maxHeight: 230, overflowY: "auto",
+        }}>
+          {options.map(o => (
+            <label key={o} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 6px", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer", borderRadius: 5 }}>
+              <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} />
+              {o}
+            </label>
+          ))}
+          {selected.filter(s => !options.includes(s)).map(custom => (
+            <label key={custom} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 6px", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer", borderRadius: 5 }}>
+              <input type="checkbox" checked onChange={() => toggle(custom)} />
+              {custom} <span style={{ color: "var(--text-ghost)", fontSize: 10 }}>(custom)</span>
+            </label>
+          ))}
+          <div style={{ display: "flex", gap: 4, marginTop: 4, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
+            <input value={customText} onChange={e => setCustomText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
+              placeholder="Other…" style={{ ...S.inp, flex: 1, fontSize: 11, padding: "5px 8px" }} />
+            <button type="button" onClick={addCustom} style={{ ...S.ghost, padding: "0 8px", fontSize: 11 }}>Add</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Cascading Make -> Model -> Variant. Changing Make clears Model+Variant;
+// changing Model clears Variant — never leaves a stale combination selected.
+function MakeModelVariantFields({ make, model, variant, onChange }: {
+  make: string; model: string; variant: string;
+  onChange: (next: { make: string; model: string; variant: string }) => void;
+}) {
+  const models = modelsForMake(make);
+  const variants = variantsForModel(make, model);
+  return (
+    <>
+      <div>
+        <label style={S.label}>Make *</label>
+        <CatalogSelect value={make} options={VEHICLE_MAKES} placeholder="Select make…"
+          onChange={v => onChange({ make: v, model: "", variant: "" })} />
+      </div>
+      <div>
+        <label style={S.label}>Model *</label>
+        {models.length > 0 ? (
+          <CatalogSelect value={model} options={models} placeholder="Select model…"
+            onChange={v => onChange({ make, model: v, variant: "" })} />
+        ) : (
+          <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={model}
+            onChange={e => onChange({ make, model: e.target.value, variant: "" })} />
+        )}
+      </div>
+      <div>
+        <label style={S.label}>Variant</label>
+        {variants.length > 0 ? (
+          <CatalogSelect value={variant} options={variants} placeholder="Select variant…"
+            onChange={v => onChange({ make, model, variant: v })} />
+        ) : (
+          <input style={{ ...S.inp, width: "100%" }} placeholder="Type variant…" value={variant}
+            onChange={e => onChange({ make, model, variant: e.target.value })} />
+        )}
+      </div>
+    </>
+  );
+}
+
+function YearSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <select style={{ ...S.inp, width: "100%" }} value={value} onChange={e => onChange(e.target.value)}>
+      <option value="">Select year…</option>
+      {yearOptions().map(y => <option key={y} value={y}>{y}</option>)}
+    </select>
+  );
+}
+
+// Shared insurance sub-form — identical field set used by the standalone
+// InsuranceModal, the Convert-to-Sale flow, and Mark-as-Sold's inline
+// insurance section, so a fix/change to one of them (like the provider
+// dropdown) doesn't need to be repeated three times and drift out of sync.
+interface InsuranceFormState {
+  provider: string; policyNumber: string; type: string;
+  startDate: string; endDate: string; premium: string;
+}
+function InsuranceFields({ value, onChange }: { value: InsuranceFormState; onChange: (v: InsuranceFormState) => void }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="col-span-2 sm:col-span-1">
+        <label style={S.label}>Provider *</label>
+        <CatalogSelect value={value.provider} options={INSURANCE_PROVIDERS} placeholder="Select provider…"
+          onChange={v => onChange({ ...value, provider: v })} />
+      </div>
+      <div><label style={S.label}>Policy No.</label><input style={{ ...S.inp, width: "100%" }} value={value.policyNumber} onChange={e => onChange({ ...value, policyNumber: e.target.value })} /></div>
+      <div>
+        <label style={S.label}>Type</label>
+        <select style={{ ...S.inp, width: "100%" }} value={value.type} onChange={e => onChange({ ...value, type: e.target.value })}>
+          {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
+        </select>
+      </div>
+      <div><label style={S.label}>Start Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={value.startDate} onChange={e => onChange({ ...value, startDate: e.target.value })} /></div>
+      <div><label style={S.label}>End Date *</label><input type="date" style={{ ...S.inp, width: "100%" }} value={value.endDate} onChange={e => onChange({ ...value, endDate: e.target.value })} /></div>
+      <div><label style={S.label}>Premium (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={value.premium} onChange={e => onChange({ ...value, premium: e.target.value })} /></div>
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -489,7 +679,7 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
     salePrice: "", ownerName: lead.name, ownerPhone: lead.phone ?? "", ownerEmail: lead.email ?? "",
   });
   const [addInsurance, setAddInsurance] = useState(true);
-  const [ins, setIns] = useState({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "" });
+  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -523,39 +713,26 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
 
         <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>Vehicle Sold</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          <div><label style={S.label}>Make *</label><input style={{ ...S.inp, width: "100%" }} value={v.make} onChange={e => setV({ ...v, make: e.target.value })} /></div>
-          <div><label style={S.label}>Model *</label><input style={{ ...S.inp, width: "100%" }} value={v.model} onChange={e => setV({ ...v, model: e.target.value })} /></div>
-          <div><label style={S.label}>Variant</label><input style={{ ...S.inp, width: "100%" }} value={v.variant} onChange={e => setV({ ...v, variant: e.target.value })} /></div>
-          <div><label style={S.label}>Year</label><input type="number" style={{ ...S.inp, width: "100%" }} value={v.year} onChange={e => setV({ ...v, year: e.target.value })} /></div>
+          <MakeModelVariantFields make={v.make} model={v.model} variant={v.variant}
+            onChange={next => setV({ ...v, ...next })} />
+          <div><label style={S.label}>Year</label><YearSelect value={v.year} onChange={year => setV({ ...v, year })} /></div>
           <div><label style={S.label}>Registration No.</label><input style={{ ...S.inp, width: "100%" }} value={v.registrationNo} onChange={e => setV({ ...v, registrationNo: e.target.value })} /></div>
           <div><label style={S.label}>Chassis No.</label><input style={{ ...S.inp, width: "100%" }} value={v.chassisNo} onChange={e => setV({ ...v, chassisNo: e.target.value })} /></div>
           <div><label style={S.label}>Color</label><input style={{ ...S.inp, width: "100%" }} value={v.color} onChange={e => setV({ ...v, color: e.target.value })} /></div>
           <div><label style={S.label}>Odometer (km)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={v.odometer} onChange={e => setV({ ...v, odometer: e.target.value })} /></div>
+          <div><label style={S.label}>Fuel Type</label><MultiCatalogSelect value={v.fuelType} options={FUEL_TYPES} placeholder="Select fuel type(s)…" onChange={fuelType => setV({ ...v, fuelType })} /></div>
+          <div><label style={S.label}>Transmission</label><MultiCatalogSelect value={v.transmission} options={TRANSMISSION_TYPES} placeholder="Select transmission(s)…" onChange={transmission => setV({ ...v, transmission })} /></div>
           <div><label style={S.label}>Sale Price (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={v.salePrice} onChange={e => setV({ ...v, salePrice: e.target.value })} /></div>
-          <div><label style={S.label}>Owner Name</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerName} onChange={e => setV({ ...v, ownerName: e.target.value })} /></div>
-          <div><label style={S.label}>Owner Phone</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerPhone} onChange={e => setV({ ...v, ownerPhone: e.target.value })} /></div>
-          <div><label style={S.label}>Owner Email</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerEmail} onChange={e => setV({ ...v, ownerEmail: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Name</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerName} onChange={e => setV({ ...v, ownerName: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerPhone} onChange={e => setV({ ...v, ownerPhone: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Email</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerEmail} onChange={e => setV({ ...v, ownerEmail: e.target.value })} /></div>
         </div>
 
         <label className="flex items-center gap-2 mb-3" style={{ fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
           <input type="checkbox" checked={addInsurance} onChange={e => setAddInsurance(e.target.checked)} />
           Record their (third-party) insurance now
         </label>
-        {addInsurance && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div><label style={S.label}>Provider *</label><input style={{ ...S.inp, width: "100%" }} value={ins.provider} onChange={e => setIns({ ...ins, provider: e.target.value })} /></div>
-            <div><label style={S.label}>Policy No.</label><input style={{ ...S.inp, width: "100%" }} value={ins.policyNumber} onChange={e => setIns({ ...ins, policyNumber: e.target.value })} /></div>
-            <div>
-              <label style={S.label}>Type</label>
-              <select style={{ ...S.inp, width: "100%" }} value={ins.type} onChange={e => setIns({ ...ins, type: e.target.value })}>
-                {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-              </select>
-            </div>
-            <div><label style={S.label}>Start Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={ins.startDate} onChange={e => setIns({ ...ins, startDate: e.target.value })} /></div>
-            <div><label style={S.label}>End Date *</label><input type="date" style={{ ...S.inp, width: "100%" }} value={ins.endDate} onChange={e => setIns({ ...ins, endDate: e.target.value })} /></div>
-            <div><label style={S.label}>Premium (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={ins.premium} onChange={e => setIns({ ...ins, premium: e.target.value })} /></div>
-          </div>
-        )}
+        {addInsurance && <InsuranceFields value={ins} onChange={setIns} />}
 
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
@@ -569,8 +746,17 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
 // ═══════════════════════════════════════════════════════════════
 // Add Insurance Renewal modal
 // ═══════════════════════════════════════════════════════════════
-function InsuranceModal({ vehicle, onClose, onSaved }: { vehicle: Vehicle; onClose: () => void; onSaved: () => void }) {
-  const [ins, setIns] = useState({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "" });
+// Doubles as both "Add Insurance" and "Edit Insurance" — pass `existing` to
+// edit (PATCHes /cars/insurance/:id, an endpoint that already existed on the
+// backend but had no UI wired to it) or omit it to add a new policy.
+function InsuranceModal({ vehicle, existing, onClose, onSaved }: { vehicle: Vehicle; existing?: Insurance; onClose: () => void; onSaved: () => void }) {
+  const [ins, setIns] = useState<InsuranceFormState>({
+    provider: existing?.provider ?? "", policyNumber: existing?.policyNumber ?? "",
+    type: existing?.type ?? "THIRD_PARTY",
+    startDate: existing?.startDate ? existing.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    endDate: existing?.endDate ? existing.endDate.slice(0, 10) : "",
+    premium: existing?.premium?.toString() ?? "",
+  });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -578,7 +764,9 @@ function InsuranceModal({ vehicle, onClose, onSaved }: { vehicle: Vehicle; onClo
     if (!ins.provider.trim() || !ins.endDate) { setErr("Provider and end date are required"); return; }
     setSaving(true); setErr("");
     try {
-      await api.post(`/cars/vehicles/${vehicle.id}/insurance`, { ...ins, premium: ins.premium ? Number(ins.premium) : undefined });
+      const payload = { ...ins, premium: ins.premium ? Number(ins.premium) : undefined };
+      if (existing) await api.patch(`/cars/insurance/${existing.id}`, payload);
+      else await api.post(`/cars/vehicles/${vehicle.id}/insurance`, payload);
       onSaved(); onClose();
     } catch (e) { setErr(getApiError(e)); }
     setSaving(false);
@@ -588,26 +776,14 @@ function InsuranceModal({ vehicle, onClose, onSaved }: { vehicle: Vehicle; onClo
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
       <div className="rounded-2xl p-5 w-full max-w-md mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Add Insurance — {vehicle.make} {vehicle.model}</h3>
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{existing ? "Edit" : "Add"} Insurance — {vehicle.make} {vehicle.model}</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
         </div>
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2"><label style={S.label}>Provider *</label><input style={{ ...S.inp, width: "100%" }} value={ins.provider} onChange={e => setIns({ ...ins, provider: e.target.value })} /></div>
-          <div><label style={S.label}>Policy No.</label><input style={{ ...S.inp, width: "100%" }} value={ins.policyNumber} onChange={e => setIns({ ...ins, policyNumber: e.target.value })} /></div>
-          <div>
-            <label style={S.label}>Type</label>
-            <select style={{ ...S.inp, width: "100%" }} value={ins.type} onChange={e => setIns({ ...ins, type: e.target.value })}>
-              {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-            </select>
-          </div>
-          <div><label style={S.label}>Start Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={ins.startDate} onChange={e => setIns({ ...ins, startDate: e.target.value })} /></div>
-          <div><label style={S.label}>End Date *</label><input type="date" style={{ ...S.inp, width: "100%" }} value={ins.endDate} onChange={e => setIns({ ...ins, endDate: e.target.value })} /></div>
-          <div className="col-span-2"><label style={S.label}>Premium (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={ins.premium} onChange={e => setIns({ ...ins, premium: e.target.value })} /></div>
-        </div>
+        <InsuranceFields value={ins} onChange={setIns} />
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
-          <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : "Save Policy"}</button>
+          <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : existing ? "Save Changes" : "Save Policy"}</button>
         </div>
       </div>
     </div>
@@ -617,12 +793,20 @@ function InsuranceModal({ vehicle, onClose, onSaved }: { vehicle: Vehicle; onClo
 // ═══════════════════════════════════════════════════════════════
 // Add Vehicle (acquisition — independent of any buyer lead)
 // ═══════════════════════════════════════════════════════════════
-function AddVehicleModal({ employees, lead, onClose, onSaved }: { employees: Employee[]; lead?: CarLead | null; onClose: () => void; onSaved: () => void }) {
+// Doubles as Add Vehicle and Edit Vehicle — pass `vehicle` to edit (PATCHes
+// /cars/vehicles/:id, leaving status untouched) or omit it to acquire a new
+// one (POSTs, always starting IN_STOCK).
+function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { employees: Employee[]; lead?: CarLead | null; vehicle?: Vehicle | null; onClose: () => void; onSaved: () => void }) {
   const [v, setV] = useState({
-    make: lead?.interestedMake ?? "", model: lead?.interestedModel ?? "", variant: "", year: "", registrationNo: "", chassisNo: "", engineNo: "",
-    color: "", odometer: "", fuelType: "", transmission: "",
-    purchasePrice: lead?.budgetMin ? String(lead.budgetMin) : "", sellerName: lead?.name ?? "", sellerPhone: lead?.phone ?? "", sellerEmail: lead?.email ?? "",
-    purchasedAt: new Date().toISOString().slice(0, 10), assignedToId: "", notes: "",
+    make: vehicle?.make ?? lead?.interestedMake ?? "", model: vehicle?.model ?? lead?.interestedModel ?? "",
+    variant: vehicle?.variant ?? "", year: vehicle?.year?.toString() ?? "",
+    registrationNo: vehicle?.registrationNo ?? "", chassisNo: vehicle?.chassisNo ?? "", engineNo: vehicle?.engineNo ?? "",
+    color: vehicle?.color ?? "", odometer: vehicle?.odometer?.toString() ?? "",
+    fuelType: vehicle?.fuelType ?? "", transmission: vehicle?.transmission ?? "",
+    purchasePrice: vehicle?.purchasePrice?.toString() ?? (lead?.budgetMin ? String(lead.budgetMin) : ""),
+    sellerName: vehicle?.sellerName ?? lead?.name ?? "", sellerPhone: vehicle?.sellerPhone ?? lead?.phone ?? "", sellerEmail: vehicle?.sellerEmail ?? lead?.email ?? "",
+    purchasedAt: vehicle?.purchasedAt ? vehicle.purchasedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    assignedToId: vehicle?.assignedToId ?? "", notes: vehicle?.notes ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
@@ -631,21 +815,29 @@ function AddVehicleModal({ employees, lead, onClose, onSaved }: { employees: Emp
     if (!v.make.trim() || !v.model.trim()) { setErr("Make and model are required"); return; }
     setSaving(true); setErr("");
     try {
-      const res = await api.post("/cars/vehicles", {
+      const payload: Record<string, unknown> = {
         ...v,
         year: v.year ? Number(v.year) : undefined,
         odometer: v.odometer ? Number(v.odometer) : undefined,
         purchasePrice: v.purchasePrice ? Number(v.purchasePrice) : undefined,
         assignedToId: v.assignedToId || undefined,
-        status: "IN_STOCK",
-      });
-      if (lead) {
+      };
+      let vehicleId = vehicle?.id;
+      if (vehicle) {
+        // No `status` here on purpose — editing colour/odometer/etc. on a
+        // SOLD vehicle must never silently revert it back to IN_STOCK.
+        await api.patch(`/cars/vehicles/${vehicle.id}`, payload);
+      } else {
+        const res = await api.post("/cars/vehicles", { ...payload, status: "IN_STOCK" });
+        vehicleId = res.data.data.id;
+      }
+      if (lead && vehicleId) {
         // carLeadSchema's zod .default()s re-apply for any field omitted from
         // a PATCH body (partial() only skips re-wrapping fields that already
         // report as optional, which a defaulted field does) — so leadType and
         // source must be sent explicitly here or they'd silently reset to
         // BUYER/OTHER, same convention LeadModal's save() already follows.
-        await api.patch(`/cars/leads/${lead.id}`, { status: "CONVERTED", convertedVehicleId: res.data.data.id, leadType: lead.leadType, source: lead.source });
+        await api.patch(`/cars/leads/${lead.id}`, { status: "CONVERTED", convertedVehicleId: vehicleId, leadType: lead.leadType, source: lead.source });
       }
       onSaved(); onClose();
     } catch (e) { setErr(getApiError(e)); }
@@ -656,24 +848,23 @@ function AddVehicleModal({ employees, lead, onClose, onSaved }: { employees: Emp
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
       <div className="rounded-2xl p-5 w-full max-w-xl mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{lead ? `Buy Car — from ${lead.name}` : "Add Vehicle — Bought a Car"}</h3>
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{vehicle ? `Edit Vehicle — ${vehicle.make} ${vehicle.model}` : lead ? `Buy Car — from ${lead.name}` : "Add Vehicle — Bought a Car"}</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
         </div>
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
 
         <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>Vehicle Details</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          <div><label style={S.label}>Make *</label><input style={{ ...S.inp, width: "100%" }} value={v.make} onChange={e => setV({ ...v, make: e.target.value })} /></div>
-          <div><label style={S.label}>Model *</label><input style={{ ...S.inp, width: "100%" }} value={v.model} onChange={e => setV({ ...v, model: e.target.value })} /></div>
-          <div><label style={S.label}>Variant</label><input style={{ ...S.inp, width: "100%" }} value={v.variant} onChange={e => setV({ ...v, variant: e.target.value })} /></div>
-          <div><label style={S.label}>Year</label><input type="number" style={{ ...S.inp, width: "100%" }} value={v.year} onChange={e => setV({ ...v, year: e.target.value })} /></div>
+          <MakeModelVariantFields make={v.make} model={v.model} variant={v.variant}
+            onChange={next => setV({ ...v, ...next })} />
+          <div><label style={S.label}>Year</label><YearSelect value={v.year} onChange={year => setV({ ...v, year })} /></div>
           <div><label style={S.label}>Registration No.</label><input style={{ ...S.inp, width: "100%" }} value={v.registrationNo} onChange={e => setV({ ...v, registrationNo: e.target.value })} /></div>
           <div><label style={S.label}>Chassis No.</label><input style={{ ...S.inp, width: "100%" }} value={v.chassisNo} onChange={e => setV({ ...v, chassisNo: e.target.value })} /></div>
           <div><label style={S.label}>Engine No.</label><input style={{ ...S.inp, width: "100%" }} value={v.engineNo} onChange={e => setV({ ...v, engineNo: e.target.value })} /></div>
           <div><label style={S.label}>Color</label><input style={{ ...S.inp, width: "100%" }} value={v.color} onChange={e => setV({ ...v, color: e.target.value })} /></div>
           <div><label style={S.label}>Odometer (km)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={v.odometer} onChange={e => setV({ ...v, odometer: e.target.value })} /></div>
-          <div><label style={S.label}>Fuel Type</label><input style={{ ...S.inp, width: "100%" }} placeholder="Petrol / Diesel / EV" value={v.fuelType} onChange={e => setV({ ...v, fuelType: e.target.value })} /></div>
-          <div><label style={S.label}>Transmission</label><input style={{ ...S.inp, width: "100%" }} placeholder="Manual / Automatic" value={v.transmission} onChange={e => setV({ ...v, transmission: e.target.value })} /></div>
+          <div><label style={S.label}>Fuel Type</label><MultiCatalogSelect value={v.fuelType} options={FUEL_TYPES} placeholder="Select fuel type(s)…" onChange={fuelType => setV({ ...v, fuelType })} /></div>
+          <div><label style={S.label}>Transmission</label><MultiCatalogSelect value={v.transmission} options={TRANSMISSION_TYPES} placeholder="Select transmission(s)…" onChange={transmission => setV({ ...v, transmission })} /></div>
         </div>
 
         <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>Purchase (who you bought it from)</p>
@@ -687,9 +878,9 @@ function AddVehicleModal({ employees, lead, onClose, onSaved }: { employees: Emp
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </div>
-          <div><label style={S.label}>Seller Name</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerName} onChange={e => setV({ ...v, sellerName: e.target.value })} /></div>
-          <div><label style={S.label}>Seller Phone</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerPhone} onChange={e => setV({ ...v, sellerPhone: e.target.value })} /></div>
-          <div><label style={S.label}>Seller Email</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerEmail} onChange={e => setV({ ...v, sellerEmail: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Name</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerName} onChange={e => setV({ ...v, sellerName: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerPhone} onChange={e => setV({ ...v, sellerPhone: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Email</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerEmail} onChange={e => setV({ ...v, sellerEmail: e.target.value })} /></div>
         </div>
 
         <label style={S.label}>Notes</label>
@@ -697,7 +888,7 @@ function AddVehicleModal({ employees, lead, onClose, onSaved }: { employees: Emp
 
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
-          <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : "Add to Inventory"}</button>
+          <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : vehicle ? "Save Changes" : "Add to Inventory"}</button>
         </div>
       </div>
     </div>
@@ -710,7 +901,7 @@ function AddVehicleModal({ employees, lead, onClose, onSaved }: { employees: Emp
 // loan details, etc.), shown individually via CustomFieldRenderer instead
 // of being buried in the vehicle's notes field.
 // ═══════════════════════════════════════════════════════════════
-function VehicleDetailModal({ vehicle, onClose }: { vehicle: Vehicle; onClose: () => void }) {
+function VehicleDetailModal({ vehicle, onClose, onEdit }: { vehicle: Vehicle; onClose: () => void; onEdit?: () => void }) {
   const row = (label: string, value?: string | number | null) => value === undefined || value === null || value === "" ? null : (
     <div>
       <label style={S.label}>{label}</label>
@@ -722,7 +913,10 @@ function VehicleDetailModal({ vehicle, onClose }: { vehicle: Vehicle; onClose: (
       <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{vehicle.make} {vehicle.model} {vehicle.variant ? `(${vehicle.variant})` : ""}</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+          <div className="flex items-center gap-2">
+            {onEdit && <button onClick={onEdit} style={{ ...S.ghost, fontSize: 11, padding: "5px 10px" }}><Pencil size={11} /> Edit</button>}
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {row("Registration No.", vehicle.registrationNo)}
@@ -734,11 +928,11 @@ function VehicleDetailModal({ vehicle, onClose }: { vehicle: Vehicle; onClose: (
           {row("Odometer", vehicle.odometer)}
           {row("Registration Date", vehicle.registrationDate ? new Date(vehicle.registrationDate).toLocaleDateString("en-IN") : undefined)}
           {row("Status", VEHICLE_STATUS[vehicle.status]?.label || vehicle.status)}
-          {row("Owner / Buyer", vehicle.ownerName)}
-          {row("Owner Phone", vehicle.ownerPhone)}
-          {row("Owner Address", vehicle.ownerAddress)}
-          {row("Seller", vehicle.sellerName)}
-          {row("Seller Phone", vehicle.sellerPhone)}
+          {row("Customer Name (Sold To)", vehicle.ownerName)}
+          {row("Customer Phone (Sold To)", vehicle.ownerPhone)}
+          {row("Customer Address (Sold To)", vehicle.ownerAddress)}
+          {row("Customer Name (Bought From)", vehicle.sellerName)}
+          {row("Customer Phone (Bought From)", vehicle.sellerPhone)}
         </div>
         {vehicle.insurances?.[0] && (
           <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
@@ -762,6 +956,10 @@ function VehicleDetailModal({ vehicle, onClose }: { vehicle: Vehicle; onClose: (
           </div>
         )}
         <CustomFieldRenderer entity="VEHICLE" entityId={vehicle.id} readOnly />
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 8 }}>Documents</div>
+          <DocumentsPanel entityType="VEHICLE" entityId={vehicle.id} compact />
+        </div>
         <div className="flex justify-end mt-4">
           <button onClick={onClose} style={S.ghost}>Close</button>
         </div>
@@ -778,12 +976,12 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
     ownerName: "", ownerPhone: "", ownerEmail: "", salePrice: "", soldAt: new Date().toISOString().slice(0, 10), warrantyMonths: "",
   });
   const [addInsurance, setAddInsurance] = useState(true);
-  const [ins, setIns] = useState({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "" });
+  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
   async function save() {
-    if (!form.ownerName.trim()) { setErr("Buyer name is required"); return; }
+    if (!form.ownerName.trim()) { setErr("Customer name is required"); return; }
     if (addInsurance && (!ins.provider.trim() || !ins.endDate)) { setErr("Insurance provider and end date are required (or uncheck 'add insurance now')"); return; }
     setSaving(true); setErr("");
     try {
@@ -812,9 +1010,9 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
 
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="col-span-2"><label style={S.label}>Buyer Name *</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerName} onChange={e => setForm({ ...form, ownerName: e.target.value })} /></div>
-          <div><label style={S.label}>Buyer Phone</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerPhone} onChange={e => setForm({ ...form, ownerPhone: e.target.value })} /></div>
-          <div><label style={S.label}>Buyer Email</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerEmail} onChange={e => setForm({ ...form, ownerEmail: e.target.value })} /></div>
+          <div className="col-span-2"><label style={S.label}>Customer Name *</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerName} onChange={e => setForm({ ...form, ownerName: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerPhone} onChange={e => setForm({ ...form, ownerPhone: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Email</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerEmail} onChange={e => setForm({ ...form, ownerEmail: e.target.value })} /></div>
           <div><label style={S.label}>Sale Price (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.salePrice} onChange={e => setForm({ ...form, salePrice: e.target.value })} /></div>
           <div><label style={S.label}>Sale Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={form.soldAt} onChange={e => setForm({ ...form, soldAt: e.target.value })} /></div>
           <div><label style={S.label}>Warranty (months)</label><input type="number" style={{ ...S.inp, width: "100%" }} placeholder="e.g. 6" value={form.warrantyMonths} onChange={e => setForm({ ...form, warrantyMonths: e.target.value })} /></div>
@@ -824,21 +1022,7 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
           <input type="checkbox" checked={addInsurance} onChange={e => setAddInsurance(e.target.checked)} />
           Record their (third-party) insurance now
         </label>
-        {addInsurance && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div><label style={S.label}>Provider *</label><input style={{ ...S.inp, width: "100%" }} value={ins.provider} onChange={e => setIns({ ...ins, provider: e.target.value })} /></div>
-            <div><label style={S.label}>Policy No.</label><input style={{ ...S.inp, width: "100%" }} value={ins.policyNumber} onChange={e => setIns({ ...ins, policyNumber: e.target.value })} /></div>
-            <div>
-              <label style={S.label}>Type</label>
-              <select style={{ ...S.inp, width: "100%" }} value={ins.type} onChange={e => setIns({ ...ins, type: e.target.value })}>
-                {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-              </select>
-            </div>
-            <div><label style={S.label}>Start Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={ins.startDate} onChange={e => setIns({ ...ins, startDate: e.target.value })} /></div>
-            <div><label style={S.label}>End Date *</label><input type="date" style={{ ...S.inp, width: "100%" }} value={ins.endDate} onChange={e => setIns({ ...ins, endDate: e.target.value })} /></div>
-            <div><label style={S.label}>Premium (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={ins.premium} onChange={e => setIns({ ...ins, premium: e.target.value })} /></div>
-          </div>
-        )}
+        {addInsurance && <InsuranceFields value={ins} onChange={setIns} />}
 
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
@@ -1045,13 +1229,23 @@ export default function CarsPage() {
   const [acquireLead, setAcquireLead] = useState<CarLead | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [insuranceFor, setInsuranceFor] = useState<Vehicle | null>(null);
+  const [editInsuranceRecord, setEditInsuranceRecord] = useState<Insurance | null>(null);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showVehicleImport, setShowVehicleImport] = useState(false);
   const [showHistoricalImport, setShowHistoricalImport] = useState(false);
   const [markSoldFor, setMarkSoldFor] = useState<Vehicle | null>(null);
   const [detailVehicle, setDetailVehicle] = useState<Vehicle | null>(null);
+  const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
+  const [vehicleMenuOpenId, setVehicleMenuOpenId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const employeeName = (id?: string) => employees.find(e => e.id === id)?.name;
+
+  useEffect(() => {
+    if (!vehicleMenuOpenId) return;
+    const close = () => setVehicleMenuOpenId(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [vehicleMenuOpenId]);
 
   useEffect(() => {
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
@@ -1273,8 +1467,9 @@ export default function CarsPage() {
                   {vehicles.map(v => {
                     const st = VEHICLE_STATUS[v.status] || VEHICLE_STATUS.IN_STOCK;
                     const badge = insuranceBadge(v.insurances?.[0]);
+                    const currentInsurance = v.insurances?.[0];
                     return (
-                      <tr key={v.id}>
+                      <tr key={v.id} onClick={() => setDetailVehicle(v)} style={{ cursor: "pointer" }}>
                         <td style={{ padding: "10px 12px", fontSize: 13, color: "var(--text-primary)", fontWeight: 600, borderBottom: "1px solid var(--bg-hover)" }}>
                           {v.make} {v.model} {v.variant ? <span style={{ color: "var(--text-ghost)", fontWeight: 400 }}>({v.variant})</span> : null}
                           {v.year ? <span style={{ color: "var(--text-ghost)", fontWeight: 400 }}> · {v.year}</span> : null}
@@ -1304,13 +1499,41 @@ export default function CarsPage() {
                             </span>
                           )}
                         </td>
-                        <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--bg-hover)", whiteSpace: "nowrap" }}>
-                          <div className="flex gap-2">
+                        <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--bg-hover)", whiteSpace: "nowrap", position: "relative" }}
+                          onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2">
                             {v.status !== "SOLD" && (
                               <button onClick={() => setMarkSoldFor(v)} style={{ ...S.btn, fontSize: 11, padding: "5px 10px" }}>Mark Sold</button>
                             )}
-                            <button onClick={() => setInsuranceFor(v)} style={{ ...S.ghost, fontSize: 11, padding: "5px 10px" }}>+ Insurance</button>
-                            <button onClick={() => setDetailVehicle(v)} style={{ ...S.ghost, fontSize: 11, padding: "5px 10px" }}>Details</button>
+                            <button
+                              onClick={e => { e.stopPropagation(); setVehicleMenuOpenId(vehicleMenuOpenId === v.id ? null : v.id); }}
+                              style={{ ...S.ghost, padding: "5px 7px" }} title="More actions">
+                              <MoreVertical size={14} />
+                            </button>
+                            {vehicleMenuOpenId === v.id && (
+                              <div onClick={e => e.stopPropagation()} style={{
+                                position: "absolute", top: "100%", right: 12, marginTop: 4, zIndex: 20,
+                                background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10,
+                                boxShadow: "0 8px 24px rgba(0,0,0,0.25)", minWidth: 180, padding: 4,
+                              }}>
+                                {[
+                                  { label: "Edit Vehicle", icon: <Pencil size={12} />, onClick: () => { setEditVehicle(v); setVehicleMenuOpenId(null); } },
+                                  { label: currentInsurance ? "Edit Insurance" : "Add Insurance", icon: <ShieldAlert size={12} />, onClick: () => { setInsuranceFor(v); setEditInsuranceRecord(currentInsurance ?? null); setVehicleMenuOpenId(null); } },
+                                  { label: "View Details", icon: <Car size={12} />, onClick: () => { setDetailVehicle(v); setVehicleMenuOpenId(null); } },
+                                  { label: "Documents", icon: <FileText size={12} />, onClick: () => { setDetailVehicle(v); setVehicleMenuOpenId(null); } },
+                                ].map(item => (
+                                  <button key={item.label} onClick={item.onClick} style={{
+                                    display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 10px",
+                                    background: "none", border: "none", borderRadius: 6, cursor: "pointer",
+                                    fontSize: 12, color: "var(--text-secondary)", textAlign: "left",
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+                                  onMouseLeave={e => (e.currentTarget.style.background = "none")}>
+                                    {item.icon} {item.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1491,10 +1714,18 @@ export default function CarsPage() {
       )}
       {showImport && <ImportModal leadType={tab === "sellerleads" ? "SELLER" : "BUYER"} onClose={() => setShowImport(false)} onImported={load} />}
       {convertLead && <ConvertModal lead={convertLead} onClose={() => setConvertLead(null)} onConverted={() => { load(); setTab("vehicles"); }} />}
-      {insuranceFor && <InsuranceModal vehicle={insuranceFor} onClose={() => setInsuranceFor(null)} onSaved={load} />}
-      {detailVehicle && <VehicleDetailModal vehicle={detailVehicle} onClose={() => setDetailVehicle(null)} />}
-      {(showAddVehicle || acquireLead) && (
-        <AddVehicleModal employees={employees} lead={acquireLead} onClose={() => { setShowAddVehicle(false); setAcquireLead(null); }} onSaved={() => { load(); if (acquireLead) setTab("vehicles"); }} />
+      {insuranceFor && (
+        <InsuranceModal vehicle={insuranceFor} existing={editInsuranceRecord ?? undefined}
+          onClose={() => { setInsuranceFor(null); setEditInsuranceRecord(null); }} onSaved={load} />
+      )}
+      {detailVehicle && (
+        <VehicleDetailModal vehicle={detailVehicle} onClose={() => setDetailVehicle(null)}
+          onEdit={() => { setEditVehicle(detailVehicle); setDetailVehicle(null); }} />
+      )}
+      {(showAddVehicle || acquireLead || editVehicle) && (
+        <AddVehicleModal employees={employees} lead={acquireLead} vehicle={editVehicle}
+          onClose={() => { setShowAddVehicle(false); setAcquireLead(null); setEditVehicle(null); }}
+          onSaved={() => { load(); if (acquireLead) setTab("vehicles"); }} />
       )}
       {showVehicleImport && <VehicleImportModal onClose={() => setShowVehicleImport(false)} onImported={load} />}
       {showHistoricalImport && <HistoricalStatsModal onClose={() => setShowHistoricalImport(false)} onImported={load} />}
