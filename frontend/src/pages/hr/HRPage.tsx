@@ -339,6 +339,8 @@ export default function HRPage() {
     setDetailLoading(false);
   };
   const saveEmployee = async () => {
+    if (!empForm.name.trim()) { setError("Full name is required"); return; }
+    if (!empForm.joiningDate) { setError("Joining date is required"); return; }
     setSaving(true); setError("");
     try {
       const payload = {
