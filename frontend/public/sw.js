@@ -16,10 +16,34 @@ self.addEventListener("activate", e => {
 // Network-first for API, cache-first for static assets
 self.addEventListener("fetch", e => {
   if (e.request.url.includes("/api/")) return; // never cache API
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
+  e.respondWith(handleFetch(e.request));
 });
+
+// caches.match() resolves to `undefined` when nothing matches — passing
+// that straight to e.respondWith() crashes with "Failed to convert value
+// to 'Response'" (a real bug that was actually happening: a page
+// navigation like /dashboard failed over the network, e.g. during a
+// backend cold start, then found nothing cached for that exact URL since
+// only "/" and "/index.html" are precached). This always resolves to a
+// real Response, so that crash can't happen again.
+async function handleFetch(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    // Full-page navigations (e.g. reloading /dashboard while offline) fall
+    // back to the cached app shell so the SPA can still boot and render its
+    // own "you're offline" / retry state, instead of a bare browser error.
+    if (request.mode === "navigate") {
+      const shell = await caches.match("/index.html");
+      if (shell) return shell;
+    }
+
+    return new Response("Offline", { status: 503, statusText: "Service Unavailable" });
+  }
+}
 
 // ── Web Push ────────────────────────────────────────────────
 // Shows an OS-level notification even if no FlowCRM tab is open.

@@ -54,7 +54,15 @@ const employeeSchema = z.object({
   designation:   z.string().optional(),
   department:    z.string().optional(),
   employmentType:z.enum(["FULL_TIME","PART_TIME","CONTRACT","INTERN"]).default("FULL_TIME"),
-  joiningDate:   z.string(),
+  // Plain z.string() accepted "" (the form's own default value, never
+  // pre-filled) as valid — that flowed straight into `new Date("")` and
+  // crashed Prisma with a raw 500 instead of a clear validation error the
+  // first time anyone left this field untouched. Confirmed this is exactly
+  // what was happening: Add Employee submits fine with Joining Date blank,
+  // hits the server, and dies with "Internal server error" and no
+  // indication of why.
+  joiningDate:   z.string().min(1, "Joining date is required")
+    .refine(v => !isNaN(new Date(v).getTime()), "Joining date is invalid"),
   salaryType:    z.enum(["MONTHLY","DAILY","FIXED","UNPAID","INCENTIVE"]).default("MONTHLY"),
   basicSalary:   z.number().min(0).default(0),
   dailyRate:     z.number().min(0).optional(),
