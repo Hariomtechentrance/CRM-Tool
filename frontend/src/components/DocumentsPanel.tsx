@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, type DragEvent } from "react";
 import api from "@/lib/api";
-import { Upload, FileText, FileSpreadsheet, File, Image, Trash2, Download, X, Plus, Paperclip } from "lucide-react";
+import { Upload, FileText, FileSpreadsheet, File, Image, Trash2, Download, X, Plus, Paperclip, Eye } from "lucide-react";
 
 // ── Types ───────────────────────────────────────────────────
 interface Doc {
@@ -116,6 +116,25 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
     } catch { alert("Download failed"); }
   };
 
+  // Open in a new tab instead of forcing a save — browsers render PDFs and
+  // images inline from a blob: URL; other types (docx/xlsx) fall back to
+  // whatever the browser/OS normally does with them, same as any other
+  // "open in new tab" link. The tab is opened synchronously (before the
+  // await) so popup blockers don't treat this as an unrequested popup.
+  const handleView = async (doc: Doc) => {
+    const newTab = window.open("", "_blank");
+    try {
+      const r = await api.get(`/documents/${doc.id}/download`, { responseType: "blob" });
+      const url = URL.createObjectURL(r.data);
+      if (newTab) newTab.location.href = url;
+      else window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      newTab?.close();
+      alert("Could not open file for viewing");
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this file permanently?")) return;
     try { await api.delete(`/documents/${id}`); setDocs(p => p.filter(d => d.id !== id)); }
@@ -190,6 +209,9 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
                     <div style={{ fontSize: 12, color: "var(--text-sec)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.originalName}</div>
                     <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>{fmtSize(doc.fileSize)} · {fmtDate(doc.createdAt)}</div>
                   </div>
+                  <button onClick={() => handleView(doc)} title="View" style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 3, borderRadius: 4 }}>
+                    <Eye size={13} />
+                  </button>
                   <button onClick={() => handleDownload(doc)} title="Download" style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", padding: 3, borderRadius: 4 }}>
                     <Download size={13} />
                   </button>
@@ -289,8 +311,14 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
                 {/* Actions */}
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button
-                    onClick={() => handleDownload(doc)}
+                    onClick={() => handleView(doc)}
                     style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", color: "#818CF8" }}
+                  >
+                    <Eye size={13} /> View
+                  </button>
+                  <button
+                    onClick={() => handleDownload(doc)}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", background: "transparent", border: "1px solid var(--border-input)", color: "var(--text-ghost)" }}
                   >
                     <Download size={13} /> Download
                   </button>

@@ -16,6 +16,22 @@ function computeWarrantyEndDate(soldAt: Date | undefined | null, warrantyMonths:
   return end;
 }
 
+// Zod's `.partial()` does NOT re-wrap a `.default(...)` field in `.optional()`
+// — it already reports itself as optional, since it accepts a missing value.
+// That means a key the caller never sent still gets filled in with its schema
+// default (e.g. PATCHing just `{ color: "Red" }` on vehicleSchema, which has
+// `status` defaulted to "IN_STOCK", would silently un-sell a SOLD vehicle;
+// same for insuranceSchema's `type` default). Filtering the parsed result
+// down to keys actually present on the raw request body keeps a partial
+// update genuinely partial. Same fix already applied in projects.controller.ts.
+function onlyProvided<T extends Record<string, unknown>>(body: Record<string, unknown>, parsed: T): Partial<T> {
+  const out: Partial<T> = {};
+  for (const key of Object.keys(body)) {
+    if (key in parsed) out[key as keyof T] = parsed[key as keyof T];
+  }
+  return out;
+}
+
 // ── Validators ───────────────────────────────────────────────
 const carLeadSchema = z.object({
   leadType: z.enum(["BUYER", "SELLER"]).default("BUYER"),
@@ -730,6 +746,16 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
     const parsed = vehicleSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const v = parsed.data;
+
+    // A registration number identifies one physical vehicle — never allow
+    // two Vehicle records for the same reg no in the same org. (Multiple
+    // vehicles under the same owner name/phone is completely normal and
+    // must NOT be blocked — only the reg no itself is the dedup key.)
+    if (v.registrationNo) {
+      const dupe = await db().vehicle.findFirst({ where: { organizationId: req.organizationId!, registrationNo: v.registrationNo } });
+      if (dupe) { conflict(res, `Registration number ${v.registrationNo} is already in inventory.`); return; }
+    }
+
     const soldAt = v.soldAt ? new Date(v.soldAt) : undefined;
     const vehicle = await db().vehicle.create({
       data: {
@@ -761,7 +787,19 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
     if (!existing) { notFound(res, "Vehicle not found"); return; }
     const parsed = vehicleSchema.partial().safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
-    const data = parsed.data;
+    const data = onlyProvided(req.body, parsed.data);
+
+    // Same vehicle (by registration number), not the same owner — one
+    // registration number is one physical vehicle, but the same person can
+    // legitimately own several. Only check when the reg no is actually
+    // changing, and only against OTHER vehicles.
+    if (data.registrationNo && data.registrationNo !== existing.registrationNo) {
+      const dupe = await db().vehicle.findFirst({
+        where: { organizationId: req.organizationId!, registrationNo: data.registrationNo, id: { not: existing.id } },
+      });
+      if (dupe) { conflict(res, `Registration number ${data.registrationNo} is already used by another vehicle in inventory.`); return; }
+    }
+
     const soldAt = data.soldAt !== undefined ? (data.soldAt ? new Date(data.soldAt) : null) : undefined;
     // Recompute warranty end date if either warrantyMonths or soldAt changed
     // in this update, using whichever soldAt is now in effect.
@@ -1023,7 +1061,7 @@ export async function updateInsurance(req: OrgRequest, res: Response): Promise<v
     if (!existing) { notFound(res, "Insurance policy not found"); return; }
     const parsed = insuranceSchema.partial().safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
-    const data = parsed.data;
+    const data = onlyProvided(req.body, parsed.data);
     const insurance = await db().vehicleInsurance.update({
       where: { id: existing.id },
       data: {
