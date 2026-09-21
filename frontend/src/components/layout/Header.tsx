@@ -180,6 +180,9 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   // On the Cars page, "quick add lead" should create a car buyer lead, not a
   // CRM/Marketing one — they're different entities with different fields.
   const onCarsPage = location.pathname.startsWith("/cars");
+  // Tailoring orgs have no leads/projects concept — order creation lives
+  // entirely inside the Tailoring module's own "New Order" button.
+  const hasTailoring = activeOrg?.enabledModules?.includes("TAILORING");
 
   const handleLogout = async () => {
     await logout();
@@ -284,7 +287,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Right */}
       <div className="flex items-center gap-1.5">
-        {/* Quick add — Lead / Project, available from any dashboard */}
+        {/* Quick add — Lead / Project, available from any dashboard (not Tailoring — no leads/projects there) */}
+        {!hasTailoring && (
         <div ref={quickAddRef} style={{ position: "relative" }}>
           <button
             onClick={() => { setQuickAddOpen(p => !p); setBellOpen(false); setMenuOpen(false); }}
@@ -324,6 +328,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             </div>
           )}
         </div>
+        )}
 
         {/* Theme toggle */}
         <button
