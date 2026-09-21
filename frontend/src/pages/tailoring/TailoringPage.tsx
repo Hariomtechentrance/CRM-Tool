@@ -23,8 +23,8 @@ const S = {
 };
 
 // ── Types ────────────────────────────────────────────────────
-interface Employee { id: string; name: string; }
-interface Customer {
+export interface Employee { id: string; name: string; }
+export interface Customer {
   id: string; name: string; gender?: "MALE" | "FEMALE" | "OTHER"; phone?: string; email?: string; address?: string; notes?: string;
   createdAt: string;
   _count?: { orders: number; measurementProfiles: number };
@@ -405,7 +405,7 @@ function CustomerDetailModal({ customerId, onClose, onEdit }: { customerId: stri
 // ═══════════════════════════════════════════════════════════════
 // Order modal — add/edit
 // ═══════════════════════════════════════════════════════════════
-function OrderModal({ order, customers, employees, onClose, onSaved, onCustomersChanged }: {
+export function OrderModal({ order, customers, employees, onClose, onSaved, onCustomersChanged }: {
   order?: Order | null; customers: Customer[]; employees: Employee[];
   onClose: () => void; onSaved: () => void; onCustomersChanged: () => void;
 }) {

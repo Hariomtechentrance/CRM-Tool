@@ -9,6 +9,7 @@ import { isPushSupported, isPushSubscribed, enablePushNotifications } from "@/li
 import { WBA_CATEGORIES } from "@/pages/wba/WBAPage";
 import { LeadFormModal } from "@/pages/leads/LeadsPage";
 import { LeadModal as CarLeadModal } from "@/pages/cars/CarsPage";
+import { OrderModal as TailorOrderModal, type Customer as TailorCustomer, type Employee as TailorEmployee } from "@/pages/tailoring/TailoringPage";
 
 interface Alert {
   id: string;
@@ -72,6 +73,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const [showQuickLead, setShowQuickLead] = useState(false);
   const [showQuickCarLead, setShowQuickCarLead] = useState(false);
   const [showQuickProject, setShowQuickProject] = useState(false);
+  const [showQuickOrder, setShowQuickOrder] = useState(false);
   const quickAddRef = useRef<HTMLDivElement>(null);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null); // null = unknown/checking
   const [pushBusy, setPushBusy] = useState(false);
@@ -287,7 +289,19 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
       {/* Right */}
       <div className="flex items-center gap-1.5">
-        {/* Quick add — Lead / Project, available from any dashboard (not Tailoring — no leads/projects there) */}
+        {/* Quick add — Lead / Project, available from any dashboard. Tailoring
+            orgs get a dedicated pink "New Order" button instead — there's no
+            leads/projects concept there, just the one action. */}
+        {hasTailoring && (
+          <button
+            onClick={() => setShowQuickOrder(true)}
+            title="New Order"
+            className="flex items-center gap-1.5 rounded-lg cursor-pointer"
+            style={{ height: 34, padding: "0 13px", color: "#fff", background: "linear-gradient(135deg,#ec4899,#f472b6)", border: "none", fontSize: 12.5, fontWeight: 700 }}
+          >
+            <Plus size={15} /> <span className="hidden sm:inline">New Order</span>
+          </button>
+        )}
         {!hasTailoring && (
         <div ref={quickAddRef} style={{ position: "relative" }}>
           <button
@@ -554,6 +568,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
     {showQuickLead && <QuickAddLeadWrapper onClose={() => setShowQuickLead(false)} />}
     {showQuickCarLead && <CarLeadModal lead={null} onClose={() => setShowQuickCarLead(false)} onSaved={() => {}} />}
     {showQuickProject && <QuickAddProjectModal onClose={() => setShowQuickProject(false)} />}
+    {showQuickOrder && <QuickAddOrderWrapper onClose={() => setShowQuickOrder(false)} />}
     </>
   );
 }
@@ -579,6 +594,33 @@ function QuickAddLeadWrapper({ onClose }: { onClose: () => void }) {
   }, []);
 
   return <LeadFormModal employees={employees} onClose={onClose} onSaved={() => {}} />;
+}
+
+// Same "New Order" form as the Tailoring module's own — fetches its own
+// customer/employee lists here since this isn't nested under that page.
+function QuickAddOrderWrapper({ onClose }: { onClose: () => void }) {
+  const [customers, setCustomers] = useState<TailorCustomer[]>([]);
+  const [employees, setEmployees] = useState<TailorEmployee[]>([]);
+
+  const loadCustomers = useCallback(() => {
+    api.get("/tailoring/customers", { params: { limit: 500 } }).then(r => setCustomers(r.data.data?.customers ?? [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadCustomers();
+    api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
+  }, [loadCustomers]);
+
+  return (
+    <TailorOrderModal
+      order={null}
+      customers={customers}
+      employees={employees}
+      onClose={onClose}
+      onSaved={() => {}}
+      onCustomersChanged={loadCustomers}
+    />
+  );
 }
 
 function QuickAddProjectModal({ onClose }: { onClose: () => void }) {
