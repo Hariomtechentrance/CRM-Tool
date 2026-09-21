@@ -85,6 +85,7 @@ import RestaurantPage from "@/pages/restaurant/RestaurantPage";
 import HotelPage from "@/pages/hotel/HotelPage";
 import WBAPage from "@/pages/wba/WBAPage";
 import CarsPage from "@/pages/cars/CarsPage";
+import TailoringPage from "@/pages/tailoring/TailoringPage";
 import ReceptionistPage from "@/pages/receptionist/ReceptionistPage";
 import CurrencyPage from "@/pages/settings/CurrencyPage";
 import CustomFieldsPage from "@/pages/settings/CustomFieldsPage";
@@ -214,6 +215,7 @@ export default function App() {
           <Route path="/hotel"         element={G("HOTEL", HotelPage)} />
           <Route path="/wba"          element={G("WBA", WBAPage)} />
           <Route path="/cars"         element={G("CARS", CarsPage)} />
+          <Route path="/tailoring"    element={G("TAILORING", TailoringPage)} />
 
           {/* ── Sales ── */}
           <Route path="/deals"        element={<DealsPage />} />

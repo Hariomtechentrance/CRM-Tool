@@ -87,6 +87,7 @@ import chatbotRoutes from "./routes/chatbot.routes";
 import contactRoutes from "./routes/contact.routes";
 import wbaRoutes from "./routes/wba.routes";
 import carsRoutes from "./routes/cars.routes";
+import tailoringRoutes from "./routes/tailoring.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startCronJobs } from "./cron/jobs";
 
@@ -456,6 +457,7 @@ app.use("/api/contact",       contactRoutes);
 // on orgId+URL, so it would serve one user's response to another.
 app.use("/api/wba",           wbaRoutes);
 app.use("/api/cars",          withCache(20_000), carsRoutes);
+app.use("/api/tailoring",     withCache(20_000), tailoringRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────
 app.use((_req, res) => {

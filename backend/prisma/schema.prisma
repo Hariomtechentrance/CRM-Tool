@@ -272,10 +272,15 @@ model Organization {
   courierLogs CourierLog[]
 
   // Phase 8 — Car Resale
-  carLeads          CarLead[]
-  vehicles          Vehicle[]
-  vehicleInsurances VehicleInsurance[]
+  carLeads           CarLead[]
+  vehicles           Vehicle[]
+  vehicleInsurances  VehicleInsurance[]
   carHistoricalStats CarHistoricalStat[]
+
+  // Phase 9 — Tailoring & Boutique
+  tailorCustomers           TailorCustomer[]
+  tailorMeasurementProfiles TailorMeasurementProfile[]
+  tailorOrders              TailorOrder[]
 
   // Universal
   customFields CustomField[]
@@ -4008,23 +4013,23 @@ enum VehicleStatus {
 }
 
 model Vehicle {
-  id             String        @id @default(cuid())
-  organizationId String
-  make           String
-  model          String
-  variant        String?
-  year           Int?
-  registrationNo String?
-  chassisNo      String?
-  engineNo       String?
-  color          String?
-  odometer       Int?
-  fuelType       String?
-  transmission   String?
-  purchasePrice  Float? // what the dealership paid to acquire this used vehicle
-  sellerName     String? // who they bought it FROM, when acquired directly (not via a lead)
-  sellerPhone    String?
-  sellerEmail    String?
+  id               String        @id @default(cuid())
+  organizationId   String
+  make             String
+  model            String
+  variant          String?
+  year             Int?
+  registrationNo   String?
+  chassisNo        String?
+  engineNo         String?
+  color            String?
+  odometer         Int?
+  fuelType         String?
+  transmission     String?
+  purchasePrice    Float? // what the dealership paid to acquire this used vehicle
+  sellerName       String? // who they bought it FROM, when acquired directly (not via a lead)
+  sellerPhone      String?
+  sellerEmail      String?
   purchasedAt      DateTime? // when the dealership acquired this vehicle
   registrationDate DateTime? // when the vehicle itself was first registered (RTO), distinct from purchasedAt
   salePrice        Float?
@@ -4038,8 +4043,8 @@ model Vehicle {
   warrantyEndDate  DateTime? // soldAt + warrantyMonths, stored explicitly for easy querying
   assignedToId     String? // salesperson responsible — User.id, no FK (same loose-ref convention as CarLead.assignedToId)
   notes            String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   insurances   VehicleInsurance[]
@@ -4108,4 +4113,131 @@ model CarHistoricalStat {
 
   @@unique([organizationId, month])
   @@index([organizationId])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Phase 9 — Tailoring & Boutique
+// ═══════════════════════════════════════════════════════════════
+
+enum TailorGarmentType {
+  SHIRT
+  TROUSER
+  BLOUSE
+  LEHENGA
+  SHERWANI
+  KURTA
+  SUIT
+  SAREE_FALL
+  ALTERATION
+  OTHER
+}
+
+enum TailorOrderStatus {
+  ORDER_PLACED
+  CUTTING
+  STITCHING
+  TRIAL
+  ALTERATION
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum FabricProvidedBy {
+  CUSTOMER
+  SHOP
+}
+
+enum TailorCustomerGender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model TailorCustomer {
+  id             String                @id @default(cuid())
+  organizationId String
+  name           String
+  gender         TailorCustomerGender?
+  phone          String?
+  email          String?
+  address        String?
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization        Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  measurementProfiles TailorMeasurementProfile[]
+  orders              TailorOrder[]
+
+  @@index([organizationId])
+  @@index([organizationId, phone])
+}
+
+model TailorMeasurementProfile {
+  id                String            @id @default(cuid())
+  organizationId    String
+  customerId        String
+  garmentType       TailorGarmentType
+  label             String? // e.g. "Formal Shirt - Blue" — lets a customer keep several profiles per garment type
+  // Universal fields present across most garments — nullable since not
+  // every garment type uses every field (a Trouser profile has no "chest").
+  chest             Float?
+  waist             Float?
+  hip               Float?
+  shoulder          Float?
+  sleeveLength      Float?
+  length            Float?
+  // Garment-specific extras (Blouse: underbust/frontNeckDepth/armhole;
+  // Lehenga: shoulderStrap/frontLength/sleeveRound; Sherwani: neck/stomach;
+  // Trouser: inseam/thighRound/bottomWidth, etc.) — these genuinely don't
+  // overlap across garment types, so a flexible key->value map avoids a
+  // wall of always-null columns. The frontend drives which keys are shown
+  // for a given garment type (same pattern as the Cars module's cascading
+  // catalog dropdowns).
+  extraMeasurements Json?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     TailorCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders       TailorOrder[]
+
+  @@index([organizationId])
+  @@index([customerId])
+}
+
+model TailorOrder {
+  id                   String            @id @default(cuid())
+  organizationId       String
+  orderNumber          String // auto-generated, e.g. ORD-0001 — unique per org
+  customerId           String
+  garmentType          TailorGarmentType
+  measurementProfileId String? // reference only — `measurements` below is a snapshot taken at order time, so editing the saved profile later never silently changes a past order
+  measurements         Json? // snapshot of the measurements actually used for this order (universal + extra, copied in at creation)
+  quantity             Int               @default(1)
+  fabricProvidedBy     FabricProvidedBy  @default(CUSTOMER)
+  fabricDetails        String? // fabric type/colour/metres, free text
+  styleNotes           String? // design/style instructions — collar style, sleeve style, etc.
+  price                Float?
+  advancePaid          Float?
+  status               TailorOrderStatus @default(ORDER_PLACED)
+  orderDate            DateTime          @default(now())
+  trialDate            DateTime?
+  expectedDeliveryDate DateTime?
+  deliveredAt          DateTime?
+  assignedToId         String? // tailor/karigar responsible — Employee.id, no FK (same loose-ref convention as CarLead.assignedToId / Vehicle.assignedToId)
+  notes                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           TailorCustomer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  measurementProfile TailorMeasurementProfile? @relation(fields: [measurementProfileId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, orderNumber])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([customerId])
 }

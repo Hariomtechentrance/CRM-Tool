@@ -322,6 +322,19 @@ export const ALL_MODULES: ModuleDefinition[] = [
     defaultFor: [], // not auto-selected for any business type — enabled explicitly per org
     restricted: true, // only the super admin can grant this, at org-creation time or via module-request approval
   },
+  {
+    key: "TAILORING",
+    label: "Tailoring & Boutique",
+    description: "Customer measurement profiles, made-to-order garment tracking from cutting through delivery, and trial/fitting scheduling for tailors and boutiques.",
+    href: "/tailoring",
+    category: "industry",
+    iconName: "Scissors",
+    accentColor: "#F472B6",
+    accentBg: "rgba(244,114,182,0.1)",
+    accentBorder: "rgba(244,114,182,0.2)",
+    defaultFor: [], // not auto-selected for any business type — enabled explicitly per org
+    restricted: true, // only the super admin can grant this, at org-creation time or via module-request approval
+  },
 ];
 
 export const MODULE_CATEGORIES = [
