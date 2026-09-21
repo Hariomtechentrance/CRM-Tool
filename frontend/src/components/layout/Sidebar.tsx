@@ -7,7 +7,7 @@ import {
   LayoutGrid, PackageOpen, Mail, Calendar, Briefcase, FileText, ShieldCheck, RefreshCw, IndianRupee, Layers, Copy, Stamp, PiggyBank, Cog, DollarSign, Landmark, Webhook,
   MonitorCheck, ClipboardList, ClipboardCheck, UserCog, KanbanSquare, Zap, CalendarClock, MessageCircle, ShieldAlert,
   Phone, TrendingUp, Heart, Sliders, Palette, Scale,
-  UtensilsCrossed, Hotel, FolderKanban, UsersRound, Car,
+  UtensilsCrossed, Hotel, FolderKanban, UsersRound, Car, Scissors,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -26,7 +26,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   HeadphonesIcon: Headphones,
   UtensilsCrossed, Hotel,
   Phone, TrendingUp, Heart, Briefcase,
-  ClipboardCheck, ShieldCheck, Car,
+  ClipboardCheck, ShieldCheck, Car, Scissors,
 };
 
 const MOD_I18N_KEY: Record<string, string> = {
@@ -217,16 +217,18 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
   // White Band Associates hides PM Dashboard, Communication, Finance & Tax and Admin & Tools for every login
   const wbaOrg = isWBAOrg(activeOrg);
-  // Cars-module orgs (small dealerships) don't need enterprise admin tooling
-  // (Webhooks, Compliance, Branding, Audit Trail, etc.) surfaced to them —
-  // same treatment as WBA hiding Admin & Tools, just keyed off the CARS
-  // module instead of a specific org.
+  // Cars-module and Tailoring-module orgs (small dealerships / boutiques)
+  // don't need enterprise admin tooling (Webhooks, Compliance, Branding,
+  // Audit Trail, etc.) surfaced to them — same treatment as WBA hiding
+  // Admin & Tools, just keyed off the industry module instead of a
+  // specific org.
   const carsOrg = canSee("CARS");
+  const tailoringOrg = canSee("TAILORING");
 
   const showIT       = canSee("PROJECTS");
   const showSales    = canSee("DISPATCH") || canSee("CRM") || canSee("MARKETING");
   const showFinance  = canSee("ACCOUNTS") && !wbaOrg;
-  const showAdmin    = isOrgAdmin && !wbaOrg && !carsOrg; // org management, not module-gated
+  const showAdmin    = isOrgAdmin && !wbaOrg && !carsOrg && !tailoringOrg; // org management, not module-gated
   const showComm     = (canSee("CRM") || canSee("MARKETING")) && !wbaOrg;
   const showPMDash   = (canSee("PROJECTS") || isPM) && !wbaOrg;
   const showTeamPage = isTL;
