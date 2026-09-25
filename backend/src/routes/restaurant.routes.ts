@@ -9,6 +9,8 @@ import {
   generateBill, getBills,
   getReservations, createReservation, updateReservation,
   getDashboardStats,
+  getIngredients, createIngredient, updateIngredient, deleteIngredient,
+  getMenuItemRecipe, setMenuItemRecipe,
 } from "../controllers/restaurant.controller";
 
 const router = Router();
@@ -31,6 +33,14 @@ router.get   ("/items",             getMenuItems);
 router.post  ("/items",             createMenuItem);
 router.patch ("/items/:id",         updateMenuItem);
 router.delete("/items/:id",         deleteMenuItem);
+router.get   ("/items/:id/recipe",  getMenuItemRecipe);
+router.put   ("/items/:id/recipe",  setMenuItemRecipe);
+
+// Ingredients (raw materials)
+router.get   ("/ingredients",       getIngredients);
+router.post  ("/ingredients",       createIngredient);
+router.patch ("/ingredients/:id",   updateIngredient);
+router.delete("/ingredients/:id",   deleteIngredient);
 
 // KOT
 router.get   ("/kot",               getKOTs);

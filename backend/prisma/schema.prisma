@@ -262,6 +262,8 @@ model Organization {
   kots              KOT[]
   restaurantBills   RestaurantBill[]
   tableReservations TableReservation[]
+  ingredients         Ingredient[]
+  ingredientMovements IngredientMovement[]
   roomTypes         RoomType[]
   hotelRooms        HotelRoom[]
   guestProfiles     GuestProfile[]
@@ -3548,9 +3550,78 @@ model MenuItem {
   variants     MenuItemVariant[]
   addons       MenuItemAddon[]
   kotItems     KOTItem[]
+  recipe       MenuItemIngredient[]
 
   @@index([organizationId, categoryId])
   @@index([organizationId])
+}
+
+// ── Ingredients (raw materials) & recipe-based stock deduction ─
+// A MenuItem can list the raw materials it consumes per unit sold
+// (via MenuItemIngredient). Every KOT item created against that
+// MenuItem automatically deducts the linked ingredients' stock,
+// logged as an IngredientMovement — cancelling the KOT reverses it.
+
+enum IngredientMovementType {
+  SALE_DEDUCTION
+  RESTOCK
+  ADJUSTMENT
+  WASTAGE
+}
+
+model Ingredient {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  unit           String   // e.g. "ml", "g", "kg", "l", "pcs"
+  currentStock   Float    @default(0)
+  reorderLevel   Float    @default(0)
+  costPerUnit    Float    @default(0)
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipeLinks  MenuItemIngredient[]
+  movements    IngredientMovement[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model MenuItemIngredient {
+  id           String   @id @default(cuid())
+  menuItemId   String
+  ingredientId String
+  quantityUsed Float    // amount of ingredient consumed per 1 unit of menu item sold
+  createdAt    DateTime @default(now())
+
+  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, ingredientId])
+  @@index([menuItemId])
+  @@index([ingredientId])
+}
+
+model IngredientMovement {
+  id             String                 @id @default(cuid())
+  organizationId String
+  ingredientId   String
+  type           IngredientMovementType
+  quantity       Float                  // negative for deductions, positive for restock/adjustment in
+  balanceAfter   Float
+  referenceType  String?                // "KOT"
+  referenceId    String?
+  notes          String?
+  createdAt      DateTime               @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient   @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([ingredientId])
 }
 
 model MenuItemVariant {

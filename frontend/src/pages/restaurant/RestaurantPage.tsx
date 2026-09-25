@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   UtensilsCrossed, Plus, Minus, Trash2, ChefHat, Receipt,
   Table2, RefreshCw, Search, Tag, Leaf, Drumstick,
-  Clock, CheckCircle, AlertCircle, X, Edit2,
+  Clock, CheckCircle, AlertCircle, X, Edit2, Wheat, FlaskConical,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
@@ -15,6 +15,8 @@ interface Category { id: string; name: string; }
 interface MenuItem { id: string; name: string; price: number; foodType: string; categoryId: string; description?: string; isAvailable: boolean; }
 interface CartItem { menuItemId: string; itemName: string; price: number; quantity: number; notes?: string; }
 interface KOT { id: string; kotNumber: string; status: string; orderType: string; total: number; subtotal: number; taxAmount: number; items: any[]; table?: { tableNumber: string; section?: string }; customerName?: string; createdAt: string; }
+interface Ingredient { id: string; name: string; unit: string; currentStock: number; reorderLevel: number; costPerUnit: number; notes?: string; }
+interface RecipeLink { id: string; ingredientId: string; quantityUsed: number; ingredient: { id: string; name: string; unit: string; currentStock: number }; }
 
 // ── Constants ────────────────────────────────────────────────
 
@@ -39,11 +41,12 @@ const CARD: React.CSSProperties = {
 
 export default function RestaurantPage() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"pos" | "kot" | "menu" | "tables">("pos");
+  const [tab, setTab] = useState<"pos" | "kot" | "menu" | "tables" | "ingredients">("pos");
   const [tables, setTables] = useState<Table[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [kots, setKots] = useState<KOT[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [stats, setStats] = useState<any>(null);
 
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
@@ -67,21 +70,29 @@ export default function RestaurantPage() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [catForm, setCatForm] = useState({ name: "" });
+  const [showIngredientModal, setShowIngredientModal] = useState(false);
+  const [ingredientForm, setIngredientForm] = useState({ name: "", unit: "g", currentStock: "0", reorderLevel: "0", costPerUnit: "0", notes: "" });
+  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
+  const [showRecipeModal, setShowRecipeModal] = useState(false);
+  const [recipeItem, setRecipeItem] = useState<MenuItem | null>(null);
+  const [recipeRows, setRecipeRows] = useState<{ ingredientId: string; quantityUsed: string }[]>([]);
 
   const load = useCallback(async () => {
     try {
-      const [t, c, m, k, s] = await Promise.all([
+      const [t, c, m, k, s, ing] = await Promise.all([
         api.get("/restaurant/tables"),
         api.get("/restaurant/categories"),
         api.get("/restaurant/items"),
         api.get("/restaurant/kot?status=PENDING,PREPARING,READY"),
         api.get("/restaurant/dashboard"),
+        api.get("/restaurant/ingredients"),
       ]);
       setTables(t.data.data || []);
       setCategories(c.data.data || []);
       setMenuItems(m.data.data || []);
       setKots(k.data.data || []);
       setStats(s.data.data);
+      setIngredients(ing.data.data || []);
       if (c.data.data?.length && !activeCategory) setActiveCategory(c.data.data[0].id);
     } catch (e) { setError(getApiError(e)); }
   }, [activeCategory]);
@@ -140,6 +151,12 @@ export default function RestaurantPage() {
     try {
       await api.patch(`/restaurant/kot/${kotId}/status`, { status });
       setKots(prev => prev.map(k => k.id === kotId ? { ...k, status } : k));
+      // Cancelling restocks any deducted ingredients server-side — refresh so
+      // the Ingredients tab doesn't keep showing stale, already-reversed stock.
+      if (status === "CANCELLED") {
+        const r = await api.get("/restaurant/ingredients");
+        setIngredients(r.data.data || []);
+      }
     } catch (e) { setError(getApiError(e)); }
   }
 
@@ -187,6 +204,65 @@ export default function RestaurantPage() {
     setLoading(false);
   }
 
+  // ── Ingredients ──────────────────────────────────────────────
+
+  async function saveIngredient() {
+    if (!ingredientForm.name || !ingredientForm.unit) return;
+    setLoading(true);
+    try {
+      if (editingIngredient) {
+        await api.patch(`/restaurant/ingredients/${editingIngredient.id}`, ingredientForm);
+      } else {
+        await api.post("/restaurant/ingredients", ingredientForm);
+      }
+      setShowIngredientModal(false); setEditingIngredient(null);
+      setIngredientForm({ name: "", unit: "g", currentStock: "0", reorderLevel: "0", costPerUnit: "0", notes: "" });
+      await load();
+    } catch (e) { setError(getApiError(e)); }
+    setLoading(false);
+  }
+
+  async function removeIngredient(id: string) {
+    if (!confirm("Remove this ingredient? Menu items linked to it will keep their recipe, but it will no longer be deducted.")) return;
+    try {
+      await api.delete(`/restaurant/ingredients/${id}`);
+      await load();
+    } catch (e) { setError(getApiError(e)); }
+  }
+
+  // ── Recipe editor ────────────────────────────────────────────
+
+  async function openRecipe(item: MenuItem) {
+    setRecipeItem(item);
+    setShowRecipeModal(true);
+    try {
+      const r = await api.get(`/restaurant/items/${item.id}/recipe`);
+      const links: RecipeLink[] = r.data.data || [];
+      setRecipeRows(links.length
+        ? links.map(l => ({ ingredientId: l.ingredientId, quantityUsed: String(l.quantityUsed) }))
+        : [{ ingredientId: "", quantityUsed: "" }]);
+    } catch (e) { setError(getApiError(e)); }
+  }
+
+  function addRecipeRow() { setRecipeRows(prev => [...prev, { ingredientId: "", quantityUsed: "" }]); }
+  function removeRecipeRow(idx: number) { setRecipeRows(prev => prev.filter((_, i) => i !== idx)); }
+  function updateRecipeRow(idx: number, patch: Partial<{ ingredientId: string; quantityUsed: string }>) {
+    setRecipeRows(prev => prev.map((r, i) => i === idx ? { ...r, ...patch } : r));
+  }
+
+  async function saveRecipe() {
+    if (!recipeItem) return;
+    setLoading(true);
+    try {
+      const payload = recipeRows
+        .filter(r => r.ingredientId && r.quantityUsed)
+        .map(r => ({ ingredientId: r.ingredientId, quantityUsed: parseFloat(r.quantityUsed) }));
+      await api.put(`/restaurant/items/${recipeItem.id}/recipe`, { ingredients: payload });
+      setShowRecipeModal(false); setRecipeItem(null); setRecipeRows([]);
+    } catch (e) { setError(getApiError(e)); }
+    setLoading(false);
+  }
+
   const visibleItems = menuItems.filter(i =>
     i.isAvailable &&
     (!activeCategory || i.categoryId === activeCategory) &&
@@ -230,9 +306,9 @@ export default function RestaurantPage() {
 
       {/* ── Tabs ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        {(["pos", "kot", "menu", "tables"] as const).map(t => (
+        {(["pos", "kot", "menu", "tables", "ingredients"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={TAB_STYLE(tab === t)}>
-            {t === "pos" ? "🍽️ POS" : t === "kot" ? "👨‍🍳 Kitchen" : t === "menu" ? "📋 Menu" : "🪑 Tables"}
+            {t === "pos" ? "🍽️ POS" : t === "kot" ? "👨‍🍳 Kitchen" : t === "menu" ? "📋 Menu" : t === "tables" ? "🪑 Tables" : "🌾 Ingredients"}
           </button>
         ))}
       </div>
@@ -415,6 +491,13 @@ export default function RestaurantPage() {
                         Bill
                       </button>
                     )}
+                    {(kot.status === "PENDING" || kot.status === "PREPARING") && (
+                      <button onClick={() => { if (confirm("Cancel this order? Any deducted ingredients will be restocked.")) updateKOTStatus(kot.id, "CANCELLED"); }}
+                        title="Cancel order (restocks ingredients)"
+                        style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid var(--border)", background: "none", color: "var(--text-ghost)", fontSize: 12, cursor: "pointer" }}>
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -455,8 +538,12 @@ export default function RestaurantPage() {
                           </div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "#6366f1" }}>₹{Number(item.price).toFixed(0)}</div>
                         </div>
-                        <button onClick={() => { setEditingItem(item); setMenuForm({ name: item.name, categoryId: item.categoryId, price: String(item.price), costPrice: "0", foodType: item.foodType, description: item.description || "", taxRate: "5", preparationTime: "" }); setShowMenuModal(true); }}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: 4 }}><Edit2 size={13} /></button>
+                        <div style={{ display: "flex", gap: 2 }}>
+                          <button onClick={() => openRecipe(item)} title="Recipe (ingredients used)"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: 4 }}><FlaskConical size={13} /></button>
+                          <button onClick={() => { setEditingItem(item); setMenuForm({ name: item.name, categoryId: item.categoryId, price: String(item.price), costPrice: "0", foodType: item.foodType, description: item.description || "", taxRate: "5", preparationTime: "" }); setShowMenuModal(true); }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: 4 }}><Edit2 size={13} /></button>
+                        </div>
                       </div>
                       {item.description && <div style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 4, lineHeight: 1.4 }}>{item.description}</div>}
                     </div>
@@ -501,6 +588,51 @@ export default function RestaurantPage() {
             );
           })}
           {!tables.length && <div style={{ textAlign: "center", padding: 50, color: "var(--text-ghost)" }}><Table2 size={36} style={{ opacity: 0.3, marginBottom: 10 }} /><div>No tables added yet</div></div>}
+        </div>
+      )}
+
+      {/* ══════════════════ INGREDIENTS TAB ══════════════════ */}
+      {tab === "ingredients" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+            <p style={{ fontSize: 12.5, color: "var(--text-ghost)", maxWidth: 480, lineHeight: 1.5 }}>
+              Raw materials used across your menu. Link them to menu items via the <FlaskConical size={11} style={{ display: "inline", verticalAlign: -1 }} /> recipe icon — stock deducts automatically every time that item is ordered.
+            </p>
+            <button onClick={() => { setEditingIngredient(null); setIngredientForm({ name: "", unit: "g", currentStock: "0", reorderLevel: "0", costPerUnit: "0", notes: "" }); setShowIngredientModal(true); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", cursor: "pointer", fontSize: 13, color: "white", fontWeight: 600, flexShrink: 0 }}>
+              <Plus size={14} /> Add Ingredient
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 10 }}>
+            {ingredients.map(ing => {
+              const low = ing.currentStock <= ing.reorderLevel;
+              return (
+                <div key={ing.id} style={{ ...CARD, borderTop: `3px solid ${low ? "#ef4444" : "#10b981"}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Wheat size={13} color={low ? "#ef4444" : "#10b981"} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{ing.name}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 2 }}>
+                      <button onClick={() => { setEditingIngredient(ing); setIngredientForm({ name: ing.name, unit: ing.unit, currentStock: String(ing.currentStock), reorderLevel: String(ing.reorderLevel), costPerUnit: String(ing.costPerUnit), notes: ing.notes || "" }); setShowIngredientModal(true); }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: 4 }}><Edit2 size={13} /></button>
+                      <button onClick={() => removeIngredient(ing.id)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: 4 }}><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: low ? "#ef4444" : "var(--text-primary)", marginTop: 6 }}>
+                    {ing.currentStock} <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-ghost)" }}>{ing.unit}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 2 }}>
+                    Reorder below {ing.reorderLevel} {ing.unit} &middot; ₹{ing.costPerUnit}/{ing.unit}
+                  </div>
+                  {low && <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: "#ef4444", display: "flex", alignItems: "center", gap: 4 }}><AlertCircle size={11} /> Low stock — restock soon</div>}
+                </div>
+              );
+            })}
+          </div>
+          {!ingredients.length && <div style={{ textAlign: "center", padding: 50, color: "var(--text-ghost)" }}><Wheat size={36} style={{ opacity: 0.3, marginBottom: 10 }} /><div>No ingredients added yet</div></div>}
         </div>
       )}
 
@@ -592,6 +724,64 @@ export default function RestaurantPage() {
             <input value={catForm.name} onChange={e => setCatForm({ name: e.target.value })} placeholder="e.g. Starters, Main Course, Drinks" style={INPUT_STYLE} />
           </FormField>
           <button onClick={saveCategory} disabled={loading} style={BTN_PRIMARY}>{loading ? "Saving…" : "Add Category"}</button>
+        </Modal>
+      )}
+
+      {/* Ingredient Modal */}
+      {showIngredientModal && (
+        <Modal title={editingIngredient ? "Edit Ingredient" : "Add Ingredient"} onClose={() => { setShowIngredientModal(false); setEditingIngredient(null); }}>
+          <FormField label="Name *">
+            <input value={ingredientForm.name} onChange={e => setIngredientForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Coffee Beans, Milk, Mozzarella" style={INPUT_STYLE} />
+          </FormField>
+          <div className="grid-r2" style={{ gap: 10 }}>
+            <FormField label="Unit *">
+              <select value={ingredientForm.unit} onChange={e => setIngredientForm(f => ({ ...f, unit: e.target.value }))} style={INPUT_STYLE}>
+                {["g", "kg", "ml", "l", "pcs"].map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </FormField>
+            <FormField label="Cost per unit (₹)">
+              <input value={ingredientForm.costPerUnit} onChange={e => setIngredientForm(f => ({ ...f, costPerUnit: e.target.value }))} type="number" min="0" style={INPUT_STYLE} />
+            </FormField>
+          </div>
+          <div className="grid-r2" style={{ gap: 10 }}>
+            <FormField label="Current stock">
+              <input value={ingredientForm.currentStock} onChange={e => setIngredientForm(f => ({ ...f, currentStock: e.target.value }))} type="number" style={INPUT_STYLE} />
+            </FormField>
+            <FormField label="Reorder below">
+              <input value={ingredientForm.reorderLevel} onChange={e => setIngredientForm(f => ({ ...f, reorderLevel: e.target.value }))} type="number" min="0" style={INPUT_STYLE} />
+            </FormField>
+          </div>
+          <FormField label="Notes">
+            <input value={ingredientForm.notes} onChange={e => setIngredientForm(f => ({ ...f, notes: e.target.value }))} placeholder="Supplier, storage notes…" style={INPUT_STYLE} />
+          </FormField>
+          <button onClick={saveIngredient} disabled={loading} style={BTN_PRIMARY}>{loading ? "Saving…" : editingIngredient ? "Update Ingredient" : "Add Ingredient"}</button>
+        </Modal>
+      )}
+
+      {/* Recipe Modal */}
+      {showRecipeModal && recipeItem && (
+        <Modal title={`Recipe — ${recipeItem.name}`} onClose={() => { setShowRecipeModal(false); setRecipeItem(null); }}>
+          <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 14, lineHeight: 1.5 }}>
+            List the ingredients used to make <b>one</b> {recipeItem.name}. Every time this item is ordered, these quantities are deducted from stock automatically.
+          </p>
+          {recipeRows.map((row, idx) => (
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+              <select value={row.ingredientId} onChange={e => updateRecipeRow(idx, { ingredientId: e.target.value })} style={{ ...INPUT_STYLE, flex: 2 }}>
+                <option value="">Select ingredient…</option>
+                {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>)}
+              </select>
+              <input value={row.quantityUsed} onChange={e => updateRecipeRow(idx, { quantityUsed: e.target.value })}
+                type="number" min="0" step="any" placeholder="Qty" style={{ ...INPUT_STYLE, flex: 1 }} />
+              <button onClick={() => removeRecipeRow(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: 4, flexShrink: 0 }}><Trash2 size={14} /></button>
+            </div>
+          ))}
+          <button onClick={addRecipeRow} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "1px dashed var(--border)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12.5, color: "var(--text-sec)", marginBottom: 14, width: "100%", justifyContent: "center" }}>
+            <Plus size={13} /> Add ingredient row
+          </button>
+          {!ingredients.length && (
+            <p style={{ fontSize: 12, color: "#f59e0b", marginBottom: 12 }}>No ingredients exist yet — add some from the Ingredients tab first.</p>
+          )}
+          <button onClick={saveRecipe} disabled={loading} style={BTN_PRIMARY}>{loading ? "Saving…" : "Save Recipe"}</button>
         </Modal>
       )}
     </div>
