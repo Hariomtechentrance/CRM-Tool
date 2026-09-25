@@ -60,6 +60,7 @@ interface Insurance {
   id: string; provider: string; policyNumber?: string; type: string;
   startDate: string; endDate: string; premium?: number;
   idv?: number; odAmount?: number; ncb?: number; paymentMode?: string; sharing?: string;
+  source?: string; renewedBy?: string;
   notes?: string;
 }
 interface Vehicle {
@@ -271,6 +272,7 @@ function YearSelect({ value, onChange }: { value: string; onChange: (v: string) 
 interface InsuranceFormState {
   provider: string; policyNumber: string; type: string;
   startDate: string; endDate: string; premium: string;
+  odAmount: string; sharing: string; source: string; renewedBy: string;
 }
 function InsuranceFields({ value, onChange }: { value: InsuranceFormState; onChange: (v: InsuranceFormState) => void }) {
   return (
@@ -290,6 +292,10 @@ function InsuranceFields({ value, onChange }: { value: InsuranceFormState; onCha
       <div><label style={S.label}>Start Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={value.startDate} onChange={e => onChange({ ...value, startDate: e.target.value })} /></div>
       <div><label style={S.label}>End Date *</label><input type="date" style={{ ...S.inp, width: "100%" }} value={value.endDate} onChange={e => onChange({ ...value, endDate: e.target.value })} /></div>
       <div><label style={S.label}>Premium (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={value.premium} onChange={e => onChange({ ...value, premium: e.target.value })} /></div>
+      <div><label style={S.label}>OD Amount (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={value.odAmount} onChange={e => onChange({ ...value, odAmount: e.target.value })} /></div>
+      <div><label style={S.label}>Sharing</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. co-owner split" value={value.sharing} onChange={e => onChange({ ...value, sharing: e.target.value })} /></div>
+      <div><label style={S.label}>Source</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Agent, Direct, Referral" value={value.source} onChange={e => onChange({ ...value, source: e.target.value })} /></div>
+      <div><label style={S.label}>Renewed By</label><input style={{ ...S.inp, width: "100%" }} placeholder="Staff name" value={value.renewedBy} onChange={e => onChange({ ...value, renewedBy: e.target.value })} /></div>
     </div>
   );
 }
@@ -679,7 +685,7 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
     salePrice: "", ownerName: lead.name, ownerPhone: lead.phone ?? "", ownerEmail: lead.email ?? "",
   });
   const [addInsurance, setAddInsurance] = useState(true);
-  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "" });
+  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "", odAmount: "", sharing: "", source: "", renewedBy: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -695,7 +701,7 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
           odometer: v.odometer ? Number(v.odometer) : undefined,
           salePrice: v.salePrice ? Number(v.salePrice) : undefined,
         },
-        insurance: addInsurance ? { ...ins, premium: ins.premium ? Number(ins.premium) : undefined } : undefined,
+        insurance: addInsurance ? { ...ins, premium: ins.premium ? Number(ins.premium) : undefined, odAmount: ins.odAmount ? Number(ins.odAmount) : undefined } : undefined,
       });
       onConverted(); onClose();
     } catch (e) { setErr(getApiError(e)); }
@@ -756,6 +762,8 @@ function InsuranceModal({ vehicle, existing, onClose, onSaved }: { vehicle: Vehi
     startDate: existing?.startDate ? existing.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
     endDate: existing?.endDate ? existing.endDate.slice(0, 10) : "",
     premium: existing?.premium?.toString() ?? "",
+    odAmount: existing?.odAmount?.toString() ?? "", sharing: existing?.sharing ?? "",
+    source: existing?.source ?? "", renewedBy: existing?.renewedBy ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
@@ -764,7 +772,7 @@ function InsuranceModal({ vehicle, existing, onClose, onSaved }: { vehicle: Vehi
     if (!ins.provider.trim() || !ins.endDate) { setErr("Provider and end date are required"); return; }
     setSaving(true); setErr("");
     try {
-      const payload = { ...ins, premium: ins.premium ? Number(ins.premium) : undefined };
+      const payload = { ...ins, premium: ins.premium ? Number(ins.premium) : undefined, odAmount: ins.odAmount ? Number(ins.odAmount) : undefined };
       if (existing) await api.patch(`/cars/insurance/${existing.id}`, payload);
       else await api.post(`/cars/vehicles/${vehicle.id}/insurance`, payload);
       onSaved(); onClose();
@@ -946,6 +954,9 @@ function VehicleDetailModal({ vehicle, onClose, onEdit }: { vehicle: Vehicle; on
               {row("OD Amount", vehicle.insurances[0].odAmount)}
               {row("NCB", vehicle.insurances[0].ncb)}
               {row("Payment Mode", vehicle.insurances[0].paymentMode)}
+              {row("Sharing", vehicle.insurances[0].sharing)}
+              {row("Source", vehicle.insurances[0].source)}
+              {row("Renewed By", vehicle.insurances[0].renewedBy)}
             </div>
           </div>
         )}
@@ -976,7 +987,7 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
     ownerName: "", ownerPhone: "", ownerEmail: "", salePrice: "", soldAt: new Date().toISOString().slice(0, 10), warrantyMonths: "",
   });
   const [addInsurance, setAddInsurance] = useState(true);
-  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "" });
+  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "", odAmount: "", sharing: "", source: "", renewedBy: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -993,7 +1004,7 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
         warrantyMonths: form.warrantyMonths ? Number(form.warrantyMonths) : undefined,
       });
       if (addInsurance) {
-        await api.post(`/cars/vehicles/${vehicle.id}/insurance`, { ...ins, premium: ins.premium ? Number(ins.premium) : undefined });
+        await api.post(`/cars/vehicles/${vehicle.id}/insurance`, { ...ins, premium: ins.premium ? Number(ins.premium) : undefined, odAmount: ins.odAmount ? Number(ins.odAmount) : undefined });
       }
       onSold(); onClose();
     } catch (e) { setErr(getApiError(e)); }

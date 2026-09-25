@@ -131,11 +131,19 @@ export async function uploadDocuments(req: OrgRequest, res: Response): Promise<v
       let fileName: string;
 
       if (useCloudinary) {
-        const folder = `businessos/${orgId}/${entityType.toLowerCase()}`;
-        const publicId = uuidv4();
-        const { secure_url, public_id } = await uploadToCloudinary(file.buffer, folder, publicId);
-        filePath = secure_url;
-        fileName = public_id;
+        try {
+          const folder = `businessos/${orgId}/${entityType.toLowerCase()}`;
+          const publicId = uuidv4();
+          const { secure_url, public_id } = await uploadToCloudinary(file.buffer, folder, publicId);
+          filePath = secure_url;
+          fileName = public_id;
+        } catch (cloudErr) {
+          // Cloudinary is mis-configured/unreachable — don't fail the whole
+          // upload, fall back to local disk so the user isn't blocked.
+          console.error(`Cloudinary upload failed for "${file.originalname}", falling back to local disk:`, cloudErr);
+          filePath = saveLocally(file.buffer, orgId, entityType, file.originalname);
+          fileName = path.basename(filePath);
+        }
       } else {
         filePath = saveLocally(file.buffer, orgId, entityType, file.originalname);
         fileName = path.basename(filePath);

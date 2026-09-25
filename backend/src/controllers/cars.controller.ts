@@ -96,6 +96,8 @@ const insuranceSchema = z.object({
   ncb: z.number().optional(),
   paymentMode: z.string().optional(),
   sharing: z.string().optional(),
+  source: z.string().optional(),
+  renewedBy: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -680,6 +682,9 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
             startDate: new Date(insuranceInput.startDate),
             endDate: new Date(insuranceInput.endDate),
             premium: insuranceInput.premium,
+            idv: insuranceInput.idv, odAmount: insuranceInput.odAmount, ncb: insuranceInput.ncb,
+            paymentMode: insuranceInput.paymentMode, sharing: insuranceInput.sharing,
+            source: insuranceInput.source, renewedBy: insuranceInput.renewedBy,
             notes: insuranceInput.notes,
           },
         });
@@ -1047,6 +1052,7 @@ export async function addInsurance(req: OrgRequest, res: Response): Promise<void
         premium: data.premium,
         idv: data.idv, odAmount: data.odAmount, ncb: data.ncb,
         paymentMode: data.paymentMode, sharing: data.sharing,
+        source: data.source, renewedBy: data.renewedBy,
         notes: data.notes,
       },
     });
