@@ -4146,6 +4146,8 @@ model VehicleInsurance {
   ncb            Float? // No Claim Bonus, as a percentage
   paymentMode    String?
   sharing        String? // co-owner/sharing arrangement, free text
+  source         String? // where this policy business came from (agent, direct, referral, etc.)
+  renewedBy      String? // staff member who processed this renewal
   notes          String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
