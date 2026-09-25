@@ -15,6 +15,75 @@ function nextSeq(prefix: string, count: number) {
   return `${prefix}-${String(count + 1).padStart(4, "0")}`;
 }
 
+// Deduct raw-material stock for a batch of KOT items (menuItemId + quantity),
+// following each item's recipe (MenuItemIngredient). Ingredients with no
+// recipe defined are silently skipped — recipe setup is optional per item.
+// Stock is allowed to go negative (a kitchen may have off-book backup stock);
+// low/negative stock is surfaced in the UI instead of blocking the sale.
+async function deductIngredientsForItems(
+  org: string,
+  items: { menuItemId: string; quantity: number }[],
+  referenceId: string,
+) {
+  const menuItemIds = [...new Set(items.map((i) => i.menuItemId))];
+  const recipeLinks = await db.menuItemIngredient.findMany({ where: { menuItemId: { in: menuItemIds } } });
+  if (!recipeLinks.length) return;
+
+  // Total quantity needed per ingredient across this whole batch of items.
+  const need: Record<string, number> = {};
+  for (const item of items) {
+    for (const link of recipeLinks.filter((l: any) => l.menuItemId === item.menuItemId)) {
+      need[link.ingredientId] = (need[link.ingredientId] || 0) + link.quantityUsed * item.quantity;
+    }
+  }
+
+  for (const [ingredientId, qty] of Object.entries(need)) {
+    const updated = await db.ingredient.update({
+      where: { id: ingredientId },
+      data: { currentStock: { decrement: qty } },
+    });
+    await db.ingredientMovement.create({
+      data: {
+        organizationId: org, ingredientId, type: "SALE_DEDUCTION",
+        quantity: -qty, balanceAfter: updated.currentStock,
+        referenceType: "KOT", referenceId,
+      },
+    });
+  }
+}
+
+// Reverses deductIngredientsForItems — used when a KOT is cancelled.
+async function restockIngredientsForItems(
+  org: string,
+  items: { menuItemId: string; quantity: number }[],
+  referenceId: string,
+) {
+  const menuItemIds = [...new Set(items.map((i) => i.menuItemId))];
+  const recipeLinks = await db.menuItemIngredient.findMany({ where: { menuItemId: { in: menuItemIds } } });
+  if (!recipeLinks.length) return;
+
+  const restore: Record<string, number> = {};
+  for (const item of items) {
+    for (const link of recipeLinks.filter((l: any) => l.menuItemId === item.menuItemId)) {
+      restore[link.ingredientId] = (restore[link.ingredientId] || 0) + link.quantityUsed * item.quantity;
+    }
+  }
+
+  for (const [ingredientId, qty] of Object.entries(restore)) {
+    const updated = await db.ingredient.update({
+      where: { id: ingredientId },
+      data: { currentStock: { increment: qty } },
+    });
+    await db.ingredientMovement.create({
+      data: {
+        organizationId: org, ingredientId, type: "RESTOCK",
+        quantity: qty, balanceAfter: updated.currentStock,
+        referenceType: "KOT", referenceId, notes: "Order cancelled",
+      },
+    });
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  TABLES
 // ═══════════════════════════════════════════════════════════════
@@ -280,6 +349,9 @@ export async function createKOT(req: AuthRequest, res: Response) {
       await db.restaurantTable.update({ where: { id: tableId }, data: { status: "OCCUPIED" } });
     }
 
+    // Deduct raw-material stock for whichever items have a recipe defined
+    await deductIngredientsForItems(org, items.map((i: any) => ({ menuItemId: i.menuItemId, quantity: i.quantity })), kot.id);
+
     created(res, kot, "KOT created");
   } catch (e) { serverError(res, e); }
 }
@@ -288,13 +360,20 @@ export async function updateKOTStatus(req: AuthRequest, res: Response) {
   try {
     const org = orgId(req);
     const { id } = req.params;
-    const existing = await db.kOT.findFirst({ where: { id, organizationId: org } });
+    const existing = await db.kOT.findFirst({ where: { id, organizationId: org }, include: { items: true } });
     if (!existing) return notFound(res, "KOT not found");
     const { status } = req.body;
     const kot = await db.kOT.update({
       where: { id }, data: { status },
       include: { items: true },
     });
+
+    // Cancelling an order that hadn't already been cancelled gives back
+    // whatever raw materials were deducted when it was placed.
+    if (status === "CANCELLED" && existing.status !== "CANCELLED") {
+      await restockIngredientsForItems(org, existing.items.map((i: any) => ({ menuItemId: i.menuItemId, quantity: i.quantity })), String(id));
+    }
+
     ok(res, kot, "KOT status updated");
   } catch (e) { serverError(res, e); }
 }
@@ -321,6 +400,9 @@ export async function addKOTItems(req: AuthRequest, res: Response) {
       data: { subtotal: { increment: addSubtotal }, taxAmount: { increment: addTax }, total: { increment: addSubtotal + addTax } },
       include: { items: true, table: { select: { tableNumber: true } } },
     });
+
+    await deductIngredientsForItems(org, items.map((i: any) => ({ menuItemId: i.menuItemId, quantity: i.quantity })), String(id));
+
     ok(res, kot, "Items added to KOT");
   } catch (e) { serverError(res, e); }
 }
@@ -479,5 +561,128 @@ export async function updateReservation(req: AuthRequest, res: Response) {
     if (data.reservedAt) data.reservedAt = new Date(data.reservedAt);
     const r = await db.tableReservation.update({ where: { id }, data });
     ok(res, r, "Reservation updated");
+  } catch (e) { serverError(res, e); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INGREDIENTS (raw materials)
+// ═══════════════════════════════════════════════════════════════
+
+export async function getIngredients(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    if (!org) return badRequest(res, "Organization required");
+    const ingredients = await db.ingredient.findMany({
+      where: { organizationId: org, isActive: true },
+      orderBy: { name: "asc" },
+    });
+    ok(res, ingredients);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function createIngredient(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    if (!org) return badRequest(res, "Organization required");
+    const { name, unit, currentStock, reorderLevel, costPerUnit, notes } = req.body;
+    if (!name || !unit) return badRequest(res, "name and unit required");
+    const ingredient = await db.ingredient.create({
+      data: {
+        organizationId: org, name, unit,
+        currentStock: currentStock !== undefined ? parseFloat(currentStock) : 0,
+        reorderLevel: reorderLevel !== undefined ? parseFloat(reorderLevel) : 0,
+        costPerUnit: costPerUnit !== undefined ? parseFloat(costPerUnit) : 0,
+        notes,
+      },
+    });
+    created(res, ingredient, "Ingredient added");
+  } catch (e: any) {
+    if (e?.code === "P2002") return badRequest(res, "An ingredient with this name already exists");
+    serverError(res, e);
+  }
+}
+
+export async function updateIngredient(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    const { id } = req.params;
+    const existing = await db.ingredient.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Ingredient not found");
+    const { name, unit, currentStock, reorderLevel, costPerUnit, notes } = req.body;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (unit !== undefined) data.unit = unit;
+    if (currentStock !== undefined) data.currentStock = parseFloat(currentStock);
+    if (reorderLevel !== undefined) data.reorderLevel = parseFloat(reorderLevel);
+    if (costPerUnit !== undefined) data.costPerUnit = parseFloat(costPerUnit);
+    if (notes !== undefined) data.notes = notes;
+    const ingredient = await db.ingredient.update({ where: { id }, data });
+
+    // A manual stock-level edit is logged as an adjustment so the movement
+    // history stays a complete audit trail, not just sale-driven deductions.
+    if (currentStock !== undefined) {
+      const delta = parseFloat(currentStock) - Number(existing.currentStock);
+      if (delta !== 0) {
+        await db.ingredientMovement.create({
+          data: { organizationId: org, ingredientId: id, type: "ADJUSTMENT", quantity: delta, balanceAfter: ingredient.currentStock, notes: "Manual stock edit" },
+        });
+      }
+    }
+    ok(res, ingredient, "Ingredient updated");
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deleteIngredient(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    const { id } = req.params;
+    const existing = await db.ingredient.findFirst({ where: { id, organizationId: org } });
+    if (!existing) return notFound(res, "Ingredient not found");
+    await db.ingredient.update({ where: { id }, data: { isActive: false } });
+    ok(res, null, "Ingredient removed");
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Recipe — which ingredients (+ quantity) a menu item consumes ──
+
+export async function getMenuItemRecipe(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    const { id } = req.params;
+    const menuItem = await db.menuItem.findFirst({ where: { id, organizationId: org } });
+    if (!menuItem) return notFound(res, "Menu item not found");
+    const recipe = await db.menuItemIngredient.findMany({
+      where: { menuItemId: id },
+      include: { ingredient: { select: { id: true, name: true, unit: true, currentStock: true } } },
+    });
+    ok(res, recipe);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function setMenuItemRecipe(req: AuthRequest, res: Response) {
+  try {
+    const org = orgId(req);
+    const { id } = req.params;
+    const menuItem = await db.menuItem.findFirst({ where: { id, organizationId: org } });
+    if (!menuItem) return notFound(res, "Menu item not found");
+    const { ingredients } = req.body as { ingredients: { ingredientId: string; quantityUsed: number }[] };
+    if (!Array.isArray(ingredients)) return badRequest(res, "ingredients array required");
+
+    // Replace the whole recipe with what was submitted — simplest correct
+    // behaviour for a "these are the N ingredients this item uses" editor.
+    await db.$transaction([
+      db.menuItemIngredient.deleteMany({ where: { menuItemId: id } }),
+      ...ingredients
+        .filter((i) => i.ingredientId && i.quantityUsed > 0)
+        .map((i) => db.menuItemIngredient.create({
+          data: { menuItemId: id, ingredientId: i.ingredientId, quantityUsed: parseFloat(String(i.quantityUsed)) },
+        })),
+    ]);
+
+    const recipe = await db.menuItemIngredient.findMany({
+      where: { menuItemId: id },
+      include: { ingredient: { select: { id: true, name: true, unit: true, currentStock: true } } },
+    });
+    ok(res, recipe, "Recipe updated");
   } catch (e) { serverError(res, e); }
 }
