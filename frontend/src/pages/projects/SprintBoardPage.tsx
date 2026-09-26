@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { Plus, Clock, User, ChevronDown, Play, CheckCircle, Timer } from "lucide-react";
+import { Plus, Clock, User, ChevronDown, Play, CheckCircle, Timer, Trash2 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
 const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
@@ -37,7 +37,7 @@ interface Sprint {
   project: { id: string; name: string };
 }
 
-function TaskCard({ task, onUpdate, employees }: { task: Task; onUpdate: (id: string, status: TStatus) => void; employees: any[] }) {
+function TaskCard({ task, onUpdate, onDelete, canDelete, employees }: { task: Task; onUpdate: (id: string, status: TStatus) => void; onDelete: (id: string) => void; canDelete: boolean; employees: any[] }) {
   const [expanded, setExpanded] = useState(false);
   const assignee = employees.find(e => e.id === task.assignedToId);
 
@@ -81,15 +81,22 @@ function TaskCard({ task, onUpdate, employees }: { task: Task; onUpdate: (id: st
         </div>
       </div>
 
-      {expanded && task.status !== "DONE" && (
-        <div className="mt-3 pt-3 flex flex-wrap gap-1" style={{ borderTop: "1px solid var(--border)" }}>
-          {STATUSES.filter(s => s !== task.status).map(s => (
+      {expanded && (
+        <div className="mt-3 pt-3 flex flex-wrap gap-1 items-center" style={{ borderTop: "1px solid var(--border)" }}>
+          {task.status !== "DONE" && STATUSES.filter(s => s !== task.status).map(s => (
             <button key={s} onClick={e => { e.stopPropagation(); onUpdate(task.id, s); }}
               className="text-[10px] px-2 py-1 rounded-lg cursor-pointer"
               style={{ background: STATUS_CONFIG[s].bg, color: STATUS_CONFIG[s].color, border: "none" }}>
               → {STATUS_CONFIG[s].label}
             </button>
           ))}
+          {canDelete && (
+            <button onClick={e => { e.stopPropagation(); if (confirm(`Delete "${task.title}"?`)) onDelete(task.id); }}
+              className="text-[10px] px-2 py-1 rounded-lg cursor-pointer ml-auto flex items-center gap-1"
+              style={{ background: "#450a0a", color: "#f87171", border: "none" }}>
+              <Trash2 style={{ width: 10, height: 10 }} /> Delete
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -231,6 +238,13 @@ export default function SprintBoardPage() {
     if (activeSprint) loadBoard(activeSprint.id);
   }
 
+  async function deleteTask(taskId: string) {
+    await fetch(`${API}/projects/tasks/${taskId}`, { method: "DELETE", headers: h() });
+    if (activeSprint) loadBoard(activeSprint.id);
+  }
+
+  const canDeleteTask = !!activeOrg?.role && !["STAFF", "VIEWER"].includes(activeOrg.role);
+
   async function createSprint() {
     if (!newSprint.name || !selProjectId) return;
     const r = await fetch(`${API}/sprints`, {
@@ -350,7 +364,7 @@ export default function SprintBoardPage() {
                 {/* Tasks */}
                 <div className="flex-1 p-2 space-y-2 overflow-y-auto">
                   {col.map(task => (
-                    <TaskCard key={task.id} task={task} onUpdate={updateTaskStatus} employees={employees} />
+                    <TaskCard key={task.id} task={task} onUpdate={updateTaskStatus} onDelete={deleteTask} canDelete={canDeleteTask} employees={employees} />
                   ))}
                   {col.length === 0 && (
                     <p className="text-center text-xs py-8" style={{ color: "var(--text-ghost)" }}>No tasks</p>

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../middleware/auth";
 import { requireOrgContext } from "../middleware/orgContext";
 import {
-  listProjects, getProject, createProject, updateProject,
+  listProjects, getProject, createProject, updateProject, deleteProject,
   addMember, removeMember, addMilestone, updateMilestone,
   getTeamDashboard, getMyWork, generateShareLink, revokeShareLink,
 } from "../controllers/itProject.controller";
@@ -16,6 +16,7 @@ router.get("/team-dashboard",                getTeamDashboard);
 router.get("/my-work",                       getMyWork);
 router.get("/:id",                           getProject);
 router.put("/:id",                           updateProject);
+router.delete("/:id",                        deleteProject);
 router.post("/:id/members",                  addMember);
 router.delete("/:id/members/:memberId",      removeMember);
 router.post("/:id/milestones",               addMilestone);

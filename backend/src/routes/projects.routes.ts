@@ -3,7 +3,7 @@ import { authenticate } from "../middleware/auth";
 import { requireOrgContext } from "../middleware/orgContext";
 import {
   listProjects, getProject, createProject, updateProject,
-  listTasks, createTask, updateTask, addTaskComment,
+  listTasks, createTask, updateTask, deleteTask, addTaskComment,
   getMyProjects, getProjectTeam, upsertProjectMember, removeProjectMember, getMyTeam, getMyTasks,
 } from "../controllers/projects.controller";
 
@@ -18,6 +18,7 @@ router.get("/my-tasks",    getMyTasks);
 router.get("/tasks", listTasks);
 router.post("/tasks", createTask);
 router.patch("/tasks/:id", updateTask);
+router.delete("/tasks/:id", deleteTask);
 router.post("/tasks/:id/comments", addTaskComment);
 
 router.get("/", listProjects);

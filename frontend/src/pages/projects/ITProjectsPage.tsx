@@ -297,6 +297,13 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
     onRefresh();
   }
 
+  async function deleteProject() {
+    if (!confirm(`Delete "${project.name}"? This can be restored by support if it was a mistake.`)) return;
+    await fetch(`${API}/it-projects/${project.id}`, { method: "DELETE", headers: h() });
+    onRefresh(); onClose();
+  }
+  const canDelete = !!activeOrg?.role && !["STAFF", "VIEWER"].includes(activeOrg.role);
+
   async function addMilestone() {
     if (!msTitle || !msDue) return;
     await fetch(`${API}/it-projects/${project.id}/milestones`, {
@@ -334,7 +341,14 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
               {project.clientName && <span className="text-xs" style={{ color: "var(--text-ghost)" }}>· {project.clientName}</span>}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "var(--bg-hover)", border: "none", color: "var(--text-ghost)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12 }}>✕</button>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button onClick={deleteProject} title="Delete project" style={{ background: "#450a0a", border: "none", color: "#f87171", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12 }}>
+                <Trash2 style={{ width: 13, height: 13 }} />
+              </button>
+            )}
+            <button onClick={onClose} style={{ background: "var(--bg-hover)", border: "none", color: "var(--text-ghost)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12 }}>✕</button>
+          </div>
         </div>
 
         {/* ── Public share link ── */}
