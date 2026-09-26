@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Plus, Search, X, Upload, Phone, Mail, Car, ShieldAlert,
+  Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
   AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText,
 } from "lucide-react";
 import api from "@/lib/api";
@@ -451,6 +451,21 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
 // ═══════════════════════════════════════════════════════════════
 // Import CSV modal
 // ═══════════════════════════════════════════════════════════════
+// Same exact header/example row shown inside each Import CSV modal — kept as
+// one constant per format so the downloadable template can never drift out
+// of sync with what Import actually expects.
+const LEAD_CSV_TEMPLATE = `name,phone,email,make,model\nRaj Patel,9876543210,raj@abc.com,Maruti Suzuki,Swift\nPriya Singh,9123456789,,Hyundai,Creta`;
+const VEHICLE_CSV_TEMPLATE = `name,mob number,reg no,date of reg,address,eng no,chassis no,make,model/var,fuel,ins type,ins co name,idv,od,ncb,prem,expiry/reni,payment mode,sharing\nRaj Patel,9876543210,MH12AB1234,2019-03-14,Pune,EN123,CH456,Maruti Suzuki,Swift,Petrol,Comprehensive,ICICI Lombard,450000,8000,20,9500,2026-03-14,Online,NA`;
+
+function downloadCsvTemplate(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function parseCsvText(csvText: string): Record<string, string>[] {
   const lines = csvText.trim().split("\n");
   const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
@@ -469,7 +484,7 @@ function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "S
   const [fileError, setFileError] = useState("");
   const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
-  const sample = `name,phone,email,make,model\nRaj Patel,9876543210,raj@abc.com,Maruti Suzuki,Swift\nPriya Singh,9123456789,,Hyundai,Creta`;
+  const sample = LEAD_CSV_TEMPLATE;
 
   async function handleFile(file: File) {
     setFileError(""); setFileName(file.name); setFileRows(null);
@@ -579,7 +594,7 @@ function VehicleImportModal({ onClose, onImported }: { onClose: () => void; onIm
   const [fileError, setFileError] = useState("");
   const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
-  const sample = `name,mob number,reg no,date of reg,address,eng no,chassis no,make,model/var,fuel,ins type,ins co name,idv,od,ncb,prem,expiry/reni,payment mode,sharing\nRaj Patel,9876543210,MH12AB1234,2019-03-14,Pune,EN123,CH456,Maruti Suzuki,Swift,Petrol,Comprehensive,ICICI Lombard,450000,8000,20,9500,2026-03-14,Online,NA`;
+  const sample = VEHICLE_CSV_TEMPLATE;
 
   async function handleFile(file: File) {
     setFileError(""); setFileName(file.name); setFileRows(null);
@@ -1227,6 +1242,8 @@ export default function CarsPage() {
   const [monthlyReport, setMonthlyReport] = useState<any[]>([]);
   const [leads, setLeads] = useState<CarLead[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [expiringVehiclesData, setExpiringVehiclesData] = useState<Vehicle[]>([]);
+  const [insuranceDueSubTab, setInsuranceDueSubTab] = useState<"overdue" | "upcoming">("overdue");
   const [followUps, setFollowUps] = useState<CarLead[]>([]);
   const [warrantyVehicles, setWarrantyVehicles] = useState<Vehicle[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -1294,12 +1311,14 @@ export default function CarsPage() {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
         if (statusFilter) params.set("status", statusFilter);
-        const [vr, sr] = await Promise.all([
+        const [vr, sr, er] = await Promise.all([
           api.get(`/cars/vehicles?${params}`),
           api.get(`/cars/sales-report?period=${salesPeriod}`),
+          api.get(`/cars/insurance/expiring?days=30`),
         ]);
         setVehicles(vr.data.data.vehicles ?? []);
         setSalesReport(sr.data.data);
+        setExpiringVehiclesData(er.data.data.vehicles ?? []);
       } else if (tab === "followups") {
         const r = await api.get("/cars/leads?followUp=all&limit=200");
         setFollowUps(r.data.data.leads ?? []);
@@ -1316,12 +1335,12 @@ export default function CarsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const expiringVehicles = vehicles.filter(v => {
-    const latest = v.insurances?.[0];
-    if (!latest) return false;
-    const days = Math.ceil((new Date(latest.endDate).getTime() - Date.now()) / 86400000);
-    return days <= 30;
-  });
+  // expiringVehiclesData comes from GET /cars/insurance/expiring — the real
+  // org-wide list (independent of whatever search/status filter the main
+  // table happens to be showing), split into already-overdue vs still has
+  // time (due within the next 30 days but not lapsed yet).
+  const overdueVehicles = expiringVehiclesData.filter(v => v.insurances?.[0] && new Date(v.insurances[0].endDate).getTime() < Date.now());
+  const upcomingVehicles = expiringVehiclesData.filter(v => v.insurances?.[0] && new Date(v.insurances[0].endDate).getTime() >= Date.now());
 
   return (
     <div className="p-4">
@@ -1334,11 +1353,17 @@ export default function CarsPage() {
         <div className="flex items-center gap-2">
           {tab === "leads" || tab === "sellerleads" ? (
             <>
+              <button onClick={() => downloadCsvTemplate(`${tab === "sellerleads" ? "seller" : "buyer"}-leads-template.csv`, LEAD_CSV_TEMPLATE)} style={S.ghost} title="Download the exact CSV format Import expects">
+                <Download style={{ width: 13, height: 13 }} /> Export Format
+              </button>
               <button onClick={() => setShowImport(true)} style={S.ghost}><Upload style={{ width: 13, height: 13 }} /> Import CSV</button>
               <button onClick={() => { setEditLead(null); setShowLeadModal(true); }} style={S.btn}><Plus style={{ width: 13, height: 13 }} /> Add {tab === "sellerleads" ? "Seller " : ""}Lead</button>
             </>
           ) : tab === "vehicles" ? (
             <>
+              <button onClick={() => downloadCsvTemplate("vehicles-insurance-template.csv", VEHICLE_CSV_TEMPLATE)} style={S.ghost} title="Download the exact CSV format Import expects">
+                <Download style={{ width: 13, height: 13 }} /> Export Format
+              </button>
               <button onClick={() => setShowVehicleImport(true)} style={S.ghost}><Upload style={{ width: 13, height: 13 }} /> Import CSV</button>
               <button onClick={() => setShowAddVehicle(true)} style={S.btn}><Plus style={{ width: 13, height: 13 }} /> Add Vehicle</button>
             </>
@@ -1441,25 +1466,49 @@ export default function CarsPage() {
         )
       ) : tab === "vehicles" ? (
         <>
-          {expiringVehicles.length > 0 && (
+          {expiringVehiclesData.length > 0 && (
             <div style={{ ...S.card, borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.06)", marginBottom: 16 }}>
-              <div className="flex items-center gap-2 mb-2" style={{ color: "#f87171", fontWeight: 700, fontSize: 13 }}>
+              <div className="flex items-center gap-2 mb-3" style={{ color: "#f87171", fontWeight: 700, fontSize: 13 }}>
                 <ShieldAlert size={15} /> Insurance Due Within 30 Days
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {expiringVehicles.map(v => {
-                  const badge = insuranceBadge(v.insurances?.[0]);
-                  return (
-                    <div key={v.id} style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{v.make} {v.model} {v.registrationNo ? `· ${v.registrationNo}` : ""}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerName}</div>
-                      </div>
-                      {badge && <span style={{ fontSize: 10, fontWeight: 700, color: badge.color }}>{badge.text}</span>}
-                    </div>
-                  );
-                })}
+              <div className="flex gap-1 mb-3">
+                <button onClick={() => setInsuranceDueSubTab("overdue")}
+                  style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    background: insuranceDueSubTab === "overdue" ? "#f87171" : "var(--bg-hover)",
+                    color: insuranceDueSubTab === "overdue" ? "#1a0505" : "var(--text-sec)" }}>
+                  Overdue ({overdueVehicles.length})
+                </button>
+                <button onClick={() => setInsuranceDueSubTab("upcoming")}
+                  style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    background: insuranceDueSubTab === "upcoming" ? "#fbbf24" : "var(--bg-hover)",
+                    color: insuranceDueSubTab === "upcoming" ? "#1a1405" : "var(--text-sec)" }}>
+                  Upcoming ({upcomingVehicles.length})
+                </button>
               </div>
+              <p style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 10 }}>
+                Click any entry to open that vehicle and call the customer about renewing their insurance.
+              </p>
+              {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).length === 0 ? (
+                <div style={{ fontSize: 12, color: "var(--text-ghost)", padding: "8px 0" }}>
+                  {insuranceDueSubTab === "overdue" ? "Nothing overdue right now." : "Nothing coming due in the next 30 days."}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).map(v => {
+                    const badge = insuranceBadge(v.insurances?.[0]);
+                    return (
+                      <div key={v.id} onClick={() => setDetailVehicle(v)}
+                        style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{v.make} {v.model} {v.registrationNo ? `· ${v.registrationNo}` : ""}</div>
+                          <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerName}</div>
+                        </div>
+                        {badge && <span style={{ fontSize: 10, fontWeight: 700, color: badge.color }}>{badge.text}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
           {vehicles.length === 0 ? (
