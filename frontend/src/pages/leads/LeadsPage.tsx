@@ -13,8 +13,9 @@ const LEAD_FIELD_MAXLEN: Record<string, number> = { phone: 15, phone2: 15, city:
 import {
   Phone, Mail, Plus, Search, X, Upload,
   User, Clock, CheckCircle, PhoneCall,
-  MessageSquare, Calendar, RefreshCw, ArrowRight,
+  MessageSquare, Calendar, RefreshCw, ArrowRight, Trash2,
 } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const S = {
   inp: { background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", color: "var(--text-primary)", fontSize: 12, outline: "none" } as React.CSSProperties,
@@ -235,7 +236,10 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
     tags: lead?.tags?.join(", ") ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const f = (k: string) => (v: any) => setForm(p => ({ ...p, [k]: v }));
+  const role = activeOrg?.role;
+  const canDelete = !!lead && role && !["STAFF", "VIEWER"].includes(role);
 
   async function save() {
     if (!form.name.trim()) return;
@@ -255,6 +259,12 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
       else await api.post("/leads", payload);
       onSaved(); onClose();
     } finally { setSaving(false); }
+  }
+
+  async function doDelete() {
+    if (!lead) return;
+    await api.delete(`/leads/${lead.id}`);
+    onSaved(); onClose();
   }
 
   return (
@@ -331,11 +341,25 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
           </label>
         </div>
         {lead?.id && <CustomFieldRenderer entity="LEAD" entityId={lead.id} />}
-        <div className="flex justify-end gap-3 mt-4">
-          <button onClick={onClose} style={S.ghost}>Cancel</button>
-          <button onClick={save} disabled={saving || !form.name.trim()} style={S.btn}>{saving ? "Saving…" : lead ? "Update" : "Add Lead"}</button>
+        <div className="flex justify-between items-center gap-3 mt-4">
+          {canDelete
+            ? <button onClick={() => setConfirmDelete(true)} style={{ ...S.ghost, color: "#f87171", display: "flex", alignItems: "center", gap: 5 }}><Trash2 style={{ width: 13, height: 13 }} /> Delete</button>
+            : <span />}
+          <div className="flex gap-3">
+            <button onClick={onClose} style={S.ghost}>Cancel</button>
+            <button onClick={save} disabled={saving || !form.name.trim()} style={S.btn}>{saving ? "Saving…" : lead ? "Update" : "Add Lead"}</button>
+          </div>
         </div>
       </div>
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Delete Lead"
+          message={`"${lead?.name}" will be removed from your active leads. This can be restored by support if it was a mistake.`}
+          confirmLabel="Delete"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }

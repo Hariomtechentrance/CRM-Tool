@@ -23,6 +23,7 @@ import api from "@/lib/api";
 import { getInitials, getApiError, formatDate, formatDateTime } from "@/lib/utils";
 import type { Party, Contact, CommunicationType } from "@/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useAuthStore } from "@/stores/authStore";
 
 // ── Comm type meta ────────────────────────────────────────────
 const COMM_META: Record<CommunicationType, { icon: React.ReactNode; label: string; color: string }> = {
@@ -194,6 +195,8 @@ type DetailTab = "overview" | "contacts" | "communications" | "documents" | "com
 export default function PartyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const role = useAuthStore(s => s.activeOrg?.role);
+  const canDelete = role && !["STAFF", "VIEWER"].includes(role);
   const [party, setParty]           = useState<Party | null>(null);
   const [loading, setLoading]       = useState(true);
   const [tab, setTab]               = useState<DetailTab>("overview");
@@ -201,7 +204,7 @@ export default function PartyDetailPage() {
   const [showContact, setShowContact]   = useState(false);
   const [editContact, setEditContact]   = useState<Contact | null>(null);
   const [showComm, setShowComm]         = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<{ type: "contact" | "comm"; id: string; label: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "contact" | "comm" | "party"; id: string; label: string } | null>(null);
 
   const fetchParty = useCallback(async () => {
     setLoading(true);
@@ -219,8 +222,13 @@ export default function PartyDetailPage() {
     try {
       if (confirmDelete.type === "contact")
         await api.delete(`/parties/${id}/contacts/${confirmDelete.id}`);
-      else
+      else if (confirmDelete.type === "comm")
         await api.delete(`/parties/${id}/communications/${confirmDelete.id}`);
+      else {
+        await api.delete(`/parties/${id}`);
+        navigate("/crm");
+        return;
+      }
       fetchParty();
     } catch { /* ignore */ }
     setConfirmDelete(null);
@@ -261,6 +269,13 @@ export default function PartyDetailPage() {
         <Button variant="outline" size="sm" icon={<Edit2 className="w-4 h-4" />} onClick={() => setShowEdit(true)}>
           Edit
         </Button>
+        {canDelete && (
+          <Button variant="outline" size="sm" icon={<Trash2 className="w-4 h-4" />}
+            onClick={() => setConfirmDelete({ type: "party", id: party.id, label: party.name })}
+            className="text-red-500 hover:text-red-600 hover:bg-red-50">
+            Delete
+          </Button>
+        )}
       </div>
 
       {/* Quick info strip */}
@@ -576,8 +591,10 @@ export default function PartyDetailPage() {
 
       {confirmDelete && (
         <ConfirmDialog
-          title={confirmDelete.type === "contact" ? "Delete Contact" : "Delete Log Entry"}
-          message={`"${confirmDelete.label}" will be permanently deleted.`}
+          title={confirmDelete.type === "contact" ? "Delete Contact" : confirmDelete.type === "comm" ? "Delete Log Entry" : "Delete Party"}
+          message={confirmDelete.type === "party"
+            ? `"${confirmDelete.label}" and its record will be removed from your active list. This can be restored by support if it was a mistake.`
+            : `"${confirmDelete.label}" will be permanently deleted.`}
           confirmLabel="Delete"
           onConfirm={doDelete}
           onCancel={() => setConfirmDelete(null)}

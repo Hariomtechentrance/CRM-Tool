@@ -2,7 +2,8 @@ import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { OrgRequest } from "../middleware/orgContext";
-import { ok, created, notFound, badRequest, serverError } from "../utils/response";
+import { ok, created, notFound, badRequest, forbidden, serverError } from "../utils/response";
+import { MemberRole } from "@prisma/client";
 
 const db = () => (prisma as any);
 
@@ -15,6 +16,7 @@ export async function listProjects(req: OrgRequest, res: Response): Promise<void
     const projects = await db().project.findMany({
       where: {
         organizationId: orgId,
+        isActive: true,
         ...(status && status !== "ALL" && { status }),
         ...(type && type !== "ALL" && { projectType: type }),
         ...(search && { name: { contains: search, mode: "insensitive" } }),
@@ -55,7 +57,7 @@ export async function getProject(req: OrgRequest, res: Response): Promise<void> 
     const id = req.params.id;
 
     const project = await db().project.findFirst({
-      where: { id, organizationId: orgId },
+      where: { id, organizationId: orgId, isActive: true },
       include: {
         members: {
           include: { employee: { select: { id: true, name: true, designation: true, department: true, email: true } } },
@@ -114,10 +116,28 @@ export async function createProject(req: OrgRequest, res: Response): Promise<voi
         liveUrl: liveUrl ?? null,
         partyId: partyId ?? null,
         managerId: managerId ?? null,
+        createdById: req.userId ?? null,
       },
     });
 
     created(res, project);
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// ── Delete project ─────────────────────────────────────────────
+export async function deleteProject(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole === MemberRole.VIEWER || req.memberRole === MemberRole.STAFF) {
+      forbidden(res, "Insufficient permissions to delete"); return;
+    }
+    const orgId = req.organizationId!;
+    const existing = await db().project.findFirst({ where: { id: req.params.id, organizationId: orgId, isActive: true } });
+    if (!existing) { notFound(res, "Project not found"); return; }
+
+    await db().project.update({ where: { id: existing.id }, data: { isActive: false } });
+    ok(res, null, "Project deleted");
   } catch (err) {
     serverError(res, err);
   }

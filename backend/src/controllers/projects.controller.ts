@@ -2,7 +2,8 @@
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
-import { ok, created, badRequest, notFound, serverError } from "../utils/response";
+import { ok, created, badRequest, notFound, forbidden, serverError } from "../utils/response";
+import { MemberRole } from "@prisma/client";
 
 const projectSchema = z.object({
   name: z.string().min(1),
@@ -119,7 +120,7 @@ export async function listTasks(req: OrgRequest, res: Response): Promise<void> {
   try {
     const { projectId, status, priority, page = "1", limit = "100" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const where: any = { organizationId: req.organizationId! };
+    const where: any = { organizationId: req.organizationId!, status: { not: "CANCELLED" } };
     if (projectId) where.projectId = projectId;
     if (status) where.status = status;
     if (priority) where.priority = priority;
@@ -166,6 +167,21 @@ export async function updateTask(req: OrgRequest, res: Response): Promise<void> 
       },
     });
     ok(res, task);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function deleteTask(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole === MemberRole.VIEWER || req.memberRole === MemberRole.STAFF) {
+      forbidden(res, "Insufficient permissions to delete"); return;
+    }
+    const existing = await prisma.task.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    if (!existing) { notFound(res, "Task not found"); return; }
+    // Soft-delete via the existing CANCELLED status — the sprint board and
+    // task lists already exclude it, so this behaves like a real delete
+    // without needing a separate isActive column on Task.
+    await prisma.task.update({ where: { id: existing.id }, data: { status: "CANCELLED" } });
+    ok(res, null, "Task deleted");
   } catch (e) { serverError(res, e); }
 }
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../middleware/auth";
 import { requireOrgContext } from "../middleware/orgContext";
 import {
-  listLeads, getLead, createLead, updateLead, addLeadActivity,
+  listLeads, getLead, createLead, updateLead, deleteLead, addLeadActivity,
   listCampaigns, createCampaign, getLeadStats,
   bulkImportLeads, convertLeadToDeal,
 } from "../controllers/leads.controller";
@@ -19,6 +19,7 @@ router.get("/",                listLeads);
 router.post("/",               createLead);
 router.get("/:id",             getLead);
 router.patch("/:id",           updateLead);
+router.delete("/:id",          deleteLead);
 router.post("/:id/activities", addLeadActivity);
 router.post("/:id/convert",    convertLeadToDeal);
 

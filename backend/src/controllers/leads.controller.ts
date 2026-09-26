@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ok, created, badRequest, notFound, forbidden, serverError } from "../utils/response";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { isWBAOrgId, isWBAAssignmentManager, LEAD_DEFAULT_FOLLOWUP_MS } from "../utils/wbaOrg";
+import { MemberRole } from "@prisma/client";
 
 const db = () => (prisma as any);
 
@@ -60,7 +61,7 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
     const { status, source, search, assignedToId, grade, myQueue, followUp, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const where: any = { organizationId: req.organizationId! };
+    const where: any = { organizationId: req.organizationId!, isActive: true };
 
     if (status) where.status = status;
     if (source) where.source = source;
@@ -153,7 +154,7 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
 export async function getLead(req: OrgRequest, res: Response): Promise<void> {
   try {
     const lead = await db().lead.findFirst({
-      where: { id: req.params.id as string, organizationId: req.organizationId! },
+      where: { id: req.params.id as string, organizationId: req.organizationId!, isActive: true },
       include: {
         activities: { orderBy: { createdAt: "desc" } },
         appointments: { orderBy: { scheduledAt: "asc" }, where: { status: { not: "CANCELLED" } } },
@@ -194,7 +195,7 @@ export async function updateLead(req: OrgRequest, res: Response): Promise<void> 
   try {
     const data = leadSchema.partial().safeParse(req.body);
     if (!data.success) { badRequest(res, "Invalid data", data.error.flatten()); return; }
-    const existing = await db().lead.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId! } });
+    const existing = await db().lead.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId!, isActive: true } });
     if (!existing) { notFound(res, "Lead not found"); return; }
 
     // WBA: only Shubham may (re)assign a lead to an employee — anyone else's
@@ -224,6 +225,21 @@ export async function updateLead(req: OrgRequest, res: Response): Promise<void> 
     }
 
     ok(res, lead);
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Delete lead ─────────────────────────────────────────────
+export async function deleteLead(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole === MemberRole.VIEWER || req.memberRole === MemberRole.STAFF) {
+      forbidden(res, "Insufficient permissions to delete"); return;
+    }
+    const existing = await db().lead.findFirst({ where: { id: req.params.id as string, organizationId: req.organizationId!, isActive: true } });
+    if (!existing) { notFound(res, "Lead not found"); return; }
+
+    await db().lead.update({ where: { id: existing.id }, data: { isActive: false } });
+    bustCache(req.organizationId!, "/api/leads");
+    ok(res, null, "Lead deleted");
   } catch (e) { serverError(res, e); }
 }
 

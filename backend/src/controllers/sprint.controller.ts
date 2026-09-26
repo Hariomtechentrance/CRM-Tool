@@ -41,7 +41,7 @@ export async function getSprintBoard(req: OrgRequest, res: Response): Promise<vo
     if (!sprint) { notFound(res, "Sprint not found"); return; }
 
     const tasks = await db().task.findMany({
-      where: { sprintId, organizationId: orgId },
+      where: { sprintId, organizationId: orgId, status: { not: "CANCELLED" } },
       include: {
         project: { select: { id: true, name: true } },
         timeLogs: {

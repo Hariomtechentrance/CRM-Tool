@@ -1429,6 +1429,7 @@ model Project {
   partyId        String?
   managerId      String?
   createdById    String?
+  isActive       Boolean       @default(true)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -1541,6 +1542,7 @@ model Lead {
   lastContactedAt  DateTime?
   convertedAt      DateTime?
   partyId          String?
+  isActive         Boolean    @default(true)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
