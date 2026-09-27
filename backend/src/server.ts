@@ -209,8 +209,12 @@ app.use(cors({
 }));
 
 // ── Body parsing ─────────────────────────────────────────────
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: false, limit: "2mb" }));  // extended:false prevents prototype pollution
+// 10mb headroom for bulk-import batches (thousands of CSV/XLSX rows as JSON) —
+// the frontend also chunks large imports into smaller requests (see
+// VehicleImportModal/ImportModal), this just keeps a single chunk from
+// getting rejected on genuinely large free-text fields.
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: false, limit: "10mb" }));  // extended:false prevents prototype pollution
 app.use(cookieParser());
 
 // ── CSRF: verify Origin/Referer on cookie-authenticated writes ─
