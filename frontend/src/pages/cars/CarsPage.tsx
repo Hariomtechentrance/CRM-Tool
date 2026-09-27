@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
-  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText,
+  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import DocumentsPanel from "@/components/DocumentsPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useAuthStore } from "@/stores/authStore";
 import {
   VEHICLE_MAKES, modelsForMake, variantsForModel,
   FUEL_TYPES, TRANSMISSION_TYPES, INSURANCE_PROVIDERS, yearOptions,
@@ -325,6 +327,9 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const role = useAuthStore(s => s.activeOrg?.role);
+  const canDelete = !!lead && !!role && !["STAFF", "VIEWER"].includes(role);
 
   useEffect(() => {
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
@@ -346,6 +351,14 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
       onSaved(); onClose();
     } catch (e) { setErr(getApiError(e)); }
     setSaving(false);
+  }
+
+  async function doDelete() {
+    if (!lead) return;
+    try {
+      await api.delete(`/cars/leads/${lead.id}`);
+      onSaved(); onClose();
+    } catch (e) { setErr(getApiError(e)); setConfirmDelete(false); }
   }
 
   return (
@@ -431,11 +444,14 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
           <CustomFieldRenderer entity={form.leadType === "SELLER" ? "CAR_SELLER_LEAD" : "CAR_BUYER_LEAD"} entityId={lead.id} />
         )}
         <div className="flex items-center justify-between gap-3 mt-4">
-          <div>
+          <div className="flex gap-2">
             {lead && lead.status !== "CONVERTED" && onConvert && (
               <button onClick={() => onConvert(lead)} style={S.ghost}>
                 {lead.leadType === "SELLER" ? "Buy Car" : "Convert to Sale"} <ArrowRight style={{ width: 12, height: 12 }} />
               </button>
+            )}
+            {canDelete && (
+              <button onClick={() => setConfirmDelete(true)} style={{ ...S.ghost, color: "#f87171" }}><Trash2 style={{ width: 12, height: 12 }} /> Delete</button>
             )}
           </div>
           <div className="flex gap-3">
@@ -444,6 +460,15 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
           </div>
         </div>
       </div>
+      {confirmDelete && lead && (
+        <ConfirmDialog
+          title="Delete Lead"
+          message={`"${lead.name}" will be removed from your active leads. This can be restored by support if it was a mistake.`}
+          confirmLabel="Delete"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }
