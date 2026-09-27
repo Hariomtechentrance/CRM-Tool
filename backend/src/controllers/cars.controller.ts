@@ -2,9 +2,10 @@ import { Response } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
-import { ok, created, badRequest, notFound, serverError, conflict } from "../utils/response";
+import { ok, created, badRequest, notFound, forbidden, serverError, conflict } from "../utils/response";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { writeAuditLog, getIp } from "../utils/auditLog";
+import { MemberRole } from "@prisma/client";
 
 const db = () => (prisma as any);
 
@@ -228,6 +229,9 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
 
 export async function deleteCarLead(req: OrgRequest, res: Response): Promise<void> {
   try {
+    if (req.memberRole === MemberRole.VIEWER || req.memberRole === MemberRole.STAFF) {
+      forbidden(res, "Insufficient permissions to delete"); return;
+    }
     const existing = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Lead not found"); return; }
     await db().carLead.delete({ where: { id: existing.id } });
