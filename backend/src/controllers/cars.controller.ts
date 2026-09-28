@@ -488,7 +488,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
     const { leads: rawLeads, assignedToId, leadType: rawLeadType } = req.body;
     const leadType = rawLeadType === "SELLER" ? "SELLER" : "BUYER";
     if (!Array.isArray(rawLeads) || rawLeads.length === 0) { badRequest(res, "leads array is required"); return; }
-    if (rawLeads.length > 1000) { badRequest(res, "Max 1000 leads per import"); return; }
+    if (rawLeads.length > 5000) { badRequest(res, "Max 5000 leads per import — split larger files into multiple batches"); return; }
 
     const orgId = req.organizationId!;
     const results = { created: 0, skipped: 0, errors: [] as string[] };
@@ -544,6 +544,14 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
     });
     const employeeByName = new Map(employees.map((e: { id: string; name: string }) => [e.name.trim().toLowerCase(), e.id]));
 
+    // One query for every phone number this org already has for this
+    // leadType, instead of a findFirst per row — the real bottleneck once a
+    // sheet runs into the thousands of rows.
+    const existingPhones = new Set(
+      (await db().carLead.findMany({ where: { organizationId: orgId, leadType, phone: { not: null } }, select: { phone: true } }))
+        .map((l: { phone: string }) => l.phone)
+    );
+
     for (let i = 0; i < rawLeads.length; i += batchSize) {
       const batch = rawLeads.slice(i, i + batchSize);
       const toCreate: any[] = [];
@@ -564,8 +572,8 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
           // Scoped to the same leadType — the same phone number is a real,
           // separate lead if they're a buyer in one sheet and a seller in
           // another, not a duplicate of each other.
-          const exists = await db().carLead.findFirst({ where: { organizationId: orgId, phone, leadType } });
-          if (exists) { results.skipped++; continue; }
+          if (existingPhones.has(phone)) { results.skipped++; continue; }
+          existingPhones.add(phone); // guards duplicate phones within the same sheet too
         }
 
         // Explicit Budget Minimum/Maximum columns win over a single free-text
@@ -961,7 +969,7 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
   try {
     const { vehicles: rawRows, assignedToId } = req.body;
     if (!Array.isArray(rawRows) || rawRows.length === 0) { badRequest(res, "vehicles array is required"); return; }
-    if (rawRows.length > 1000) { badRequest(res, "Max 1000 rows per import"); return; }
+    if (rawRows.length > 5000) { badRequest(res, "Max 5000 rows per import — split larger files into multiple batches"); return; }
 
     const orgId = req.organizationId!;
     const results = { created: 0, skipped: 0, errors: [] as string[] };
@@ -986,7 +994,15 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
     const fieldIdByKey = await upsertImportCustomFieldDefs(orgId, "VEHICLE", extraFieldDefs);
     const customValuesToCreate: { customFieldId: string; entityId: string; value: string }[] = [];
 
-    for (const rawRow of rawRows) {
+    // One query for every registration number this org already has, instead
+    // of a findFirst per row — at a few thousand rows that was thousands of
+    // sequential round-trips and the real reason large imports timed out.
+    const existingRegNos = new Set(
+      (await db().vehicle.findMany({ where: { organizationId: orgId, registrationNo: { not: null } }, select: { registrationNo: true } }))
+        .map((v: { registrationNo: string }) => v.registrationNo)
+    );
+
+    async function importRow(rawRow: Record<string, any>) {
       // Object.create(null): a sheet column literally named "__proto__"
       // must not be able to pollute Object.prototype via row[k] = v below.
       const row: Record<string, any> = Object.create(null);
@@ -995,11 +1011,11 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
       const ownerName = up(vpick(row, VEHICLE_FIELD_ALIASES.ownerName));
       const make = up(vpick(row, VEHICLE_FIELD_ALIASES.make));
       const regNo = up(vpick(row, VEHICLE_FIELD_ALIASES.registrationNo));
-      if (!ownerName && !regNo) { results.skipped++; continue; }
+      if (!ownerName && !regNo) { results.skipped++; return; }
 
       if (regNo) {
-        const exists = await db().vehicle.findFirst({ where: { organizationId: orgId, registrationNo: regNo } });
-        if (exists) { results.skipped++; continue; }
+        if (existingRegNos.has(regNo)) { results.skipped++; return; }
+        existingRegNos.add(regNo); // guards duplicate reg numbers within the same sheet too
       }
 
       const vehicle = await db().vehicle.create({
@@ -1052,6 +1068,19 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
       }
 
       results.created++;
+    }
+
+    // Rows within a chunk run concurrently (each is its own vehicle, no
+    // shared state besides the in-memory dedupe set above) — sequential
+    // awaits were the other big reason large imports were slow enough to
+    // hit a request timeout.
+    const CONCURRENCY = 25;
+    for (let i = 0; i < rawRows.length; i += CONCURRENCY) {
+      const chunk = rawRows.slice(i, i + CONCURRENCY);
+      const settled = await Promise.allSettled(chunk.map(importRow));
+      for (const s of settled) {
+        if (s.status === "rejected") results.errors.push(String(s.reason?.message || s.reason));
+      }
     }
 
     if (customValuesToCreate.length > 0) {

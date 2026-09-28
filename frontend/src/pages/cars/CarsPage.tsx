@@ -595,6 +595,7 @@ function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "S
   const [fileError, setFileError] = useState("");
   const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const sample = LEAD_CSV_TEMPLATE;
 
   async function handleFile(file: File) {
@@ -621,14 +622,26 @@ function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "S
     const rows = fileRows ?? (csvText.trim() ? parseCsvText(csvText) : null);
     if (!rows || rows.length === 0) return;
     setImporting(true);
+    const total: { created: number; skipped: number; errors: string[] } = { created: 0, skipped: 0, errors: [] };
+    setProgress({ done: 0, total: rows.length });
     try {
-      const r = await api.post("/cars/leads/bulk-import", { leads: rows, leadType });
-      setResult(r.data.data);
-      if (r.data.data.created > 0) onImported();
+      for (let i = 0; i < rows.length; i += IMPORT_BATCH_SIZE) {
+        const batch = rows.slice(i, i + IMPORT_BATCH_SIZE);
+        const r = await api.post("/cars/leads/bulk-import", { leads: batch, leadType });
+        total.created += r.data.data.created;
+        total.skipped += r.data.data.skipped;
+        total.errors.push(...r.data.data.errors);
+        setProgress({ done: Math.min(i + IMPORT_BATCH_SIZE, rows.length), total: rows.length });
+      }
+      setResult(total);
+      if (total.created > 0) onImported();
     } catch (e: any) {
-      setResult({ created: 0, skipped: 0, errors: [getApiError(e)] });
+      total.errors.push(getApiError(e));
+      setResult(total);
+      if (total.created > 0) onImported();
     }
     setImporting(false);
+    setProgress(null);
   }
 
   const canImport = !!fileRows?.length || !!csvText.trim();
@@ -681,6 +694,14 @@ function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "S
             <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80" }}>{sample}</div>
             <textarea style={{ ...S.inp, width: "100%", resize: "vertical", minHeight: 100, fontFamily: "monospace", fontSize: 11 } as React.CSSProperties} value={csvText} onChange={e => { setCsvText(e.target.value); setFileRows(null); setFileName(""); }} placeholder={sample} />
 
+            {progress && (
+              <div>
+                <div style={{ height: 6, borderRadius: 99, background: "var(--bg-hover)", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.round((progress.done / progress.total) * 100)}%`, background: "#0ea5e9", transition: "width 0.2s" }} />
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4 }}>Importing {progress.done.toLocaleString()} of {progress.total.toLocaleString()} rows…</p>
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <button onClick={onClose} style={S.ghost}>Cancel</button>
               <button onClick={doImport} disabled={importing || !canImport} style={S.btn}><Upload style={{ width: 12, height: 12 }} />{importing ? "Importing…" : "Import"}</button>
@@ -698,6 +719,12 @@ function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "S
 // CHASSIS NO, MAKE, MODEL/VAR, FUEL, INS TYPE, INS CO NAME, IDV, OD, NCB,
 // PREM, EXPIRY/RENEWAL, PAYMENT MODE, SHARING.
 // ═══════════════════════════════════════════════════════════════
+// Rows per request — keeps each request's JSON payload small and fast enough
+// to finish well inside any request timeout. A file with more rows than this
+// is sent as several sequential requests instead of one huge one, which is
+// what large (thousands-of-rows) sheets were actually failing on before.
+const IMPORT_BATCH_SIZE = 1000;
+
 function VehicleImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
   const [csvText, setCsvText] = useState("");
   const [fileName, setFileName] = useState("");
@@ -705,6 +732,7 @@ function VehicleImportModal({ onClose, onImported }: { onClose: () => void; onIm
   const [fileError, setFileError] = useState("");
   const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const sample = VEHICLE_CSV_TEMPLATE;
 
   async function handleFile(file: File) {
@@ -730,14 +758,28 @@ function VehicleImportModal({ onClose, onImported }: { onClose: () => void; onIm
     const rows = fileRows ?? (csvText.trim() ? parseCsvText(csvText) : null);
     if (!rows || rows.length === 0) return;
     setImporting(true);
+    const total: { created: number; skipped: number; errors: string[] } = { created: 0, skipped: 0, errors: [] };
+    setProgress({ done: 0, total: rows.length });
     try {
-      const r = await api.post("/cars/vehicles/bulk-import", { vehicles: rows });
-      setResult(r.data.data);
-      if (r.data.data.created > 0) onImported();
+      for (let i = 0; i < rows.length; i += IMPORT_BATCH_SIZE) {
+        const batch = rows.slice(i, i + IMPORT_BATCH_SIZE);
+        const r = await api.post("/cars/vehicles/bulk-import", { vehicles: batch });
+        total.created += r.data.data.created;
+        total.skipped += r.data.data.skipped;
+        total.errors.push(...r.data.data.errors);
+        setProgress({ done: Math.min(i + IMPORT_BATCH_SIZE, rows.length), total: rows.length });
+      }
+      setResult(total);
+      if (total.created > 0) onImported();
     } catch (e: any) {
-      setResult({ created: 0, skipped: 0, errors: [getApiError(e)] });
+      // Whatever succeeded in earlier batches before this one failed is real
+      // and already saved — surface both instead of implying nothing happened.
+      total.errors.push(getApiError(e));
+      setResult(total);
+      if (total.created > 0) onImported();
     }
     setImporting(false);
+    setProgress(null);
   }
 
   const canImport = !!fileRows?.length || !!csvText.trim();
@@ -790,6 +832,14 @@ function VehicleImportModal({ onClose, onImported }: { onClose: () => void; onIm
             <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80", overflowX: "auto", whiteSpace: "pre" }}>{sample}</div>
             <textarea style={{ ...S.inp, width: "100%", resize: "vertical", minHeight: 100, fontFamily: "monospace", fontSize: 11 } as React.CSSProperties} value={csvText} onChange={e => { setCsvText(e.target.value); setFileRows(null); setFileName(""); }} placeholder={sample} />
 
+            {progress && (
+              <div>
+                <div style={{ height: 6, borderRadius: 99, background: "var(--bg-hover)", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.round((progress.done / progress.total) * 100)}%`, background: "#0ea5e9", transition: "width 0.2s" }} />
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4 }}>Importing {progress.done.toLocaleString()} of {progress.total.toLocaleString()} rows…</p>
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <button onClick={onClose} style={S.ghost}>Cancel</button>
               <button onClick={doImport} disabled={importing || !canImport} style={S.btn}><Upload style={{ width: 12, height: 12 }} />{importing ? "Importing…" : "Import"}</button>
