@@ -685,12 +685,12 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
       const vehicle = await (tx as any).vehicle.create({
         data: {
           organizationId: req.organizationId!,
-          make: v.make, model: v.model, variant: v.variant, year: v.year,
-          registrationNo: v.registrationNo, chassisNo: v.chassisNo, engineNo: v.engineNo,
-          color: v.color, odometer: v.odometer, fuelType: v.fuelType, transmission: v.transmission,
+          make: up(v.make), model: up(v.model), variant: up(v.variant), year: v.year,
+          registrationNo: up(v.registrationNo), chassisNo: up(v.chassisNo), engineNo: up(v.engineNo),
+          color: up(v.color), odometer: v.odometer, fuelType: v.fuelType, transmission: v.transmission,
           purchasePrice: v.purchasePrice, salePrice: v.salePrice,
           status: "SOLD",
-          ownerName: v.ownerName || lead.name,
+          ownerName: up(v.ownerName) || lead.name,
           ownerPhone: v.ownerPhone || lead.phone,
           ownerEmail: v.ownerEmail || lead.email,
           soldAt: v.soldAt ? new Date(v.soldAt) : new Date(),
@@ -723,10 +723,23 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
       });
 
       return vehicle;
-    });
+      // Longer timeout than Prisma's 5s default: this does 2-3 sequential
+      // writes, and a cold/slow DB connection (e.g. Neon free-tier waking
+      // from idle) can otherwise blow the default budget mid-transaction,
+      // which throws AFTER the writes already started rolling back — the
+      // sale looks like it failed with a generic error even though nothing
+      // was actually saved.
+    }, { timeout: 15000, maxWait: 10000 });
 
-    bustCache(req.organizationId!, "/api/cars");
-    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "CAR_LEAD_CONVERTED", resource: "Vehicle", resourceId: result.id, description: `Lead ${lead.name} converted to a sale: ${v.make} ${v.model}`, ipAddress: getIp(req as any) });
+    // The sale is already committed at this point — nothing below this line
+    // may turn that success into a client-visible failure, so audit/cache
+    // side effects are best-effort only.
+    try {
+      bustCache(req.organizationId!, "/api/cars");
+      writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "CAR_LEAD_CONVERTED", resource: "Vehicle", resourceId: result.id, description: `Lead ${lead.name} converted to a sale: ${v.make} ${v.model}`, ipAddress: getIp(req as any) });
+    } catch (e) {
+      console.error("[convertCarLead] post-conversion side effect failed (sale still succeeded):", e);
+    }
     created(res, result, "Lead converted to a sale");
   } catch (e) { serverError(res, e); }
 }
