@@ -4056,14 +4056,17 @@ model CarLead {
   email              String?
   interestedMake     String? // buyer: car they want to buy · seller: car they want to sell
   interestedModel    String?
+  additionalInterestedVehicles Json? // extra {make,model} pairs beyond the primary one above — a buyer open to several options
   budgetMin          Float? // buyer: budget range · seller: asking price range
   budgetMax          Float?
-  tradeInVehicle     String? // free text, e.g. "2018 Honda City to exchange"
+  hasExchangeVehicle Boolean?      // buyer: do they have a car to exchange/trade in?
+  tradeInVehicle     String? // free text details of that exchange car, e.g. "2018 Honda City"
   source             CarLeadSource @default(OTHER)
   status             CarLeadStatus @default(NEW)
   notes              String?
   isDoNotCall        Boolean       @default(false)
   testDriveDone      Boolean       @default(false)
+  bookingDone        Boolean       @default(false)
   lastContactedAt    DateTime? // last call attempt — set manually, no calling integration
   assignedToId       String? // User.id — no FK relation (loose ref, same convention as Lead.assignedToId)
   nextFollowUpDate   DateTime?

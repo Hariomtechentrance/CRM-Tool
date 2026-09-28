@@ -9,6 +9,16 @@ import { MemberRole } from "@prisma/client";
 
 const db = () => (prisma as any);
 
+// Client convention: names, identifiers and catalog values are recorded in
+// caps across every register (paper and this one) — applied at write time
+// so it's consistent everywhere the value is shown or exported, not just a
+// display trick on one screen. Deliberately NOT applied to email, phone,
+// notes/address (long free text reads worse shouting) or anything already
+// validated against a fixed enum.
+function up(s?: string | null): string | undefined {
+  return s ? s.toUpperCase() : (s === "" ? "" : undefined);
+}
+
 function computeWarrantyEndDate(soldAt: Date | undefined | null, warrantyMonths: number | undefined | null): Date | undefined {
   if (!warrantyMonths) return undefined;
   const base = soldAt ?? new Date();
@@ -41,14 +51,17 @@ const carLeadSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   interestedMake: z.string().optional(),
   interestedModel: z.string().optional(),
+  additionalInterestedVehicles: z.array(z.object({ make: z.string(), model: z.string() })).optional(),
   budgetMin: z.number().optional(),
   budgetMax: z.number().optional(),
+  hasExchangeVehicle: z.boolean().optional(),
   tradeInVehicle: z.string().optional(),
   source: z.enum(["WALK_IN", "PHONE", "WEBSITE", "INSTAGRAM", "META_ADS", "SEO", "REFERRAL", "RS", "DS", "CTE", "OTHER"]).default("OTHER"),
   status: z.enum(["NEW", "HOT", "WARM", "COLD", "URGENT", "CONTACTED", "NOT_INTERESTED", "CONVERTED", "LOST"]).default("NEW"),
   notes: z.string().optional(),
   isDoNotCall: z.boolean().optional(),
   testDriveDone: z.boolean().optional(),
+  bookingDone: z.boolean().optional(),
   lastContactedAt: z.string().optional(),
   assignedToId: z.string().optional(),
   nextFollowUpDate: z.string().optional(),
@@ -56,8 +69,11 @@ const carLeadSchema = z.object({
 });
 
 const vehicleSchema = z.object({
-  make: z.string().min(1),
-  model: z.string().min(1),
+  // Not required — a vehicle can be entered before Make/Model are known and
+  // filled in later; createVehicle/updateVehicle fall back to "Unknown"
+  // rather than blocking the save.
+  make: z.string().optional(),
+  model: z.string().optional(),
   variant: z.string().optional(),
   year: z.number().int().optional(),
   registrationNo: z.string().optional(),
@@ -182,19 +198,22 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
       data: {
         organizationId: req.organizationId!,
         leadType: data.leadType,
-        name: data.name,
+        name: up(data.name)!,
         phone: data.phone || undefined,
         email: data.email || undefined,
-        interestedMake: data.interestedMake || undefined,
-        interestedModel: data.interestedModel || undefined,
+        interestedMake: up(data.interestedMake),
+        interestedModel: up(data.interestedModel),
+        additionalInterestedVehicles: data.additionalInterestedVehicles,
         budgetMin: data.budgetMin,
         budgetMax: data.budgetMax,
-        tradeInVehicle: data.tradeInVehicle || undefined,
+        hasExchangeVehicle: data.hasExchangeVehicle,
+        tradeInVehicle: up(data.tradeInVehicle),
         source: data.source,
         status: data.status,
         notes: data.notes || undefined,
         isDoNotCall: data.isDoNotCall ?? false,
         testDriveDone: data.testDriveDone ?? false,
+        bookingDone: data.bookingDone ?? false,
         lastContactedAt: data.lastContactedAt ? new Date(data.lastContactedAt) : undefined,
         assignedToId: data.assignedToId || undefined,
         nextFollowUpDate: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : undefined,
@@ -217,6 +236,10 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
       where: { id: existing.id },
       data: {
         ...data,
+        name: data.name !== undefined ? up(data.name) : undefined,
+        interestedMake: data.interestedMake !== undefined ? up(data.interestedMake) : undefined,
+        interestedModel: data.interestedModel !== undefined ? up(data.interestedModel) : undefined,
+        tradeInVehicle: data.tradeInVehicle !== undefined ? up(data.tradeInVehicle) : undefined,
         email: data.email === "" ? null : data.email,
         nextFollowUpDate: data.nextFollowUpDate !== undefined ? (data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null) : undefined,
         lastContactedAt: data.lastContactedAt !== undefined ? (data.lastContactedAt ? new Date(data.lastContactedAt) : null) : undefined,
@@ -533,7 +556,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
         const row: Record<string, any> = Object.create(null);
         for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
 
-        const name = pick(row, FIELD_ALIASES.name);
+        const name = up(pick(row, FIELD_ALIASES.name))!;
         if (!name) { results.skipped++; continue; }
         const phone = pick(row, FIELD_ALIASES.phone);
 
@@ -562,7 +585,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
         const salesperson = pick(row, FIELD_ALIASES.assignedSalesperson);
         const matchedEmployeeId = salesperson ? employeeByName.get(salesperson.toLowerCase()) : undefined;
 
-        const interestedModel = [pick(row, FIELD_ALIASES.model), pick(row, FIELD_ALIASES.variant)].filter(Boolean).join(" ") || undefined;
+        const interestedModel = up([pick(row, FIELD_ALIASES.model), pick(row, FIELD_ALIASES.variant)].filter(Boolean).join(" ") || undefined);
 
         const enquiryDate = parseSheetDate(pick(row, FIELD_ALIASES.enquiryDate) || undefined);
 
@@ -613,7 +636,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
           name,
           phone: phone || undefined,
           email: pick(row, FIELD_ALIASES.email) || undefined,
-          interestedMake: pick(row, FIELD_ALIASES.make) || undefined,
+          interestedMake: up(pick(row, FIELD_ALIASES.make)) || undefined,
           interestedModel,
           budgetMin: budget.min,
           budgetMax: budget.max,
@@ -760,23 +783,26 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
     // two Vehicle records for the same reg no in the same org. (Multiple
     // vehicles under the same owner name/phone is completely normal and
     // must NOT be blocked — only the reg no itself is the dedup key.)
-    if (v.registrationNo) {
-      const dupe = await db().vehicle.findFirst({ where: { organizationId: req.organizationId!, registrationNo: v.registrationNo } });
-      if (dupe) { conflict(res, `Registration number ${v.registrationNo} is already in inventory.`); return; }
+    const registrationNo = up(v.registrationNo);
+    if (registrationNo) {
+      const dupe = await db().vehicle.findFirst({ where: { organizationId: req.organizationId!, registrationNo } });
+      if (dupe) { conflict(res, `Registration number ${registrationNo} is already in inventory.`); return; }
     }
 
     const soldAt = v.soldAt ? new Date(v.soldAt) : undefined;
     const vehicle = await db().vehicle.create({
       data: {
         organizationId: req.organizationId!,
-        make: v.make, model: v.model, variant: v.variant, year: v.year,
-        registrationNo: v.registrationNo, chassisNo: v.chassisNo, engineNo: v.engineNo,
-        color: v.color, odometer: v.odometer, fuelType: v.fuelType, transmission: v.transmission,
+        // Make/Model aren't mandatory — a vehicle can be entered before
+        // they're known and filled in later via Edit.
+        make: up(v.make) || "Unknown", model: up(v.model) || "Unknown", variant: up(v.variant), year: v.year,
+        registrationNo, chassisNo: up(v.chassisNo), engineNo: up(v.engineNo),
+        color: up(v.color), odometer: v.odometer, fuelType: v.fuelType, transmission: v.transmission,
         purchasePrice: v.purchasePrice, salePrice: v.salePrice, status: v.status,
-        sellerName: v.sellerName, sellerPhone: v.sellerPhone, sellerEmail: v.sellerEmail || undefined,
+        sellerName: up(v.sellerName), sellerPhone: v.sellerPhone, sellerEmail: v.sellerEmail || undefined,
         purchasedAt: v.purchasedAt ? new Date(v.purchasedAt) : undefined,
         registrationDate: v.registrationDate ? new Date(v.registrationDate) : undefined,
-        ownerName: v.ownerName, ownerPhone: v.ownerPhone, ownerEmail: v.ownerEmail || undefined,
+        ownerName: up(v.ownerName), ownerPhone: v.ownerPhone, ownerEmail: v.ownerEmail || undefined,
         ownerAddress: v.ownerAddress,
         soldAt,
         warrantyMonths: v.warrantyMonths,
@@ -797,6 +823,9 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
     const parsed = vehicleSchema.partial().safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const data = onlyProvided(req.body, parsed.data);
+    for (const k of ["make", "model", "variant", "registrationNo", "chassisNo", "engineNo", "color", "sellerName", "ownerName"] as const) {
+      if (data[k] !== undefined) data[k] = up(data[k]);
+    }
 
     // Same vehicle (by registration number), not the same owner — one
     // registration number is one physical vehicle, but the same person can
@@ -950,9 +979,9 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
       const row: Record<string, any> = Object.create(null);
       for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
 
-      const ownerName = vpick(row, VEHICLE_FIELD_ALIASES.ownerName);
-      const make = vpick(row, VEHICLE_FIELD_ALIASES.make);
-      const regNo = vpick(row, VEHICLE_FIELD_ALIASES.registrationNo);
+      const ownerName = up(vpick(row, VEHICLE_FIELD_ALIASES.ownerName));
+      const make = up(vpick(row, VEHICLE_FIELD_ALIASES.make));
+      const regNo = up(vpick(row, VEHICLE_FIELD_ALIASES.registrationNo));
       if (!ownerName && !regNo) { results.skipped++; continue; }
 
       if (regNo) {
@@ -964,11 +993,11 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
         data: {
           organizationId: orgId,
           make: make || "Unknown",
-          model: vpick(row, VEHICLE_FIELD_ALIASES.model) || "Unknown",
+          model: up(vpick(row, VEHICLE_FIELD_ALIASES.model)) || "Unknown",
           registrationNo: regNo || undefined,
           registrationDate: parseSheetDate(vpick(row, VEHICLE_FIELD_ALIASES.registrationDate)),
-          engineNo: vpick(row, VEHICLE_FIELD_ALIASES.engineNo) || undefined,
-          chassisNo: vpick(row, VEHICLE_FIELD_ALIASES.chassisNo) || undefined,
+          engineNo: up(vpick(row, VEHICLE_FIELD_ALIASES.engineNo)) || undefined,
+          chassisNo: up(vpick(row, VEHICLE_FIELD_ALIASES.chassisNo)) || undefined,
           fuelType: vpick(row, VEHICLE_FIELD_ALIASES.fuelType) || undefined,
           status: "SOLD",
           ownerName: ownerName || undefined,
@@ -1306,9 +1335,16 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
     const orgId = req.organizationId!;
     const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() + 30); cutoff30.setHours(23, 59, 59, 999);
 
-    const [totalLeads, byStatus, totalVehicles, inStock, sold, allVehiclesWithLatestPolicy] = await Promise.all([
+    const [totalLeads, byStatus, buyerLeads, byStatusBuyer, sellerLeads, byStatusSeller, totalVehicles, inStock, sold, allVehiclesWithLatestPolicy] = await Promise.all([
       db().carLead.count({ where: { organizationId: orgId } }),
       db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId }, _count: true }),
+      // Buyer/Seller are shown as separate tabs in the UI, so "Total Leads /
+      // Hot / Urgent" needs its own count per category — a single combined
+      // number was hiding how many of each type there actually were.
+      db().carLead.count({ where: { organizationId: orgId, leadType: "BUYER" } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "BUYER" }, _count: true }),
+      db().carLead.count({ where: { organizationId: orgId, leadType: "SELLER" } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "SELLER" }, _count: true }),
       db().vehicle.count({ where: { organizationId: orgId } }),
       db().vehicle.count({ where: { organizationId: orgId, status: "IN_STOCK" } }),
       db().vehicle.count({ where: { organizationId: orgId, status: "SOLD" } }),
@@ -1326,6 +1362,10 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
       (v: any) => v.insurances[0] && new Date(v.insurances[0].endDate) <= cutoff30
     ).length;
 
-    ok(res, { totalLeads, byStatus, totalVehicles, inStock, sold, expiringSoon });
+    ok(res, {
+      totalLeads, byStatus, totalVehicles, inStock, sold, expiringSoon,
+      buyer: { total: buyerLeads, byStatus: byStatusBuyer },
+      seller: { total: sellerLeads, byStatus: byStatusSeller },
+    });
   } catch (e) { serverError(res, e); }
 }
