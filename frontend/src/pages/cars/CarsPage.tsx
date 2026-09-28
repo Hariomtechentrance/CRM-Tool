@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
-  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText,
+  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
 import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import DocumentsPanel from "@/components/DocumentsPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useAuthStore } from "@/stores/authStore";
 import {
   VEHICLE_MAKES, modelsForMake, variantsForModel,
   FUEL_TYPES, TRANSMISSION_TYPES, INSURANCE_PROVIDERS, yearOptions,
@@ -51,8 +53,9 @@ const INSURANCE_TYPES = ["THIRD_PARTY", "COMPREHENSIVE", "ZERO_DEP"];
 interface CarLead {
   id: string; leadType?: string; name: string; phone?: string; email?: string;
   interestedMake?: string; interestedModel?: string; budgetMin?: number; budgetMax?: number;
-  tradeInVehicle?: string; source: string; status: string; notes?: string;
-  isDoNotCall?: boolean; testDriveDone?: boolean; lastContactedAt?: string;
+  additionalInterestedVehicles?: { make: string; model: string }[];
+  hasExchangeVehicle?: boolean; tradeInVehicle?: string; source: string; status: string; notes?: string;
+  isDoNotCall?: boolean; testDriveDone?: boolean; bookingDone?: boolean; lastContactedAt?: string;
   assignedToId?: string; assignedTo?: { name: string } | null;
   nextFollowUpDate?: string; convertedVehicleId?: string; createdAt: string;
 }
@@ -219,8 +222,8 @@ function MultiCatalogSelect({ value, onChange, options, placeholder = "Select…
 
 // Cascading Make -> Model -> Variant. Changing Make clears Model+Variant;
 // changing Model clears Variant — never leaves a stale combination selected.
-function MakeModelVariantFields({ make, model, variant, onChange }: {
-  make: string; model: string; variant: string;
+function MakeModelVariantFields({ make, model, variant, required = true, onChange }: {
+  make: string; model: string; variant: string; required?: boolean;
   onChange: (next: { make: string; model: string; variant: string }) => void;
 }) {
   const models = modelsForMake(make);
@@ -228,12 +231,12 @@ function MakeModelVariantFields({ make, model, variant, onChange }: {
   return (
     <>
       <div>
-        <label style={S.label}>Make *</label>
+        <label style={S.label}>Make{required && " *"}</label>
         <CatalogSelect value={make} options={VEHICLE_MAKES} placeholder="Select make…"
           onChange={v => onChange({ make: v, model: "", variant: "" })} />
       </div>
       <div>
-        <label style={S.label}>Model *</label>
+        <label style={S.label}>Model{required && " *"}</label>
         {models.length > 0 ? (
           <CatalogSelect value={model} options={models} placeholder="Select model…"
             onChange={v => onChange({ make, model: v, variant: "" })} />
@@ -303,19 +306,35 @@ function InsuranceFields({ value, onChange }: { value: InsuranceFormState; onCha
 // ═══════════════════════════════════════════════════════════════
 // Add / Edit Lead modal
 // ═══════════════════════════════════════════════════════════════
-export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }: { lead: CarLead | null; defaultLeadType?: "BUYER" | "SELLER"; onClose: () => void; onSaved: () => void; onConvert?: (lead: CarLead) => void }) {
+export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved, onConvert, onExchangeToSell }: {
+  lead: CarLead | null; defaultLeadType?: "BUYER" | "SELLER";
+  // Pre-fills a brand-new lead (lead must be null) — used when spinning off a
+  // Seller Lead from a Buyer's exchange car, so the customer's contact info
+  // and car details don't have to be retyped.
+  seedValues?: { name?: string; phone?: string; interestedMake?: string; interestedModel?: string };
+  onClose: () => void; onSaved: () => void; onConvert?: (lead: CarLead) => void;
+  onExchangeToSell?: (seed: { name: string; phone: string; interestedMake: string; interestedModel: string }) => void;
+}) {
   const [form, setForm] = useState({
     leadType: lead?.leadType ?? defaultLeadType ?? "BUYER",
-    name: lead?.name ?? "", phone: lead?.phone ?? "", email: lead?.email ?? "",
-    interestedMake: lead?.interestedMake ?? "", interestedModel: lead?.interestedModel ?? "",
+    name: lead?.name ?? seedValues?.name ?? "", phone: lead?.phone ?? seedValues?.phone ?? "", email: lead?.email ?? "",
+    interestedMake: lead?.interestedMake ?? seedValues?.interestedMake ?? "", interestedModel: lead?.interestedModel ?? seedValues?.interestedModel ?? "",
     budgetMin: lead?.budgetMin?.toString() ?? "", budgetMax: lead?.budgetMax?.toString() ?? "",
+    hasExchangeVehicle: lead?.hasExchangeVehicle ?? false,
     tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? "WALK_IN",
     status: lead?.status ?? "NEW", notes: lead?.notes ?? "",
     isDoNotCall: lead?.isDoNotCall ?? false,
     testDriveDone: lead?.testDriveDone ?? false,
+    bookingDone: lead?.bookingDone ?? false,
     assignedToId: lead?.assignedToId ?? "",
     nextFollowUpDate: lead?.nextFollowUpDate ? lead.nextFollowUpDate.slice(0, 10) : "",
   });
+  // Extra interested cars beyond the primary Make/Model above — e.g. a buyer
+  // open to a Swift, a Nexon, or a Venue. Always at least one empty row so
+  // there's somewhere to start typing.
+  const [extraVehicles, setExtraVehicles] = useState<{ make: string; model: string }[]>(
+    lead?.additionalInterestedVehicles?.length ? lead.additionalInterestedVehicles : []
+  );
   // Captured once at open — an existing lead can't be re-saved until its
   // status is deliberately changed from whatever it was when opened, so a
   // call never gets logged (notes/follow-up date updated) without the
@@ -325,6 +344,9 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const role = useAuthStore(s => s.activeOrg?.role);
+  const canDelete = !!lead && !!role && !["STAFF", "VIEWER"].includes(role);
 
   useEffect(() => {
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
@@ -340,6 +362,7 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
         budgetMin: form.budgetMin ? Number(form.budgetMin) : undefined,
         budgetMax: form.budgetMax ? Number(form.budgetMax) : undefined,
         nextFollowUpDate: form.nextFollowUpDate || undefined,
+        additionalInterestedVehicles: extraVehicles.filter(v => v.make || v.model),
       };
       if (lead) await api.patch(`/cars/leads/${lead.id}`, payload);
       else await api.post("/cars/leads", payload);
@@ -348,8 +371,16 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
     setSaving(false);
   }
 
+  async function doDelete() {
+    if (!lead) return;
+    try {
+      await api.delete(`/cars/leads/${lead.id}`);
+      onSaved(); onClose();
+    } catch (e) { setErr(getApiError(e)); setConfirmDelete(false); }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-end" style={{ background: "rgba(0,0,0,0.4)" }}>
       <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{lead ? "Edit Lead" : form.leadType === "SELLER" ? "Add Car Seller Lead" : "Add Car Buyer Lead"}</h3>
@@ -371,14 +402,78 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
           </div>
           <div><label style={S.label}>Phone</label><input style={{ ...S.inp, width: "100%" }} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
           <div><label style={S.label}>Email</label><input style={{ ...S.inp, width: "100%" }} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-          <div><label style={S.label}>{form.leadType === "SELLER" ? "Car to Sell — Make" : "Interested Make"}</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Maruti Suzuki" value={form.interestedMake} onChange={e => setForm({ ...form, interestedMake: e.target.value })} /></div>
-          <div><label style={S.label}>{form.leadType === "SELLER" ? "Car to Sell — Model" : "Interested Model"}</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Swift" value={form.interestedModel} onChange={e => setForm({ ...form, interestedModel: e.target.value })} /></div>
+          <div>
+            <label style={S.label}>{form.leadType === "SELLER" ? "Car to Sell — Make" : "Interested Make"}</label>
+            <CatalogSelect value={form.interestedMake} options={VEHICLE_MAKES} placeholder="Select make…"
+              onChange={v => setForm({ ...form, interestedMake: v, interestedModel: "" })} />
+          </div>
+          <div>
+            <label style={S.label}>{form.leadType === "SELLER" ? "Car to Sell — Model" : "Interested Model"}</label>
+            {modelsForMake(form.interestedMake).length > 0 ? (
+              <CatalogSelect value={form.interestedModel} options={modelsForMake(form.interestedMake)} placeholder="Select model…"
+                onChange={v => setForm({ ...form, interestedModel: v })} />
+            ) : (
+              <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={form.interestedModel} onChange={e => setForm({ ...form, interestedModel: e.target.value })} />
+            )}
+          </div>
           <div><label style={S.label}>{form.leadType === "SELLER" ? "Asking Price Min (₹)" : "Budget Min (₹)"}</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMin} onChange={e => setForm({ ...form, budgetMin: e.target.value })} /></div>
           <div><label style={S.label}>{form.leadType === "SELLER" ? "Asking Price Max (₹)" : "Budget Max (₹)"}</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMax} onChange={e => setForm({ ...form, budgetMax: e.target.value })} /></div>
-          <div className="sm:col-span-2">
-            <label style={S.label}>Trade-in Vehicle (if any)</label>
-            <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 2018 Honda City to exchange" value={form.tradeInVehicle} onChange={e => setForm({ ...form, tradeInVehicle: e.target.value })} />
-          </div>
+
+          {form.leadType === "BUYER" && (
+            <div className="sm:col-span-2">
+              <label style={S.label}>Also open to</label>
+              {extraVehicles.map((ev, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2 mb-2">
+                  <CatalogSelect value={ev.make} options={VEHICLE_MAKES} placeholder="Select make…"
+                    onChange={v => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { make: v, model: "" } : r))} />
+                  <div className="flex gap-1">
+                    {modelsForMake(ev.make).length > 0 ? (
+                      <CatalogSelect value={ev.model} options={modelsForMake(ev.make)} placeholder="Select model…"
+                        onChange={v => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { ...r, model: v } : r))} />
+                    ) : (
+                      <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={ev.model}
+                        onChange={e => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { ...r, model: e.target.value } : r))} />
+                    )}
+                    <button type="button" onClick={() => setExtraVehicles(prev => prev.filter((_, idx) => idx !== i))}
+                      style={{ ...S.ghost, padding: "0 10px", flexShrink: 0 }}>✕</button>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={() => setExtraVehicles(prev => [...prev, { make: "", model: "" }])}
+                style={{ ...S.ghost, fontSize: 12 }}>+ Add another car they'd consider</button>
+            </div>
+          )}
+
+          {form.leadType === "BUYER" && (
+            <div className="sm:col-span-2">
+              <label style={S.label}>Exchange Car?</label>
+              <div className="flex gap-2 mb-2">
+                {[["Yes", true], ["No", false]].map(([lbl, val]) => (
+                  <button key={lbl as string} type="button"
+                    onClick={() => setForm({ ...form, hasExchangeVehicle: val as boolean })}
+                    style={{ padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600,
+                      border: form.hasExchangeVehicle === val ? "1px solid #38bdf8" : "1px solid var(--border)",
+                      background: form.hasExchangeVehicle === val ? "rgba(56,189,248,0.12)" : "var(--bg-hover)",
+                      color: form.hasExchangeVehicle === val ? "#38bdf8" : "var(--text-secondary)" }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+              {form.hasExchangeVehicle && (
+                <>
+                  <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 2018 Honda City" value={form.tradeInVehicle} onChange={e => setForm({ ...form, tradeInVehicle: e.target.value })} />
+                  {onExchangeToSell && (
+                    <button type="button"
+                      onClick={() => onExchangeToSell({ name: form.name, phone: form.phone, interestedMake: "", interestedModel: form.tradeInVehicle })}
+                      disabled={!form.name.trim()}
+                      style={{ ...S.ghost, fontSize: 12, marginTop: 8 }}>
+                      <ArrowRight style={{ width: 12, height: 12 }} /> Create Seller Lead for this car
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
           <div>
             <label style={S.label}>Source</label>
             <select style={{ ...S.inp, width: "100%" }} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
@@ -422,6 +517,10 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
             <input type="checkbox" checked={form.testDriveDone} onChange={e => setForm({ ...form, testDriveDone: e.target.checked })} />
             Test Drive Done
           </label>
+          <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#4ade80", cursor: "pointer" }}>
+            <input type="checkbox" checked={form.bookingDone} onChange={e => setForm({ ...form, bookingDone: e.target.checked })} />
+            Booking Done
+          </label>
         </div>
         {lead && (
           // Anything a bulk import found on the sheet that isn't one of the
@@ -431,11 +530,14 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
           <CustomFieldRenderer entity={form.leadType === "SELLER" ? "CAR_SELLER_LEAD" : "CAR_BUYER_LEAD"} entityId={lead.id} />
         )}
         <div className="flex items-center justify-between gap-3 mt-4">
-          <div>
+          <div className="flex gap-2">
             {lead && lead.status !== "CONVERTED" && onConvert && (
               <button onClick={() => onConvert(lead)} style={S.ghost}>
                 {lead.leadType === "SELLER" ? "Buy Car" : "Convert to Sale"} <ArrowRight style={{ width: 12, height: 12 }} />
               </button>
+            )}
+            {canDelete && (
+              <button onClick={() => setConfirmDelete(true)} style={{ ...S.ghost, color: "#f87171" }}><Trash2 style={{ width: 12, height: 12 }} /> Delete</button>
             )}
           </div>
           <div className="flex gap-3">
@@ -444,6 +546,15 @@ export function LeadModal({ lead, defaultLeadType, onClose, onSaved, onConvert }
           </div>
         </div>
       </div>
+      {confirmDelete && lead && (
+        <ConfirmDialog
+          title="Delete Lead"
+          message={`"${lead.name}" will be removed from your active leads. This can be restored by support if it was a mistake.`}
+          confirmLabel="Delete"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }
@@ -846,7 +957,7 @@ function InsuranceModal({ vehicle, existing, onClose, onSaved }: { vehicle: Vehi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-end" style={{ background: "rgba(0,0,0,0.4)" }}>
       <div className="rounded-2xl p-5 w-full max-w-md mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{existing ? "Edit" : "Add"} Insurance — {vehicle.make} {vehicle.model}</h3>
@@ -885,7 +996,8 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
   const [err, setErr] = useState("");
 
   async function save() {
-    if (!v.make.trim() || !v.model.trim()) { setErr("Make and model are required"); return; }
+    // Make/Model are deliberately not required here — a vehicle can be
+    // logged before those details are known and filled in later via Edit.
     setSaving(true); setErr("");
     try {
       const payload: Record<string, unknown> = {
@@ -918,7 +1030,7 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-end" style={{ background: "rgba(0,0,0,0.4)" }}>
       <div className="rounded-2xl p-5 w-full max-w-xl mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{vehicle ? `Edit Vehicle — ${vehicle.make} ${vehicle.model}` : lead ? `Buy Car — from ${lead.name}` : "Add Vehicle — Bought a Car"}</h3>
@@ -928,7 +1040,7 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
 
         <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>Vehicle Details</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          <MakeModelVariantFields make={v.make} model={v.model} variant={v.variant}
+          <MakeModelVariantFields make={v.make} model={v.model} variant={v.variant} required={false}
             onChange={next => setV({ ...v, ...next })} />
           <div><label style={S.label}>Year</label><YearSelect value={v.year} onChange={year => setV({ ...v, year })} /></div>
           <div><label style={S.label}>Registration No.</label><input style={{ ...S.inp, width: "100%" }} value={v.registrationNo} onChange={e => setV({ ...v, registrationNo: e.target.value })} /></div>
@@ -1304,6 +1416,7 @@ export default function CarsPage() {
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [editLead, setEditLead] = useState<CarLead | null>(null);
   const [convertLead, setConvertLead] = useState<CarLead | null>(null);
+  const [exchangeSeed, setExchangeSeed] = useState<{ name: string; phone: string; interestedMake: string; interestedModel: string } | null>(null);
   const [acquireLead, setAcquireLead] = useState<CarLead | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [insuranceFor, setInsuranceFor] = useState<Vehicle | null>(null);
@@ -1427,9 +1540,19 @@ export default function CarsPage() {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
           {[
-            { label: "Total Leads", value: stats.totalLeads, color: "#818cf8", onClick: () => { setTab("leads"); setStatusFilter(""); } },
-            { label: "Hot", value: stats.byStatus?.find((s: any) => s.status === "HOT")?._count ?? 0, color: "#f87171", onClick: () => { setTab("leads"); setStatusFilter("HOT"); } },
-            { label: "Urgent", value: stats.byStatus?.find((s: any) => s.status === "URGENT")?._count ?? 0, color: "#fb923c", onClick: () => { setTab("leads"); setStatusFilter("URGENT"); } },
+            // Buyer and Seller are separate tabs, so these three reflect
+            // whichever one is currently active instead of a combined number
+            // that hid how many of each type there actually were.
+            ...(() => {
+              const cat = tab === "sellerleads" ? stats.seller : stats.buyer;
+              const catLabel = tab === "sellerleads" ? "Seller" : "Buyer";
+              const catTab = tab === "sellerleads" ? "sellerleads" : "leads";
+              return [
+                { label: `${catLabel} Leads`, value: cat?.total ?? 0, color: "#818cf8", onClick: () => { setTab(catTab); setStatusFilter(""); } },
+                { label: "Hot", value: cat?.byStatus?.find((s: any) => s.status === "HOT")?._count ?? 0, color: "#f87171", onClick: () => { setTab(catTab); setStatusFilter("HOT"); } },
+                { label: "Urgent", value: cat?.byStatus?.find((s: any) => s.status === "URGENT")?._count ?? 0, color: "#fb923c", onClick: () => { setTab(catTab); setStatusFilter("URGENT"); } },
+              ];
+            })(),
             { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); } },
             { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); } },
             { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); } },
@@ -1820,6 +1943,16 @@ export default function CarsPage() {
           onClose={() => setShowLeadModal(false)}
           onSaved={load}
           onConvert={(l) => { setShowLeadModal(false); if (l.leadType === "SELLER") setAcquireLead(l); else setConvertLead(l); }}
+          onExchangeToSell={(seed) => { setShowLeadModal(false); setExchangeSeed(seed); }}
+        />
+      )}
+      {exchangeSeed && (
+        <LeadModal
+          lead={null}
+          defaultLeadType="SELLER"
+          seedValues={exchangeSeed}
+          onClose={() => setExchangeSeed(null)}
+          onSaved={load}
         />
       )}
       {showImport && <ImportModal leadType={tab === "sellerleads" ? "SELLER" : "BUYER"} onClose={() => setShowImport(false)} onImported={load} />}
