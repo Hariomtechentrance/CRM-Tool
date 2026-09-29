@@ -564,8 +564,16 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 // ═══════════════════════════════════════════════════════════════
 // Same exact header/example row shown inside each Import CSV modal — kept as
 // one constant per format so the downloadable template can never drift out
-// of sync with what Import actually expects.
-const LEAD_CSV_TEMPLATE = `name,phone,email,make,model\nRaj Patel,9876543210,raj@abc.com,Maruti Suzuki,Swift\nPriya Singh,9123456789,,Hyundai,Creta`;
+// of sync with what Import actually expects. Every header here is a real
+// column bulkImportCarLeads recognizes (see FIELD_ALIASES / BUYER_LEAD_EXTRA_
+// FIELDS / SELLER_LEAD_EXTRA_FIELDS in cars.controller.ts) — not just the
+// handful of core CarLead columns, so the full buyer (25-field) / seller
+// (37-field) sheet a dealership actually tracks round-trips through
+// Export Format -> edit -> Import CSV without losing any column.
+const BUYER_LEAD_CSV_TEMPLATE = `Name,Phone,Alternate Number,Email,City,Make,Model,Variant,New/Used,Purchase Type,Fuel Type,Transmission,Body Type,Budget Min,Budget Max,Down Payment,Exchange,Specific Choice,Decision Maker,Status,Lead Source,Assigned Salesperson,Expected Purchase Date,Enquiry Date,Notes
+Raj Patel,9876543210,9876500000,raj@abc.com,Pune,Maruti Suzuki,Swift,ZXi,New,Cash,Petrol,Manual,Hatchback,600000,800000,50000,No,No,Yes,HOT,Walk In,Priya Sales,15/10/2026,01/10/2026,Interested in white color`;
+const SELLER_LEAD_CSV_TEMPLATE = `Name,Phone,Alternate Number,Email,City,Area,Lead ID,Campaign Name,Make,Model,Variant,Registration Number,Manufacturing Year,Registration Year,Registration Month,Colour,Fuel Type,Transmission,Kilometres,Owners,RTO,Insurance Valid Till,Insurance Type,Insurance Company,Loan / Hypothecation,Finance Company,Loan Outstanding,Service History,Repair Estimate,Budget Min,Budget Max,Expected Retail Selling Price,Status,Lead Source,Assigned Salesperson,Enquiry Date,Notes
+Priya Singh,9123456789,9123400000,priya@abc.com,Mumbai,Andheri,LEAD001,Diwali Offer,Hyundai,Creta,SX,MH12AB1234,2019,2019,March,White,Petrol,Manual,45000,1,Andheri RTO,15/03/2027,Comprehensive,ICICI Lombard,No,,0,Regular service done,Minor scratch on bumper,700000,800000,750000,WARM,Referral,Priya Sales,20/10/2026,Wants quick sale`;
 const VEHICLE_CSV_TEMPLATE = `name,mob number,reg no,date of reg,address,eng no,chassis no,make,model/var,fuel,ins type,ins co name,idv,od,ncb,prem,expiry/reni,payment mode,sharing\nRaj Patel,9876543210,MH12AB1234,2019-03-14,Pune,EN123,CH456,Maruti Suzuki,Swift,Petrol,Comprehensive,ICICI Lombard,450000,8000,20,9500,2026-03-14,Online,NA`;
 
 function downloadCsvTemplate(filename: string, content: string) {
@@ -596,7 +604,7 @@ function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "S
   const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const sample = LEAD_CSV_TEMPLATE;
+  const sample = leadType === "SELLER" ? SELLER_LEAD_CSV_TEMPLATE : BUYER_LEAD_CSV_TEMPLATE;
 
   async function handleFile(file: File) {
     setFileError(""); setFileName(file.name); setFileRows(null);
@@ -691,7 +699,7 @@ function ImportModal({ leadType, onClose, onImported }: { leadType: "BUYER" | "S
               <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>or paste CSV text</span>
               <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
             </div>
-            <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80" }}>{sample}</div>
+            <div className="rounded-lg p-3 font-mono text-[10px]" style={{ background: "#0f172a", color: "#4ade80", overflowX: "auto", whiteSpace: "pre" }}>{sample}</div>
             <textarea style={{ ...S.inp, width: "100%", resize: "vertical", minHeight: 100, fontFamily: "monospace", fontSize: 11 } as React.CSSProperties} value={csvText} onChange={e => { setCsvText(e.target.value); setFileRows(null); setFileName(""); }} placeholder={sample} />
 
             {progress && (
@@ -1516,7 +1524,7 @@ export default function CarsPage() {
         <div className="flex items-center gap-2">
           {tab === "leads" || tab === "sellerleads" ? (
             <>
-              <button onClick={() => downloadCsvTemplate(`${tab === "sellerleads" ? "seller" : "buyer"}-leads-template.csv`, LEAD_CSV_TEMPLATE)} style={S.ghost} title="Download the exact CSV format Import expects">
+              <button onClick={() => downloadCsvTemplate(`${tab === "sellerleads" ? "seller" : "buyer"}-leads-template.csv`, tab === "sellerleads" ? SELLER_LEAD_CSV_TEMPLATE : BUYER_LEAD_CSV_TEMPLATE)} style={S.ghost} title="Download the exact CSV format Import expects">
                 <Download style={{ width: 13, height: 13 }} /> Export Format
               </button>
               <button onClick={() => setShowImport(true)} style={S.ghost}><Upload style={{ width: 13, height: 13 }} /> Import CSV</button>
