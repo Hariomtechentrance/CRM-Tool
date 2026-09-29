@@ -1377,7 +1377,7 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
     const orgId = req.organizationId!;
     const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() + 30); cutoff30.setHours(23, 59, 59, 999);
 
-    const [totalLeads, byStatus, buyerLeads, byStatusBuyer, sellerLeads, byStatusSeller, totalVehicles, inStock, sold, allVehiclesWithLatestPolicy] = await Promise.all([
+    const [totalLeads, byStatus, buyerLeads, byStatusBuyer, sellerLeads, byStatusSeller, totalVehicles, inStock, sold, expiringSoonRows] = await Promise.all([
       db().carLead.count({ where: { organizationId: orgId } }),
       db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId }, _count: true }),
       // Buyer/Seller are shown as separate tabs in the UI, so "Total Leads /
@@ -1390,19 +1390,27 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
       db().vehicle.count({ where: { organizationId: orgId } }),
       db().vehicle.count({ where: { organizationId: orgId, status: "IN_STOCK" } }),
       db().vehicle.count({ where: { organizationId: orgId, status: "SOLD" } }),
-      db().vehicle.findMany({
-        where: { organizationId: orgId },
-        include: { insurances: { orderBy: { endDate: "desc" }, take: 1 } },
-      }),
+      // Counted directly in Postgres instead of pulling every vehicle (+ its
+      // insurance history) into Node just to filter in JS — at real data
+      // volumes (tens of thousands of vehicles) that findMany was the
+      // single biggest memory allocation on this endpoint, and the reason
+      // the service was hitting Render's memory limit and auto-restarting.
+      prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT COUNT(*) as count FROM (
+          SELECT DISTINCT ON ("vehicleId") "endDate"
+          FROM "VehicleInsurance"
+          WHERE "organizationId" = ${orgId}
+          ORDER BY "vehicleId", "endDate" DESC
+        ) latest
+        WHERE "endDate" <= ${cutoff30}
+      `,
       // Runs once per org (a COUNT query short-circuits every call after) —
       // this is what puts the full Custom Fields section on every Edit Lead
       // modal from the start, not only after a bulk import has ever run.
       ensureStandardCarCustomFields(orgId),
     ]);
 
-    const expiringSoon = allVehiclesWithLatestPolicy.filter(
-      (v: any) => v.insurances[0] && new Date(v.insurances[0].endDate) <= cutoff30
-    ).length;
+    const expiringSoon = Number(expiringSoonRows[0]?.count ?? 0);
 
     ok(res, {
       totalLeads, byStatus, totalVehicles, inStock, sold, expiringSoon,

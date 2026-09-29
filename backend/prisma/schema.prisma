@@ -4079,6 +4079,7 @@ model CarLead {
 
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([organizationId, leadType, createdAt])
   @@index([assignedToId])
 }
 
@@ -4163,6 +4164,7 @@ model VehicleInsurance {
   @@index([organizationId])
   @@index([vehicleId])
   @@index([organizationId, endDate])
+  @@index([organizationId, vehicleId, endDate])
 }
 
 // Pre-digital-adoption monthly totals, imported from a client's own tracking
