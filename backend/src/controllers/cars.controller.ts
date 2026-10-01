@@ -124,11 +124,28 @@ const insuranceSchema = z.object({
 
 export async function listCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, search, assignedToId, dnc, followUp, leadType, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, search, assignedToId, dnc, followUp, leadType, notContacted, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId! };
     if (status) where.status = status;
     if (assignedToId) where.assignedToId = assignedToId;
+    // "Not Contacted" worklist — buyer leads with no value yet in the
+    // "Lead Status" custom field (the free-text call-outcome field; distinct
+    // from the HOT/WARM/COLD `status` enum). Only that field's handful of
+    // leads that DO have a value need fetching — excluding those via `notIn`
+    // is far cheaper than scanning the (possibly tens-of-thousands-large)
+    // leads table the other way around.
+    if (notContacted === "true") {
+      const field = await db().customField.findUnique({
+        where: { organizationId_entity_fieldKey: { organizationId: req.organizationId!, entity: "CAR_BUYER_LEAD", fieldKey: "lead_status" } },
+      });
+      if (field) {
+        const contacted = await db().customFieldValue.findMany({ where: { customFieldId: field.id, value: { not: "" } }, select: { entityId: true } });
+        const contactedIds = contacted.map((c: { entityId: string }) => c.entityId);
+        if (contactedIds.length) where.id = { notIn: contactedIds };
+      }
+      where.leadType = "BUYER";
+    }
     if (dnc === "true") where.isDoNotCall = true;
     // "Due today or overdue" worklist — same shape as the CRM Leads module's
     // equivalent filter, used by the dashboard's Today's Follow-ups panel.
@@ -1412,9 +1429,20 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
 
     const expiringSoon = Number(expiringSoonRows[0]?.count ?? 0);
 
+    // "Not Contacted" buyer count — see listCarLeads' notContacted filter for
+    // why this counts the (small) set that HAS a Lead Status value rather
+    // than scanning every buyer lead.
+    const leadStatusField = await db().customField.findUnique({
+      where: { organizationId_entity_fieldKey: { organizationId: orgId, entity: "CAR_BUYER_LEAD", fieldKey: "lead_status" } },
+    });
+    const contactedBuyerCount = leadStatusField
+      ? await db().customFieldValue.count({ where: { customFieldId: leadStatusField.id, value: { not: "" } } })
+      : 0;
+    const notContactedBuyer = Math.max(0, buyerLeads - contactedBuyerCount);
+
     ok(res, {
       totalLeads, byStatus, totalVehicles, inStock, sold, expiringSoon,
-      buyer: { total: buyerLeads, byStatus: byStatusBuyer },
+      buyer: { total: buyerLeads, byStatus: byStatusBuyer, notContacted: notContactedBuyer },
       seller: { total: sellerLeads, byStatus: byStatusSeller },
     });
   } catch (e) { serverError(res, e); }
