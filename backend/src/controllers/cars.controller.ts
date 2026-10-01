@@ -19,6 +19,52 @@ function up(s?: string | null): string | undefined {
   return s ? s.toUpperCase() : (s === "" ? "" : undefined);
 }
 
+// "Not Contacted" = buyer leads with no value yet in the "Lead Status" custom
+// field (the free-text call-outcome field set from the Edit Lead modal;
+// distinct from the HOT/WARM/COLD `status` enum). Shared by listCarLeads'
+// notContacted filter, the dashboard's "due today" worklist, and the
+// Buyer Leads stat tile, so all three agree on exactly the same leads.
+const NOT_CONTACTED_DEFAULT_WINDOW_DAYS = 60;
+
+async function getLeadStatusFieldId(orgId: string): Promise<string | null> {
+  const field = await db().customField.findUnique({
+    where: { organizationId_entity_fieldKey: { organizationId: orgId, entity: "CAR_BUYER_LEAD", fieldKey: "lead_status" } },
+  });
+  return field?.id ?? null;
+}
+
+// `raw` is the `notContactedSince` query param: "all" = no lower bound (every
+// historical lead), an ISO date = that explicit bound, absent = the default
+// recency window. Org-wide buyer-lead history can run into the tens of
+// thousands, almost none of which have ever touched this brand-new field —
+// without a bound "not contacted" would mean "basically everything," which
+// isn't an actionable worklist for anyone.
+function resolveNotContactedSince(raw: string | undefined): Date | undefined {
+  if (raw === "all") return undefined;
+  if (raw) {
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) { d.setHours(0, 0, 0, 0); return d; }
+  }
+  const d = new Date();
+  d.setDate(d.getDate() - NOT_CONTACTED_DEFAULT_WINDOW_DAYS);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Builds the Prisma `where` for "buyer leads with no Lead Status value",
+// optionally bounded to leads created on/after `since` (undefined = no bound).
+async function notContactedWhere(orgId: string, since: Date | undefined): Promise<Record<string, unknown>> {
+  const where: Record<string, unknown> = { organizationId: orgId, leadType: "BUYER" };
+  if (since) where.createdAt = { gte: since };
+  const fieldId = await getLeadStatusFieldId(orgId);
+  if (fieldId) {
+    const contacted = await db().customFieldValue.findMany({ where: { customFieldId: fieldId, value: { not: "" } }, select: { entityId: true } });
+    const contactedIds = contacted.map((c: { entityId: string }) => c.entityId);
+    if (contactedIds.length) where.id = { notIn: contactedIds };
+  }
+  return where;
+}
+
 function computeWarrantyEndDate(soldAt: Date | undefined | null, warrantyMonths: number | undefined | null): Date | undefined {
   if (!warrantyMonths) return undefined;
   const base = soldAt ?? new Date();
@@ -124,37 +170,35 @@ const insuranceSchema = z.object({
 
 export async function listCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, search, assignedToId, dnc, followUp, leadType, notContacted, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, search, assignedToId, dnc, followUp, leadType, notContacted, notContactedSince, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId! };
     if (status) where.status = status;
     if (assignedToId) where.assignedToId = assignedToId;
-    // "Not Contacted" worklist — buyer leads with no value yet in the
-    // "Lead Status" custom field (the free-text call-outcome field; distinct
-    // from the HOT/WARM/COLD `status` enum). Only that field's handful of
-    // leads that DO have a value need fetching — excluding those via `notIn`
-    // is far cheaper than scanning the (possibly tens-of-thousands-large)
-    // leads table the other way around.
+    // "Not Contacted" worklist — see notContactedWhere() above. Bounded to a
+    // recency window by default (override with notContactedSince=<date> or
+    // "all") since the unbounded set can be the org's entire buyer-lead
+    // history, most of which predates this field and was never meant to
+    // count as "needs a first call."
     if (notContacted === "true") {
-      const field = await db().customField.findUnique({
-        where: { organizationId_entity_fieldKey: { organizationId: req.organizationId!, entity: "CAR_BUYER_LEAD", fieldKey: "lead_status" } },
-      });
-      if (field) {
-        const contacted = await db().customFieldValue.findMany({ where: { customFieldId: field.id, value: { not: "" } }, select: { entityId: true } });
-        const contactedIds = contacted.map((c: { entityId: string }) => c.entityId);
-        if (contactedIds.length) where.id = { notIn: contactedIds };
-      }
-      where.leadType = "BUYER";
+      Object.assign(where, await notContactedWhere(req.organizationId!, resolveNotContactedSince(notContactedSince)));
     }
     if (dnc === "true") where.isDoNotCall = true;
     // "Due today or overdue" worklist — same shape as the CRM Leads module's
     // equivalent filter, used by the dashboard's Today's Follow-ups panel.
+    // Also surfaces recent never-contacted buyer leads (no nextFollowUpDate
+    // at all yet) — a brand-new enquiry needs calling today just as much as
+    // one with an explicit overdue follow-up date, but was previously
+    // invisible to this worklist since it has no date to be "due" on.
     if (followUp === "due") {
       const endOfToday = new Date();
       endOfToday.setHours(23, 59, 59, 999);
       where.status = { notIn: ["CONVERTED", "LOST", "NOT_INTERESTED"] };
       where.isDoNotCall = false;
-      where.nextFollowUpDate = { lte: endOfToday };
+      where.OR = [
+        { nextFollowUpDate: { lte: endOfToday } },
+        await notContactedWhere(req.organizationId!, resolveNotContactedSince(undefined)),
+      ];
     }
     // Follow-ups tab: every open lead with any follow-up date at all — past,
     // today, or scheduled far in the future — buyer and seller leads both.
@@ -176,7 +220,13 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
         { interestedModel: { contains: search, mode: "insensitive" } },
       ];
     }
-    const orderBy: any = (followUp === "due" || followUp === "all") ? [{ nextFollowUpDate: "asc" }] : { createdAt: "desc" };
+    // Explicit follow-up dates first (most overdue first); never-contacted
+    // leads have no date to sort by, so Postgres puts them last by default —
+    // a secondary sort by newest-first keeps the freshest enquiries at the
+    // top of that trailing group instead of an arbitrary one.
+    const orderBy: any = (followUp === "due" || followUp === "all")
+      ? [{ nextFollowUpDate: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }]
+      : { createdAt: "desc" };
     const [leads, total] = await Promise.all([
       db().carLead.findMany({ where, skip, take: parseInt(limit), orderBy }),
       db().carLead.count({ where }),
@@ -1177,20 +1227,38 @@ export async function updateInsurance(req: OrgRequest, res: Response): Promise<v
 // (default 30) or has already lapsed — drives the red-alert panel.
 export async function listExpiringInsurance(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const days = parseInt((req.query.days as string) || "30");
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() + days);
-    cutoff.setHours(23, 59, 59, 999);
+    const { from, to } = req.query as Record<string, string>;
+    // `to` (an explicit date) wins over `days` when both could apply — `days`
+    // stays as the original relative-cutoff default so existing callers
+    // (the "Insurance Due (30d)" stat tile) keep working unchanged.
+    let cutoff: Date;
+    if (to) { cutoff = new Date(to); cutoff.setHours(23, 59, 59, 999); }
+    else {
+      const days = parseInt((req.query.days as string) || "30");
+      cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() + days);
+      cutoff.setHours(23, 59, 59, 999);
+    }
+    // No `from` = no lower bound, i.e. the original behavior where "overdue"
+    // includes everything ever expired, no matter how long ago.
+    let lowerBound: Date | undefined;
+    if (from) { lowerBound = new Date(from); lowerBound.setHours(0, 0, 0, 0); }
 
-    // Latest policy per vehicle, only where that policy ends before the cutoff.
+    const insuranceWhere: any = { endDate: { lte: cutoff } };
+    if (lowerBound) insuranceWhere.endDate.gte = lowerBound;
+
+    // Latest policy per vehicle, only where that policy falls in [from, to].
     const vehicles = await db().vehicle.findMany({
-      where: { organizationId: req.organizationId!, insurances: { some: { endDate: { lte: cutoff } } } },
+      where: { organizationId: req.organizationId!, insurances: { some: insuranceWhere } },
       include: { insurances: { orderBy: { endDate: "desc" }, take: 1 } },
     });
     // Only keep vehicles whose LATEST (most recent) policy is the one expiring —
     // a vehicle that already renewed shouldn't show as expiring on its old policy.
     const expiring = vehicles
-      .filter((v: any) => v.insurances[0] && new Date(v.insurances[0].endDate) <= cutoff)
+      .filter((v: any) => {
+        const end = v.insurances[0] && new Date(v.insurances[0].endDate);
+        return end && end <= cutoff && (!lowerBound || end >= lowerBound);
+      })
       .sort((a: any, b: any) => new Date(a.insurances[0].endDate).getTime() - new Date(b.insurances[0].endDate).getTime());
 
     ok(res, { vehicles: expiring, total: expiring.length });
@@ -1429,20 +1497,17 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
 
     const expiringSoon = Number(expiringSoonRows[0]?.count ?? 0);
 
-    // "Not Contacted" buyer count — see listCarLeads' notContacted filter for
-    // why this counts the (small) set that HAS a Lead Status value rather
-    // than scanning every buyer lead.
-    const leadStatusField = await db().customField.findUnique({
-      where: { organizationId_entity_fieldKey: { organizationId: orgId, entity: "CAR_BUYER_LEAD", fieldKey: "lead_status" } },
+    // "Not Contacted" buyer count — same windowed definition as listCarLeads'
+    // notContacted filter (notContactedSince=<date>|"all" query param), so the
+    // stat tile and the list it links to always agree on the exact same count.
+    const notContactedSinceResolved = resolveNotContactedSince(req.query.notContactedSince as string | undefined);
+    const notContactedBuyer = await db().carLead.count({
+      where: await notContactedWhere(orgId, notContactedSinceResolved),
     });
-    const contactedBuyerCount = leadStatusField
-      ? await db().customFieldValue.count({ where: { customFieldId: leadStatusField.id, value: { not: "" } } })
-      : 0;
-    const notContactedBuyer = Math.max(0, buyerLeads - contactedBuyerCount);
 
     ok(res, {
       totalLeads, byStatus, totalVehicles, inStock, sold, expiringSoon,
-      buyer: { total: buyerLeads, byStatus: byStatusBuyer, notContacted: notContactedBuyer },
+      buyer: { total: buyerLeads, byStatus: byStatusBuyer, notContacted: notContactedBuyer, notContactedSince: notContactedSinceResolved?.toISOString() ?? null },
       seller: { total: sellerLeads, byStatus: byStatusSeller },
     });
   } catch (e) { serverError(res, e); }
