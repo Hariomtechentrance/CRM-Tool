@@ -1419,6 +1419,7 @@ export default function CarsPage() {
   const [stats, setStats] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [notContactedFilter, setNotContactedFilter] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [showLeadModal, setShowLeadModal] = useState(false);
@@ -1474,7 +1475,8 @@ export default function CarsPage() {
       if (tab === "leads" || tab === "sellerleads") {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
-        if (statusFilter) params.set("status", statusFilter);
+        if (notContactedFilter) params.set("notContacted", "true");
+        else if (statusFilter) params.set("status", statusFilter);
         params.set("leadType", tab === "sellerleads" ? "SELLER" : "BUYER");
         const r = await api.get(`/cars/leads?${params}`);
         setLeads(r.data.data.leads ?? []);
@@ -1502,7 +1504,7 @@ export default function CarsPage() {
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [tab, search, statusFilter, salesPeriod]);
+  }, [tab, search, statusFilter, notContactedFilter, salesPeriod]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1556,15 +1558,19 @@ export default function CarsPage() {
               const catLabel = tab === "sellerleads" ? "Seller" : "Buyer";
               const catTab = tab === "sellerleads" ? "sellerleads" : "leads";
               return [
-                { label: `${catLabel} Leads`, value: cat?.total ?? 0, color: "#818cf8", onClick: () => { setTab(catTab); setStatusFilter(""); } },
-                { label: "Hot", value: cat?.byStatus?.find((s: any) => s.status === "HOT")?._count ?? 0, color: "#f87171", onClick: () => { setTab(catTab); setStatusFilter("HOT"); } },
-                { label: "Urgent", value: cat?.byStatus?.find((s: any) => s.status === "URGENT")?._count ?? 0, color: "#fb923c", onClick: () => { setTab(catTab); setStatusFilter("URGENT"); } },
+                { label: `${catLabel} Leads`, value: cat?.total ?? 0, color: "#818cf8", onClick: () => { setTab(catTab); setStatusFilter(""); setNotContactedFilter(false); } },
+                { label: "Hot", value: cat?.byStatus?.find((s: any) => s.status === "HOT")?._count ?? 0, color: "#f87171", onClick: () => { setTab(catTab); setStatusFilter("HOT"); setNotContactedFilter(false); } },
+                { label: "Urgent", value: cat?.byStatus?.find((s: any) => s.status === "URGENT")?._count ?? 0, color: "#fb923c", onClick: () => { setTab(catTab); setStatusFilter("URGENT"); setNotContactedFilter(false); } },
+                // Buyer-only: backed by the "Lead Status" custom field (set
+                // when a call is logged), not the HOT/WARM/COLD status enum —
+                // shrinks as leads get their first call logged.
+                ...(tab !== "sellerleads" ? [{ label: "Not Contacted", value: stats.buyer?.notContacted ?? 0, color: "#facc15", onClick: () => { setTab("leads"); setStatusFilter(""); setNotContactedFilter(true); } }] : []),
               ];
             })(),
-            { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); } },
-            { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); } },
-            { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); } },
-            { label: "Insurance Due (30d)", value: stats.expiringSoon, color: stats.expiringSoon > 0 ? "#f87171" : "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter(""); } },
+            { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); } },
+            { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); setNotContactedFilter(false); } },
+            { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); setNotContactedFilter(false); } },
+            { label: "Insurance Due (30d)", value: stats.expiringSoon, color: stats.expiringSoon > 0 ? "#f87171" : "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); } },
           ].map(k => (
             <button key={k.label} onClick={k.onClick} style={{ ...S.card, padding: "12px 14px", textAlign: "left", cursor: "pointer", border: "1px solid var(--border)" }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = k.color)}
@@ -1580,7 +1586,7 @@ export default function CarsPage() {
       {/* Tabs */}
       <div className="flex items-center gap-1 mb-4 flex-wrap" style={{ borderBottom: "1px solid var(--border)" }}>
         {(["leads", "sellerleads", "vehicles", "warranty", "followups", "reports"] as const).map(tKey => (
-          <button key={tKey} onClick={() => { setTab(tKey); setStatusFilter(""); setSearch(""); }}
+          <button key={tKey} onClick={() => { setTab(tKey); setStatusFilter(""); setNotContactedFilter(false); setSearch(""); }}
             style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: tab === tKey ? "2px solid #38bdf8" : "2px solid transparent", color: tab === tKey ? "#38bdf8" : "var(--text-ghost)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             {tKey === "leads" ? "Buyer Leads" : tKey === "sellerleads" ? "Seller Leads" : tKey === "vehicles" ? "Vehicles & Insurance"
               : tKey === "warranty" ? "Warranty" : tKey === "followups" ? "Follow-ups" : "Monthly Report"}
@@ -1595,11 +1601,15 @@ export default function CarsPage() {
           <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
           <input style={{ ...S.inp, width: "100%", paddingLeft: 30 }} placeholder={tab === "vehicles" ? "Search make, model, reg. no, owner…" : "Search name, phone, model…"} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <select style={S.inp} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <select style={S.inp} value={notContactedFilter ? "__NOT_CONTACTED__" : statusFilter} onChange={e => {
+          if (e.target.value === "__NOT_CONTACTED__") { setNotContactedFilter(true); setStatusFilter(""); }
+          else { setNotContactedFilter(false); setStatusFilter(e.target.value); }
+        }}>
           <option value="">All statuses</option>
           {tab === "vehicles"
             ? Object.keys(VEHICLE_STATUS).map(s => <option key={s} value={s}>{VEHICLE_STATUS[s].label}</option>)
             : LEAD_STATUSES.map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
+          {tab === "leads" && <option value="__NOT_CONTACTED__">Not Contacted</option>}
         </select>
         {tab === "vehicles" && (
           <select style={S.inp} value={salesPeriod} onChange={e => setSalesPeriod(e.target.value as any)}>
