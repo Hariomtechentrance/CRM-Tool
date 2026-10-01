@@ -1420,6 +1420,15 @@ export default function CarsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [notContactedFilter, setNotContactedFilter] = useState(false);
+  // "" = backend's default recency window (currently 60 days), "all" = every
+  // historical buyer lead, or an explicit yyyy-mm-dd — lets "Not Contacted"
+  // be narrowed/widened instead of always meaning "the org's entire history."
+  const [notContactedSince, setNotContactedSince] = useState("");
+  const LEADS_PAGE_SIZE = 50;
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsTotal, setLeadsTotal] = useState(0);
+  const [insuranceFrom, setInsuranceFrom] = useState("");
+  const [insuranceTo, setInsuranceTo] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [showLeadModal, setShowLeadModal] = useState(false);
@@ -1467,27 +1476,49 @@ export default function CarsPage() {
   const [salesPeriod, setSalesPeriod] = useState<"this_month" | "last_month" | "this_year" | "all">("this_month");
   const [salesReport, setSalesReport] = useState<{ count: number; totalRevenue: number } | null>(null);
 
+  // When a filter/search/tab changes, the fetch below should land on page 1
+  // immediately (not fetch the old page under new filters, then flash to
+  // page 1 a moment later) — compare against the previous call's filter
+  // signature and override `page` for just this one fetch when it differs.
+  const prevLeadsFilterSig = useRef("");
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes] = await Promise.all([api.get("/cars/stats")]);
+      const statsParams = new URLSearchParams();
+      if (notContactedSince) statsParams.set("notContactedSince", notContactedSince);
+      const [statsRes] = await Promise.all([api.get(`/cars/stats?${statsParams}`)]);
       setStats(statsRes.data.data);
       if (tab === "leads" || tab === "sellerleads") {
+        const filterSig = `${tab}|${search}|${statusFilter}|${notContactedFilter}|${notContactedSince}`;
+        let page = leadsPage;
+        if (filterSig !== prevLeadsFilterSig.current) {
+          prevLeadsFilterSig.current = filterSig;
+          page = 1;
+          if (leadsPage !== 1) setLeadsPage(1);
+        }
         const params = new URLSearchParams();
         if (search) params.set("search", search);
-        if (notContactedFilter) params.set("notContacted", "true");
-        else if (statusFilter) params.set("status", statusFilter);
+        if (notContactedFilter) {
+          params.set("notContacted", "true");
+          if (notContactedSince) params.set("notContactedSince", notContactedSince);
+        } else if (statusFilter) params.set("status", statusFilter);
         params.set("leadType", tab === "sellerleads" ? "SELLER" : "BUYER");
+        params.set("page", String(page));
+        params.set("limit", String(LEADS_PAGE_SIZE));
         const r = await api.get(`/cars/leads?${params}`);
         setLeads(r.data.data.leads ?? []);
+        setLeadsTotal(r.data.data.total ?? 0);
       } else if (tab === "vehicles") {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
         if (statusFilter) params.set("status", statusFilter);
+        const insParams = new URLSearchParams();
+        if (insuranceFrom) insParams.set("from", insuranceFrom);
+        if (insuranceTo) insParams.set("to", insuranceTo); else insParams.set("days", "30");
         const [vr, sr, er] = await Promise.all([
           api.get(`/cars/vehicles?${params}`),
           api.get(`/cars/sales-report?period=${salesPeriod}`),
-          api.get(`/cars/insurance/expiring?days=30`),
+          api.get(`/cars/insurance/expiring?${insParams}`),
         ]);
         setVehicles(vr.data.data.vehicles ?? []);
         setSalesReport(sr.data.data);
@@ -1504,7 +1535,7 @@ export default function CarsPage() {
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [tab, search, statusFilter, notContactedFilter, salesPeriod]);
+  }, [tab, search, statusFilter, notContactedFilter, notContactedSince, leadsPage, salesPeriod, insuranceFrom, insuranceTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1558,19 +1589,19 @@ export default function CarsPage() {
               const catLabel = tab === "sellerleads" ? "Seller" : "Buyer";
               const catTab = tab === "sellerleads" ? "sellerleads" : "leads";
               return [
-                { label: `${catLabel} Leads`, value: cat?.total ?? 0, color: "#818cf8", onClick: () => { setTab(catTab); setStatusFilter(""); setNotContactedFilter(false); } },
-                { label: "Hot", value: cat?.byStatus?.find((s: any) => s.status === "HOT")?._count ?? 0, color: "#f87171", onClick: () => { setTab(catTab); setStatusFilter("HOT"); setNotContactedFilter(false); } },
-                { label: "Urgent", value: cat?.byStatus?.find((s: any) => s.status === "URGENT")?._count ?? 0, color: "#fb923c", onClick: () => { setTab(catTab); setStatusFilter("URGENT"); setNotContactedFilter(false); } },
+                { label: `${catLabel} Leads`, value: cat?.total ?? 0, color: "#818cf8", onClick: () => { setTab(catTab); setStatusFilter(""); setNotContactedFilter(false); setNotContactedSince(""); } },
+                { label: "Hot", value: cat?.byStatus?.find((s: any) => s.status === "HOT")?._count ?? 0, color: "#f87171", onClick: () => { setTab(catTab); setStatusFilter("HOT"); setNotContactedFilter(false); setNotContactedSince(""); } },
+                { label: "Urgent", value: cat?.byStatus?.find((s: any) => s.status === "URGENT")?._count ?? 0, color: "#fb923c", onClick: () => { setTab(catTab); setStatusFilter("URGENT"); setNotContactedFilter(false); setNotContactedSince(""); } },
                 // Buyer-only: backed by the "Lead Status" custom field (set
                 // when a call is logged), not the HOT/WARM/COLD status enum —
                 // shrinks as leads get their first call logged.
                 ...(tab !== "sellerleads" ? [{ label: "Not Contacted", value: stats.buyer?.notContacted ?? 0, color: "#facc15", onClick: () => { setTab("leads"); setStatusFilter(""); setNotContactedFilter(true); } }] : []),
               ];
             })(),
-            { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); } },
-            { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); setNotContactedFilter(false); } },
-            { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); setNotContactedFilter(false); } },
-            { label: "Insurance Due (30d)", value: stats.expiringSoon, color: stats.expiringSoon > 0 ? "#f87171" : "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); } },
+            { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setNotContactedSince(""); } },
+            { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); setNotContactedFilter(false); setNotContactedSince(""); } },
+            { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); setNotContactedFilter(false); setNotContactedSince(""); } },
+            { label: "Insurance Due (30d)", value: stats.expiringSoon, color: stats.expiringSoon > 0 ? "#f87171" : "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setNotContactedSince(""); } },
           ].map(k => (
             <button key={k.label} onClick={k.onClick} style={{ ...S.card, padding: "12px 14px", textAlign: "left", cursor: "pointer", border: "1px solid var(--border)" }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = k.color)}
@@ -1603,7 +1634,7 @@ export default function CarsPage() {
         </div>
         <select style={S.inp} value={notContactedFilter ? "__NOT_CONTACTED__" : statusFilter} onChange={e => {
           if (e.target.value === "__NOT_CONTACTED__") { setNotContactedFilter(true); setStatusFilter(""); }
-          else { setNotContactedFilter(false); setStatusFilter(e.target.value); }
+          else { setNotContactedFilter(false); setNotContactedSince(""); setStatusFilter(e.target.value); }
         }}>
           <option value="">All statuses</option>
           {tab === "vehicles"
@@ -1611,6 +1642,20 @@ export default function CarsPage() {
             : LEAD_STATUSES.map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
           {tab === "leads" && <option value="__NOT_CONTACTED__">Not Contacted</option>}
         </select>
+        {tab === "leads" && notContactedFilter && (
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>Created since</span>
+            <select style={S.inp} value={notContactedSince === "all" ? "all" : (notContactedSince ? "custom" : "")}
+              onChange={e => { if (e.target.value === "custom") setNotContactedSince(new Date().toISOString().slice(0, 10)); else setNotContactedSince(e.target.value); }}>
+              <option value="">Last 60 days (default)</option>
+              <option value="custom">Custom date…</option>
+              <option value="all">All time ({stats?.buyer?.total ?? 0})</option>
+            </select>
+            {notContactedSince && notContactedSince !== "all" && (
+              <input type="date" style={S.inp} value={notContactedSince} onChange={e => setNotContactedSince(e.target.value)} />
+            )}
+          </div>
+        )}
         {tab === "vehicles" && (
           <select style={S.inp} value={salesPeriod} onChange={e => setSalesPeriod(e.target.value as any)}>
             <option value="this_month">Sales: This Month</option>
@@ -1643,6 +1688,7 @@ export default function CarsPage() {
         leads.length === 0 ? (
           <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No {tab === "sellerleads" ? "seller " : ""}leads yet — add one or import a CSV.</div>
         ) : (
+          <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {leads.map(l => (
               <div key={l.id} style={{ ...S.card, cursor: "pointer" }} onClick={() => { setEditLead(l); setShowLeadModal(true); }}>
@@ -1654,54 +1700,80 @@ export default function CarsPage() {
               </div>
             ))}
           </div>
+          {leadsTotal > LEADS_PAGE_SIZE && (
+            <div className="flex items-center justify-between mt-4" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
+              <span>
+                Showing {(leadsPage - 1) * LEADS_PAGE_SIZE + 1}–{Math.min(leadsPage * LEADS_PAGE_SIZE, leadsTotal)} of {leadsTotal}
+              </span>
+              <div className="flex items-center gap-2">
+                <button disabled={leadsPage <= 1} onClick={() => setLeadsPage(p => Math.max(1, p - 1))}
+                  style={{ ...S.ghost, opacity: leadsPage <= 1 ? 0.4 : 1, cursor: leadsPage <= 1 ? "default" : "pointer" }}>Previous</button>
+                <span>Page {leadsPage} of {Math.ceil(leadsTotal / LEADS_PAGE_SIZE)}</span>
+                <button disabled={leadsPage * LEADS_PAGE_SIZE >= leadsTotal} onClick={() => setLeadsPage(p => p + 1)}
+                  style={{ ...S.ghost, opacity: leadsPage * LEADS_PAGE_SIZE >= leadsTotal ? 0.4 : 1, cursor: leadsPage * LEADS_PAGE_SIZE >= leadsTotal ? "default" : "pointer" }}>Next</button>
+              </div>
+            </div>
+          )}
+          </>
         )
       ) : tab === "vehicles" ? (
         <>
-          {expiringVehiclesData.length > 0 && (
-            <div style={{ ...S.card, borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.06)", marginBottom: 16 }}>
-              <div className="flex items-center gap-2 mb-3" style={{ color: "#f87171", fontWeight: 700, fontSize: 13 }}>
-                <ShieldAlert size={15} /> Insurance Due Within 30 Days
-              </div>
-              <div className="flex gap-1 mb-3">
-                <button onClick={() => setInsuranceDueSubTab("overdue")}
-                  style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    background: insuranceDueSubTab === "overdue" ? "#f87171" : "var(--bg-hover)",
-                    color: insuranceDueSubTab === "overdue" ? "#1a0505" : "var(--text-sec)" }}>
-                  Overdue ({overdueVehicles.length})
-                </button>
-                <button onClick={() => setInsuranceDueSubTab("upcoming")}
-                  style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    background: insuranceDueSubTab === "upcoming" ? "#fbbf24" : "var(--bg-hover)",
-                    color: insuranceDueSubTab === "upcoming" ? "#1a1405" : "var(--text-sec)" }}>
-                  Upcoming ({upcomingVehicles.length})
-                </button>
-              </div>
-              <p style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 10 }}>
-                Click any entry to open that vehicle and call the customer about renewing their insurance.
-              </p>
-              {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).length === 0 ? (
-                <div style={{ fontSize: 12, color: "var(--text-ghost)", padding: "8px 0" }}>
-                  {insuranceDueSubTab === "overdue" ? "Nothing overdue right now." : "Nothing coming due in the next 30 days."}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).map(v => {
-                    const badge = insuranceBadge(v.insurances?.[0]);
-                    return (
-                      <div key={v.id} onClick={() => setDetailVehicle(v)}
-                        style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{v.make} {v.model} {v.registrationNo ? `· ${v.registrationNo}` : ""}</div>
-                          <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerName}</div>
-                        </div>
-                        {badge && <span style={{ fontSize: 10, fontWeight: 700, color: badge.color }}>{badge.text}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
+          <div style={{ ...S.card, borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.06)", marginBottom: 16 }}>
+            <div className="flex items-center gap-2 mb-3" style={{ color: "#f87171", fontWeight: 700, fontSize: 13 }}>
+              <ShieldAlert size={15} /> {insuranceFrom || insuranceTo ? "Insurance Due — Custom Range" : "Insurance Due Within 30 Days"}
+            </div>
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>Expired/due from</span>
+              <input type="date" style={S.inp} value={insuranceFrom} onChange={e => setInsuranceFrom(e.target.value)} />
+              <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>to</span>
+              <input type="date" style={S.inp} value={insuranceTo} onChange={e => setInsuranceTo(e.target.value)} />
+              {(insuranceFrom || insuranceTo) && (
+                <button onClick={() => { setInsuranceFrom(""); setInsuranceTo(""); }} style={S.ghost}>Reset to 30 days</button>
               )}
             </div>
-          )}
+            {expiringVehiclesData.length > 0 && (
+              <>
+                <div className="flex gap-1 mb-3">
+                  <button onClick={() => setInsuranceDueSubTab("overdue")}
+                    style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                      background: insuranceDueSubTab === "overdue" ? "#f87171" : "var(--bg-hover)",
+                      color: insuranceDueSubTab === "overdue" ? "#1a0505" : "var(--text-sec)" }}>
+                    Overdue ({overdueVehicles.length})
+                  </button>
+                  <button onClick={() => setInsuranceDueSubTab("upcoming")}
+                    style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                      background: insuranceDueSubTab === "upcoming" ? "#fbbf24" : "var(--bg-hover)",
+                      color: insuranceDueSubTab === "upcoming" ? "#1a1405" : "var(--text-sec)" }}>
+                    Upcoming ({upcomingVehicles.length})
+                  </button>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 10 }}>
+                  Click any entry to open that vehicle and call the customer about renewing their insurance.
+                </p>
+              </>
+            )}
+            {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).length === 0 ? (
+              <div style={{ fontSize: 12, color: "var(--text-ghost)", padding: "8px 0" }}>
+                {insuranceDueSubTab === "overdue" ? "Nothing overdue in this range." : (insuranceTo ? "Nothing coming due in this range." : "Nothing coming due in the next 30 days.")}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).map(v => {
+                  const badge = insuranceBadge(v.insurances?.[0]);
+                  return (
+                    <div key={v.id} onClick={() => setDetailVehicle(v)}
+                      style={{ background: "var(--bg-hover)", borderRadius: 8, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{v.make} {v.model} {v.registrationNo ? `· ${v.registrationNo}` : ""}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerName}</div>
+                      </div>
+                      {badge && <span style={{ fontSize: 10, fontWeight: 700, color: badge.color }}>{badge.text}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           {vehicles.length === 0 ? (
             <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No vehicles yet — convert a lead into a sale to get started.</div>
           ) : (
