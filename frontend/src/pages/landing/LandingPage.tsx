@@ -6,7 +6,9 @@ import {
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
   ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon, Check, Zap,
   Stethoscope, PackageOpen, ClipboardCheck, Wrench, LineChart, ShieldCheck,
-  Car, Scissors, Shirt, MessageCircle,
+  Car, Scissors, Shirt, MessageCircle, Factory, Store, Code2, Scale,
+  Landmark, Megaphone, Building2, Sprout, GraduationCap, HeartHandshake,
+  SlidersHorizontal, IndianRupee, Infinity as InfinityIcon,
 } from "lucide-react";
 import ContactModal from "@/components/ContactModal";
 
@@ -41,6 +43,30 @@ const MODULES = [
   { Icon: Car,            name: "Car Resale",             tag: "Industry",           color: "#38bdf8", desc: "Buyer leads, sold-vehicle records and insurance renewal tracking for used-car resale.", features: ["Buyer & seller lead pipeline", "Vehicle inventory & sales", "Insurance renewal tracking", "Warranty tracking", "Monthly sales reports"] },
 ];
 
+// Pulled from the same business-type list a new org picks from at signup
+// (CreateOrgPage.tsx) — so this reflects what the platform actually supports,
+// not a marketing list invented separately from the product.
+const INDUSTRIES = [
+  { Icon: Globe,          name: "Import & Export" },
+  { Icon: ShoppingCart,   name: "Trading & Distribution" },
+  { Icon: Factory,        name: "Manufacturing" },
+  { Icon: ShoppingBag,    name: "Retail Stores" },
+  { Icon: Store,          name: "E-commerce" },
+  { Icon: UtensilsCrossed,name: "Restaurants & Cafés" },
+  { Icon: HotelIcon,      name: "Hotels & Resorts" },
+  { Icon: Code2,          name: "IT & Software" },
+  { Icon: Briefcase,      name: "Consulting & Services" },
+  { Icon: Scale,          name: "Legal Firms" },
+  { Icon: Landmark,       name: "Finance & Insurance" },
+  { Icon: Megaphone,      name: "Media & Marketing" },
+  { Icon: Building2,      name: "Real Estate & Construction" },
+  { Icon: Truck,          name: "Logistics & Transport" },
+  { Icon: Sprout,         name: "Agriculture" },
+  { Icon: Stethoscope,    name: "Healthcare & Clinics" },
+  { Icon: GraduationCap,  name: "Education & Coaching" },
+  { Icon: HeartHandshake, name: "NGOs & Non-profits" },
+];
+
 const TAGS = ["All", "Core", "Growth", "Operations", "Industry", "Communication", "Food & Hospitality", "Health"];
 const TAG_COLORS: Record<string, string> = {
   Core: "#2e9cc4", Growth: "#10b981", Operations: "#f59e0b", Industry: "#8b5cf6", Communication: "#0ea5e9",
@@ -48,10 +74,17 @@ const TAG_COLORS: Record<string, string> = {
 };
 
 const WHY = [
+  { Icon: SlidersHorizontal, title: "Shaped Around Your Workflow", desc: "Turn modules on or off anytime. Every org's dashboard reflects how THEY work — not a rigid template everyone's forced into." },
   { Icon: MapPin,     title: "Built for Indian Business",  desc: "GSTIN, PAN, IEC, HSN codes, CGST/SGST/IGST — all Indian compliance baked in from day one." },
   { Icon: Layers,     title: "Everything in One Place",    desc: "CRM, inventory, HR, finance, projects — no switching between 6 apps. One login, one dashboard." },
   { Icon: Shield,     title: "Secure & Multi-tenant",      desc: "Each organisation is completely isolated. Role-based access, JWT auth, rate limiting and audit logs." },
   { Icon: Smartphone, title: "Fully Responsive",           desc: "Works on mobile, tablet and desktop. Manage your business from anywhere, any device." },
+];
+
+const PRICING_PILLARS = [
+  { Icon: IndianRupee,    title: "Start Free",             desc: "Get your organisation running at zero cost — no credit card, no setup fee, no trial countdown." },
+  { Icon: SlidersHorizontal, title: "Pay for What You Use", desc: "Modular pricing means you're never billed for a module you never turned on. No bloated bundles." },
+  { Icon: InfinityIcon,   title: "Scales With You",         desc: "Add modules, users or locations as you grow — same platform, no re-platforming or migration pain." },
 ];
 
 const STEPS = [
@@ -104,14 +137,14 @@ export default function LandingPage() {
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 14px 5px 8px", borderRadius: 20, background: "var(--brand-soft)", border: "1px solid var(--brand-border)", fontSize: 12, fontWeight: 600, color: "var(--brand-color)", marginBottom: 26 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--brand-color)", boxShadow: "0 0 0 3px var(--brand-soft)" }} />
-              The all-in-one business platform for Indian enterprises
+              Any industry. Any workflow. One affordable platform.
             </div>
             <h1 style={{ fontSize: "clamp(34px,4.6vw,54px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em", margin: "0 0 20px", color: "var(--text-primary)" }}>
-              Run your entire business{" "}
-              <span className="brand-text-gradient">from one platform</span>
+              Built for every business.{" "}
+              <span className="brand-text-gradient">Shaped around yours.</span>
             </h1>
             <p style={{ fontSize: "clamp(15px,1.6vw,17px)", color: "var(--text-faint)", maxWidth: 500, lineHeight: 1.7, marginBottom: 34 }}>
-              CRM, Inventory, HR &amp; Payroll, Finance, Projects, Import-Export and more — all integrated, all GST-compliant, built for India.
+              Retail shop or hospital, car dealership or IT consultancy — turn on only the modules your workflow needs, skip the rest, and pay for exactly that. All integrated, all GST-compliant.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={() => setShowContact(true)} style={{ padding: "14px 30px", borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 10px 28px rgba(116,205,232,0.32)" }}>
@@ -194,9 +227,27 @@ export default function LandingPage() {
               background: "linear-gradient(135deg,#2e9cc4,#74cde8)", borderRadius: 12, padding: "10px 16px",
               boxShadow: "0 16px 36px rgba(116,205,232,0.35)", transform: "rotate(-3deg)", fontSize: 12, fontWeight: 700, color: "#fff",
             }}>
-              <Zap size={14} /> 16 modules synced
+              <Zap size={14} /> 28+ modules synced
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Built for Every Industry ── */}
+      <section style={{ padding: "0 clamp(16px,4vw,64px) 72px" }}>
+        <div style={{ textAlign: "center", marginBottom: 32, maxWidth: 640, marginInline: "auto" }}>
+          <h2 style={{ fontSize: "clamp(20px,2.6vw,28px)", fontWeight: 800, margin: "0 0 10px" }}>Whatever Your Business, There's a Fit</h2>
+          <p style={{ color: "var(--text-ghost)", fontSize: 14, lineHeight: 1.6 }}>
+            BusinessOS isn't built for one kind of company — it's built to be reshaped for yours. These are just a few of the industries already running on it.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,170px),1fr))", gap: 10, maxWidth: 1100, marginInline: "auto" }}>
+          {INDUSTRIES.map(ind => (
+            <div key={ind.name} className="lift" style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
+              <ind.Icon size={16} color="var(--brand-color)" strokeWidth={1.8} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-sec)" }}>{ind.name}</span>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -286,6 +337,32 @@ export default function LandingPage() {
               <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{w.desc}</div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Affordable by Design ── */}
+      <section style={{ padding: "60px clamp(16px,4vw,64px)" }}>
+        <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 600, marginInline: "auto" }}>
+          <h2 style={{ fontSize: "clamp(20px,3vw,30px)", fontWeight: 800, margin: "0 0 10px" }}>Affordable by Design</h2>
+          <p style={{ color: "var(--text-ghost)", fontSize: 14, lineHeight: 1.6 }}>
+            No per-seat traps, no bloated all-in-one bundle. Your bill reflects your business, not our full feature list.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,240px),1fr))", gap: 18, maxWidth: 900, marginInline: "auto" }}>
+          {PRICING_PILLARS.map(p => (
+            <div key={p.title} className="lift" style={{ background: "var(--bg-card)", borderRadius: 14, padding: 24, border: "1px solid var(--border)", textAlign: "center" }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--brand-soft)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, marginInline: "auto" }}>
+                <p.Icon size={18} color="var(--brand-color)" strokeWidth={1.8} />
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{p.title}</div>
+              <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{p.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 32 }}>
+          <button onClick={() => setShowContact(true)} style={{ padding: "12px 28px", borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 10px 28px rgba(116,205,232,0.28)" }}>
+            Get Your Custom Quote
+          </button>
         </div>
       </section>
 
