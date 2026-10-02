@@ -5,7 +5,8 @@ import {
   Briefcase, FileText, Headphones, Warehouse, ShoppingBag, Kanban,
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
   ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon, Check, Zap,
-  Stethoscope,
+  Stethoscope, PackageOpen, ClipboardCheck, Wrench, LineChart, ShieldCheck,
+  Car, Scissors, Shirt,
 } from "lucide-react";
 import ContactModal from "@/components/ContactModal";
 
@@ -29,11 +30,20 @@ const MODULES = [
   { Icon: UtensilsCrossed,name: "Restaurant POS",        tag: "Food & Hospitality", color: "#f97316", desc: "Petpooja-style POS — table management, KOT, menu builder, billing and kitchen display for restaurants & cafés.", features: ["Table & section management", "Menu categories with VEG/NON-VEG tags", "Kitchen Order Tickets (KOT)", "Dine-in / Takeaway / Delivery", "5% GST auto-calculation", "Raw material & supplier tracking"] },
   { Icon: HotelIcon,      name: "Hotel / Resort",        tag: "Food & Hospitality", color: "#0ea5e9", desc: "Complete hotel PMS — room management, guest profiles, bookings, check-in/check-out and revenue tracking.", features: ["Room types & floor management", "Guest profiles with ID verification", "Booking with availability check", "Check-in / Check-out workflow", "12% GST on room charges", "Monthly revenue dashboard"] },
   { Icon: Stethoscope,    name: "Health & Clinic",        tag: "Health",             color: "#10b981", desc: "Complete clinic & hospital management — verified doctors, patient records, appointment booking and a public patient portal.", features: ["Doctor registration with govt. document verification", "Patient profiles with auto codes (PT-00001)", "Appointment booking — verified doctors only", "Prescriptions with full medicine details", "Visit history, diagnosis & follow-up notes", "Public patient portal — no login needed"] },
+  { Icon: PackageOpen,    name: "Store (Inward)",         tag: "Core",               color: "#34d399", desc: "Record incoming goods, GRN entries, material receipts and the full inward register.", features: ["Goods receipt notes (GRN)", "Material inward register", "Linked to purchase orders", "Quantity & quality checks", "Supplier-wise history"] },
+  { Icon: ClipboardCheck, name: "Receptionist",           tag: "Core",               color: "#22d3ee", desc: "Visitor check-in/check-out log and courier/package register — works for any business.", features: ["Visitor check-in & check-out", "Host notification", "Courier & package register", "Visit history log", "Works for any business type"] },
+  { Icon: Phone,          name: "Tele-calling",           tag: "Industry",           color: "#34d399", desc: "Call center operations — call logs, scripts, DNC lists and dialer campaigns.", features: ["Call logging & outcomes", "Call scripts", "Do-Not-Call (DNC) list", "Dialer campaigns", "Agent performance tracking"] },
+  { Icon: Wrench,         name: "Services Company",       tag: "Industry",           color: "#fbbf24", desc: "Service catalog, AMC contracts, knowledge base and internal messaging.", features: ["Service catalog", "AMC / contract tracking", "Knowledge base articles", "Internal team messaging", "SLA policies"] },
+  { Icon: LineChart,      name: "Stock Market Advisory",  tag: "Industry",           color: "#f87171", desc: "Trade calls, research reports, advisory subscriptions and KYC management.", features: ["Trade call publishing", "Research reports", "Advisory subscriptions & plans", "Client KYC records", "Market alerts"] },
+  { Icon: Shirt,          name: "Retail & Fashion",       tag: "Industry",           color: "#c084fc", desc: "Size/color variants, collections, boutique POS, returns and style tracking.", features: ["Size & color variants", "Collections & seasons", "Boutique POS billing", "Returns management", "Style-level tracking"] },
+  { Icon: Scissors,       name: "Tailoring & Boutique",   tag: "Industry",           color: "#f472b6", desc: "Customer measurement profiles, made-to-order garment tracking from cutting through delivery, and trial/fitting scheduling.", features: ["Customer measurement profiles", "Order tracking (cutting to delivery)", "Trial & fitting scheduling", "Garment-wise status", "Delivery reminders"] },
+  { Icon: ShieldCheck,    name: "Service Delivery Pipeline", tag: "Industry",        color: "#2fb8a6", desc: "Sales-to-delivery pipeline for consulting engagements — VAPT, GRC, SOC, Digital Forensics, Awareness Training and Coaching, from accepted quotation to sign-off.", features: ["Quotation-to-delivery pipeline", "Engagement-type tracking", "Project milestones & sign-off", "Team assignment", "Client-facing status"] },
+  { Icon: Car,            name: "Car Resale",             tag: "Industry",           color: "#38bdf8", desc: "Buyer leads, sold-vehicle records and insurance renewal tracking for used-car resale.", features: ["Buyer & seller lead pipeline", "Vehicle inventory & sales", "Insurance renewal tracking", "Warranty tracking", "Monthly sales reports"] },
 ];
 
-const TAGS = ["All", "Core", "Growth", "Operations", "Communication", "Food & Hospitality", "Health"];
+const TAGS = ["All", "Core", "Growth", "Operations", "Industry", "Communication", "Food & Hospitality", "Health"];
 const TAG_COLORS: Record<string, string> = {
-  Core: "#2e9cc4", Growth: "#10b981", Operations: "#f59e0b", Communication: "#0ea5e9",
+  Core: "#2e9cc4", Growth: "#10b981", Operations: "#f59e0b", Industry: "#8b5cf6", Communication: "#0ea5e9",
   "Food & Hospitality": "#f97316", Health: "#1f7ca0",
 };
 
@@ -115,7 +125,7 @@ export default function LandingPage() {
             {/* Stats */}
             <div style={{ display: "flex", gap: 10, marginTop: 52, flexWrap: "wrap" }}>
               {[
-                { value: "16+",     label: "Modules" },
+                { value: "28+",     label: "Modules" },
                 { value: "100%",    label: "GST Compliant" },
                 { value: "Multi-org", label: "Support" },
                 { value: "Free",    label: "to Start" },
