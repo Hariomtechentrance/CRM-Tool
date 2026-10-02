@@ -168,6 +168,7 @@ export async function listTradeCalls(req: OrgRequest, res: Response): Promise<vo
         ...(callType && { callType }),
       },
       orderBy: { createdAt: "desc" },
+      take: 200, // safety cap — no pagination UI yet
     });
     ok(res, calls);
   } catch (err) {
@@ -251,6 +252,7 @@ export async function listResearchReports(req: OrgRequest, res: Response): Promi
       select: { id: true, title: true, symbol: true, reportType: true, rating: true,
                 targetPrice: true, currentPrice: true, isPublic: true, publishedAt: true, authorId: true },
       orderBy: { createdAt: "desc" },
+      take: 200, // safety cap — no pagination UI yet
     });
     ok(res, reports);
   } catch (err) {
@@ -303,6 +305,7 @@ export async function listKYCRecords(req: OrgRequest, res: Response): Promise<vo
         ...(isVerified !== undefined && { isVerified: isVerified === "true" }),
       },
       orderBy: { createdAt: "desc" },
+      take: 200, // safety cap — no pagination UI yet
     });
     ok(res, records);
   } catch (err) {
@@ -385,6 +388,7 @@ export async function listMarketAlerts(req: OrgRequest, res: Response): Promise<
         ...(isActive !== undefined && { isActive: isActive === "true" }),
       },
       orderBy: { createdAt: "desc" },
+      take: 200, // safety cap — no pagination UI yet
     });
     ok(res, alerts);
   } catch (err) {

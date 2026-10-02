@@ -1,15 +1,16 @@
 import axios from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { useAuthStore } from "@/stores/authStore";
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
-// The REFRESH token now lives only in an httpOnly cookie (bos_refresh) that JS
-// cannot read — so an XSS can no longer steal a durable credential and keep a
-// session alive forever. The short-lived ACCESS token is still mirrored in
-// localStorage for now because several pages read it directly; moving that to a
-// cookie too is a follow-up. `withCredentials` makes the browser send the
-// cookies on every call.
+// Both the refresh token (bos_refresh) AND the access token (bos_access) now
+// live only in httpOnly cookies that JS cannot read — an XSS can no longer
+// steal a live session credential out of localStorage. `withCredentials`
+// makes the browser send both cookies on every call; the backend's
+// `authenticate` middleware reads `bos_access` directly, so no
+// Authorization header needs to be attached here at all for cookie-capable
+// clients (header/API clients without cookie support can still send
+// `Authorization: Bearer <token>` manually — the backend accepts both).
 // 30 s default (was 15 s): the backend is on Render's free tier, which cold-starts
 // in 30–60 s after idling. 15 s meant the first request of the day always failed
 // even though the server was on its way up. Individual calls that expect to hit a
@@ -22,43 +23,48 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// ── One-time migration off the localStorage refresh token ─────
-// Pre-cookie sessions still have refreshToken in localStorage and no cookie.
-// Redeem it once (body form, still accepted) so the server sets cookies, then
-// delete it. After this, refresh is cookie-only.
+// ── One-time migration off the localStorage refresh/access tokens ─
+// Pre-cookie sessions may still have a refreshToken (or accessToken) sitting
+// in localStorage from before either moved to httpOnly cookies. Redeem the
+// refresh token once (body form, still accepted) so the server sets fresh
+// cookies, then delete both legacy values. After this, auth is cookie-only.
 let legacyMigration: Promise<void> | null = null;
 function migrateLegacyRefreshToken(): Promise<void> {
   if (legacyMigration) return legacyMigration;
   const legacy = localStorage.getItem("refreshToken");
-  if (!legacy) { legacyMigration = Promise.resolve(); return legacyMigration; }
+  if (!legacy) {
+    localStorage.removeItem("accessToken");
+    legacyMigration = Promise.resolve();
+    return legacyMigration;
+  }
   legacyMigration = axios
     .post(`${BASE_URL}/auth/refresh`, { refreshToken: legacy },
       { withCredentials: true, headers: { "X-Request-Timestamp": String(Date.now()) } })
-    .then(({ data }) => {
-      const at = data?.data?.accessToken;
-      if (at) { localStorage.setItem("accessToken", at); useAuthStore.setState({ accessToken: at }); }
-    })
     .catch(() => { /* dead token — next 401 sends the user to login */ })
-    .finally(() => { localStorage.removeItem("refreshToken"); });
+    .then(() => {}) // normalize to void — the response sets cookies directly, nothing to store
+    .finally(() => { localStorage.removeItem("refreshToken"); localStorage.removeItem("accessToken"); });
   return legacyMigration;
 }
 
-// ── Request interceptor — access token, org context, replay guard ─
+// ── Request interceptor — org context, replay guard ───────────────
+// No Authorization header attached here — the bos_access httpOnly cookie
+// (sent automatically via withCredentials) is what authenticates the request.
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   await migrateLegacyRefreshToken();
-  const token = localStorage.getItem("accessToken");
   const orgId = localStorage.getItem("activeOrgId");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
   if (orgId) config.headers["x-organization-id"] = orgId;
   config.headers["x-request-timestamp"] = String(Date.now());
   return config;
 });
 
 // ── Response interceptor — auto refresh on 401 ────────────────
+// Success/failure only now — there's no token value to hand to waiting
+// callers any more, the refreshed bos_access cookie is picked up
+// automatically by the browser on the retried (withCredentials) request.
 let isRefreshing = false;
-let refreshSubscribers: ((token: string | null) => void)[] = [];
-function subscribeRefresh(cb: (token: string | null) => void) { refreshSubscribers.push(cb); }
-function notifyRefresh(token: string | null) { refreshSubscribers.forEach((cb) => cb(token)); refreshSubscribers = []; }
+let refreshSubscribers: ((ok: boolean) => void)[] = [];
+function subscribeRefresh(cb: (ok: boolean) => void) { refreshSubscribers.push(cb); }
+function notifyRefresh(ok: boolean) { refreshSubscribers.forEach((cb) => cb(ok)); refreshSubscribers = []; }
 
 // ── Cross-tab refresh coordination ──────────────────────────
 // Refresh is single-use + rotated server-side, and replaying a rotated-away
@@ -75,37 +81,33 @@ function acquireRefreshLock(): boolean {
 }
 function releaseRefreshLock() { localStorage.removeItem(REFRESH_LOCK_KEY); }
 
-function waitForOtherTabRefresh(): Promise<string | null> {
+// Resolves once the OTHER tab's refresh attempt finishes (lock released) —
+// doesn't know success/failure, just "safe to retry now"; the retried
+// request will itself 401 again if the refresh actually failed.
+function waitForOtherTabRefresh(): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       window.removeEventListener("storage", onStorage);
       reject(new Error("Timed out waiting for another tab to refresh"));
     }, REFRESH_LOCK_TTL + 2000);
     function onStorage(e: StorageEvent) {
-      if (e.key === "accessToken" && e.newValue) {
-        clearTimeout(timer); window.removeEventListener("storage", onStorage); resolve(e.newValue);
-      } else if (e.key === REFRESH_LOCK_KEY && e.newValue === null) {
-        clearTimeout(timer); window.removeEventListener("storage", onStorage);
-        resolve(localStorage.getItem("accessToken"));
+      if (e.key === REFRESH_LOCK_KEY && e.newValue === null) {
+        clearTimeout(timer); window.removeEventListener("storage", onStorage); resolve();
       }
     }
     window.addEventListener("storage", onStorage);
   });
 }
 
-async function performRefresh(): Promise<string | null> {
+async function performRefresh(): Promise<boolean> {
   // Cookie carries the refresh token; body is empty. /auth/refresh is behind
-  // replayGuard, hence the timestamp header.
-  const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {}, {
+  // replayGuard, hence the timestamp header. The response's Set-Cookie
+  // headers refresh bos_access/bos_refresh directly — nothing to store.
+  await axios.post(`${BASE_URL}/auth/refresh`, {}, {
     withCredentials: true,
     headers: { "X-Request-Timestamp": String(Date.now()) },
   });
-  const at: string | null = data?.data?.accessToken ?? null;
-  if (at) {
-    localStorage.setItem("accessToken", at);
-    useAuthStore.setState({ accessToken: at });
-  }
-  return at;
+  return true;
 }
 
 api.interceptors.response.use(
@@ -130,16 +132,15 @@ api.interceptors.response.use(
       original._retry = true;
 
       if (isRefreshing) {
-        return new Promise((resolve, reject) => subscribeRefresh((token) => {
-          if (token) { original.headers.Authorization = `Bearer ${token}`; resolve(api(original)); }
+        return new Promise((resolve, reject) => subscribeRefresh((ok) => {
+          if (ok) resolve(api(original));
           else reject(error);
         }));
       }
 
       if (!acquireRefreshLock()) {
         try {
-          const token = await waitForOtherTabRefresh();
-          if (token) original.headers.Authorization = `Bearer ${token}`;
+          await waitForOtherTabRefresh();
           return api(original);
         } catch {
           hardLogout(); return Promise.reject(error);
@@ -148,12 +149,11 @@ api.interceptors.response.use(
 
       isRefreshing = true;
       try {
-        const token = await performRefresh();
-        notifyRefresh(token);
-        if (token) original.headers.Authorization = `Bearer ${token}`;
+        const ok = await performRefresh();
+        notifyRefresh(ok);
         return api(original);
       } catch {
-        notifyRefresh(null);
+        notifyRefresh(false);
         hardLogout();
         return Promise.reject(error);
       } finally {

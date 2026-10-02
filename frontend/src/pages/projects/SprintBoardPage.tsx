@@ -19,8 +19,8 @@ const PRIORITY_COLOR: Record<string, string> = {
   LOW: "#60a5fa", MEDIUM: "#fbbf24", HIGH: "#f97316", URGENT: "#f87171",
 };
 
-function authH(token: string, orgId: string) {
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": orgId };
+function authH(orgId: string) {
+  return { "Content-Type": "application/json", "x-organization-id": orgId };
 }
 
 interface Task {
@@ -106,7 +106,7 @@ function TaskCard({ task, onUpdate, onDelete, canDelete, employees }: { task: Ta
 function CreateTaskModal({ sprintId, projectId, employees, onClose, onCreated }: {
   sprintId: string; projectId: string; employees: any[]; onClose: () => void; onCreated: () => void;
 }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", assignedToId: "", storyPoints: "", estimatedHours: "", dueDate: "", tags: "" });
   const [saving, setSaving] = useState(false);
   const f = (k: string) => (v: string) => setForm(p => ({
@@ -118,7 +118,8 @@ function CreateTaskModal({ sprintId, projectId, employees, onClose, onCreated }:
     setSaving(true);
     const r = await fetch(`${API}/projects/tasks`, {
       method: "POST",
-      headers: authH(token!, activeOrg!.id),
+      credentials: "include",
+      headers: authH(activeOrg!.id),
       body: JSON.stringify({
         title: form.title, description: form.description || undefined,
         priority: form.priority, sprintId, projectId,
@@ -191,7 +192,7 @@ function CreateTaskModal({ sprintId, projectId, employees, onClose, onCreated }:
 
 export default function SprintBoardPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [projects, setProjects] = useState<any[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
@@ -202,18 +203,18 @@ export default function SprintBoardPage() {
   const [showCreateSprint, setShowCreateSprint] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [newSprint, setNewSprint] = useState({ name: "", goal: "", startDate: "", endDate: "" });
-  const h = () => authH(token!, activeOrg!.id);
+  const h = () => authH(activeOrg!.id);
 
   useEffect(() => {
-    fetch(`${API}/it-projects`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
+    fetch(`${API}/it-projects`, { headers: { "x-organization-id": activeOrg!.id }, credentials: "include" })
       .then(r => r.json()).then(d => { const ps = d.data ?? []; setProjects(ps); if (ps.length) setSelProjectId(ps[0].id); });
-    fetch(`${API}/hr?status=ACTIVE`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
+    fetch(`${API}/hr?status=ACTIVE`, { headers: { "x-organization-id": activeOrg!.id }, credentials: "include" })
       .then(r => r.json()).then(d => setEmployees(d.data?.employees ?? []));
   }, [activeOrg?.id]);
 
   useEffect(() => {
     if (!selProjectId) return;
-    fetch(`${API}/sprints?projectId=${selProjectId}`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
+    fetch(`${API}/sprints?projectId=${selProjectId}`, { headers: { "x-organization-id": activeOrg!.id }, credentials: "include" })
       .then(r => r.json()).then(d => {
         const sp = d.data ?? [];
         setSprints(sp);
@@ -223,7 +224,7 @@ export default function SprintBoardPage() {
   }, [selProjectId]);
 
   async function loadBoard(sprintId: string) {
-    const r = await fetch(`${API}/sprints/${sprintId}/board`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } });
+    const r = await fetch(`${API}/sprints/${sprintId}/board`, { headers: { "x-organization-id": activeOrg!.id }, credentials: "include" });
     if (r.ok) {
       const d = await r.json();
       setBoard(d.data?.board ?? { TODO: [], IN_PROGRESS: [], IN_REVIEW: [], DONE: [] });
@@ -233,13 +234,13 @@ export default function SprintBoardPage() {
 
   async function updateTaskStatus(taskId: string, status: TStatus) {
     await fetch(`${API}/projects/tasks/${taskId}`, {
-      method: "PATCH", headers: h(), body: JSON.stringify({ status }),
+      method: "PATCH", headers: h(), credentials: "include", body: JSON.stringify({ status }),
     });
     if (activeSprint) loadBoard(activeSprint.id);
   }
 
   async function deleteTask(taskId: string) {
-    await fetch(`${API}/projects/tasks/${taskId}`, { method: "DELETE", headers: h() });
+    await fetch(`${API}/projects/tasks/${taskId}`, { method: "DELETE", headers: h(), credentials: "include" });
     if (activeSprint) loadBoard(activeSprint.id);
   }
 
@@ -248,7 +249,7 @@ export default function SprintBoardPage() {
   async function createSprint() {
     if (!newSprint.name || !selProjectId) return;
     const r = await fetch(`${API}/sprints`, {
-      method: "POST", headers: h(),
+      method: "POST", headers: h(), credentials: "include",
       body: JSON.stringify({ ...newSprint, projectId: selProjectId }),
     });
     if (r.ok) {
@@ -263,7 +264,7 @@ export default function SprintBoardPage() {
 
   async function startSprint(sprintId: string) {
     await fetch(`${API}/sprints/${sprintId}`, {
-      method: "PUT", headers: h(), body: JSON.stringify({ status: "ACTIVE" }),
+      method: "PUT", headers: h(), credentials: "include", body: JSON.stringify({ status: "ACTIVE" }),
     });
     setSprints(p => p.map(s => s.id === sprintId ? { ...s, status: "ACTIVE" } : s));
     if (activeSprint?.id === sprintId) setActiveSprint(s => s ? { ...s, status: "ACTIVE" } : s);

@@ -1413,9 +1413,14 @@ export default function CarsPage() {
   const [leads, setLeads] = useState<CarLead[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [expiringVehiclesData, setExpiringVehiclesData] = useState<Vehicle[]>([]);
+  // Real org-wide totals from the API, not `expiringVehiclesData.length` —
+  // that array is capped at 200 rows server-side (an org can have thousands
+  // of matches), so the tab labels would silently undercount without these.
+  const [insuranceTotals, setInsuranceTotals] = useState({ total: 0, overdueTotal: 0, upcomingTotal: 0, truncated: false });
   const [insuranceDueSubTab, setInsuranceDueSubTab] = useState<"overdue" | "upcoming">("overdue");
   const [followUps, setFollowUps] = useState<CarLead[]>([]);
   const [warrantyVehicles, setWarrantyVehicles] = useState<Vehicle[]>([]);
+  const [warrantyTotals, setWarrantyTotals] = useState({ total: 0, truncated: false });
   const [stats, setStats] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -1523,12 +1528,19 @@ export default function CarsPage() {
         setVehicles(vr.data.data.vehicles ?? []);
         setSalesReport(sr.data.data);
         setExpiringVehiclesData(er.data.data.vehicles ?? []);
+        setInsuranceTotals({
+          total: er.data.data.total ?? 0,
+          overdueTotal: er.data.data.overdueTotal ?? 0,
+          upcomingTotal: er.data.data.upcomingTotal ?? 0,
+          truncated: er.data.data.truncated ?? false,
+        });
       } else if (tab === "followups") {
         const r = await api.get("/cars/leads?followUp=all&limit=200");
         setFollowUps(r.data.data.leads ?? []);
       } else if (tab === "warranty") {
         const r = await api.get("/cars/warranties");
         setWarrantyVehicles(r.data.data.vehicles ?? []);
+        setWarrantyTotals({ total: r.data.data.total ?? 0, truncated: r.data.data.truncated ?? false });
       } else {
         const r = await api.get("/cars/leads/monthly-report?months=12");
         setMonthlyReport(r.data.data.months ?? []);
@@ -1738,18 +1750,23 @@ export default function CarsPage() {
                     style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
                       background: insuranceDueSubTab === "overdue" ? "#f87171" : "var(--bg-hover)",
                       color: insuranceDueSubTab === "overdue" ? "#1a0505" : "var(--text-sec)" }}>
-                    Overdue ({overdueVehicles.length})
+                    Overdue ({insuranceTotals.overdueTotal})
                   </button>
                   <button onClick={() => setInsuranceDueSubTab("upcoming")}
                     style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
                       background: insuranceDueSubTab === "upcoming" ? "#fbbf24" : "var(--bg-hover)",
                       color: insuranceDueSubTab === "upcoming" ? "#1a1405" : "var(--text-sec)" }}>
-                    Upcoming ({upcomingVehicles.length})
+                    Upcoming ({insuranceTotals.upcomingTotal})
                   </button>
                 </div>
                 <p style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 10 }}>
                   Click any entry to open that vehicle and call the customer about renewing their insurance.
                 </p>
+                {insuranceTotals.truncated && (
+                  <p style={{ fontSize: 11, color: "#fbbf24", marginBottom: 10 }}>
+                    Showing the {expiringVehiclesData.length} most urgent of {insuranceTotals.total} matches — narrow the date range above to see the rest.
+                  </p>
+                )}
               </>
             )}
             {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).length === 0 ? (
@@ -1871,6 +1888,12 @@ export default function CarsPage() {
         warrantyVehicles.length === 0 ? (
           <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No warranty-tracked vehicles yet — set a warranty period when marking a vehicle sold.</div>
         ) : (
+          <>
+          {warrantyTotals.truncated && (
+            <p style={{ fontSize: 11, color: "#fbbf24", marginBottom: 10 }}>
+              Showing the {warrantyVehicles.length} soonest-expiring of {warrantyTotals.total} warranty-tracked vehicles.
+            </p>
+          )}
           <div className="table-wrap">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -1910,6 +1933,7 @@ export default function CarsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )
       ) : tab === "followups" ? (
         followUps.length === 0 ? (

@@ -1,101 +1,107 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import AccessGate from "@/components/AccessGate";
 import RoleGate from "@/components/RoleGate";
-import LoginPage from "@/pages/auth/LoginPage";
-import CreateOrgPage from "@/pages/auth/CreateOrgPage";
-import AcceptInvitePage from "@/pages/auth/AcceptInvitePage";
-import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
-import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
-import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
-import DashboardPage from "@/pages/dashboard/DashboardPage";
-import CrmPage from "@/pages/crm/CrmPage";
-import PartyDetailPage from "@/pages/crm/PartyDetailPage";
-import DuplicatesPage from "@/pages/crm/DuplicatesPage";
-import InventoryPage from "@/pages/inventory/InventoryPage";
-import PurchasePage from "@/pages/purchase/PurchasePage";
-import SalesPage from "@/pages/sales/SalesPage";
-import FinancePage from "@/pages/finance/FinancePage";
-import HRPage from "@/pages/hr/HRPage";
-import ProjectsPage from "@/pages/projects/ProjectsPage";
-import LeadsPage from "@/pages/leads/LeadsPage";
-import AppointmentsPage from "@/pages/leads/AppointmentsPage";
-import AutomationPage from "@/pages/leads/AutomationPage";
-import LeadFormsPage from "@/pages/leads/LeadFormsPage";
-import WhatsAppPage from "@/pages/whatsapp/WhatsAppPage";
-import LeadCaptureFormPage from "@/pages/public/LeadCaptureFormPage";
-import SupportPage from "@/pages/support/SupportPage";
-import TradePage from "@/pages/trade/TradePage";
-import RetailPage from "@/pages/retail/RetailPage";
-import WarehousePage from "@/pages/warehouse/WarehousePage";
-import StorePage from "@/pages/store/StorePage";
-import ReportsPage from "@/pages/reports/ReportsPage";
-import GSTReportsPage from "@/pages/gst/GSTReportsPage";
-import EInvoicePage from "@/pages/gst/EInvoicePage";
-import EWayBillPage from "@/pages/gst/EWayBillPage";
-import SettingsPage from "@/pages/settings/SettingsPage";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminTeamPage from "@/pages/admin/AdminTeamPage";
-import AdminAccessPage from "@/pages/admin/AdminAccessPage";
-import DirectoryPage from "@/pages/directory/DirectoryPage";
-import AdminModulesPage from "@/pages/admin/AdminModulesPage";
-import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
-import AdminLogsPage from "@/pages/admin/AdminLogsPage";
-import SuperAdminLayout from "@/pages/superAdmin/SuperAdminLayout";
-import SuperAdminDashboard from "@/pages/superAdmin/SuperAdminDashboard";
-import SuperAdminOrgsPage from "@/pages/superAdmin/SuperAdminOrgsPage";
-import SuperAdminUsersPage from "@/pages/superAdmin/SuperAdminUsersPage";
-import SuperAdminModuleRequestsPage from "@/pages/superAdmin/SuperAdminModuleRequestsPage";
-import AccessRequestsPage from "@/pages/superAdmin/AccessRequestsPage";
-import SuperAdminLoginPage from "@/pages/superAdmin/SuperAdminLoginPage";
-import ComingSoonPage from "@/pages/ComingSoonPage";
-import NotFoundPage from "@/pages/NotFoundPage";
-import EmailPage from "@/pages/email/EmailPage";
-import ActivitiesPage from "@/pages/activities/ActivitiesPage";
-import DealsPage from "@/pages/deals/DealsPage";
-import QuotationsPage from "@/pages/quotations/QuotationsPage";
-import RecurringInvoicesPage from "@/pages/recurring/RecurringInvoicesPage";
-import DocumentsPage from "@/pages/documents/DocumentsPage";
-import AuditPage from "@/pages/audit/AuditPage";
-import ApprovalQueuePage from "@/pages/admin/ApprovalQueuePage";
-import BatchTrackingPage from "@/pages/inventory/BatchTrackingPage";
-import BOMPage from "@/pages/inventory/BOMPage";
-import TDSPage from "@/pages/finance/TDSPage";
-import BudgetPage from "@/pages/finance/BudgetPage";
-import ReconciliationPage from "@/pages/finance/ReconciliationPage";
-import WebhooksPage from "@/pages/settings/WebhooksPage";
-import SecurityPage from "@/pages/settings/SecurityPage";
-import ITProjectsPage from "@/pages/projects/ITProjectsPage";
-import SprintBoardPage from "@/pages/projects/SprintBoardPage";
-import TeamDashboardPage from "@/pages/hr/TeamDashboardPage";
-import MyWorkPage from "@/pages/projects/MyWorkPage";
-import PMDashboard from "@/pages/projects/PMDashboard";
-import TeamPage from "@/pages/projects/TeamPage";
-import BugTrackerPage from "@/pages/projects/BugTrackerPage";
-import TimeTrackingPage from "@/pages/projects/TimeTrackingPage";
-import TelecallingPage from "@/pages/telecalling/TelecallingPage";
-import ServicesPage from "@/pages/services/ServicesPage";
-import StockMarketPage from "@/pages/stockmarket/StockMarketPage";
-import HealthPage from "@/pages/health/HealthPage";
-import PatientPortalPage from "@/pages/health/PatientPortalPage";
-import HealthPortalLoginPage from "@/pages/health/HealthPortalLoginPage";
-import DoctorDashboardPage from "@/pages/health/DoctorDashboardPage";
-import RestaurantPage from "@/pages/restaurant/RestaurantPage";
-import HotelPage from "@/pages/hotel/HotelPage";
-import WBAPage from "@/pages/wba/WBAPage";
-import CarsPage from "@/pages/cars/CarsPage";
-import TailoringPage from "@/pages/tailoring/TailoringPage";
-import ReceptionistPage from "@/pages/receptionist/ReceptionistPage";
-import CurrencyPage from "@/pages/settings/CurrencyPage";
-import CustomFieldsPage from "@/pages/settings/CustomFieldsPage";
-import BrandingPage from "@/pages/settings/BrandingPage";
-import CompliancePage from "@/pages/settings/CompliancePage";
-import LandingPage from "@/pages/landing/LandingPage";
-import InvoicePortalPage from "@/pages/portal/InvoicePortalPage";
-import PublicProjectPage from "@/pages/public/PublicProjectPage";
+import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
+
+// Route-level code splitting — each page only loads when its route is
+// actually visited, instead of every industry module shipping in one bundle
+// for every visitor (including someone just trying to reach the login page).
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const CreateOrgPage = lazy(() => import("@/pages/auth/CreateOrgPage"));
+const AcceptInvitePage = lazy(() => import("@/pages/auth/AcceptInvitePage"));
+const VerifyEmailPage = lazy(() => import("@/pages/auth/VerifyEmailPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
+const CrmPage = lazy(() => import("@/pages/crm/CrmPage"));
+const PartyDetailPage = lazy(() => import("@/pages/crm/PartyDetailPage"));
+const DuplicatesPage = lazy(() => import("@/pages/crm/DuplicatesPage"));
+const InventoryPage = lazy(() => import("@/pages/inventory/InventoryPage"));
+const PurchasePage = lazy(() => import("@/pages/purchase/PurchasePage"));
+const SalesPage = lazy(() => import("@/pages/sales/SalesPage"));
+const FinancePage = lazy(() => import("@/pages/finance/FinancePage"));
+const HRPage = lazy(() => import("@/pages/hr/HRPage"));
+const ProjectsPage = lazy(() => import("@/pages/projects/ProjectsPage"));
+const LeadsPage = lazy(() => import("@/pages/leads/LeadsPage"));
+const AppointmentsPage = lazy(() => import("@/pages/leads/AppointmentsPage"));
+const AutomationPage = lazy(() => import("@/pages/leads/AutomationPage"));
+const LeadFormsPage = lazy(() => import("@/pages/leads/LeadFormsPage"));
+const WhatsAppPage = lazy(() => import("@/pages/whatsapp/WhatsAppPage"));
+const LeadCaptureFormPage = lazy(() => import("@/pages/public/LeadCaptureFormPage"));
+const SupportPage = lazy(() => import("@/pages/support/SupportPage"));
+const TradePage = lazy(() => import("@/pages/trade/TradePage"));
+const RetailPage = lazy(() => import("@/pages/retail/RetailPage"));
+const WarehousePage = lazy(() => import("@/pages/warehouse/WarehousePage"));
+const StorePage = lazy(() => import("@/pages/store/StorePage"));
+const ReportsPage = lazy(() => import("@/pages/reports/ReportsPage"));
+const GSTReportsPage = lazy(() => import("@/pages/gst/GSTReportsPage"));
+const EInvoicePage = lazy(() => import("@/pages/gst/EInvoicePage"));
+const EWayBillPage = lazy(() => import("@/pages/gst/EWayBillPage"));
+const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const AdminTeamPage = lazy(() => import("@/pages/admin/AdminTeamPage"));
+const AdminAccessPage = lazy(() => import("@/pages/admin/AdminAccessPage"));
+const DirectoryPage = lazy(() => import("@/pages/directory/DirectoryPage"));
+const AdminModulesPage = lazy(() => import("@/pages/admin/AdminModulesPage"));
+const AdminSettingsPage = lazy(() => import("@/pages/admin/AdminSettingsPage"));
+const AdminLogsPage = lazy(() => import("@/pages/admin/AdminLogsPage"));
+const SuperAdminLayout = lazy(() => import("@/pages/superAdmin/SuperAdminLayout"));
+const SuperAdminDashboard = lazy(() => import("@/pages/superAdmin/SuperAdminDashboard"));
+const SuperAdminOrgsPage = lazy(() => import("@/pages/superAdmin/SuperAdminOrgsPage"));
+const SuperAdminUsersPage = lazy(() => import("@/pages/superAdmin/SuperAdminUsersPage"));
+const SuperAdminModuleRequestsPage = lazy(() => import("@/pages/superAdmin/SuperAdminModuleRequestsPage"));
+const AccessRequestsPage = lazy(() => import("@/pages/superAdmin/AccessRequestsPage"));
+const SuperAdminLoginPage = lazy(() => import("@/pages/superAdmin/SuperAdminLoginPage"));
+const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
+const EmailPage = lazy(() => import("@/pages/email/EmailPage"));
+const ActivitiesPage = lazy(() => import("@/pages/activities/ActivitiesPage"));
+const DealsPage = lazy(() => import("@/pages/deals/DealsPage"));
+const QuotationsPage = lazy(() => import("@/pages/quotations/QuotationsPage"));
+const RecurringInvoicesPage = lazy(() => import("@/pages/recurring/RecurringInvoicesPage"));
+const DocumentsPage = lazy(() => import("@/pages/documents/DocumentsPage"));
+const AuditPage = lazy(() => import("@/pages/audit/AuditPage"));
+const ApprovalQueuePage = lazy(() => import("@/pages/admin/ApprovalQueuePage"));
+const BatchTrackingPage = lazy(() => import("@/pages/inventory/BatchTrackingPage"));
+const BOMPage = lazy(() => import("@/pages/inventory/BOMPage"));
+const TDSPage = lazy(() => import("@/pages/finance/TDSPage"));
+const BudgetPage = lazy(() => import("@/pages/finance/BudgetPage"));
+const ReconciliationPage = lazy(() => import("@/pages/finance/ReconciliationPage"));
+const WebhooksPage = lazy(() => import("@/pages/settings/WebhooksPage"));
+const SecurityPage = lazy(() => import("@/pages/settings/SecurityPage"));
+const ITProjectsPage = lazy(() => import("@/pages/projects/ITProjectsPage"));
+const SprintBoardPage = lazy(() => import("@/pages/projects/SprintBoardPage"));
+const TeamDashboardPage = lazy(() => import("@/pages/hr/TeamDashboardPage"));
+const MyWorkPage = lazy(() => import("@/pages/projects/MyWorkPage"));
+const PMDashboard = lazy(() => import("@/pages/projects/PMDashboard"));
+const TeamPage = lazy(() => import("@/pages/projects/TeamPage"));
+const BugTrackerPage = lazy(() => import("@/pages/projects/BugTrackerPage"));
+const TimeTrackingPage = lazy(() => import("@/pages/projects/TimeTrackingPage"));
+const TelecallingPage = lazy(() => import("@/pages/telecalling/TelecallingPage"));
+const ServicesPage = lazy(() => import("@/pages/services/ServicesPage"));
+const StockMarketPage = lazy(() => import("@/pages/stockmarket/StockMarketPage"));
+const HealthPage = lazy(() => import("@/pages/health/HealthPage"));
+const PatientPortalPage = lazy(() => import("@/pages/health/PatientPortalPage"));
+const HealthPortalLoginPage = lazy(() => import("@/pages/health/HealthPortalLoginPage"));
+const DoctorDashboardPage = lazy(() => import("@/pages/health/DoctorDashboardPage"));
+const RestaurantPage = lazy(() => import("@/pages/restaurant/RestaurantPage"));
+const HotelPage = lazy(() => import("@/pages/hotel/HotelPage"));
+const WBAPage = lazy(() => import("@/pages/wba/WBAPage"));
+const CarsPage = lazy(() => import("@/pages/cars/CarsPage"));
+const TailoringPage = lazy(() => import("@/pages/tailoring/TailoringPage"));
+const ReceptionistPage = lazy(() => import("@/pages/receptionist/ReceptionistPage"));
+const CurrencyPage = lazy(() => import("@/pages/settings/CurrencyPage"));
+const CustomFieldsPage = lazy(() => import("@/pages/settings/CustomFieldsPage"));
+const BrandingPage = lazy(() => import("@/pages/settings/BrandingPage"));
+const CompliancePage = lazy(() => import("@/pages/settings/CompliancePage"));
+const LandingPage = lazy(() => import("@/pages/landing/LandingPage"));
+const InvoicePortalPage = lazy(() => import("@/pages/portal/InvoicePortalPage"));
+const PublicProjectPage = lazy(() => import("@/pages/public/PublicProjectPage"));
 
 // Wrap a page with module-level access gate
 const G = (moduleKey: string, Page: React.ComponentType) => (
@@ -117,10 +123,21 @@ function PublicHome() {
   return <LandingPage />;
 }
 
+// Shown briefly while a route's lazy chunk downloads — same spinner already
+// used for in-page loading states (see ui/Button.tsx).
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center" style={{ minHeight: "60vh" }}>
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--text-ghost)" }} />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ShortcutsProvider>
     <BrowserRouter>
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* Public */}
         <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
@@ -245,6 +262,7 @@ export default function App() {
         <Route path="/"  element={<PublicHome />} />
         <Route path="*"  element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
     </ShortcutsProvider>
   );

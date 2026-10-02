@@ -294,32 +294,25 @@ export async function verify2FALogin(req: Request, res: Response): Promise<void>
 
 // ── Shared: issue tokens + session + login response ──────────
 async function finalizeLogin(req: Request, res: Response, user: any): Promise<void> {
-  const memberships = await prisma.organizationMember.findMany({
-    where: { userId: user.id, isActive: true },
-    include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
-  });
-
   const accessToken = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
   const tokenId = uuidv4();
   const refreshToken = signRefreshToken({ userId: user.id, tokenId });
 
-  await prisma.refreshToken.create({
-    data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
-  });
-
-  // ── Session tracking ─────────────────────────────────────
-  const ip = ((req.headers["x-forwarded-for"] as string) || "").split(",")[0].trim() || req.socket.remoteAddress || "unknown";
-  const ua = req.headers["user-agent"] || "";
-  const { browser, os } = parseUA(ua);
-
-  const existingSession = await (prisma as any).userSession.findFirst({ where: { userId: user.id, ipAddress: ip } });
-  await (prisma as any).userSession.updateMany({ where: { userId: user.id, isCurrent: true }, data: { isCurrent: false } });
-  await (prisma as any).userSession.create({
-    data: { userId: user.id, tokenId, device: os, browser, os, ipAddress: ip, isCurrent: true, lastActiveAt: new Date() },
-  });
-
-  sendLoginAlert(user, ip, ua, !existingSession);
-  writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_SUCCESS", resource: "User", resourceId: user.id, description: `Login from ${browser} on ${os}${existingSession ? "" : " (new device/IP)"}`, ipAddress: ip, userAgent: ua });
+  // These two don't depend on each other — both are needed before the client
+  // can be trusted with a session, but there's no reason to pay for them one
+  // after another. On a Neon free-tier compute that just woke from idle
+  // suspend, a single round trip can itself take real time; five of them
+  // run sequentially (as this used to be, including the three session-
+  // tracking writes below) multiplies that wait by five.
+  const [memberships] = await Promise.all([
+    prisma.organizationMember.findMany({
+      where: { userId: user.id, isActive: true },
+      include: { organization: { select: { id: true, name: true, slug: true, logo: true, currency: true, country: true, businessType: true, isActive: true, enabledModules: true } } },
+    }),
+    prisma.refreshToken.create({
+      data: { id: tokenId, token: hashToken(refreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
+    }),
+  ]);
 
   // httpOnly cookies for the browser SPA; tokens also in the body for header clients.
   setAuthCookies(res, accessToken, refreshToken);
@@ -329,6 +322,31 @@ async function finalizeLogin(req: Request, res: Response, user: any): Promise<vo
     user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
     organizations: memberships.map((m: any) => ({ ...m.organization, role: m.role })),
   });
+
+  // ── Session tracking, login-alert email, audit log ──────────────────────
+  // None of this needs to happen before the client gets its token — it's
+  // bookkeeping (recent-sessions list, new-device email, audit trail), not
+  // anything the response depends on. The email/audit calls already ran
+  // this way (fired, not awaited); the three session DB writes were the only
+  // part still blocking the response on three more sequential round trips.
+  (async () => {
+    try {
+      const ip = ((req.headers["x-forwarded-for"] as string) || "").split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+      const ua = req.headers["user-agent"] || "";
+      const { browser, os } = parseUA(ua);
+
+      const existingSession = await (prisma as any).userSession.findFirst({ where: { userId: user.id, ipAddress: ip } });
+      await (prisma as any).userSession.updateMany({ where: { userId: user.id, isCurrent: true }, data: { isCurrent: false } });
+      await (prisma as any).userSession.create({
+        data: { userId: user.id, tokenId, device: os, browser, os, ipAddress: ip, isCurrent: true, lastActiveAt: new Date() },
+      });
+
+      sendLoginAlert(user, ip, ua, !existingSession);
+      writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_SUCCESS", resource: "User", resourceId: user.id, description: `Login from ${browser} on ${os}${existingSession ? "" : " (new device/IP)"}`, ipAddress: ip, userAgent: ua });
+    } catch (e) {
+      console.error("[login] post-login session tracking failed:", e);
+    }
+  })();
 }
 
 export async function refreshToken(req: Request, res: Response): Promise<void> {

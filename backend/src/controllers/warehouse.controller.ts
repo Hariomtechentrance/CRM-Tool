@@ -144,6 +144,10 @@ export async function completeTransfer(req: OrgRequest, res: Response): Promise<
 
 export async function listTransfers(req: OrgRequest, res: Response): Promise<void> {
   try {
+    // Frontend already sends `?limit=100` here (the `search` param it also
+    // sends isn't wired to any filter yet — pre-existing, and out of scope
+    // for this fix, which is only about bounding the unlimited row pull).
+    const { limit } = req.query as Record<string, string>;
     const transfers = await prisma.stockTransfer.findMany({
       where: { organizationId: req.organizationId! },
       include: {
@@ -152,6 +156,7 @@ export async function listTransfers(req: OrgRequest, res: Response): Promise<voi
         _count: { select: { items: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: Math.min(parseInt(limit) || 200, 500),
     });
     ok(res, transfers);
   } catch (e) { serverError(res, e); }

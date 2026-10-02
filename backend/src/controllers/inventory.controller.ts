@@ -236,27 +236,28 @@ export async function listMovements(req: OrgRequest, res: Response): Promise<voi
 
 export async function getInventorySummary(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const [totalProducts, lowStock, outOfStock, totalValue] = await Promise.all([
-      prisma.product.count({ where: { organizationId: req.organizationId!, status: "ACTIVE" } }),
+    const orgId = req.organizationId!;
+    const [totalProducts, lowStock, outOfStock, valueRows] = await Promise.all([
+      prisma.product.count({ where: { organizationId: orgId, status: "ACTIVE" } }),
       prisma.product.count({
         where: {
-          organizationId: req.organizationId!,
+          organizationId: orgId,
           status: "ACTIVE",
           currentStock: { lte: prisma.product.fields.reorderLevel },
         },
       }),
-      prisma.product.count({ where: { organizationId: req.organizationId!, currentStock: { lte: 0 } } }),
-      prisma.product.aggregate({
-        where: { organizationId: req.organizationId! },
-        _sum: { currentStock: true, costPrice: true },
-      }),
+      prisma.product.count({ where: { organizationId: orgId, currentStock: { lte: 0 } } }),
+      // SUM(currentStock * costPrice) computed in Postgres instead of
+      // pulling currentStock/costPrice for every product in the org into
+      // Node just to reduce()-multiply them — same $queryRaw pattern as
+      // cars.controller.ts's getCarsStats/listExpiringInsurance.
+      prisma.$queryRaw<{ sum: number | null }[]>`
+        SELECT SUM("currentStock" * "costPrice") as sum
+        FROM "Product"
+        WHERE "organizationId" = ${orgId}
+      `,
     ]);
-
-    const stockValue = await prisma.product.findMany({
-      where: { organizationId: req.organizationId! },
-      select: { currentStock: true, costPrice: true },
-    });
-    const inventoryValue = stockValue.reduce((sum, p) => sum + p.currentStock * p.costPrice, 0);
+    const inventoryValue = Number(valueRows[0]?.sum ?? 0);
 
     ok(res, { totalProducts, lowStock, outOfStock, inventoryValue });
   } catch (e) { serverError(res, e); }

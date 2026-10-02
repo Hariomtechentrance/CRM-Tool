@@ -22,7 +22,7 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingEWB, onClose, on
   onClose: () => void;
   onSave: () => void;
 }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [ewbNo, setEwbNo] = useState(existingEWB ?? "");
   const [validUpto, setValidUpto] = useState("");
   const [saving, setSaving] = useState(false);
@@ -50,9 +50,9 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingEWB, onClose, on
     try {
       const r = await fetch(`${API}/ewaybill/${invoiceId}/ewb`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
           "x-organization-id": activeOrg?.id ?? "",
         },
         body: JSON.stringify({ ewbNo: ewbNo.trim(), validUpto }),
@@ -126,35 +126,34 @@ function JsonModal({ payload, invoiceId, invoiceNumber, existingEWB, onClose, on
 
 export default function EWayBillPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [invoices, setInvoices] = useState<PendingInvoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<{ payload: object; invoiceId: string; invoiceNumber: string; existingEWB?: string } | null>(null);
   const [generating, setGenerating] = useState<string | null>(null);
 
   const headers = {
-    Authorization: `Bearer ${token}`,
     "x-organization-id": activeOrg?.id ?? "",
   };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/ewaybill/pending`, { headers });
+      const r = await fetch(`${API}/ewaybill/pending`, { headers, credentials: "include" });
       const d = await r.json();
       setInvoices(d.data?.invoices ?? []);
     } finally {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeOrg?.id]);
+  }, [activeOrg?.id]);
 
   useEffect(() => { load(); }, [load]);
 
   async function generatePayload(inv: PendingInvoice) {
     setGenerating(inv.id);
     try {
-      const r = await fetch(`${API}/ewaybill/${inv.id}/payload`, { headers });
+      const r = await fetch(`${API}/ewaybill/${inv.id}/payload`, { headers, credentials: "include" });
       const d = await r.json();
       if (d.data) {
         setModal({ payload: d.data.payload, invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, existingEWB: d.data.existingEWB });

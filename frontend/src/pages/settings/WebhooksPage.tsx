@@ -32,8 +32,8 @@ const ALL_EVENTS = [
   "lead.created", "lead.converted", "stock.low", "work_order.completed",
 ];
 
-function authHeaders(token: string, orgId: string) {
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": orgId };
+function authHeaders(orgId: string) {
+  return { "Content-Type": "application/json", "x-organization-id": orgId };
 }
 
 function EventBadge({ event }: { event: string }) {
@@ -47,7 +47,7 @@ function EventBadge({ event }: { event: string }) {
 }
 
 function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClose: () => void; onSaved: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -62,7 +62,8 @@ function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClo
     setSaving(true);
     const r = await fetch(`${API}/webhooks`, {
       method: "POST",
-      headers: authHeaders(token!, activeOrg!.id),
+      credentials: "include",
+      headers: authHeaders(activeOrg!.id),
       body: JSON.stringify({ url: url.trim(), events: selected, description: desc || undefined }),
     });
     setSaving(false);
@@ -120,18 +121,18 @@ function AddWebhookModal({ events, onClose, onSaved }: { events: string[]; onClo
 }
 
 function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allEvents: string[]; onRefresh: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [expanded, setExpanded] = useState(false);
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [loadingDel, setLoadingDel] = useState(false);
   const [testing, setTesting] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [copied, setCopied] = useState(false);
-  const headers = () => authHeaders(token!, activeOrg!.id);
+  const headers = () => authHeaders(activeOrg!.id);
 
   async function loadDeliveries() {
     setLoadingDel(true);
-    const r = await fetch(`${API}/webhooks/${webhook.id}/deliveries`, { headers: headers() });
+    const r = await fetch(`${API}/webhooks/${webhook.id}/deliveries`, { headers: headers(), credentials: "include" });
     if (r.ok) { const d = await r.json(); setDeliveries(d.data ?? []); }
     setLoadingDel(false);
   }
@@ -144,7 +145,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
 
   async function toggleActive() {
     await fetch(`${API}/webhooks/${webhook.id}`, {
-      method: "PUT", headers: headers(),
+      method: "PUT", headers: headers(), credentials: "include",
       body: JSON.stringify({ isActive: !webhook.isActive }),
     });
     onRefresh();
@@ -152,7 +153,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
 
   async function test() {
     setTesting(true);
-    await fetch(`${API}/webhooks/${webhook.id}/test`, { method: "POST", headers: headers() });
+    await fetch(`${API}/webhooks/${webhook.id}/test`, { method: "POST", headers: headers(), credentials: "include" });
     setTesting(false);
     if (expanded) loadDeliveries();
     else { setExpanded(true); loadDeliveries(); }
@@ -161,14 +162,14 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
   async function rotate() {
     if (!confirm("Rotate secret? The current secret will stop working immediately.")) return;
     setRotating(true);
-    await fetch(`${API}/webhooks/${webhook.id}/rotate-secret`, { method: "POST", headers: headers() });
+    await fetch(`${API}/webhooks/${webhook.id}/rotate-secret`, { method: "POST", headers: headers(), credentials: "include" });
     setRotating(false);
     onRefresh();
   }
 
   async function del() {
     if (!confirm("Delete this webhook endpoint?")) return;
-    await fetch(`${API}/webhooks/${webhook.id}`, { method: "DELETE", headers: headers() });
+    await fetch(`${API}/webhooks/${webhook.id}`, { method: "DELETE", headers: headers(), credentials: "include" });
     onRefresh();
   }
 
@@ -277,7 +278,7 @@ function WebhookCard({ webhook, allEvents, onRefresh }: { webhook: Webhook; allE
 
 export default function WebhooksPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [allEvents, setAllEvents] = useState<string[]>(ALL_EVENTS);
   const [loading, setLoading] = useState(true);
@@ -286,7 +287,8 @@ export default function WebhooksPage() {
   async function load() {
     setLoading(true);
     const r = await fetch(`${API}/webhooks`, {
-      headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
+      headers: { "x-organization-id": activeOrg!.id },
+      credentials: "include",
     });
     if (r.ok) {
       const d = await r.json();

@@ -166,6 +166,7 @@ export async function listDNC(req: OrgRequest, res: Response): Promise<void> {
         ...(search && { phone: { contains: search } }),
       },
       orderBy: { createdAt: "desc" },
+      take: 200, // safety cap — no pagination UI yet
     });
     ok(res, entries);
   } catch (err) {

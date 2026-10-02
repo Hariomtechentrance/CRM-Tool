@@ -65,7 +65,7 @@ function parseCSV(text: string): { txnDate: string; description: string; amount:
 }
 
 function ImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [accountName, setAccountName] = useState("HDFC Current Account");
   const [rows, setRows] = useState<any[]>([]);
   const [csvError, setCsvError] = useState("");
@@ -90,7 +90,8 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
     try {
       await fetch(`${API}/reconciliation/import`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-organization-id": activeOrg?.id ?? "" },
         body: JSON.stringify({ accountName, rows }),
       });
       onImported(); onClose();
@@ -137,7 +138,7 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
 
 export default function ReconciliationPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [txns, setTxns] = useState<BankTxn[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -145,26 +146,26 @@ export default function ReconciliationPage() {
   const [autoMatching, setAutoMatching] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
-  const headers = { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" };
+  const headers = { "x-organization-id": activeOrg?.id ?? "" };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const q = statusFilter !== "ALL" ? `?status=${statusFilter}` : "";
-      const r = await fetch(`${API}/reconciliation${q}`, { headers });
+      const r = await fetch(`${API}/reconciliation${q}`, { headers, credentials: "include" });
       const d = await r.json();
       setTxns(d.data?.transactions ?? []);
       setStats(d.data?.stats ?? null);
     } finally { setLoading(false); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeOrg?.id, statusFilter]);
+  }, [activeOrg?.id, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
 
   async function autoMatch() {
     setAutoMatching(true);
     try {
-      const r = await fetch(`${API}/reconciliation/auto-match`, { method: "POST", headers });
+      const r = await fetch(`${API}/reconciliation/auto-match`, { method: "POST", headers, credentials: "include" });
       const d = await r.json();
       alert(`Auto-matched ${d.data?.matched ?? 0} of ${d.data?.total ?? 0} transactions`);
       load();
@@ -175,13 +176,14 @@ export default function ReconciliationPage() {
     await fetch(`${API}/reconciliation/${id}`, {
       method: "PATCH",
       headers: { ...headers, "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ reconcileStatus: status }),
     });
     setTxns(prev => prev.map(t => t.id === id ? { ...t, reconcileStatus: status as any } : t));
   }
 
   async function deleteTxn(id: string) {
-    await fetch(`${API}/reconciliation/${id}`, { method: "DELETE", headers });
+    await fetch(`${API}/reconciliation/${id}`, { method: "DELETE", headers, credentials: "include" });
     setTxns(prev => prev.filter(t => t.id !== id));
   }
 

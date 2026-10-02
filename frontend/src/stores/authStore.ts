@@ -50,9 +50,12 @@ export const useAuthStore = create<AuthState>()(
       employeeProfile: null,
 
       setAuth: (data: AuthResponse) => {
-        localStorage.setItem("accessToken", data.accessToken);
-        // Refresh token is NOT stored in JS anymore — it lives only in the
-        // httpOnly `bos_refresh` cookie the API set alongside this response.
+        // Neither token is stored in JS anymore — both the access token
+        // (bos_access) and refresh token (bos_refresh) live only in the
+        // httpOnly cookies the API set alongside this response. `accessToken`
+        // stays in in-memory state (not persisted — see partialize below)
+        // only for any not-yet-migrated caller that still reads it directly.
+        localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         // Normalise: ensure every org has enabledModules array (legacy orgs may not)
         const orgs = data.organizations.map((o) => ({ ...o, enabledModules: o.enabledModules ?? [] }));
@@ -181,8 +184,8 @@ export const useAuthStore = create<AuthState>()(
       name: "businessos-auth",
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        // refreshToken intentionally NOT persisted — it lives in an httpOnly cookie.
+        // accessToken and refreshToken intentionally NOT persisted — both
+        // live only in httpOnly cookies now.
         organizations: state.organizations,
         activeOrg: state.activeOrg,
         isAuthenticated: state.isAuthenticated,

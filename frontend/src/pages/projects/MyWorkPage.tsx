@@ -17,8 +17,8 @@ const PRIORITY_COLOR: Record<string, string> = {
   LOW: "#60a5fa", MEDIUM: "#fbbf24", HIGH: "#f97316", URGENT: "#f87171",
 };
 
-function authH(token: string, orgId: string) {
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": orgId };
+function authH(orgId: string) {
+  return { "Content-Type": "application/json", "x-organization-id": orgId };
 }
 
 interface Task {
@@ -34,7 +34,7 @@ interface TimeLog {
 }
 
 function LogTimeModal({ taskId, employeeId, onClose, onLogged }: { taskId: string; employeeId: string; onClose: () => void; onLogged: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [hours, setHours] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -44,7 +44,8 @@ function LogTimeModal({ taskId, employeeId, onClose, onLogged }: { taskId: strin
     setSaving(true);
     await fetch(`${API}/sprints/log-time`, {
       method: "POST",
-      headers: authH(token!, activeOrg!.id),
+      credentials: "include",
+      headers: authH(activeOrg!.id),
       body: JSON.stringify({ taskId, employeeId, hours: Number(hours), notes: notes || undefined }),
     });
     setSaving(false);
@@ -141,7 +142,7 @@ function TaskCard({ task, onStatusChange, onLogTime }: { task: Task; onStatusCha
 
 export default function MyWorkPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [employees, setEmployees] = useState<any[]>([]);
   const [selEmpId, setSelEmpId] = useState("");
   const [board, setBoard] = useState<Record<TStatus, Task[]>>({ TODO: [], IN_PROGRESS: [], IN_REVIEW: [], DONE: [] });
@@ -150,10 +151,10 @@ export default function MyWorkPage() {
   const [logTaskId, setLogTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"board" | "list" | "time">("board");
 
-  const h = () => authH(token!, activeOrg!.id);
+  const h = () => authH(activeOrg!.id);
 
   useEffect(() => {
-    fetch(`${API}/hr?status=ACTIVE`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } })
+    fetch(`${API}/hr?status=ACTIVE`, { headers: { "x-organization-id": activeOrg!.id }, credentials: "include" })
       .then(r => r.json()).then(d => { const emps = d.data?.employees ?? []; setEmployees(emps); if (emps.length) setSelEmpId(emps[0].id); });
   }, [activeOrg?.id]);
 
@@ -161,7 +162,7 @@ export default function MyWorkPage() {
 
   async function load() {
     setLoading(true);
-    const r = await fetch(`${API}/it-projects/my-work?employeeId=${selEmpId}`, { headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id } });
+    const r = await fetch(`${API}/it-projects/my-work?employeeId=${selEmpId}`, { headers: { "x-organization-id": activeOrg!.id }, credentials: "include" });
     if (r.ok) {
       const d = await r.json();
       setBoard(d.data?.board ?? { TODO: [], IN_PROGRESS: [], IN_REVIEW: [], DONE: [] });
@@ -172,7 +173,7 @@ export default function MyWorkPage() {
 
   async function updateStatus(taskId: string, status: TStatus) {
     await fetch(`${API}/projects/tasks/${taskId}`, {
-      method: "PATCH", headers: h(), body: JSON.stringify({ status }),
+      method: "PATCH", headers: h(), credentials: "include", body: JSON.stringify({ status }),
     });
     load();
   }

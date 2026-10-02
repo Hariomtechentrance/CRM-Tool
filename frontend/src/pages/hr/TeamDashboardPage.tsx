@@ -42,7 +42,7 @@ interface EmpRow {
 
 export default function TeamDashboardPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [employees, setEmployees] = useState<EmpRow[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +53,8 @@ export default function TeamDashboardPage() {
   async function load() {
     setLoading(true);
     const r = await fetch(`${API}/it-projects/team-dashboard`, {
-      headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
+      credentials: "include",
+      headers: { "x-organization-id": activeOrg!.id },
     });
     if (r.ok) {
       const d = await r.json();
