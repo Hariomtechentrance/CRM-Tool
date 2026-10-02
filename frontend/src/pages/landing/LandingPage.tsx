@@ -6,7 +6,7 @@ import {
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
   ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon, Check, Zap,
   Stethoscope, PackageOpen, ClipboardCheck, Wrench, LineChart, ShieldCheck,
-  Car, Scissors, Shirt,
+  Car, Scissors, Shirt, MessageCircle,
 } from "lucide-react";
 import ContactModal from "@/components/ContactModal";
 
@@ -336,6 +336,9 @@ export default function LandingPage() {
             </a>
             <a href="tel:7397962433" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
               <Phone size={14} color="var(--brand-color)" /> 73979 62433
+            </a>
+            <a href="https://wa.me/917397962433" target="_blank" rel="noopener noreferrer" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <MessageCircle size={14} color="#25D366" /> WhatsApp
             </a>
             <a href="mailto:deployratech@gmail.com" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
               <Mail size={14} color="var(--brand-color)" /> deployratech@gmail.com
