@@ -5,7 +5,7 @@ import { OrgRequest } from "../middleware/orgContext";
 import { ok, created, badRequest, notFound, forbidden, serverError, conflict } from "../utils/response";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { writeAuditLog, getIp } from "../utils/auditLog";
-import { MemberRole } from "@prisma/client";
+import { MemberRole, Prisma } from "@prisma/client";
 
 const db = () => (prisma as any);
 
@@ -1244,24 +1244,60 @@ export async function listExpiringInsurance(req: OrgRequest, res: Response): Pro
     let lowerBound: Date | undefined;
     if (from) { lowerBound = new Date(from); lowerBound.setHours(0, 0, 0, 0); }
 
-    const insuranceWhere: any = { endDate: { lte: cutoff } };
-    if (lowerBound) insuranceWhere.endDate.gte = lowerBound;
+    const orgId = req.organizationId!;
+    const lowerClause = lowerBound ? Prisma.sql`AND "endDate" >= ${lowerBound}` : Prisma.empty;
 
-    // Latest policy per vehicle, only where that policy falls in [from, to].
-    const vehicles = await db().vehicle.findMany({
-      where: { organizationId: req.organizationId!, insurances: { some: insuranceWhere } },
-      include: { insurances: { orderBy: { endDate: "desc" }, take: 1 } },
-    });
-    // Only keep vehicles whose LATEST (most recent) policy is the one expiring —
-    // a vehicle that already renewed shouldn't show as expiring on its old policy.
-    const expiring = vehicles
-      .filter((v: any) => {
-        const end = v.insurances[0] && new Date(v.insurances[0].endDate);
-        return end && end <= cutoff && (!lowerBound || end >= lowerBound);
-      })
-      .sort((a: any, b: any) => new Date(a.insurances[0].endDate).getTime() - new Date(b.insurances[0].endDate).getTime());
+    // Same fix as getCarsStats' expiringSoon count (see the comment above
+    // that query): an org can have tens of thousands of vehicles, and on an
+    // unbounded range (no `from`) essentially all of them can match "expired
+    // at some point" — pulling every one as a full Vehicle row (every column,
+    // for every match) into Node is what was already overrunning Render's
+    // memory limit on the stats endpoint before that fix, and this endpoint
+    // had the exact same pattern, just never fixed. Find the matching ids +
+    // latest endDate in Postgres first (cheap, bounded to 200), THEN fetch
+    // full Vehicle rows only for that bounded set — the UI needs full rows
+    // (clicking a card opens the full edit form), just not 16,000 of them.
+    const matches = await prisma.$queryRaw<{ id: string; endDate: Date }[]>`
+      SELECT v.id, latest."endDate"
+      FROM "Vehicle" v
+      JOIN (
+        SELECT DISTINCT ON ("vehicleId") "vehicleId", "endDate"
+        FROM "VehicleInsurance"
+        WHERE "organizationId" = ${orgId}
+        ORDER BY "vehicleId", "endDate" DESC
+      ) latest ON latest."vehicleId" = v.id
+      WHERE v."organizationId" = ${orgId} AND latest."endDate" <= ${cutoff} ${lowerClause}
+      ORDER BY latest."endDate" ASC
+      LIMIT 200
+    `;
+    // Overdue/upcoming split as real counts, not `vehicles.length` after the
+    // cap — otherwise the "Overdue (N)" / "Upcoming (N)" tab labels silently
+    // undercount once a range has more than 200 matches.
+    const now = new Date();
+    const totalRows = await prisma.$queryRaw<{ total: bigint; overdue: bigint }[]>`
+      SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE latest."endDate" < ${now}) as overdue
+      FROM (
+        SELECT DISTINCT ON ("vehicleId") "vehicleId", "endDate"
+        FROM "VehicleInsurance"
+        WHERE "organizationId" = ${orgId}
+        ORDER BY "vehicleId", "endDate" DESC
+      ) latest
+      WHERE latest."endDate" <= ${cutoff} ${lowerClause}
+    `;
+    const total = Number(totalRows[0]?.total ?? 0);
+    const overdueTotal = Number(totalRows[0]?.overdue ?? 0);
+    const upcomingTotal = total - overdueTotal;
 
-    ok(res, { vehicles: expiring, total: expiring.length });
+    const orderById = new Map(matches.map((m, i) => [m.id, i]));
+    const vehicles = matches.length
+      ? await db().vehicle.findMany({
+          where: { id: { in: matches.map(m => m.id) } },
+          include: { insurances: { orderBy: { endDate: "desc" }, take: 1 } },
+        })
+      : [];
+    vehicles.sort((a: any, b: any) => (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0));
+
+    ok(res, { vehicles, total, overdueTotal, upcomingTotal, truncated: total > vehicles.length });
   } catch (e) { serverError(res, e); }
 }
 

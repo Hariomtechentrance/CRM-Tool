@@ -1413,6 +1413,10 @@ export default function CarsPage() {
   const [leads, setLeads] = useState<CarLead[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [expiringVehiclesData, setExpiringVehiclesData] = useState<Vehicle[]>([]);
+  // Real org-wide totals from the API, not `expiringVehiclesData.length` —
+  // that array is capped at 200 rows server-side (an org can have thousands
+  // of matches), so the tab labels would silently undercount without these.
+  const [insuranceTotals, setInsuranceTotals] = useState({ total: 0, overdueTotal: 0, upcomingTotal: 0, truncated: false });
   const [insuranceDueSubTab, setInsuranceDueSubTab] = useState<"overdue" | "upcoming">("overdue");
   const [followUps, setFollowUps] = useState<CarLead[]>([]);
   const [warrantyVehicles, setWarrantyVehicles] = useState<Vehicle[]>([]);
@@ -1523,6 +1527,12 @@ export default function CarsPage() {
         setVehicles(vr.data.data.vehicles ?? []);
         setSalesReport(sr.data.data);
         setExpiringVehiclesData(er.data.data.vehicles ?? []);
+        setInsuranceTotals({
+          total: er.data.data.total ?? 0,
+          overdueTotal: er.data.data.overdueTotal ?? 0,
+          upcomingTotal: er.data.data.upcomingTotal ?? 0,
+          truncated: er.data.data.truncated ?? false,
+        });
       } else if (tab === "followups") {
         const r = await api.get("/cars/leads?followUp=all&limit=200");
         setFollowUps(r.data.data.leads ?? []);
@@ -1738,18 +1748,23 @@ export default function CarsPage() {
                     style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
                       background: insuranceDueSubTab === "overdue" ? "#f87171" : "var(--bg-hover)",
                       color: insuranceDueSubTab === "overdue" ? "#1a0505" : "var(--text-sec)" }}>
-                    Overdue ({overdueVehicles.length})
+                    Overdue ({insuranceTotals.overdueTotal})
                   </button>
                   <button onClick={() => setInsuranceDueSubTab("upcoming")}
                     style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
                       background: insuranceDueSubTab === "upcoming" ? "#fbbf24" : "var(--bg-hover)",
                       color: insuranceDueSubTab === "upcoming" ? "#1a1405" : "var(--text-sec)" }}>
-                    Upcoming ({upcomingVehicles.length})
+                    Upcoming ({insuranceTotals.upcomingTotal})
                   </button>
                 </div>
                 <p style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 10 }}>
                   Click any entry to open that vehicle and call the customer about renewing their insurance.
                 </p>
+                {insuranceTotals.truncated && (
+                  <p style={{ fontSize: 11, color: "#fbbf24", marginBottom: 10 }}>
+                    Showing the {expiringVehiclesData.length} most urgent of {insuranceTotals.total} matches — narrow the date range above to see the rest.
+                  </p>
+                )}
               </>
             )}
             {(insuranceDueSubTab === "overdue" ? overdueVehicles : upcomingVehicles).length === 0 ? (
