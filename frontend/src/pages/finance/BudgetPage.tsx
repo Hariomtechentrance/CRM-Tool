@@ -55,7 +55,7 @@ const EMPTY_FORM = { name: "", department: "", fiscalYear: "2025-2026", startDat
 const EMPTY_ITEM = { category: "", allocatedAmount: "" };
 
 function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [form, setForm] = useState(EMPTY_FORM);
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
   const [saving, setSaving] = useState(false);
@@ -73,9 +73,9 @@ function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated
     try {
       await fetch(`${API}/budgets`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
           "x-organization-id": activeOrg?.id ?? "",
         },
         body: JSON.stringify({
@@ -166,7 +166,7 @@ function AddBudgetModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
 export default function BudgetPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [fy, setFy] = useState("2025-2026");
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -175,7 +175,6 @@ export default function BudgetPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const headers = {
-    Authorization: `Bearer ${token}`,
     "x-organization-id": activeOrg?.id ?? "",
   };
 
@@ -183,8 +182,8 @@ export default function BudgetPage() {
     setLoading(true);
     try {
       const [br, sr] = await Promise.all([
-        fetch(`${API}/budgets?fy=${fy}`, { headers }).then(r => r.json()),
-        fetch(`${API}/budgets/summary?fy=${fy}`, { headers }).then(r => r.json()),
+        fetch(`${API}/budgets?fy=${fy}`, { headers, credentials: "include" }).then(r => r.json()),
+        fetch(`${API}/budgets/summary?fy=${fy}`, { headers, credentials: "include" }).then(r => r.json()),
       ]);
       setBudgets(br.data?.budgets ?? []);
       setSummary(sr.data ?? null);
@@ -192,7 +191,7 @@ export default function BudgetPage() {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeOrg?.id, fy]);
+  }, [activeOrg?.id, fy]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -201,6 +200,7 @@ export default function BudgetPage() {
     await fetch(`${API}/budgets/${id}`, {
       method: "DELETE",
       headers,
+      credentials: "include",
     });
     setBudgets(prev => prev.filter(b => b.id !== id));
   }

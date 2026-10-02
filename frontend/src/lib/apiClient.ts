@@ -5,9 +5,10 @@ const API = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/a
 
 export const apiClient = axios.create({ baseURL: API, withCredentials: true });
 
+// No Authorization header — the bos_access httpOnly cookie (sent via
+// withCredentials) authenticates the request, same as lib/api.ts.
 apiClient.interceptors.request.use((config) => {
-  const { accessToken, activeOrg } = useAuthStore.getState();
-  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  const { activeOrg } = useAuthStore.getState();
   if (activeOrg?.id) config.headers["x-organization-id"] = activeOrg.id;
   return config;
 });

@@ -21,7 +21,7 @@ function AddRateModal({ currencies, onClose, onAdded }: {
   onClose: () => void;
   onAdded: () => void;
 }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [from, setFrom] = useState("USD");
   const [to, setTo] = useState("INR");
   const [rate, setRate] = useState("");
@@ -34,7 +34,8 @@ function AddRateModal({ currencies, onClose, onAdded }: {
     try {
       await fetch(`${API}/currency`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-organization-id": activeOrg?.id ?? "" },
         body: JSON.stringify({ fromCurrency: from, toCurrency: to, rate: Number(rate), effectiveDate: date }),
       });
       onAdded(); onClose();
@@ -96,7 +97,7 @@ function AddRateModal({ currencies, onClose, onAdded }: {
   );
 }
 
-function ConvertPanel({ currencies, token, orgId }: { currencies: Currency[]; token: string; orgId: string }) {
+function ConvertPanel({ currencies, orgId }: { currencies: Currency[]; orgId: string }) {
   const [from, setFrom] = useState("USD");
   const [to, setTo] = useState("INR");
   const [amount, setAmount] = useState("100");
@@ -107,7 +108,8 @@ function ConvertPanel({ currencies, token, orgId }: { currencies: Currency[]; to
     setLoading(true);
     try {
       const r = await fetch(`${API}/currency/convert?from=${from}&to=${to}&amount=${amount}`, {
-        headers: { Authorization: `Bearer ${token}`, "x-organization-id": orgId },
+        headers: { "x-organization-id": orgId },
+        credentials: "include",
       });
       const d = await r.json();
       setResult(d.data);
@@ -167,29 +169,29 @@ function ConvertPanel({ currencies, token, orgId }: { currencies: Currency[]; to
 
 export default function CurrencyPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [rates, setRates] = useState<Rate[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  const headers = { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" };
+  const headers = { "x-organization-id": activeOrg?.id ?? "" };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/currency`, { headers });
+      const r = await fetch(`${API}/currency`, { headers, credentials: "include" });
       const d = await r.json();
       setRates(d.data?.rates ?? []);
       setCurrencies(d.data?.currencies ?? []);
     } finally { setLoading(false); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeOrg?.id]);
+  }, [activeOrg?.id]);
 
   useEffect(() => { load(); }, [load]);
 
   async function deleteRate(id: string) {
-    await fetch(`${API}/currency/${id}`, { method: "DELETE", headers });
+    await fetch(`${API}/currency/${id}`, { method: "DELETE", headers, credentials: "include" });
     setRates(prev => prev.filter(r => r.id !== id));
   }
 
@@ -221,7 +223,7 @@ export default function CurrencyPage() {
 
       {/* Converter */}
       <div className="mb-5">
-        <ConvertPanel currencies={currencies} token={token ?? ""} orgId={activeOrg?.id ?? ""} />
+        <ConvertPanel currencies={currencies} orgId={activeOrg?.id ?? ""} />
       </div>
 
       {/* Rates table */}

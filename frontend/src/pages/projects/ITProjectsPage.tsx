@@ -32,8 +32,8 @@ const PRIORITY_COLOR: Record<string, string> = {
   LOW: "#60a5fa", MEDIUM: "#fbbf24", HIGH: "#f97316", URGENT: "#f87171",
 };
 
-function authH(token: string, orgId: string) {
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": orgId };
+function authH(orgId: string) {
+  return { "Content-Type": "application/json", "x-organization-id": orgId };
 }
 
 function ProgressBar({ pct }: { pct: number }) {
@@ -65,7 +65,7 @@ interface Project {
 }
 
 function CreateProjectModal({ employees, onClose, onCreated }: { employees: any[]; onClose: () => void; onCreated: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [form, setForm] = useState({
     name: "", projectType: "WEB_APP", priority: "MEDIUM", status: "PLANNING",
     clientName: "", startDate: "", endDate: "", budget: "", totalEstHours: "",
@@ -80,7 +80,8 @@ function CreateProjectModal({ employees, onClose, onCreated }: { employees: any[
     setSaving(true);
     const r = await fetch(`${API}/it-projects`, {
       method: "POST",
-      headers: authH(token!, activeOrg!.id),
+      credentials: "include",
+      headers: authH(activeOrg!.id),
       body: JSON.stringify({ ...form }),
     });
     setSaving(false);
@@ -242,7 +243,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
 }
 
 function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project; onClose: () => void; onRefresh: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [employees, setEmployees] = useState<any[]>([]);
   const [addMemberEmpId, setAddMemberEmpId] = useState("");
   const [addMemberRole, setAddMemberRole] = useState("DEVELOPER");
@@ -250,14 +251,14 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
   const [shareToken, setShareToken] = useState<string | null>(project.publicToken ?? null);
   const [shareCopied, setShareCopied] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
-  const h = () => authH(token!, activeOrg!.id);
+  const h = () => authH(activeOrg!.id);
 
   const publicUrl = shareToken ? `${window.location.origin}/public/project/${shareToken}` : null;
 
   async function generateLink() {
     setShareLoading(true);
     try {
-      const r = await fetch(`${API}/it-projects/${project.id}/share`, { method: "POST", headers: h() });
+      const r = await fetch(`${API}/it-projects/${project.id}/share`, { method: "POST", headers: h(), credentials: "include" });
       const d = await r.json();
       if (d.success) { setShareToken(d.data.token); onRefresh(); }
     } finally { setShareLoading(false); }
@@ -267,7 +268,7 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
     if (!confirm("Revoke public link? Anyone with the current link will lose access.")) return;
     setShareLoading(true);
     try {
-      await fetch(`${API}/it-projects/${project.id}/share`, { method: "DELETE", headers: h() });
+      await fetch(`${API}/it-projects/${project.id}/share`, { method: "DELETE", headers: h(), credentials: "include" });
       setShareToken(null); onRefresh();
     } finally { setShareLoading(false); }
   }
@@ -280,26 +281,26 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
   }
 
   useEffect(() => {
-    fetch(`${API}/hr?status=ACTIVE`, { headers: h() })
+    fetch(`${API}/hr?status=ACTIVE`, { headers: h(), credentials: "include" })
       .then(r => r.json()).then(d => setEmployees(d.data?.employees ?? []));
   }, []);
 
   async function addMember() {
     if (!addMemberEmpId) return;
     await fetch(`${API}/it-projects/${project.id}/members`, {
-      method: "POST", headers: h(), body: JSON.stringify({ employeeId: addMemberEmpId, role: addMemberRole }),
+      method: "POST", headers: h(), credentials: "include", body: JSON.stringify({ employeeId: addMemberEmpId, role: addMemberRole }),
     });
     setAddMemberEmpId(""); onRefresh();
   }
 
   async function removeMember(memberId: string) {
-    await fetch(`${API}/it-projects/${project.id}/members/${memberId}`, { method: "DELETE", headers: h() });
+    await fetch(`${API}/it-projects/${project.id}/members/${memberId}`, { method: "DELETE", headers: h(), credentials: "include" });
     onRefresh();
   }
 
   async function deleteProject() {
     if (!confirm(`Delete "${project.name}"? This can be restored by support if it was a mistake.`)) return;
-    await fetch(`${API}/it-projects/${project.id}`, { method: "DELETE", headers: h() });
+    await fetch(`${API}/it-projects/${project.id}`, { method: "DELETE", headers: h(), credentials: "include" });
     onRefresh(); onClose();
   }
   const canDelete = !!activeOrg?.role && !["STAFF", "VIEWER"].includes(activeOrg.role);
@@ -307,14 +308,14 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
   async function addMilestone() {
     if (!msTitle || !msDue) return;
     await fetch(`${API}/it-projects/${project.id}/milestones`, {
-      method: "POST", headers: h(), body: JSON.stringify({ title: msTitle, dueDate: msDue }),
+      method: "POST", headers: h(), credentials: "include", body: JSON.stringify({ title: msTitle, dueDate: msDue }),
     });
     setMsTitle(""); setMsDue(""); onRefresh();
   }
 
   async function toggleMilestone(msId: string, done: boolean) {
     await fetch(`${API}/it-projects/${project.id}/milestones/${msId}`, {
-      method: "PATCH", headers: h(),
+      method: "PATCH", headers: h(), credentials: "include",
       body: JSON.stringify({ completedAt: done ? new Date().toISOString() : null }),
     });
     onRefresh();
@@ -493,7 +494,7 @@ function ProjectDetailPanel({ project, onClose, onRefresh }: { project: Project;
 
 export default function ITProjectsPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -510,7 +511,8 @@ export default function ITProjectsPage() {
     if (typeFilter !== "ALL") params.set("type", typeFilter);
     if (search) params.set("search", search);
     const r = await fetch(`${API}/it-projects?${params}`, {
-      headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
+      headers: { "x-organization-id": activeOrg!.id },
+      credentials: "include",
     });
     if (r.ok) { const d = await r.json(); setProjects(d.data ?? []); }
     setLoading(false);
@@ -523,7 +525,8 @@ export default function ITProjectsPage() {
 
   useEffect(() => {
     fetch(`${API}/hr?status=ACTIVE`, {
-      headers: { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg!.id },
+      headers: { "x-organization-id": activeOrg!.id },
+      credentials: "include",
     }).then(r => r.json()).then(d => setEmployees(d.data?.employees ?? []));
   }, [activeOrg?.id]);
 

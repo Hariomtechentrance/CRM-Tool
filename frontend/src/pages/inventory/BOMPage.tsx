@@ -23,7 +23,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
   const [name, setName] = useState("");
@@ -31,10 +31,10 @@ function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [items, setItems] = useState([{ componentId: "", quantity: "1", unit: "PCS" }]);
   const [saving, setSaving] = useState(false);
 
-  const headers = { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" };
+  const headers = { "x-organization-id": activeOrg?.id ?? "" };
 
   useEffect(() => {
-    fetch(`${API}/inventory?limit=200`, { headers })
+    fetch(`${API}/inventory?limit=200`, { headers, credentials: "include" })
       .then(r => r.json()).then(d => setProducts(d.data?.products ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -49,6 +49,7 @@ function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
     try {
       await fetch(`${API}/bom`, {
         method: "POST",
+        credentials: "include",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           productId, name, version,
@@ -126,7 +127,7 @@ function AddBOMModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 }
 
 function CreateWOModal({ bom, onClose, onCreated }: { bom: BOM; onClose: () => void; onCreated: () => void }) {
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [qty, setQty] = useState("1");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -137,7 +138,8 @@ function CreateWOModal({ bom, onClose, onCreated }: { bom: BOM; onClose: () => v
     try {
       await fetch(`${API}/bom/work-orders`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" },
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-organization-id": activeOrg?.id ?? "" },
         body: JSON.stringify({ bomId: bom.id, quantity: Number(qty), startDate: startDate || undefined, endDate: endDate || undefined }),
       });
       onCreated(); onClose();
@@ -181,7 +183,7 @@ function CreateWOModal({ bom, onClose, onCreated }: { bom: BOM; onClose: () => v
 
 export default function BOMPage() {
   const { t } = useTranslation();
-  const { accessToken: token, activeOrg } = useAuthStore();
+  const { activeOrg } = useAuthStore();
   const [tab, setTab] = useState<"boms" | "workorders">("boms");
   const [boms, setBoms] = useState<BOM[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
@@ -191,26 +193,27 @@ export default function BOMPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [woFilter, setWoFilter] = useState("ALL");
 
-  const headers = { Authorization: `Bearer ${token}`, "x-organization-id": activeOrg?.id ?? "" };
+  const headers = { "x-organization-id": activeOrg?.id ?? "" };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [br, wr] = await Promise.all([
-        fetch(`${API}/bom`, { headers }).then(r => r.json()),
-        fetch(`${API}/bom/work-orders`, { headers }).then(r => r.json()),
+        fetch(`${API}/bom`, { headers, credentials: "include" }).then(r => r.json()),
+        fetch(`${API}/bom/work-orders`, { headers, credentials: "include" }).then(r => r.json()),
       ]);
       setBoms(br.data?.boms ?? []);
       setWorkOrders(wr.data?.workOrders ?? []);
     } finally { setLoading(false); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeOrg?.id]);
+  }, [activeOrg?.id]);
 
   useEffect(() => { load(); }, [load]);
 
   async function updateWOStatus(id: string, status: string) {
     await fetch(`${API}/bom/work-orders/${id}/status`, {
       method: "PATCH",
+      credentials: "include",
       headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
@@ -219,7 +222,7 @@ export default function BOMPage() {
 
   async function deleteBOM(id: string) {
     if (!confirm("Delete this BOM?")) return;
-    await fetch(`${API}/bom/${id}`, { method: "DELETE", headers });
+    await fetch(`${API}/bom/${id}`, { method: "DELETE", headers, credentials: "include" });
     setBoms(prev => prev.filter(b => b.id !== id));
   }
 
