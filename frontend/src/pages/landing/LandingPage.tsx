@@ -337,8 +337,8 @@ export default function LandingPage() {
             <a href="tel:7397962433" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
               <Phone size={14} color="var(--brand-color)" /> 73979 62433
             </a>
-            <a href="mailto:hariomvimal33333@gmail.com" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-              <Mail size={14} color="var(--brand-color)" /> hariomvimal33333@gmail.com
+            <a href="mailto:deployratech@gmail.com" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Mail size={14} color="var(--brand-color)" /> deployratech@gmail.com
             </a>
           </div>
         </div>
