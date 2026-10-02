@@ -1420,6 +1420,7 @@ export default function CarsPage() {
   const [insuranceDueSubTab, setInsuranceDueSubTab] = useState<"overdue" | "upcoming">("overdue");
   const [followUps, setFollowUps] = useState<CarLead[]>([]);
   const [warrantyVehicles, setWarrantyVehicles] = useState<Vehicle[]>([]);
+  const [warrantyTotals, setWarrantyTotals] = useState({ total: 0, truncated: false });
   const [stats, setStats] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -1539,6 +1540,7 @@ export default function CarsPage() {
       } else if (tab === "warranty") {
         const r = await api.get("/cars/warranties");
         setWarrantyVehicles(r.data.data.vehicles ?? []);
+        setWarrantyTotals({ total: r.data.data.total ?? 0, truncated: r.data.data.truncated ?? false });
       } else {
         const r = await api.get("/cars/leads/monthly-report?months=12");
         setMonthlyReport(r.data.data.months ?? []);
@@ -1886,6 +1888,12 @@ export default function CarsPage() {
         warrantyVehicles.length === 0 ? (
           <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No warranty-tracked vehicles yet — set a warranty period when marking a vehicle sold.</div>
         ) : (
+          <>
+          {warrantyTotals.truncated && (
+            <p style={{ fontSize: 11, color: "#fbbf24", marginBottom: 10 }}>
+              Showing the {warrantyVehicles.length} soonest-expiring of {warrantyTotals.total} warranty-tracked vehicles.
+            </p>
+          )}
           <div className="table-wrap">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -1925,6 +1933,7 @@ export default function CarsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )
       ) : tab === "followups" ? (
         followUps.length === 0 ? (

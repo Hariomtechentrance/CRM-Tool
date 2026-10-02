@@ -1162,11 +1162,16 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
 // Warranty tab: every sold vehicle that has warranty info, soonest-expiring first.
 export async function listWarranties(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const vehicles = await db().vehicle.findMany({
-      where: { organizationId: req.organizationId!, status: "SOLD", warrantyEndDate: { not: null } },
-      orderBy: { warrantyEndDate: "asc" },
-    });
-    ok(res, { vehicles, total: vehicles.length });
+    const where = { organizationId: req.organizationId!, status: "SOLD" as const, warrantyEndDate: { not: null } };
+    // Capped the same way as listExpiringInsurance (see its comment) — an
+    // org with tens of thousands of sold vehicles can have thousands of
+    // warranty-tracked ones too; this was pulling every full Vehicle row
+    // with no limit at all.
+    const [vehicles, total] = await Promise.all([
+      db().vehicle.findMany({ where, orderBy: { warrantyEndDate: "asc" }, take: 200 }),
+      db().vehicle.count({ where }),
+    ]);
+    ok(res, { vehicles, total, truncated: total > vehicles.length });
   } catch (e) { serverError(res, e); }
 }
 
