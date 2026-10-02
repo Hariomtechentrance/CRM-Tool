@@ -23,17 +23,16 @@ function onlyProvided<T extends Record<string, unknown>>(body: Record<string, un
   return out;
 }
 
+// Same approach as finance.controller.ts's generateInvoiceNumber: a single
+// COUNT() instead of pulling every order's orderNumber for the org into
+// Node to regex-match and scan for the max. createOrder() already guards
+// against a collision (a manually-typed or legacy non-"ORD-####" order
+// number) with its own `exists` check + 409 right after calling this, same
+// safety net generateInvoiceNumber relies on — so this is not a behavior
+// regression, just a cheaper way to derive the next number.
 async function generateOrderNumber(organizationId: string): Promise<string> {
-  const rows = await db().tailorOrder.findMany({ where: { organizationId }, select: { orderNumber: true } });
-  const taken = new Set(rows.map((r: { orderNumber: string }) => r.orderNumber));
-  let max = 0;
-  for (const r of rows) {
-    const m = /^ORD-(\d+)$/i.exec(r.orderNumber.trim());
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  let n = max + 1;
-  while (taken.has(`ORD-${String(n).padStart(4, "0")}`)) n += 1;
-  return `ORD-${String(n).padStart(4, "0")}`;
+  const count = await db().tailorOrder.count({ where: { organizationId } });
+  return `ORD-${String(count + 1).padStart(4, "0")}`;
 }
 
 // ── Validators ───────────────────────────────────────────────

@@ -140,7 +140,7 @@ export async function updatePatient(req: OrgRequest, res: Response): Promise<voi
 export async function listVisits(req: OrgRequest, res: Response): Promise<void> {
   try {
     const orgId = req.organizationId!;
-    const { patientId, doctorId, from, to } = req.query as Record<string, string>;
+    const { patientId, doctorId, from, to, limit } = req.query as Record<string, string>;
 
     const visits = await db().patientVisit.findMany({
       where: {
@@ -154,6 +154,12 @@ export async function listVisits(req: OrgRequest, res: Response): Promise<void> 
         prescriptions: { select: { id: true, createdAt: true } },
       },
       orderBy: { visitDate: "desc" },
+      // The frontend already sends `limit` (e.g. ?limit=50) — this was
+      // previously ignored entirely, so an org with a long visit history got
+      // every visit row (plus its prescriptions) pulled into memory on every
+      // page load regardless. No pagination UI yet, so just honor the
+      // requested cap (bounded to a sane max) instead of a fixed number.
+      take: Math.min(parseInt(limit) || 200, 500),
     });
 
     ok(res, visits);
@@ -234,7 +240,7 @@ export async function updateVisit(req: OrgRequest, res: Response): Promise<void>
 export async function listPrescriptions(req: OrgRequest, res: Response): Promise<void> {
   try {
     const orgId = req.organizationId!;
-    const { patientId } = req.query as Record<string, string>;
+    const { patientId, limit } = req.query as Record<string, string>;
 
     const prescriptions = await db().prescription.findMany({
       where: {
@@ -243,6 +249,7 @@ export async function listPrescriptions(req: OrgRequest, res: Response): Promise
       },
       include: { patient: { select: { id: true, name: true, patientCode: true } } },
       orderBy: { createdAt: "desc" },
+      take: Math.min(parseInt(limit) || 200, 500), // frontend already sends ?limit=50 — honor it, see listVisits
     });
     ok(res, prescriptions);
   } catch (err) {
@@ -287,7 +294,7 @@ export async function createPrescription(req: OrgRequest, res: Response): Promis
 export async function listLabReports(req: OrgRequest, res: Response): Promise<void> {
   try {
     const orgId = req.organizationId!;
-    const { patientId } = req.query as Record<string, string>;
+    const { patientId, limit } = req.query as Record<string, string>;
 
     const reports = await db().labReport.findMany({
       where: {
@@ -296,6 +303,7 @@ export async function listLabReports(req: OrgRequest, res: Response): Promise<vo
       },
       include: { patient: { select: { id: true, name: true, patientCode: true } } },
       orderBy: { conductedAt: "desc" },
+      take: Math.min(parseInt(limit) || 200, 500), // frontend already sends ?limit=50 — honor it, see listVisits
     });
     ok(res, reports);
   } catch (err) {
@@ -488,6 +496,7 @@ export async function listAppointments(req: OrgRequest, res: Response): Promise<
         doctor: { select: { id: true, name: true, specialization: true, consultationFee: true } },
       },
       orderBy: [{ appointmentDate: "asc" }, { timeSlot: "asc" }],
+      take: 200, // safety cap — no pagination UI yet, see listVisits
     });
     ok(res, appointments);
   } catch (err) { serverError(res, err); }

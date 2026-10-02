@@ -123,17 +123,23 @@ export async function getTimeSummary(req: OrgRequest, res: Response): Promise<vo
       if (to) where.date.lte = new Date(to);
     }
 
-    const entries = await db().projectTimeEntry.findMany({ where });
+    // Grouped/summed in Postgres instead of pulling every time entry for the
+    // org (unbounded by this endpoint) into Node just to hand-sum hours by
+    // project/user in JS.
+    const [byProjectRows, byUserRows, totalAgg, billableAgg] = await Promise.all([
+      db().projectTimeEntry.groupBy({ by: ["projectId"], where, _sum: { hours: true } }),
+      db().projectTimeEntry.groupBy({ by: ["userId"], where, _sum: { hours: true } }),
+      db().projectTimeEntry.aggregate({ where, _sum: { hours: true } }),
+      db().projectTimeEntry.aggregate({ where: { ...where, billable: true }, _sum: { hours: true } }),
+    ]);
+
     const byProject: Record<string, number> = {};
+    for (const r of byProjectRows) byProject[r.projectId] = r._sum.hours ?? 0;
     const byUser: Record<string, number> = {};
+    for (const r of byUserRows) byUser[r.userId] = r._sum.hours ?? 0;
 
-    for (const e of entries) {
-      byProject[e.projectId] = (byProject[e.projectId] ?? 0) + e.hours;
-      byUser[e.userId] = (byUser[e.userId] ?? 0) + e.hours;
-    }
-
-    const totalHours = entries.reduce((s: number, e: any) => s + e.hours, 0);
-    const billableHours = entries.filter((e: any) => e.billable).reduce((s: number, e: any) => s + e.hours, 0);
+    const totalHours = totalAgg._sum.hours ?? 0;
+    const billableHours = billableAgg._sum.hours ?? 0;
 
     ok(res, { totalHours, billableHours, byProject, byUser });
   } catch (err) {

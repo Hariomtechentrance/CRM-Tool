@@ -29,21 +29,17 @@ const WBA_DESIGNATION_OPTIONS = [
   "CS Tutor", "Ethical Hacking Tutor",
 ];
 
-// Next EMP-#### code for an org — scans every employee (any status) so codes never collide
+// Next EMP-#### code for an org. Same approach as finance.controller.ts's
+// generateInvoiceNumber: a single COUNT() instead of pulling every
+// employee's code for the org into Node to regex-match and scan for the
+// max. createEmployee() already guards against a collision (a manually-
+// typed or legacy non-"EMP-####" code) with its own `exists` check right
+// after calling this, same safety net generateInvoiceNumber relies on — so
+// this is not a behavior regression, just a cheaper way to derive the next
+// number.
 async function generateEmployeeCode(organizationId: string): Promise<string> {
-  const rows = await prisma.employee.findMany({
-    where: { organizationId },
-    select: { employeeCode: true },
-  });
-  const taken = new Set(rows.map((r) => r.employeeCode));
-  let max = 0;
-  for (const r of rows) {
-    const m = /^EMP-(\d+)$/i.exec(r.employeeCode.trim());
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  let n = max + 1;
-  while (taken.has(`EMP-${String(n).padStart(4, "0")}`)) n += 1;
-  return `EMP-${String(n).padStart(4, "0")}`;
+  const count = await prisma.employee.count({ where: { organizationId } });
+  return `EMP-${String(count + 1).padStart(4, "0")}`;
 }
 
 const employeeSchema = z.object({

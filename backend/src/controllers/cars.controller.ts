@@ -1378,29 +1378,63 @@ export async function getMonthlyLeadReport(req: OrgRequest, res: Response): Prom
     const now = new Date();
     const totalMonths = Math.max(months, (now.getFullYear() - rangeStart.getFullYear()) * 12 + (now.getMonth() - rangeStart.getMonth()) + 1);
 
-    const leads = await db().carLead.findMany({
-      where: { organizationId: orgId, createdAt: { gte: rangeStart } },
-      select: { createdAt: true, source: true, status: true, testDriveDone: true },
-    });
+    // Grouped by Postgres (month + source, month + status) instead of
+    // pulling every buyer/seller lead in the window into Node to hand-bucket
+    // in JS. Already date-range bounded before this fix, so lower severity
+    // than the other instances in this file — but still 3 small grouped
+    // aggregate queries instead of 1 findMany whose size grows with however
+    // many leads this org has had in the last `months` (up to 24) months.
+    const [totalsRows, bySourceRows, byStatusRows] = await Promise.all([
+      prisma.$queryRaw<{ month_key: string; total: bigint; test_drives: bigint }[]>`
+        SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month_key,
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE "testDriveDone") AS test_drives
+        FROM "CarLead"
+        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart}
+        GROUP BY DATE_TRUNC('month', "createdAt")
+      `,
+      prisma.$queryRaw<{ month_key: string; source: string; count: bigint }[]>`
+        SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month_key, "source", COUNT(*) AS count
+        FROM "CarLead"
+        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart}
+        GROUP BY DATE_TRUNC('month', "createdAt"), "source"
+      `,
+      prisma.$queryRaw<{ month_key: string; status: string; count: bigint }[]>`
+        SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month_key, "status", COUNT(*) AS count
+        FROM "CarLead"
+        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart}
+        GROUP BY DATE_TRUNC('month', "createdAt"), "status"
+      `,
+    ]);
+    const totalsByMonth = new Map(totalsRows.map((r) => [r.month_key, r]));
+    const bySourceByMonth = new Map<string, Record<string, number>>();
+    for (const r of bySourceRows) {
+      const m = bySourceByMonth.get(r.month_key) ?? {};
+      m[r.source] = Number(r.count);
+      bySourceByMonth.set(r.month_key, m);
+    }
+    const byStatusByMonth = new Map<string, Record<string, number>>();
+    for (const r of byStatusRows) {
+      const m = byStatusByMonth.get(r.month_key) ?? {};
+      m[r.status] = Number(r.count);
+      byStatusByMonth.set(r.month_key, m);
+    }
 
     // Build one bucket per month, oldest first, even if empty.
     const buckets: Record<string, { month: string; totalEnquiries: number; bySource: Record<string, number>; byStatus: Record<string, number>; testDrivesDone: number; converted: number; salesBySource?: Record<string, number>; isHistorical?: boolean }> = {};
     for (let i = 0; i < totalMonths; i++) {
       const d = new Date(rangeStart); d.setMonth(d.getMonth() + i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      buckets[key] = { month: key, totalEnquiries: 0, bySource: {}, byStatus: {}, testDrivesDone: 0, converted: 0 };
-    }
-
-    for (const l of leads) {
-      const d = new Date(l.createdAt);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const b = buckets[key];
-      if (!b) continue; // outside range (shouldn't happen given the query filter)
-      b.totalEnquiries++;
-      b.bySource[l.source] = (b.bySource[l.source] ?? 0) + 1;
-      b.byStatus[l.status] = (b.byStatus[l.status] ?? 0) + 1;
-      if (l.testDriveDone) b.testDrivesDone++;
-      if (l.status === "CONVERTED") b.converted++;
+      const t = totalsByMonth.get(key);
+      const byStatus = byStatusByMonth.get(key) ?? {};
+      buckets[key] = {
+        month: key,
+        totalEnquiries: Number(t?.total ?? 0),
+        bySource: bySourceByMonth.get(key) ?? {},
+        byStatus,
+        testDrivesDone: Number(t?.test_drives ?? 0),
+        converted: byStatus["CONVERTED"] ?? 0,
+      };
     }
 
     // A historical row, where present, is the authoritative source of truth

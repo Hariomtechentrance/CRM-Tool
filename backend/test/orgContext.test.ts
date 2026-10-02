@@ -10,7 +10,7 @@ vi.mock("../src/lib/prisma", () => ({
   },
 }));
 
-import { requireOrgContext } from "../src/middleware/orgContext";
+import { requireOrgContext, invalidateOrgCtxState } from "../src/middleware/orgContext";
 
 function mkRes() {
   const res: any = { statusCode: 200 };
@@ -32,6 +32,12 @@ function mkReq(over: Record<string, unknown> = {}) {
 beforeEach(() => {
   findOrg.mockReset();
   findMember.mockReset();
+  // requireOrgContext now caches (org active? / member active+role?) for 15s
+  // (see orgContext.ts) so it doesn't cost two DB round trips on every
+  // request — every test here reuses the same user-1/org-A pair, so without
+  // clearing it a later test would silently see an earlier test's cached
+  // state instead of its own fresh mock.
+  invalidateOrgCtxState("user-1", "org-A");
 });
 
 describe("requireOrgContext — tenant isolation", () => {

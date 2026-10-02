@@ -74,7 +74,7 @@ export async function createCollection(req: OrgRequest, res: Response): Promise<
 
 export async function listVariants(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { productId, collectionId } = req.query as Record<string, string>;
+    const { productId, collectionId, limit } = req.query as Record<string, string>;
     const where: any = {
       product: { organizationId: req.organizationId! },
       isActive: true,
@@ -88,6 +88,9 @@ export async function listVariants(req: OrgRequest, res: Response): Promise<void
         collection: { select: { id: true, name: true, season: true } },
       },
       orderBy: [{ product: { name: "asc" } }, { color: "asc" }, { size: "asc" }],
+      // Frontend already sends ?limit=200 — this was previously ignored
+      // entirely, so honor it (bounded to a sane max) instead of a fixed cap.
+      take: Math.min(parseInt(limit) || 200, 500),
     });
     ok(res, variants);
   } catch (e) { serverError(res, e); }
