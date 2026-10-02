@@ -5,7 +5,10 @@ import {
   Briefcase, FileText, Headphones, Warehouse, ShoppingBag, Kanban,
   Globe, Mail, FileBox, Shield, Smartphone, Layers, MapPin,
   ChevronRight, Phone, UtensilsCrossed, Hotel as HotelIcon, Check, Zap,
-  Stethoscope,
+  Stethoscope, PackageOpen, ClipboardCheck, Wrench, LineChart, ShieldCheck,
+  Car, Scissors, Shirt, MessageCircle, Factory, Store, Code2, Scale,
+  Landmark, Megaphone, Building2, Sprout, GraduationCap, HeartHandshake,
+  SlidersHorizontal, IndianRupee, Infinity as InfinityIcon,
 } from "lucide-react";
 import ContactModal from "@/components/ContactModal";
 
@@ -29,19 +32,59 @@ const MODULES = [
   { Icon: UtensilsCrossed,name: "Restaurant POS",        tag: "Food & Hospitality", color: "#f97316", desc: "Petpooja-style POS — table management, KOT, menu builder, billing and kitchen display for restaurants & cafés.", features: ["Table & section management", "Menu categories with VEG/NON-VEG tags", "Kitchen Order Tickets (KOT)", "Dine-in / Takeaway / Delivery", "5% GST auto-calculation", "Raw material & supplier tracking"] },
   { Icon: HotelIcon,      name: "Hotel / Resort",        tag: "Food & Hospitality", color: "#0ea5e9", desc: "Complete hotel PMS — room management, guest profiles, bookings, check-in/check-out and revenue tracking.", features: ["Room types & floor management", "Guest profiles with ID verification", "Booking with availability check", "Check-in / Check-out workflow", "12% GST on room charges", "Monthly revenue dashboard"] },
   { Icon: Stethoscope,    name: "Health & Clinic",        tag: "Health",             color: "#10b981", desc: "Complete clinic & hospital management — verified doctors, patient records, appointment booking and a public patient portal.", features: ["Doctor registration with govt. document verification", "Patient profiles with auto codes (PT-00001)", "Appointment booking — verified doctors only", "Prescriptions with full medicine details", "Visit history, diagnosis & follow-up notes", "Public patient portal — no login needed"] },
+  { Icon: PackageOpen,    name: "Store (Inward)",         tag: "Core",               color: "#34d399", desc: "Record incoming goods, GRN entries, material receipts and the full inward register.", features: ["Goods receipt notes (GRN)", "Material inward register", "Linked to purchase orders", "Quantity & quality checks", "Supplier-wise history"] },
+  { Icon: ClipboardCheck, name: "Receptionist",           tag: "Core",               color: "#22d3ee", desc: "Visitor check-in/check-out log and courier/package register — works for any business.", features: ["Visitor check-in & check-out", "Host notification", "Courier & package register", "Visit history log", "Works for any business type"] },
+  { Icon: Phone,          name: "Tele-calling",           tag: "Industry",           color: "#34d399", desc: "Call center operations — call logs, scripts, DNC lists and dialer campaigns.", features: ["Call logging & outcomes", "Call scripts", "Do-Not-Call (DNC) list", "Dialer campaigns", "Agent performance tracking"] },
+  { Icon: Wrench,         name: "Services Company",       tag: "Industry",           color: "#fbbf24", desc: "Service catalog, AMC contracts, knowledge base and internal messaging.", features: ["Service catalog", "AMC / contract tracking", "Knowledge base articles", "Internal team messaging", "SLA policies"] },
+  { Icon: LineChart,      name: "Stock Market Advisory",  tag: "Industry",           color: "#f87171", desc: "Trade calls, research reports, advisory subscriptions and KYC management.", features: ["Trade call publishing", "Research reports", "Advisory subscriptions & plans", "Client KYC records", "Market alerts"] },
+  { Icon: Shirt,          name: "Retail & Fashion",       tag: "Industry",           color: "#c084fc", desc: "Size/color variants, collections, boutique POS, returns and style tracking.", features: ["Size & color variants", "Collections & seasons", "Boutique POS billing", "Returns management", "Style-level tracking"] },
+  { Icon: Scissors,       name: "Tailoring & Boutique",   tag: "Industry",           color: "#f472b6", desc: "Customer measurement profiles, made-to-order garment tracking from cutting through delivery, and trial/fitting scheduling.", features: ["Customer measurement profiles", "Order tracking (cutting to delivery)", "Trial & fitting scheduling", "Garment-wise status", "Delivery reminders"] },
+  { Icon: ShieldCheck,    name: "Service Delivery Pipeline", tag: "Industry",        color: "#2fb8a6", desc: "Sales-to-delivery pipeline for consulting engagements — VAPT, GRC, SOC, Digital Forensics, Awareness Training and Coaching, from accepted quotation to sign-off.", features: ["Quotation-to-delivery pipeline", "Engagement-type tracking", "Project milestones & sign-off", "Team assignment", "Client-facing status"] },
+  { Icon: Car,            name: "Car Resale",             tag: "Industry",           color: "#38bdf8", desc: "Buyer leads, sold-vehicle records and insurance renewal tracking for used-car resale.", features: ["Buyer & seller lead pipeline", "Vehicle inventory & sales", "Insurance renewal tracking", "Warranty tracking", "Monthly sales reports"] },
 ];
 
-const TAGS = ["All", "Core", "Growth", "Operations", "Communication", "Food & Hospitality", "Health"];
+// Pulled from the same business-type list a new org picks from at signup
+// (CreateOrgPage.tsx) — so this reflects what the platform actually supports,
+// not a marketing list invented separately from the product.
+const INDUSTRIES = [
+  { Icon: Globe,          name: "Import & Export" },
+  { Icon: ShoppingCart,   name: "Trading & Distribution" },
+  { Icon: Factory,        name: "Manufacturing" },
+  { Icon: ShoppingBag,    name: "Retail Stores" },
+  { Icon: Store,          name: "E-commerce" },
+  { Icon: UtensilsCrossed,name: "Restaurants & Cafés" },
+  { Icon: HotelIcon,      name: "Hotels & Resorts" },
+  { Icon: Code2,          name: "IT & Software" },
+  { Icon: Briefcase,      name: "Consulting & Services" },
+  { Icon: Scale,          name: "Legal Firms" },
+  { Icon: Landmark,       name: "Finance & Insurance" },
+  { Icon: Megaphone,      name: "Media & Marketing" },
+  { Icon: Building2,      name: "Real Estate & Construction" },
+  { Icon: Truck,          name: "Logistics & Transport" },
+  { Icon: Sprout,         name: "Agriculture" },
+  { Icon: Stethoscope,    name: "Healthcare & Clinics" },
+  { Icon: GraduationCap,  name: "Education & Coaching" },
+  { Icon: HeartHandshake, name: "NGOs & Non-profits" },
+];
+
+const TAGS = ["All", "Core", "Growth", "Operations", "Industry", "Communication", "Food & Hospitality", "Health"];
 const TAG_COLORS: Record<string, string> = {
-  Core: "#2e9cc4", Growth: "#10b981", Operations: "#f59e0b", Communication: "#0ea5e9",
+  Core: "#2e9cc4", Growth: "#10b981", Operations: "#f59e0b", Industry: "#8b5cf6", Communication: "#0ea5e9",
   "Food & Hospitality": "#f97316", Health: "#1f7ca0",
 };
 
 const WHY = [
+  { Icon: SlidersHorizontal, title: "Shaped Around Your Workflow", desc: "Turn modules on or off anytime. Every org's dashboard reflects how THEY work — not a rigid template everyone's forced into." },
   { Icon: MapPin,     title: "Built for Indian Business",  desc: "GSTIN, PAN, IEC, HSN codes, CGST/SGST/IGST — all Indian compliance baked in from day one." },
   { Icon: Layers,     title: "Everything in One Place",    desc: "CRM, inventory, HR, finance, projects — no switching between 6 apps. One login, one dashboard." },
   { Icon: Shield,     title: "Secure & Multi-tenant",      desc: "Each organisation is completely isolated. Role-based access, JWT auth, rate limiting and audit logs." },
   { Icon: Smartphone, title: "Fully Responsive",           desc: "Works on mobile, tablet and desktop. Manage your business from anywhere, any device." },
+];
+
+const PRICING_PILLARS = [
+  { Icon: IndianRupee,    title: "Start Free",             desc: "Get your organisation running at zero cost — no credit card, no setup fee, no trial countdown." },
+  { Icon: SlidersHorizontal, title: "Pay for What You Use", desc: "Modular pricing means you're never billed for a module you never turned on. No bloated bundles." },
+  { Icon: InfinityIcon,   title: "Scales With You",         desc: "Add modules, users or locations as you grow — same platform, no re-platforming or migration pain." },
 ];
 
 const STEPS = [
@@ -94,14 +137,14 @@ export default function LandingPage() {
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 14px 5px 8px", borderRadius: 20, background: "var(--brand-soft)", border: "1px solid var(--brand-border)", fontSize: 12, fontWeight: 600, color: "var(--brand-color)", marginBottom: 26 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--brand-color)", boxShadow: "0 0 0 3px var(--brand-soft)" }} />
-              The all-in-one business platform for Indian enterprises
+              Any industry. Any workflow. One affordable platform.
             </div>
             <h1 style={{ fontSize: "clamp(34px,4.6vw,54px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em", margin: "0 0 20px", color: "var(--text-primary)" }}>
-              Run your entire business{" "}
-              <span className="brand-text-gradient">from one platform</span>
+              Built for every business.{" "}
+              <span className="brand-text-gradient">Shaped around yours.</span>
             </h1>
             <p style={{ fontSize: "clamp(15px,1.6vw,17px)", color: "var(--text-faint)", maxWidth: 500, lineHeight: 1.7, marginBottom: 34 }}>
-              CRM, Inventory, HR &amp; Payroll, Finance, Projects, Import-Export and more — all integrated, all GST-compliant, built for India.
+              Retail shop or hospital, car dealership or IT consultancy — turn on only the modules your workflow needs, skip the rest, and pay for exactly that. All integrated, all GST-compliant.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={() => setShowContact(true)} style={{ padding: "14px 30px", borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 10px 28px rgba(116,205,232,0.32)" }}>
@@ -115,7 +158,7 @@ export default function LandingPage() {
             {/* Stats */}
             <div style={{ display: "flex", gap: 10, marginTop: 52, flexWrap: "wrap" }}>
               {[
-                { value: "16+",     label: "Modules" },
+                { value: "28+",     label: "Modules" },
                 { value: "100%",    label: "GST Compliant" },
                 { value: "Multi-org", label: "Support" },
                 { value: "Free",    label: "to Start" },
@@ -184,9 +227,27 @@ export default function LandingPage() {
               background: "linear-gradient(135deg,#2e9cc4,#74cde8)", borderRadius: 12, padding: "10px 16px",
               boxShadow: "0 16px 36px rgba(116,205,232,0.35)", transform: "rotate(-3deg)", fontSize: 12, fontWeight: 700, color: "#fff",
             }}>
-              <Zap size={14} /> 16 modules synced
+              <Zap size={14} /> 28+ modules synced
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Built for Every Industry ── */}
+      <section style={{ padding: "0 clamp(16px,4vw,64px) 72px" }}>
+        <div style={{ textAlign: "center", marginBottom: 32, maxWidth: 640, marginInline: "auto" }}>
+          <h2 style={{ fontSize: "clamp(20px,2.6vw,28px)", fontWeight: 800, margin: "0 0 10px" }}>Whatever Your Business, There's a Fit</h2>
+          <p style={{ color: "var(--text-ghost)", fontSize: 14, lineHeight: 1.6 }}>
+            BusinessOS isn't built for one kind of company — it's built to be reshaped for yours. These are just a few of the industries already running on it.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,170px),1fr))", gap: 10, maxWidth: 1100, marginInline: "auto" }}>
+          {INDUSTRIES.map(ind => (
+            <div key={ind.name} className="lift" style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
+              <ind.Icon size={16} color="var(--brand-color)" strokeWidth={1.8} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-sec)" }}>{ind.name}</span>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -279,6 +340,32 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Affordable by Design ── */}
+      <section style={{ padding: "60px clamp(16px,4vw,64px)" }}>
+        <div style={{ textAlign: "center", marginBottom: 40, maxWidth: 600, marginInline: "auto" }}>
+          <h2 style={{ fontSize: "clamp(20px,3vw,30px)", fontWeight: 800, margin: "0 0 10px" }}>Affordable by Design</h2>
+          <p style={{ color: "var(--text-ghost)", fontSize: 14, lineHeight: 1.6 }}>
+            No per-seat traps, no bloated all-in-one bundle. Your bill reflects your business, not our full feature list.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,240px),1fr))", gap: 18, maxWidth: 900, marginInline: "auto" }}>
+          {PRICING_PILLARS.map(p => (
+            <div key={p.title} className="lift" style={{ background: "var(--bg-card)", borderRadius: 14, padding: 24, border: "1px solid var(--border)", textAlign: "center" }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--brand-soft)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, marginInline: "auto" }}>
+                <p.Icon size={18} color="var(--brand-color)" strokeWidth={1.8} />
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{p.title}</div>
+              <div style={{ fontSize: 13, color: "var(--text-faint)", lineHeight: 1.6 }}>{p.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 32 }}>
+          <button onClick={() => setShowContact(true)} style={{ padding: "12px 28px", borderRadius: 10, background: "linear-gradient(135deg,#2e9cc4,#74cde8)", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 10px 28px rgba(116,205,232,0.28)" }}>
+            Get Your Custom Quote
+          </button>
+        </div>
+      </section>
+
       {/* ── How it works ── */}
       <section style={{ padding: "60px clamp(16px,4vw,64px)" }}>
         <h2 style={{ textAlign: "center", fontSize: "clamp(20px,3vw,30px)", fontWeight: 800, margin: "0 0 48px" }}>Get Running in 3 Steps</h2>
@@ -327,8 +414,11 @@ export default function LandingPage() {
             <a href="tel:7397962433" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
               <Phone size={14} color="var(--brand-color)" /> 73979 62433
             </a>
-            <a href="mailto:hariomvimal33333@gmail.com" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-              <Mail size={14} color="var(--brand-color)" /> hariomvimal33333@gmail.com
+            <a href="https://wa.me/917397962433" target="_blank" rel="noopener noreferrer" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <MessageCircle size={14} color="#25D366" /> WhatsApp
+            </a>
+            <a href="mailto:deployratech@gmail.com" className="lift" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-sec)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Mail size={14} color="var(--brand-color)" /> deployratech@gmail.com
             </a>
           </div>
         </div>
