@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import SupportChatWidget from "./SupportChatWidget";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 
@@ -58,6 +59,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <SupportChatWidget />
     </div>
   );
 }
