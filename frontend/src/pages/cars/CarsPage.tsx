@@ -1094,7 +1094,7 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
 // loan details, etc.), shown individually via CustomFieldRenderer instead
 // of being buried in the vehicle's notes field.
 // ═══════════════════════════════════════════════════════════════
-function VehicleDetailModal({ vehicle, onClose, onEdit }: { vehicle: Vehicle; onClose: () => void; onEdit?: () => void }) {
+function VehicleDetailModal({ vehicle, onClose, onEdit, onEditInsurance }: { vehicle: Vehicle; onClose: () => void; onEdit?: () => void; onEditInsurance?: () => void }) {
   const row = (label: string, value?: string | number | null) => value === undefined || value === null || value === "" ? null : (
     <div>
       <label style={S.label}>{label}</label>
@@ -1127,22 +1127,31 @@ function VehicleDetailModal({ vehicle, onClose, onEdit }: { vehicle: Vehicle; on
           {row("Customer Name (Bought From)", vehicle.sellerName)}
           {row("Customer Phone (Bought From)", vehicle.sellerPhone)}
         </div>
-        {vehicle.insurances?.[0] && (
+        {onEditInsurance && (
           <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Insurance</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {row("Provider", vehicle.insurances[0].provider)}
-              {row("Type", vehicle.insurances[0].type)}
-              {row("Valid Till", new Date(vehicle.insurances[0].endDate).toLocaleDateString("en-IN"))}
-              {row("Premium", vehicle.insurances[0].premium)}
-              {row("IDV", vehicle.insurances[0].idv)}
-              {row("OD Amount", vehicle.insurances[0].odAmount)}
-              {row("NCB", vehicle.insurances[0].ncb)}
-              {row("Payment Mode", vehicle.insurances[0].paymentMode)}
-              {row("Sharing", vehicle.insurances[0].sharing)}
-              {row("Source", vehicle.insurances[0].source)}
-              {row("Renewed By", vehicle.insurances[0].renewedBy)}
+            <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Insurance</div>
+              <button onClick={onEditInsurance} style={{ ...S.ghost, fontSize: 11, padding: "4px 9px" }}>
+                <Pencil size={11} /> {vehicle.insurances?.[0] ? "Renew / Edit" : "Add Insurance"}
+              </button>
             </div>
+            {vehicle.insurances?.[0] ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {row("Provider", vehicle.insurances[0].provider)}
+                {row("Type", vehicle.insurances[0].type)}
+                {row("Valid Till", new Date(vehicle.insurances[0].endDate).toLocaleDateString("en-IN"))}
+                {row("Premium", vehicle.insurances[0].premium)}
+                {row("IDV", vehicle.insurances[0].idv)}
+                {row("OD Amount", vehicle.insurances[0].odAmount)}
+                {row("NCB", vehicle.insurances[0].ncb)}
+                {row("Payment Mode", vehicle.insurances[0].paymentMode)}
+                {row("Sharing", vehicle.insurances[0].sharing)}
+                {row("Source", vehicle.insurances[0].source)}
+                {row("Renewed By", vehicle.insurances[0].renewedBy)}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>No insurance on file yet.</div>
+            )}
           </div>
         )}
         {vehicle.notes && (
@@ -2077,7 +2086,8 @@ export default function CarsPage() {
       )}
       {detailVehicle && (
         <VehicleDetailModal vehicle={detailVehicle} onClose={() => setDetailVehicle(null)}
-          onEdit={() => { setEditVehicle(detailVehicle); setDetailVehicle(null); }} />
+          onEdit={() => { setEditVehicle(detailVehicle); setDetailVehicle(null); }}
+          onEditInsurance={() => { setInsuranceFor(detailVehicle); setEditInsuranceRecord(detailVehicle.insurances?.[0] ?? null); setDetailVehicle(null); }} />
       )}
       {(showAddVehicle || acquireLead || editVehicle) && (
         <AddVehicleModal employees={employees} lead={acquireLead} vehicle={editVehicle}
