@@ -55,7 +55,12 @@ export default function AppLayout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header onMenuToggle={() => setSidebarOpen(p => !p)} />
-        <main className="flex-1 overflow-y-auto" style={{ background: "var(--bg-main)", padding: 0 }}>
+        {/* paddingBottom keeps page content (e.g. pagination controls) clear
+            of the fixed support-chat bubble (52px, bottom:24/right:24 —
+            see SupportChatWidget), which otherwise sits on top of whatever
+            happens to render at the bottom-right of a short or scrolled-to-
+            bottom page and blocks it from being clicked. */}
+        <main className="flex-1 overflow-y-auto" style={{ background: "var(--bg-main)", padding: 0, paddingBottom: 90 }}>
           <Outlet />
         </main>
       </div>
