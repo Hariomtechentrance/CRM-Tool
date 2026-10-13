@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type DragEvent } from "react";
 import api from "@/lib/api";
 import { Upload, FileText, FileSpreadsheet, File, Image, Trash2, Download, X, Plus, Paperclip, Eye } from "lucide-react";
+import DocumentScanModal from "./DocumentScanModal";
 
 // ── Types ───────────────────────────────────────────────────
 interface Doc {
@@ -60,6 +61,16 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Photos of paper documents (RC books, insurance copies, IDs...) are routed
+  // through the scan-and-compress modal one at a time before upload; a
+  // mutable ref queue (not state) avoids races between confirm/cancel clicks
+  // and the async state updates that would otherwise be needed to track it.
+  const SCANNABLE_TYPES = useRef(new Set(["image/jpeg", "image/png", "image/webp"])).current;
+  const scanQueueRef = useRef<File[]>([]);
+  const scanResultsRef = useRef<File[]>([]);
+  const otherFilesRef = useRef<File[]>([]);
+  const [currentScanFile, setCurrentScanFile] = useState<File | null>(null);
+
   const load = useCallback(async () => {
     if (!entityId) return;
     setLoading(true);
@@ -94,16 +105,52 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
     setUploading(false); setUploadProgress(0);
   };
 
+  // Advances to the next queued photo, or — once the queue is empty — fires
+  // the real upload with whatever non-image files were picked plus every
+  // scanned result collected so far (a skipped photo is simply left out).
+  const advanceScanQueue = useCallback(() => {
+    const next = scanQueueRef.current.shift();
+    if (next) { setCurrentScanFile(next); return; }
+    setCurrentScanFile(null);
+    const toUpload = [...otherFilesRef.current, ...scanResultsRef.current];
+    otherFilesRef.current = []; scanResultsRef.current = [];
+    if (toUpload.length) uploadFiles(toUpload);
+  }, [uploadFiles]);
+
+  const handleScanConfirm = useCallback((scanned: File) => {
+    scanResultsRef.current.push(scanned);
+    advanceScanQueue();
+  }, [advanceScanQueue]);
+
+  const handleScanCancel = useCallback(() => {
+    advanceScanQueue(); // skip this one photo, keep the rest of the batch
+  }, [advanceScanQueue]);
+
+  // Routes any photo (jpeg/png/webp) through the scan-and-compress modal
+  // before it's uploaded; PDFs/Office files/etc. go straight through as
+  // before. Multiple photos queue one at a time rather than opening several
+  // modals at once.
+  const startUpload = (files: File[]) => {
+    if (!files.length) return;
+    const scannable = files.filter(f => SCANNABLE_TYPES.has(f.type));
+    const rest = files.filter(f => !SCANNABLE_TYPES.has(f.type));
+    if (scannable.length === 0) { uploadFiles(rest); return; }
+    scanQueueRef.current = scannable;
+    otherFilesRef.current = rest;
+    scanResultsRef.current = [];
+    advanceScanQueue();
+  };
+
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    uploadFiles(files);
+    startUpload(files);
     e.target.value = "";
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault(); setDragOver(false);
     const files = Array.from(e.dataTransfer.files);
-    uploadFiles(files);
+    startUpload(files);
   };
 
   const handleDownload = async (doc: Doc) => {
@@ -144,6 +191,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
   // ── Compact mode (embedded in modals) ──────────────────────
   if (compact) {
     return (
+      <>
       <div>
         {/* Header row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -194,7 +242,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
           }}
         >
           <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>Drag files here or <span style={{ color: "#818CF8" }}>click to browse</span></span>
-          <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 2 }}>PDF, CSV, Excel, Word, Images • Max 20 MB</div>
+          <div style={{ fontSize: 10, color: "var(--text-ghost)", marginTop: 2 }}>PDF, CSV, Excel, Word, Images • Max 20 MB • Photos are auto-scanned &amp; compressed</div>
         </div>
 
         {/* File list — compact */}
@@ -230,11 +278,16 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
           <div style={{ fontSize: 11, color: "var(--text-ghost)", textAlign: "center", padding: "4px 0" }}>No attachments yet</div>
         )}
       </div>
+      {currentScanFile && (
+        <DocumentScanModal file={currentScanFile} onCancel={handleScanCancel} onConfirm={handleScanConfirm} />
+      )}
+      </>
     );
   }
 
   // ── Full mode (for dedicated tabs/pages) ───────────────────
   return (
+    <>
     <div>
       {/* Drag-drop upload zone */}
       <div
@@ -267,7 +320,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
               {dragOver ? "Drop files here" : "Drag & drop files or click to browse"}
             </p>
             <p style={{ fontSize: 12, color: "var(--text-ghost)", margin: 0 }}>
-              PDF, CSV, Excel, Word, Images, TXT — Max 20 MB per file
+              PDF, CSV, Excel, Word, Images, TXT — Max 20 MB per file. Photos are auto-scanned &amp; compressed.
             </p>
           </>
         )}
@@ -337,5 +390,9 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
         </div>
       )}
     </div>
+    {currentScanFile && (
+      <DocumentScanModal file={currentScanFile} onCancel={handleScanCancel} onConfirm={handleScanConfirm} />
+    )}
+    </>
   );
 }

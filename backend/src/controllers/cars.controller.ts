@@ -65,6 +65,25 @@ async function notContactedWhere(orgId: string, since: Date | undefined): Promis
   return where;
 }
 
+// Leads with a non-empty imported/maintained "Lead Status" custom field are
+// treated as contacted. Keep this paired with notContactedWhere() so the two
+// Buyer Leads filters use the same source of truth.
+async function contactedWhere(orgId: string): Promise<Record<string, unknown>> {
+  const where: Record<string, unknown> = { organizationId: orgId, leadType: "BUYER" };
+  const fieldId = await getLeadStatusFieldId(orgId);
+  if (!fieldId) {
+    where.id = "__NO_CONTACTED_LEADS__";
+    return where;
+  }
+  const contacted = await db().customFieldValue.findMany({
+    where: { customFieldId: fieldId, value: { not: "" } },
+    select: { entityId: true },
+  });
+  const ids = contacted.map((value: { entityId: string }) => value.entityId);
+  where.id = { in: ids };
+  return where;
+}
+
 function computeWarrantyEndDate(soldAt: Date | undefined | null, warrantyMonths: number | undefined | null): Date | undefined {
   if (!warrantyMonths) return undefined;
   const base = soldAt ?? new Date();
@@ -104,6 +123,9 @@ const carLeadSchema = z.object({
   tradeInVehicle: z.string().optional(),
   source: z.enum(["WALK_IN", "PHONE", "WEBSITE", "INSTAGRAM", "META_ADS", "SEO", "REFERRAL", "RS", "DS", "CTE", "OTHER"]).default("OTHER"),
   status: z.enum(["NEW", "HOT", "WARM", "COLD", "URGENT", "CONTACTED", "NOT_INTERESTED", "CONVERTED", "LOST"]).default("NEW"),
+  // "Lead Status" pipeline filter — separate from `status` ("Lead Rating")
+  // above, per the client's two-filter tracking sheet.
+  leadStage: z.enum(["SEARCHING_CAR", "DETAILS_SENT", "TEST_DRIVE_PLANNED", "TEST_DRIVE_DONE", "IN_NEGOTIATION", "BOOKED", "CNR"]).default("SEARCHING_CAR"),
   notes: z.string().optional(),
   isDoNotCall: z.boolean().optional(),
   testDriveDone: z.boolean().optional(),
@@ -112,6 +134,34 @@ const carLeadSchema = z.object({
   assignedToId: z.string().optional(),
   nextFollowUpDate: z.string().optional(),
   convertedVehicleId: z.string().optional(),
+
+  // Shared buyer/seller
+  location: z.string().optional(),
+
+  // Buyer-only intake fields
+  preferredYearFrom: z.number().int().optional(),
+  preferredYearTo: z.number().int().optional(),
+  fuelPreferences: z.array(z.string()).optional(),
+  transmissionPreferences: z.array(z.string()).optional(),
+  colorPreference: z.string().optional(),
+  registrationPref: z.enum(["LOCAL", "ANY"]).optional(),
+  purchasePlan: z.enum(["IMMEDIATE", "WITHIN_A_WEEK", "WITHIN_A_MONTH", "ASAP"]).optional(),
+  paymentPreference: z.enum(["CASH", "LOAN"]).optional(),
+
+  // Seller-only intake fields (the car being sold)
+  variant: z.string().optional(),
+  fuelType: z.string().optional(),
+  transmission: z.string().optional(),
+  mfgYear: z.number().int().optional(),
+  mfgMonth: z.number().int().min(1).max(12).optional(),
+  regYear: z.number().int().optional(),
+  regMonth: z.number().int().min(1).max(12).optional(),
+  sellerInsuranceType: z.enum(["THIRD_PARTY", "COMPREHENSIVE", "ZERO_DEP"]).optional(),
+  insuranceValidTill: z.string().optional(),
+  kms: z.number().int().optional(),
+  showroomHistory: z.enum(["YES", "NO", "PARTIAL"]).optional(),
+  hypothecationStatus: z.enum(["YES", "CLOSED", "NO"]).optional(),
+  refurbNotes: z.string().optional(),
 });
 
 const vehicleSchema = z.object({
@@ -170,17 +220,20 @@ const insuranceSchema = z.object({
 
 export async function listCarLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, search, assignedToId, dnc, followUp, leadType, notContacted, notContactedSince, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, leadStage, search, assignedToId, dnc, followUp, leadType, contacted, notContacted, notContactedSince, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId! };
     if (status) where.status = status;
+    if (leadStage) where.leadStage = leadStage;
     if (assignedToId) where.assignedToId = assignedToId;
     // "Not Contacted" worklist — see notContactedWhere() above. Bounded to a
     // recency window by default (override with notContactedSince=<date> or
     // "all") since the unbounded set can be the org's entire buyer-lead
     // history, most of which predates this field and was never meant to
     // count as "needs a first call."
-    if (notContacted === "true") {
+    if (contacted === "true") {
+      Object.assign(where, await contactedWhere(req.organizationId!));
+    } else if (notContacted === "true") {
       Object.assign(where, await notContactedWhere(req.organizationId!, resolveNotContactedSince(notContactedSince)));
     }
     if (dnc === "true") where.isDoNotCall = true;
@@ -277,6 +330,7 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
         tradeInVehicle: up(data.tradeInVehicle),
         source: data.source,
         status: data.status,
+        leadStage: data.leadStage,
         notes: data.notes || undefined,
         isDoNotCall: data.isDoNotCall ?? false,
         testDriveDone: data.testDriveDone ?? false,
@@ -284,6 +338,28 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
         lastContactedAt: data.lastContactedAt ? new Date(data.lastContactedAt) : undefined,
         assignedToId: data.assignedToId || undefined,
         nextFollowUpDate: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : undefined,
+        location: data.location || undefined,
+        preferredYearFrom: data.preferredYearFrom,
+        preferredYearTo: data.preferredYearTo,
+        fuelPreferences: data.fuelPreferences?.map(f => up(f)!),
+        transmissionPreferences: data.transmissionPreferences?.map(t => up(t)!),
+        colorPreference: up(data.colorPreference),
+        registrationPref: data.registrationPref,
+        purchasePlan: data.purchasePlan,
+        paymentPreference: data.paymentPreference,
+        variant: up(data.variant),
+        fuelType: up(data.fuelType),
+        transmission: up(data.transmission),
+        mfgYear: data.mfgYear,
+        mfgMonth: data.mfgMonth,
+        regYear: data.regYear,
+        regMonth: data.regMonth,
+        sellerInsuranceType: data.sellerInsuranceType,
+        insuranceValidTill: data.insuranceValidTill ? new Date(data.insuranceValidTill) : undefined,
+        kms: data.kms,
+        showroomHistory: data.showroomHistory,
+        hypothecationStatus: data.hypothecationStatus,
+        refurbNotes: data.refurbNotes || undefined,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
@@ -310,6 +386,13 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
         email: data.email === "" ? null : data.email,
         nextFollowUpDate: data.nextFollowUpDate !== undefined ? (data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null) : undefined,
         lastContactedAt: data.lastContactedAt !== undefined ? (data.lastContactedAt ? new Date(data.lastContactedAt) : null) : undefined,
+        colorPreference: data.colorPreference !== undefined ? up(data.colorPreference) : undefined,
+        variant: data.variant !== undefined ? up(data.variant) : undefined,
+        fuelType: data.fuelType !== undefined ? up(data.fuelType) : undefined,
+        transmission: data.transmission !== undefined ? up(data.transmission) : undefined,
+        fuelPreferences: data.fuelPreferences !== undefined ? data.fuelPreferences.map(f => up(f)!) : undefined,
+        transmissionPreferences: data.transmissionPreferences !== undefined ? data.transmissionPreferences.map(t => up(t)!) : undefined,
+        insuranceValidTill: data.insuranceValidTill !== undefined ? (data.insuranceValidTill ? new Date(data.insuranceValidTill) : null) : undefined,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
@@ -788,6 +871,10 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
             paymentMode: insuranceInput.paymentMode, sharing: insuranceInput.sharing,
             source: insuranceInput.source, renewedBy: insuranceInput.renewedBy,
             notes: insuranceInput.notes,
+            // Identification mark so this policy can be told apart from a
+            // standalone insurance-only sale in the Insurance list/reports —
+            // see the field comment on VehicleInsurance in schema.prisma.
+            convertedFromCarLead: true,
           },
         });
       }
@@ -841,7 +928,11 @@ export async function listVehicles(req: OrgRequest, res: Response): Promise<void
     const [vehicles, total] = await Promise.all([
       db().vehicle.findMany({
         where, skip, take: parseInt(limit),
-        include: { insurances: { orderBy: { endDate: "desc" }, take: 1 } },
+        // sourceLead.leadType lets the UI badge a vehicle as "from a buyer
+        // lead" vs "from a seller lead" vs a direct Add Vehicle entry (no
+        // sourceLead at all) — the client's ask: a visible way to tell which
+        // conversion path a Vehicle/Insurance record came from.
+        include: { insurances: { orderBy: { endDate: "desc" }, take: 1 }, sourceLead: { select: { leadType: true } } },
         orderBy: { createdAt: "desc" },
       }),
       db().vehicle.count({ where }),
@@ -1297,7 +1388,7 @@ export async function listExpiringInsurance(req: OrgRequest, res: Response): Pro
     const vehicles = matches.length
       ? await db().vehicle.findMany({
           where: { id: { in: matches.map(m => m.id) } },
-          include: { insurances: { orderBy: { endDate: "desc" }, take: 1 } },
+          include: { insurances: { orderBy: { endDate: "desc" }, take: 1 }, sourceLead: { select: { leadType: true } } },
         })
       : [];
     vehicles.sort((a: any, b: any) => (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0));

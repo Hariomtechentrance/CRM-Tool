@@ -256,18 +256,18 @@ model Organization {
   healthAppointments HealthAppointment[]
 
   // Phase 6 — Food & Hospitality
-  restaurantTables  RestaurantTable[]
-  menuCategories    MenuCategory[]
-  menuItems         MenuItem[]
-  kots              KOT[]
-  restaurantBills   RestaurantBill[]
-  tableReservations TableReservation[]
+  restaurantTables    RestaurantTable[]
+  menuCategories      MenuCategory[]
+  menuItems           MenuItem[]
+  kots                KOT[]
+  restaurantBills     RestaurantBill[]
+  tableReservations   TableReservation[]
   ingredients         Ingredient[]
   ingredientMovements IngredientMovement[]
-  roomTypes         RoomType[]
-  hotelRooms        HotelRoom[]
-  guestProfiles     GuestProfile[]
-  hotelBookings     HotelBooking[]
+  roomTypes           RoomType[]
+  hotelRooms          HotelRoom[]
+  guestProfiles       GuestProfile[]
+  hotelBookings       HotelBooking[]
 
   // Phase 7 — Reception / Front Desk
   visitors    Visitor[]
@@ -3547,8 +3547,8 @@ model MenuItem {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  category     MenuCategory      @relation(fields: [categoryId], references: [id])
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category     MenuCategory         @relation(fields: [categoryId], references: [id])
   variants     MenuItemVariant[]
   addons       MenuItemAddon[]
   kotItems     KOTItem[]
@@ -3575,7 +3575,7 @@ model Ingredient {
   id             String   @id @default(cuid())
   organizationId String
   name           String
-  unit           String   // e.g. "ml", "g", "kg", "l", "pcs"
+  unit           String // e.g. "ml", "g", "kg", "l", "pcs"
   currentStock   Float    @default(0)
   reorderLevel   Float    @default(0)
   costPerUnit    Float    @default(0)
@@ -3596,7 +3596,7 @@ model MenuItemIngredient {
   id           String   @id @default(cuid())
   menuItemId   String
   ingredientId String
-  quantityUsed Float    // amount of ingredient consumed per 1 unit of menu item sold
+  quantityUsed Float // amount of ingredient consumed per 1 unit of menu item sold
   createdAt    DateTime @default(now())
 
   menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
@@ -3612,9 +3612,9 @@ model IngredientMovement {
   organizationId String
   ingredientId   String
   type           IngredientMovementType
-  quantity       Float                  // negative for deductions, positive for restock/adjustment in
+  quantity       Float // negative for deductions, positive for restock/adjustment in
   balanceAfter   Float
-  referenceType  String?                // "KOT"
+  referenceType  String? // "KOT"
   referenceId    String?
   notes          String?
   createdAt      DateTime               @default(now())
@@ -4047,38 +4047,112 @@ enum CarLeadType {
   SELLER
 }
 
+// "Lead Status" pipeline/funnel stage — kept separate from `status` (the
+// HOT/WARM/COLD/CONTACTED/NEW "Lead Rating" filter) per the client's own
+// two-filter tracking sheet: Rating is a temperature, Stage is where the
+// deal actually is. CNR ("Call Not Received/Reachable") can be set from any
+// stage — it's a call-outcome flag, not a forward step in the funnel.
+enum CarLeadStage {
+  SEARCHING_CAR
+  DETAILS_SENT
+  TEST_DRIVE_PLANNED
+  TEST_DRIVE_DONE
+  IN_NEGOTIATION
+  BOOKED
+  CNR
+}
+
+enum CarRegistrationPref {
+  LOCAL
+  ANY
+}
+
+enum CarPurchasePlan {
+  IMMEDIATE
+  WITHIN_A_WEEK
+  WITHIN_A_MONTH
+  ASAP
+}
+
+enum CarPaymentPreference {
+  CASH
+  LOAN
+}
+
+enum CarShowroomHistory {
+  YES
+  NO
+  PARTIAL
+}
+
+enum CarHypothecationStatus {
+  YES
+  CLOSED
+  NO
+}
+
 model CarLead {
-  id                 String        @id @default(cuid())
-  organizationId     String
-  leadType           CarLeadType   @default(BUYER)
-  name               String
-  phone              String?
-  email              String?
-  interestedMake     String? // buyer: car they want to buy · seller: car they want to sell
-  interestedModel    String?
+  id                           String        @id @default(cuid())
+  organizationId               String
+  leadType                     CarLeadType   @default(BUYER)
+  name                         String
+  phone                        String?
+  email                        String?
+  interestedMake               String? // buyer: car they want to buy · seller: car they want to sell
+  interestedModel              String?
   additionalInterestedVehicles Json? // extra {make,model} pairs beyond the primary one above — a buyer open to several options
-  budgetMin          Float? // buyer: budget range · seller: asking price range
-  budgetMax          Float?
-  hasExchangeVehicle Boolean?      // buyer: do they have a car to exchange/trade in?
-  tradeInVehicle     String? // free text details of that exchange car, e.g. "2018 Honda City"
-  source             CarLeadSource @default(OTHER)
-  status             CarLeadStatus @default(NEW)
-  notes              String?
-  isDoNotCall        Boolean       @default(false)
-  testDriveDone      Boolean       @default(false)
-  bookingDone        Boolean       @default(false)
-  lastContactedAt    DateTime? // last call attempt — set manually, no calling integration
-  assignedToId       String? // User.id — no FK relation (loose ref, same convention as Lead.assignedToId)
-  nextFollowUpDate   DateTime?
-  convertedVehicleId String?       @unique
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  budgetMin                    Float? // buyer: budget range · seller: asking price range
+  budgetMax                    Float?
+  hasExchangeVehicle           Boolean? // buyer: do they have a car to exchange/trade in?
+  tradeInVehicle               String? // free text details of that exchange car, e.g. "2018 Honda City"
+  source                       CarLeadSource @default(OTHER)
+  status                       CarLeadStatus @default(NEW) // "Lead Rating" filter — HOT/WARM/COLD/etc.
+  leadStage                    CarLeadStage  @default(SEARCHING_CAR) // "Lead Status" filter — pipeline stage, see enum comment
+  notes                        String?
+  isDoNotCall                  Boolean       @default(false)
+  testDriveDone                Boolean       @default(false)
+  bookingDone                  Boolean       @default(false)
+  lastContactedAt              DateTime? // last call attempt — set manually, no calling integration
+  assignedToId                 String? // User.id — no FK relation (loose ref, same convention as Lead.assignedToId)
+  nextFollowUpDate             DateTime?
+  convertedVehicleId           String?       @unique
+  createdAt                    DateTime      @default(now())
+  updatedAt                    DateTime      @updatedAt
+
+  // ── Shared buyer/seller intake field ──────────────────────────
+  location String? // buyer: their city/area · seller: car's city/area
+
+  // ── Buyer-only intake fields ───────────────────────────────────
+  preferredYearFrom       Int? // desired manufacture-year range, e.g. 2020–2024
+  preferredYearTo         Int?
+  fuelPreferences         String[] // multi-select — free catalog values, see vehicleCatalog.ts FUEL_TYPES
+  transmissionPreferences String[] // multi-select — free catalog values, see vehicleCatalog.ts TRANSMISSION_TYPES
+  colorPreference         String?
+  registrationPref        CarRegistrationPref?
+  purchasePlan            CarPurchasePlan?
+  paymentPreference       CarPaymentPreference?
+
+  // ── Seller-only intake fields (the car being sold) ─────────────
+  variant             String?
+  fuelType            String? // single value — free catalog value, see vehicleCatalog.ts FUEL_TYPES
+  transmission        String? // single value — free catalog value, see vehicleCatalog.ts TRANSMISSION_TYPES
+  mfgYear             Int?
+  mfgMonth            Int? // 1-12
+  regYear             Int?
+  regMonth            Int? // 1-12
+  sellerInsuranceType InsuranceType?
+  insuranceValidTill  DateTime?
+  kms                 Int?
+  showroomHistory     CarShowroomHistory?
+  hypothecationStatus CarHypothecationStatus?
+  refurbNotes         String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   vehicle      Vehicle?     @relation(fields: [convertedVehicleId], references: [id])
 
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([organizationId, leadStage])
   @@index([organizationId, leadType, createdAt])
   @@index([assignedToId])
 }
@@ -4138,25 +4212,31 @@ enum InsuranceType {
 }
 
 model VehicleInsurance {
-  id             String        @id @default(cuid())
-  organizationId String
-  vehicleId      String
-  provider       String
-  policyNumber   String?
-  type           InsuranceType @default(THIRD_PARTY)
-  startDate      DateTime
-  endDate        DateTime
-  premium        Float?
-  idv            Float? // Insured Declared Value
-  odAmount       Float? // Own Damage premium component
-  ncb            Float? // No Claim Bonus, as a percentage
-  paymentMode    String?
-  sharing        String? // co-owner/sharing arrangement, free text
-  source         String? // where this policy business came from (agent, direct, referral, etc.)
-  renewedBy      String? // staff member who processed this renewal
-  notes          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                   String        @id @default(cuid())
+  organizationId       String
+  vehicleId            String
+  provider             String
+  policyNumber         String?
+  type                 InsuranceType @default(THIRD_PARTY)
+  startDate            DateTime
+  endDate              DateTime
+  premium              Float?
+  idv                  Float? // Insured Declared Value
+  odAmount             Float? // Own Damage premium component
+  ncb                  Float? // No Claim Bonus, as a percentage
+  paymentMode          String?
+  sharing              String? // co-owner/sharing arrangement, free text
+  source               String? // where this policy business came from (agent, direct, referral, etc.)
+  renewedBy            String? // staff member who processed this renewal
+  notes                String?
+  // Identification mark for the "mixed with regular insurance enquiries"
+  // problem: set true only by convertCarLead's auto-created first policy, so
+  // the UI can badge/color-code a policy that originated from a converted
+  // car-buy lead vs. a standalone insurance-only sale. Never set by the
+  // normal Add/Edit Insurance forms.
+  convertedFromCarLead Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   vehicle      Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
