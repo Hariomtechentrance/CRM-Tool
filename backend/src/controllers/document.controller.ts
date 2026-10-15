@@ -27,7 +27,13 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 // Magic bytes to verify actual file content matches declared MIME type
 // Prevents "image.php.jpg" attacks where a malicious file lies about its type
 const MAGIC_BYTES: Record<string, (buf: Buffer) => boolean> = {
-  "application/pdf":   b => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46,  // %PDF
+  // Per the PDF spec (ISO 32000-1 §7.5.2), the %PDF- header isn't required to
+  // sit at byte 0 — real files from scanners, "print to PDF", and sharing
+  // tools routinely prepend a few junk/whitespace bytes, and readers are
+  // expected to scan for the signature within the first 1024 bytes. A strict
+  // byte-0 check was rejecting genuine PDFs (e.g. uploads forwarded through
+  // WhatsApp) as "content doesn't match declared type".
+  "application/pdf":   b => b.subarray(0, 1024).includes(Buffer.from("%PDF")),
   "image/jpeg":        b => b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF,
   "image/png":         b => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47,  // PNG
   "image/webp":        b => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50,  // RIFF....WEBP
