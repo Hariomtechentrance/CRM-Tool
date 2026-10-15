@@ -6,7 +6,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
-import { ok, serverError } from "../utils/response";
+import { ok, badRequest, serverError } from "../utils/response";
 
 // ── Allowed MIME types ──────────────────────────────────────
 const ALLOWED_TYPES: Record<string, string> = {
@@ -166,7 +166,15 @@ export async function uploadDocuments(req: OrgRequest, res: Response): Promise<v
     }));
 
     ok(res, { documents }, `${documents.length} file(s) uploaded`);
-  } catch (e) { serverError(res, e); }
+  } catch (e) {
+    // The magic-bytes check above throws with an explicit .status/message —
+    // without this check it fell through to serverError()'s generic
+    // "Internal server error", hiding the actual reason (content/type
+    // mismatch) behind what looked like a server crash.
+    const status = (e as { status?: number })?.status;
+    if (status === 400) { badRequest(res, (e as Error).message); return; }
+    serverError(res, e);
+  }
 }
 
 // ── List documents for an entity ───────────────────────────
