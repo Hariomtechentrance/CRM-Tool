@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
-  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2,
+  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2, Clock,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
@@ -70,6 +70,28 @@ const SELLER_INSURANCE_TYPES: Record<string, string> = { THIRD_PARTY: "Third Par
 const SHOWROOM_HISTORY_OPTS: Record<string, string> = { YES: "Yes", NO: "No", PARTIAL: "Partial" };
 const HYPOTHECATION_OPTS: Record<string, string> = { YES: "Yes", CLOSED: "Closed", NO: "No" };
 
+// Restricted dropdowns for the Lead edit form's "Car Details" block — a
+// short, fixed list per the client's ask, deliberately narrower than the
+// full VEHICLE_CATALOG fuel/transmission lists used by the actual Vehicle
+// inventory forms (AddVehicleModal etc.), which still need the broader set.
+const LEAD_FUEL_TYPES = ["Petrol", "Diesel", "EV", "Hybrid", "CNG"] as const;
+const LEAD_TRANSMISSION_TYPES = ["AT", "MT", "IMT"] as const;
+
+// Plain fixed-list select that still shows a legacy value saved before this
+// list existed (e.g. "Manual" from the old broader catalog) instead of
+// silently blanking it — but never offers it going forward.
+function FixedSelect({ value, onChange, options, placeholder = "Select…" }: {
+  value: string; onChange: (v: string) => void; options: readonly string[]; placeholder?: string;
+}) {
+  const shownOptions = value && !options.includes(value as any) ? [value, ...options] : options;
+  return (
+    <select style={{ ...S.inp, width: "100%" }} value={value} onChange={e => onChange(e.target.value)}>
+      <option value="">{placeholder}</option>
+      {shownOptions.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
+
 const VEHICLE_STATUS: Record<string, { label: string; color: string; bg: string }> = {
   IN_STOCK: { label: "In Stock", color: "#818cf8", bg: "#1e1b4b" },
   RESERVED: { label: "Reserved", color: "#fbbf24", bg: "#451a03" },
@@ -81,7 +103,7 @@ interface CarLead {
   id: string; leadType?: string; name: string; phone?: string; email?: string;
   interestedMake?: string; interestedModel?: string; budgetMin?: number; budgetMax?: number;
   additionalInterestedVehicles?: { make: string; model: string }[];
-  hasExchangeVehicle?: boolean; tradeInVehicle?: string; source: string; status: string; notes?: string;
+  hasExchangeVehicle?: boolean; tradeInVehicle?: string; source: string; sourceOther?: string; status: string; notes?: string;
   leadStage?: string;
   isDoNotCall?: boolean; testDriveDone?: boolean; bookingDone?: boolean; lastContactedAt?: string;
   assignedToId?: string; assignedTo?: { name: string } | null;
@@ -105,7 +127,9 @@ interface Insurance {
   idv?: number; odAmount?: number; ncb?: number; paymentMode?: string; sharing?: string;
   source?: string; renewedBy?: string;
   notes?: string;
+  nextFollowUpDate?: string;
   convertedFromCarLead?: boolean;
+  vehicle?: { id: string; make?: string; model?: string; registrationNo?: string; ownerName?: string; ownerPhone?: string; sellerName?: string; sellerPhone?: string; assignedToId?: string };
 }
 interface Vehicle {
   id: string; make: string; model: string; variant?: string; year?: number;
@@ -332,6 +356,7 @@ interface InsuranceFormState {
   provider: string; policyNumber: string; type: string;
   startDate: string; endDate: string; premium: string;
   odAmount: string; sharing: string; source: string; renewedBy: string;
+  nextFollowUpDate: string;
 }
 function InsuranceFields({ value, onChange }: { value: InsuranceFormState; onChange: (v: InsuranceFormState) => void }) {
   return (
@@ -355,6 +380,7 @@ function InsuranceFields({ value, onChange }: { value: InsuranceFormState; onCha
       <div><label style={S.label}>Sharing</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. co-owner split" value={value.sharing} onChange={e => onChange({ ...value, sharing: e.target.value })} /></div>
       <div><label style={S.label}>Source</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Agent, Direct, Referral" value={value.source} onChange={e => onChange({ ...value, source: e.target.value })} /></div>
       <div><label style={S.label}>Renewed By</label><input style={{ ...S.inp, width: "100%" }} placeholder="Staff name" value={value.renewedBy} onChange={e => onChange({ ...value, renewedBy: e.target.value })} /></div>
+      <div><label style={S.label}>Next Follow-up Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={value.nextFollowUpDate} onChange={e => onChange({ ...value, nextFollowUpDate: e.target.value })} /></div>
     </div>
   );
 }
@@ -371,13 +397,23 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   onClose: () => void; onSaved: () => void; onConvert?: (lead: CarLead) => void;
   onExchangeToSell?: (seed: { name: string; phone: string; interestedMake: string; interestedModel: string }) => void;
 }) {
+  // Default-prefilled fields for a brand-new Seller lead (Make, Model,
+  // Transmission, Manufacturing Year) — speeds up data entry for the most
+  // common case instead of opening every field blank. Never applied when
+  // editing an existing lead (its real values always win) or for Buyer
+  // leads, which have no equivalent default anywhere else in the app.
+  const isNewSellerLead = !lead && (defaultLeadType ?? "BUYER") === "SELLER";
+  const DEFAULT_SELLER_MAKE = "Maruti Suzuki";
+  const DEFAULT_SELLER_MODEL = modelsForMake(DEFAULT_SELLER_MAKE)[0] ?? "";
+
   const [form, setForm] = useState({
     leadType: lead?.leadType ?? defaultLeadType ?? "BUYER",
     name: lead?.name ?? seedValues?.name ?? "", phone: lead?.phone ?? seedValues?.phone ?? "", email: lead?.email ?? "",
-    interestedMake: lead?.interestedMake ?? seedValues?.interestedMake ?? "", interestedModel: lead?.interestedModel ?? seedValues?.interestedModel ?? "",
+    interestedMake: lead?.interestedMake ?? seedValues?.interestedMake ?? (isNewSellerLead ? DEFAULT_SELLER_MAKE : ""),
+    interestedModel: lead?.interestedModel ?? seedValues?.interestedModel ?? (isNewSellerLead ? DEFAULT_SELLER_MODEL : ""),
     budgetMin: lead?.budgetMin?.toString() ?? "", budgetMax: lead?.budgetMax?.toString() ?? "",
     hasExchangeVehicle: lead?.hasExchangeVehicle ?? false,
-    tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? "WALK_IN",
+    tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? "WALK_IN", sourceOther: lead?.sourceOther ?? "",
     status: lead?.status ?? "NEW", notes: lead?.notes ?? "",
     leadStage: lead?.leadStage ?? "SEARCHING_CAR",
     isDoNotCall: lead?.isDoNotCall ?? false,
@@ -392,8 +428,10 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
     colorPreference: lead?.colorPreference ?? "", registrationPref: lead?.registrationPref ?? "",
     purchasePlan: lead?.purchasePlan ?? "", paymentPreference: lead?.paymentPreference ?? "",
     // Seller-only
-    variant: lead?.variant ?? "", fuelType: lead?.fuelType ?? "", transmission: lead?.transmission ?? "",
-    mfgYear: lead?.mfgYear?.toString() ?? "", mfgMonth: lead?.mfgMonth?.toString() ?? "",
+    variant: lead?.variant ?? "", fuelType: lead?.fuelType ?? "",
+    transmission: lead?.transmission ?? (isNewSellerLead ? "MT" : ""),
+    mfgYear: lead?.mfgYear?.toString() ?? (isNewSellerLead ? String(new Date().getFullYear()) : ""),
+    mfgMonth: lead?.mfgMonth?.toString() ?? "",
     regYear: lead?.regYear?.toString() ?? "", regMonth: lead?.regMonth?.toString() ?? "",
     sellerInsuranceType: lead?.sellerInsuranceType ?? "", insuranceValidTill: lead?.insuranceValidTill?.slice(0, 10) ?? "",
     kms: lead?.kms?.toString() ?? "", showroomHistory: lead?.showroomHistory ?? "",
@@ -417,6 +455,10 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   const [confirmDelete, setConfirmDelete] = useState(false);
   const role = useAuthStore(s => s.activeOrg?.role);
   const canDelete = !!lead && !!role && !["STAFF", "VIEWER"].includes(role);
+  // Older buyer-only preference fields + imported custom fields are real but
+  // rarely touched day-to-day — collapsed by default so the curated field
+  // set stays the first thing anyone sees on Edit; a chevron reveals them.
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
@@ -482,7 +524,9 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
         </div>
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Shared contact fields — same order for both: Name, Phone, Location, Email */}
+          {/* Curated field set — identical for Buyer and Seller, shown first
+              and always visible. Everything else (old buyer-only preference
+              fields, imported custom fields) lives behind "Show more fields". */}
           <div className="sm:col-span-2">
             <label style={S.label}>Name *</label>
             <input style={{ ...S.inp, width: "100%" }} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
@@ -491,212 +535,98 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           <div><label style={S.label}>Location</label><input style={{ ...S.inp, width: "100%" }} placeholder="City / area" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
           <div><label style={S.label}>Email</label><input style={{ ...S.inp, width: "100%" }} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
 
-          {form.leadType === "SELLER" ? (
-            <>
-              <div>
-                <label style={S.label}>Lead Source</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
-                  {Object.entries(SOURCES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                </select>
-              </div>
-              <div></div>
+          <div>
+            <label style={S.label}>Lead Source</label>
+            <select style={{ ...S.inp, width: "100%" }} value={form.source}
+              onChange={e => { const v = e.target.value; setForm({ ...form, source: v, sourceOther: v === "OTHER" ? form.sourceOther : "" }); }}>
+              {Object.entries(SOURCES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </div>
+          {form.source === "OTHER" ? (
+            <div>
+              <label style={S.label}>Specify Source</label>
+              <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Newspaper Ad" value={form.sourceOther} onChange={e => setForm({ ...form, sourceOther: e.target.value })} />
+            </div>
+          ) : <div />}
 
-              <div className="sm:col-span-2" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-                Car Details
-              </div>
-              <div>
-                <label style={S.label}>Make</label>
-                <CatalogSelect value={form.interestedMake} options={VEHICLE_MAKES} placeholder="Select make…"
-                  onChange={v => setForm({ ...form, interestedMake: v, interestedModel: "" })} />
-              </div>
-              <div>
-                <label style={S.label}>Model</label>
-                {modelsForMake(form.interestedMake).length > 0 ? (
-                  <CatalogSelect value={form.interestedModel} options={modelsForMake(form.interestedMake)} placeholder="Select model…"
-                    onChange={v => setForm({ ...form, interestedModel: v })} />
-                ) : (
-                  <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={form.interestedModel} onChange={e => setForm({ ...form, interestedModel: e.target.value })} />
-                )}
-              </div>
-              <div>
-                <label style={S.label}>Variant</label>
-                {variantsForModel(form.interestedMake, form.interestedModel).length > 0 ? (
-                  <CatalogSelect value={form.variant} options={variantsForModel(form.interestedMake, form.interestedModel)} placeholder="Select variant…"
-                    onChange={v => setForm({ ...form, variant: v })} />
-                ) : (
-                  <input style={{ ...S.inp, width: "100%" }} placeholder="Type variant…" value={form.variant} onChange={e => setForm({ ...form, variant: e.target.value })} />
-                )}
-              </div>
-              <div>
-                <label style={S.label}>Fuel Type</label>
-                <CatalogSelect value={form.fuelType} options={FUEL_TYPES} placeholder="Select fuel type…"
-                  onChange={v => setForm({ ...form, fuelType: v })} />
-              </div>
-              <div>
-                <label style={S.label}>Transmission</label>
-                <CatalogSelect value={form.transmission} options={TRANSMISSION_TYPES} placeholder="Select transmission…"
-                  onChange={v => setForm({ ...form, transmission: v })} />
-              </div>
-              <div>
-                <label style={S.label}>Mfg Year / Month</label>
-                <div className="flex gap-2">
-                  <YearSelect value={form.mfgYear} onChange={v => setForm({ ...form, mfgYear: v })} />
-                  <select style={{ ...S.inp, width: "100%" }} value={form.mfgMonth} onChange={e => setForm({ ...form, mfgMonth: e.target.value })}>
-                    <option value="">Month…</option>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label style={S.label}>Reg Year / Month</label>
-                <div className="flex gap-2">
-                  <YearSelect value={form.regYear} onChange={v => setForm({ ...form, regYear: v })} />
-                  <select style={{ ...S.inp, width: "100%" }} value={form.regMonth} onChange={e => setForm({ ...form, regMonth: e.target.value })}>
-                    <option value="">Month…</option>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label style={S.label}>Insurance Type</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.sellerInsuranceType} onChange={e => setForm({ ...form, sellerInsuranceType: e.target.value })}>
-                  <option value="">Select…</option>
-                  {Object.entries(SELLER_INSURANCE_TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              </div>
-              <div><label style={S.label}>Insurance Valid Till</label><input type="date" style={{ ...S.inp, width: "100%" }} value={form.insuranceValidTill} onChange={e => setForm({ ...form, insuranceValidTill: e.target.value })} /></div>
-              <div><label style={S.label}>KMs Driven</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.kms} onChange={e => setForm({ ...form, kms: e.target.value })} /></div>
-              <div>
-                <label style={S.label}>Showroom History</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.showroomHistory} onChange={e => setForm({ ...form, showroomHistory: e.target.value })}>
-                  <option value="">Select…</option>
-                  {Object.entries(SHOWROOM_HISTORY_OPTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={S.label}>HYP (Hypothecation)</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.hypothecationStatus} onChange={e => setForm({ ...form, hypothecationStatus: e.target.value })}>
-                  <option value="">Select…</option>
-                  {Object.entries(HYPOTHECATION_OPTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              </div>
-              <div><label style={S.label}>Asking Price Min (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMin} onChange={e => setForm({ ...form, budgetMin: e.target.value })} /></div>
-              <div><label style={S.label}>Asking Price Max (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMax} onChange={e => setForm({ ...form, budgetMax: e.target.value })} /></div>
-              <div className="sm:col-span-2"><label style={S.label}>Refurb</label><input style={{ ...S.inp, width: "100%" }} placeholder="Refurbishment notes" value={form.refurbNotes} onChange={e => setForm({ ...form, refurbNotes: e.target.value })} /></div>
-            </>
-          ) : (
-            <>
-              <div>
-                <label style={S.label}>Interested Make</label>
-                <CatalogSelect value={form.interestedMake} options={VEHICLE_MAKES} placeholder="Select make…"
-                  onChange={v => setForm({ ...form, interestedMake: v, interestedModel: "" })} />
-              </div>
-              <div>
-                <label style={S.label}>Interested Model</label>
-                {modelsForMake(form.interestedMake).length > 0 ? (
-                  <CatalogSelect value={form.interestedModel} options={modelsForMake(form.interestedMake)} placeholder="Select model…"
-                    onChange={v => setForm({ ...form, interestedModel: v })} />
-                ) : (
-                  <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={form.interestedModel} onChange={e => setForm({ ...form, interestedModel: e.target.value })} />
-                )}
-              </div>
-              <div><label style={S.label}>Year — From</label><YearSelect value={form.preferredYearFrom} onChange={v => setForm({ ...form, preferredYearFrom: v })} /></div>
-              <div><label style={S.label}>Year — To</label><YearSelect value={form.preferredYearTo} onChange={v => setForm({ ...form, preferredYearTo: v })} /></div>
-              <div>
-                <label style={S.label}>Fuel</label>
-                <MultiCatalogSelect value={form.fuelPreferences} options={FUEL_TYPES} placeholder="Select fuel types…"
-                  onChange={v => setForm({ ...form, fuelPreferences: v })} />
-              </div>
-              <div>
-                <label style={S.label}>Transmission</label>
-                <MultiCatalogSelect value={form.transmissionPreferences} options={TRANSMISSION_TYPES} placeholder="Select transmission types…"
-                  onChange={v => setForm({ ...form, transmissionPreferences: v })} />
-              </div>
-              <div><label style={S.label}>Color Pref.</label><input style={{ ...S.inp, width: "100%" }} value={form.colorPreference} onChange={e => setForm({ ...form, colorPreference: e.target.value })} /></div>
-              <div>
-                <label style={S.label}>Local / Any</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.registrationPref} onChange={e => setForm({ ...form, registrationPref: e.target.value })}>
-                  <option value="">Select…</option>
-                  {Object.entries(REGISTRATION_PREFS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              </div>
-              <div><label style={S.label}>Budget Min (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMin} onChange={e => setForm({ ...form, budgetMin: e.target.value })} /></div>
-              <div><label style={S.label}>Budget Max (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMax} onChange={e => setForm({ ...form, budgetMax: e.target.value })} /></div>
-              <div>
-                <label style={S.label}>Purchase Plan</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.purchasePlan} onChange={e => setForm({ ...form, purchasePlan: e.target.value })}>
-                  <option value="">Select…</option>
-                  {Object.entries(PURCHASE_PLANS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={S.label}>Payment</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.paymentPreference} onChange={e => setForm({ ...form, paymentPreference: e.target.value })}>
-                  <option value="">Select…</option>
-                  {Object.entries(PAYMENT_PREFS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              </div>
+          <div className="sm:col-span-2" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+            Car Details
+          </div>
+          <div>
+            <label style={S.label}>Make</label>
+            <CatalogSelect value={form.interestedMake} options={VEHICLE_MAKES} placeholder="Select make…"
+              onChange={v => setForm({ ...form, interestedMake: v, interestedModel: "" })} />
+          </div>
+          <div>
+            <label style={S.label}>Model</label>
+            {modelsForMake(form.interestedMake).length > 0 ? (
+              <CatalogSelect value={form.interestedModel} options={modelsForMake(form.interestedMake)} placeholder="Select model…"
+                onChange={v => setForm({ ...form, interestedModel: v })} />
+            ) : (
+              <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={form.interestedModel} onChange={e => setForm({ ...form, interestedModel: e.target.value })} />
+            )}
+          </div>
+          <div>
+            <label style={S.label}>Variant</label>
+            <input style={{ ...S.inp, width: "100%" }} placeholder="Type variant…" value={form.variant} onChange={e => setForm({ ...form, variant: e.target.value })} />
+          </div>
+          <div>
+            <label style={S.label}>Fuel Type</label>
+            <FixedSelect value={form.fuelType} options={LEAD_FUEL_TYPES} placeholder="Select fuel type…"
+              onChange={v => setForm({ ...form, fuelType: v })} />
+          </div>
+          <div>
+            <label style={S.label}>Transmission</label>
+            <FixedSelect value={form.transmission} options={LEAD_TRANSMISSION_TYPES} placeholder="Select transmission…"
+              onChange={v => setForm({ ...form, transmission: v })} />
+          </div>
+          <div>
+            <label style={S.label}>Mfg Year / Month</label>
+            <div className="flex gap-2">
+              <YearSelect value={form.mfgYear} onChange={v => setForm({ ...form, mfgYear: v })} />
+              <select style={{ ...S.inp, width: "100%" }} value={form.mfgMonth} onChange={e => setForm({ ...form, mfgMonth: e.target.value })}>
+                <option value="">Month…</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style={S.label}>Reg Year / Month</label>
+            <div className="flex gap-2">
+              <YearSelect value={form.regYear} onChange={v => setForm({ ...form, regYear: v })} />
+              <select style={{ ...S.inp, width: "100%" }} value={form.regMonth} onChange={e => setForm({ ...form, regMonth: e.target.value })}>
+                <option value="">Month…</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style={S.label}>Insurance Type</label>
+            <select style={{ ...S.inp, width: "100%" }} value={form.sellerInsuranceType} onChange={e => setForm({ ...form, sellerInsuranceType: e.target.value })}>
+              <option value="">Select…</option>
+              {Object.entries(SELLER_INSURANCE_TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+          <div><label style={S.label}>Insurance Valid Till</label><input type="date" style={{ ...S.inp, width: "100%" }} value={form.insuranceValidTill} onChange={e => setForm({ ...form, insuranceValidTill: e.target.value })} /></div>
+          <div><label style={S.label}>KMs Driven</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.kms} onChange={e => setForm({ ...form, kms: e.target.value })} /></div>
+          <div>
+            <label style={S.label}>Showroom History</label>
+            <select style={{ ...S.inp, width: "100%" }} value={form.showroomHistory} onChange={e => setForm({ ...form, showroomHistory: e.target.value })}>
+              <option value="">Select…</option>
+              {Object.entries(SHOWROOM_HISTORY_OPTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={S.label}>HYP (Hypothecation)</label>
+            <select style={{ ...S.inp, width: "100%" }} value={form.hypothecationStatus} onChange={e => setForm({ ...form, hypothecationStatus: e.target.value })}>
+              <option value="">Select…</option>
+              {Object.entries(HYPOTHECATION_OPTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+          <div><label style={S.label}>Asking Price Min (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMin} onChange={e => setForm({ ...form, budgetMin: e.target.value })} /></div>
+          <div><label style={S.label}>Asking Price Max (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMax} onChange={e => setForm({ ...form, budgetMax: e.target.value })} /></div>
+          <div className="sm:col-span-2"><label style={S.label}>Refurb</label><input style={{ ...S.inp, width: "100%" }} placeholder="Refurbishment notes" value={form.refurbNotes} onChange={e => setForm({ ...form, refurbNotes: e.target.value })} /></div>
 
-              <div className="sm:col-span-2">
-                <label style={S.label}>Also open to</label>
-                {extraVehicles.map((ev, i) => (
-                  <div key={i} className="grid grid-cols-2 gap-2 mb-2">
-                    <CatalogSelect value={ev.make} options={VEHICLE_MAKES} placeholder="Select make…"
-                      onChange={v => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { make: v, model: "" } : r))} />
-                    <div className="flex gap-1">
-                      {modelsForMake(ev.make).length > 0 ? (
-                        <CatalogSelect value={ev.model} options={modelsForMake(ev.make)} placeholder="Select model…"
-                          onChange={v => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { ...r, model: v } : r))} />
-                      ) : (
-                        <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={ev.model}
-                          onChange={e => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { ...r, model: e.target.value } : r))} />
-                      )}
-                      <button type="button" onClick={() => setExtraVehicles(prev => prev.filter((_, idx) => idx !== i))}
-                        style={{ ...S.ghost, padding: "0 10px", flexShrink: 0 }}>✕</button>
-                    </div>
-                  </div>
-                ))}
-                <button type="button" onClick={() => setExtraVehicles(prev => [...prev, { make: "", model: "" }])}
-                  style={{ ...S.ghost, fontSize: 12 }}>+ Add another car they'd consider</button>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label style={S.label}>Exchange Car?</label>
-                <div className="flex gap-2 mb-2">
-                  {[["Yes", true], ["No", false]].map(([lbl, val]) => (
-                    <button key={lbl as string} type="button"
-                      onClick={() => setForm({ ...form, hasExchangeVehicle: val as boolean })}
-                      style={{ padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600,
-                        border: form.hasExchangeVehicle === val ? "1px solid #38bdf8" : "1px solid var(--border)",
-                        background: form.hasExchangeVehicle === val ? "rgba(56,189,248,0.12)" : "var(--bg-hover)",
-                        color: form.hasExchangeVehicle === val ? "#38bdf8" : "var(--text-secondary)" }}>
-                      {lbl}
-                    </button>
-                  ))}
-                </div>
-                {form.hasExchangeVehicle && (
-                  <>
-                    <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 2018 Honda City" value={form.tradeInVehicle} onChange={e => setForm({ ...form, tradeInVehicle: e.target.value })} />
-                    {onExchangeToSell && (
-                      <button type="button"
-                        onClick={() => onExchangeToSell({ name: form.name, phone: form.phone, interestedMake: "", interestedModel: form.tradeInVehicle })}
-                        disabled={!form.name.trim()}
-                        style={{ ...S.ghost, fontSize: 12, marginTop: 8 }}>
-                        <ArrowRight style={{ width: 12, height: 12 }} /> Create Seller Lead for this car
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div>
-                <label style={S.label}>Source</label>
-                <select style={{ ...S.inp, width: "100%" }} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
-                  {Object.entries(SOURCES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                </select>
-              </div>
-            </>
-          )}
           <div>
             <label style={S.label}>Assign To</label>
             <select style={{ ...S.inp, width: "100%" }} value={form.assignedToId} onChange={e => setForm({ ...form, assignedToId: e.target.value })}>
@@ -745,12 +675,114 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
             Booking Done
           </label>
         </div>
-        {lead && (
-          // Anything a bulk import found on the sheet that isn't one of the
-          // fields above (city, down payment, insurance details, etc.) shows
-          // up here as its own labeled field — imported data isn't silently
-          // buried in the Notes box.
-          <CustomFieldRenderer entity={form.leadType === "SELLER" ? "CAR_SELLER_LEAD" : "CAR_BUYER_LEAD"} entityId={lead.id} />
+
+        <button type="button" onClick={() => setShowMore(s => !s)}
+          style={{ ...S.ghost, width: "100%", justifyContent: "center", marginTop: 14 }}>
+          {showMore ? "▲ Hide more fields" : "▼ Show more fields"}
+        </button>
+        {showMore && (
+          <div className="mt-3">
+            {form.leadType === "BUYER" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div className="sm:col-span-2" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Buyer Preferences
+                </div>
+                <div><label style={S.label}>Year — From</label><YearSelect value={form.preferredYearFrom} onChange={v => setForm({ ...form, preferredYearFrom: v })} /></div>
+                <div><label style={S.label}>Year — To</label><YearSelect value={form.preferredYearTo} onChange={v => setForm({ ...form, preferredYearTo: v })} /></div>
+                <div>
+                  <label style={S.label}>Fuel Preferences</label>
+                  <MultiCatalogSelect value={form.fuelPreferences} options={FUEL_TYPES} placeholder="Select fuel types…"
+                    onChange={v => setForm({ ...form, fuelPreferences: v })} />
+                </div>
+                <div>
+                  <label style={S.label}>Transmission Preferences</label>
+                  <MultiCatalogSelect value={form.transmissionPreferences} options={TRANSMISSION_TYPES} placeholder="Select transmission types…"
+                    onChange={v => setForm({ ...form, transmissionPreferences: v })} />
+                </div>
+                <div><label style={S.label}>Color Pref.</label><input style={{ ...S.inp, width: "100%" }} value={form.colorPreference} onChange={e => setForm({ ...form, colorPreference: e.target.value })} /></div>
+                <div>
+                  <label style={S.label}>Local / Any</label>
+                  <select style={{ ...S.inp, width: "100%" }} value={form.registrationPref} onChange={e => setForm({ ...form, registrationPref: e.target.value })}>
+                    <option value="">Select…</option>
+                    {Object.entries(REGISTRATION_PREFS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>Purchase Plan</label>
+                  <select style={{ ...S.inp, width: "100%" }} value={form.purchasePlan} onChange={e => setForm({ ...form, purchasePlan: e.target.value })}>
+                    <option value="">Select…</option>
+                    {Object.entries(PURCHASE_PLANS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={S.label}>Payment</label>
+                  <select style={{ ...S.inp, width: "100%" }} value={form.paymentPreference} onChange={e => setForm({ ...form, paymentPreference: e.target.value })}>
+                    <option value="">Select…</option>
+                    {Object.entries(PAYMENT_PREFS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label style={S.label}>Also open to</label>
+                  {extraVehicles.map((ev, i) => (
+                    <div key={i} className="grid grid-cols-2 gap-2 mb-2">
+                      <CatalogSelect value={ev.make} options={VEHICLE_MAKES} placeholder="Select make…"
+                        onChange={v => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { make: v, model: "" } : r))} />
+                      <div className="flex gap-1">
+                        {modelsForMake(ev.make).length > 0 ? (
+                          <CatalogSelect value={ev.model} options={modelsForMake(ev.make)} placeholder="Select model…"
+                            onChange={v => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { ...r, model: v } : r))} />
+                        ) : (
+                          <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={ev.model}
+                            onChange={e => setExtraVehicles(prev => prev.map((r, idx) => idx === i ? { ...r, model: e.target.value } : r))} />
+                        )}
+                        <button type="button" onClick={() => setExtraVehicles(prev => prev.filter((_, idx) => idx !== i))}
+                          style={{ ...S.ghost, padding: "0 10px", flexShrink: 0 }}>✕</button>
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setExtraVehicles(prev => [...prev, { make: "", model: "" }])}
+                    style={{ ...S.ghost, fontSize: 12 }}>+ Add another car they'd consider</button>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label style={S.label}>Exchange Car?</label>
+                  <div className="flex gap-2 mb-2">
+                    {[["Yes", true], ["No", false]].map(([lbl, val]) => (
+                      <button key={lbl as string} type="button"
+                        onClick={() => setForm({ ...form, hasExchangeVehicle: val as boolean })}
+                        style={{ padding: "6px 16px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600,
+                          border: form.hasExchangeVehicle === val ? "1px solid #38bdf8" : "1px solid var(--border)",
+                          background: form.hasExchangeVehicle === val ? "rgba(56,189,248,0.12)" : "var(--bg-hover)",
+                          color: form.hasExchangeVehicle === val ? "#38bdf8" : "var(--text-secondary)" }}>
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                  {form.hasExchangeVehicle && (
+                    <>
+                      <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 2018 Honda City" value={form.tradeInVehicle} onChange={e => setForm({ ...form, tradeInVehicle: e.target.value })} />
+                      {onExchangeToSell && (
+                        <button type="button"
+                          onClick={() => onExchangeToSell({ name: form.name, phone: form.phone, interestedMake: "", interestedModel: form.tradeInVehicle })}
+                          disabled={!form.name.trim()}
+                          style={{ ...S.ghost, fontSize: 12, marginTop: 8 }}>
+                          <ArrowRight style={{ width: 12, height: 12 }} /> Create Seller Lead for this car
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            {lead && (
+              // Anything a bulk import found on the sheet that isn't one of the
+              // fields above (city, down payment, insurance details, etc.) shows
+              // up here as its own labeled field — imported data isn't silently
+              // buried in the Notes box.
+              <CustomFieldRenderer entity={form.leadType === "SELLER" ? "CAR_SELLER_LEAD" : "CAR_BUYER_LEAD"} entityId={lead.id} />
+            )}
+          </div>
         )}
         <div className="flex items-center justify-between gap-3 mt-4">
           <div className="flex gap-2">
@@ -1092,7 +1124,7 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
     salePrice: "", ownerName: lead.name, ownerPhone: lead.phone ?? "", ownerEmail: lead.email ?? "",
   });
   const [addInsurance, setAddInsurance] = useState(true);
-  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "", odAmount: "", sharing: "", source: "", renewedBy: "" });
+  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "", odAmount: "", sharing: "", source: "", renewedBy: "", nextFollowUpDate: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -1171,6 +1203,7 @@ function InsuranceModal({ vehicle, existing, onClose, onSaved }: { vehicle: Vehi
     premium: existing?.premium?.toString() ?? "",
     odAmount: existing?.odAmount?.toString() ?? "", sharing: existing?.sharing ?? "",
     source: existing?.source ?? "", renewedBy: existing?.renewedBy ?? "",
+    nextFollowUpDate: existing?.nextFollowUpDate ? existing.nextFollowUpDate.slice(0, 10) : "",
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
@@ -1409,7 +1442,7 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
     ownerName: "", ownerPhone: "", ownerEmail: "", salePrice: "", soldAt: new Date().toISOString().slice(0, 10), warrantyMonths: "",
   });
   const [addInsurance, setAddInsurance] = useState(true);
-  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "", odAmount: "", sharing: "", source: "", renewedBy: "" });
+  const [ins, setIns] = useState<InsuranceFormState>({ provider: "", policyNumber: "", type: "THIRD_PARTY", startDate: new Date().toISOString().slice(0, 10), endDate: "", premium: "", odAmount: "", sharing: "", source: "", renewedBy: "", nextFollowUpDate: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -1655,6 +1688,10 @@ export default function CarsPage() {
   // of matches), so the tab labels would silently undercount without these.
   const [insuranceTotals, setInsuranceTotals] = useState({ total: 0, overdueTotal: 0, upcomingTotal: 0, truncated: false });
   const [insuranceDueSubTab, setInsuranceDueSubTab] = useState<"overdue" | "upcoming">("overdue");
+  // Manually-set "next follow-up" reminders on a policy (e.g. "call about the
+  // renewal quote") — independent of insuranceTotals above, which is about
+  // the policy's own endDate/expiry, not a reminder someone set.
+  const [insuranceFollowUps, setInsuranceFollowUps] = useState<Insurance[]>([]);
   const [followUps, setFollowUps] = useState<CarLead[]>([]);
   const [warrantyVehicles, setWarrantyVehicles] = useState<Vehicle[]>([]);
   const [warrantyTotals, setWarrantyTotals] = useState({ total: 0, truncated: false });
@@ -1717,6 +1754,19 @@ export default function CarsPage() {
     setSearchParams(next, { replace: true });
   }, [searchParams]);
 
+  // Deep link from the dashboard's "Today's Follow-ups" panel for an
+  // insurance policy's reminder: ?insuranceDue=1 lands straight on the
+  // Vehicles & Insurance tab, where the "Insurance Follow-ups Due" banner
+  // at the top lists it (no specific-policy id needed — that banner already
+  // shows every due one).
+  useEffect(() => {
+    if (!searchParams.get("insuranceDue")) return;
+    setTab("vehicles");
+    const next = new URLSearchParams(searchParams);
+    next.delete("insuranceDue");
+    setSearchParams(next, { replace: true });
+  }, [searchParams]);
+
   const [salesPeriod, setSalesPeriod] = useState<"this_month" | "last_month" | "this_year" | "all">("this_month");
   const [salesReport, setSalesReport] = useState<{ count: number; totalRevenue: number } | null>(null);
 
@@ -1762,10 +1812,11 @@ export default function CarsPage() {
         const insParams = new URLSearchParams();
         if (insuranceFrom) insParams.set("from", insuranceFrom);
         if (insuranceTo) insParams.set("to", insuranceTo); else insParams.set("days", "30");
-        const [vr, sr, er] = await Promise.all([
+        const [vr, sr, er, fr] = await Promise.all([
           api.get(`/cars/vehicles?${params}`),
           api.get(`/cars/sales-report?period=${salesPeriod}`),
           api.get(`/cars/insurance/expiring?${insParams}`),
+          api.get(`/cars/insurance/due-followups`),
         ]);
         setVehicles(vr.data.data.vehicles ?? []);
         setSalesReport(sr.data.data);
@@ -1776,6 +1827,7 @@ export default function CarsPage() {
           upcomingTotal: er.data.data.upcomingTotal ?? 0,
           truncated: er.data.data.truncated ?? false,
         });
+        setInsuranceFollowUps(fr.data.data.policies ?? []);
       } else if (tab === "followups") {
         const r = await api.get("/cars/leads?followUp=all&limit=200");
         setFollowUps(r.data.data.leads ?? []);
@@ -1996,6 +2048,41 @@ export default function CarsPage() {
         )
       ) : tab === "vehicles" ? (
         <>
+          {insuranceFollowUps.length > 0 && (
+            <div style={{ ...S.card, borderColor: "rgba(251,191,36,0.35)", background: "rgba(251,191,36,0.06)", marginBottom: 16 }}>
+              <div className="flex items-center gap-2 mb-3" style={{ color: "#fbbf24", fontWeight: 700, fontSize: 13 }}>
+                <Clock size={15} /> Insurance Follow-ups Due ({insuranceFollowUps.length})
+              </div>
+              <div className="space-y-2">
+                {insuranceFollowUps.map(p => {
+                  const due = dueLabel(p.nextFollowUpDate);
+                  const v = p.vehicle;
+                  const customerName = v?.ownerName || v?.sellerName || "";
+                  const customerPhone = v?.ownerPhone || v?.sellerPhone || "";
+                  return (
+                    <div key={p.id}
+                      onClick={() => {
+                        if (!v) return;
+                        setInsuranceFor({ id: v.id, make: v.make ?? "", model: v.model ?? "", status: "IN_STOCK", insurances: [] } as Vehicle);
+                        setEditInsuranceRecord(p);
+                      }}
+                      className="flex items-center justify-between gap-3 rounded-lg p-3 cursor-pointer"
+                      style={{ background: "var(--bg-hover)" }}>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                          {v ? `${v.make ?? ""} ${v.model ?? ""}`.trim() : "Vehicle"} {v?.registrationNo ? `· ${v.registrationNo}` : ""}
+                        </div>
+                        <div className="text-xs" style={{ color: "var(--text-ghost)" }}>
+                          {customerName || "—"}{customerPhone ? ` · ${customerPhone}` : ""} · {p.provider}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: due.color, flexShrink: 0 }}>{due.text || "Due"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div style={{ ...S.card, borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.06)", marginBottom: 16 }}>
             <div className="flex items-center gap-2 mb-3" style={{ color: "#f87171", fontWeight: 700, fontSize: 13 }}>
               <ShieldAlert size={15} /> {insuranceFrom || insuranceTo ? "Insurance Due — Custom Range" : "Insurance Due Within 30 Days"}

@@ -51,6 +51,21 @@ function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// `responseType: "blob"` makes axios parse an *error* body as a Blob too, so
+// error.response.data.message is never readable the normal way — without
+// this, every failure here falls back to a generic "failed" alert even when
+// the server sent a specific reason (e.g. the file no longer exists on disk).
+async function blobErrorMessage(error: unknown, fallback: string): Promise<string> {
+  const data = (error as { response?: { data?: unknown } })?.response?.data;
+  if (data instanceof Blob && data.type.includes("json")) {
+    try {
+      const parsed = JSON.parse(await data.text());
+      if (parsed?.message) return parsed.message;
+    } catch { /* not JSON after all — fall through */ }
+  }
+  return fallback;
+}
+
 // ── Component ───────────────────────────────────────────────
 export default function DocumentsPanel({ entityType, entityId, compact = false }: Props) {
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -160,7 +175,7 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
       const a = document.createElement("a");
       a.href = url; a.download = doc.originalName; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch { alert("Download failed"); }
+    } catch (e) { alert(await blobErrorMessage(e, "Download failed")); }
   };
 
   // Open in a new tab instead of forcing a save — browsers render PDFs and
@@ -176,9 +191,9 @@ export default function DocumentsPanel({ entityType, entityId, compact = false }
       if (newTab) newTab.location.href = url;
       else window.open(url, "_blank");
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch {
+    } catch (e) {
       newTab?.close();
-      alert("Could not open file for viewing");
+      alert(await blobErrorMessage(e, "Could not open file for viewing"));
     }
   };
 

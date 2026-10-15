@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { PhoneCall, Car, Building2, ArrowUpRight } from "lucide-react";
+import { PhoneCall, Car, Building2, ArrowUpRight, ShieldAlert } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { isWBAOrg } from "@/lib/org";
 import api from "@/lib/api";
@@ -8,11 +8,11 @@ import api from "@/lib/api";
 interface FollowUpItem {
   id: string;
   name: string;
-  company?: string; // CRM lead's company, or car lead's interested make/model
+  company?: string; // CRM lead's company, car lead's interested make/model, or insurance policy's vehicle
   status: string;
   nextFollowUpDate?: string;
   assignedTo?: { name: string } | null;
-  kind: "lead" | "car";
+  kind: "lead" | "car" | "insurance";
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -20,6 +20,8 @@ const STATUS_COLOR: Record<string, string> = {
   NEW: "#60a5fa", CONTACTED: "#fbbf24", QUALIFIED: "#34d399", PROPOSAL: "#c084fc", NEGOTIATION: "#f472b6",
   // Car buyer lead statuses
   HOT: "#f87171", WARM: "#fbbf24", COLD: "#60a5fa", URGENT: "#fb923c", NOT_INTERESTED: "#9ca3af",
+  // Insurance policy follow-up (no real "status" field — fixed label/color)
+  INSURANCE: "#fbbf24",
 };
 
 function dueLabel(dateStr?: string): { text: string; color: string } {
@@ -67,6 +69,24 @@ export default function TodaysFollowUps() {
           .then(r => (r.data.data.leads ?? []).map((l: any) => ({ id: l.id, name: l.name, company: [l.interestedMake, l.interestedModel].filter(Boolean).join(" "), status: l.status, nextFollowUpDate: l.nextFollowUpDate, assignedTo: l.assignedTo, kind: "car" as const })))
           .catch(() => [])
       );
+      // Insurance policies with a manual "next follow-up" reminder due today
+      // or overdue — same worklist convention as leads, just on the policy
+      // instead of the enquiry. No per-user assignee on a policy, so this
+      // isn't filtered by assignedParam — every admin/staff with Cars access
+      // sees the same org-wide list.
+      calls.push(
+        api.get(`/cars/insurance/due-followups`)
+          .then(r => (r.data.data.policies ?? []).map((p: any) => ({
+            id: p.id,
+            name: p.vehicle?.ownerName || p.vehicle?.sellerName || [p.vehicle?.make, p.vehicle?.model].filter(Boolean).join(" ") || "Insurance policy",
+            company: [p.vehicle?.make, p.vehicle?.model, p.vehicle?.registrationNo].filter(Boolean).join(" "),
+            status: "INSURANCE",
+            nextFollowUpDate: p.nextFollowUpDate,
+            assignedTo: null,
+            kind: "insurance" as const,
+          })))
+          .catch(() => [])
+      );
     }
     Promise.all(calls)
       .then(results => {
@@ -79,7 +99,7 @@ export default function TodaysFollowUps() {
   if ((!canSeeMarketing && !canSeeCars) || loading || items.length === 0) return null;
 
   const hasLeads = items.some(i => i.kind === "lead");
-  const hasCars = items.some(i => i.kind === "car");
+  const hasCars = items.some(i => i.kind === "car" || i.kind === "insurance");
 
   return (
     <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
@@ -109,10 +129,12 @@ export default function TodaysFollowUps() {
         {items.slice(0, 8).map((it, i, arr) => {
           const due = dueLabel(it.nextFollowUpDate);
           const isCar = it.kind === "car";
+          const isInsurance = it.kind === "insurance";
+          const navTarget = isInsurance ? "/cars?insuranceDue=1" : isCar ? `/cars?open=${it.id}` : `${leadsPath}?open=${it.id}`;
           return (
             <div
               key={`${it.kind}-${it.id}`}
-              onClick={() => navigate(isCar ? `/cars?open=${it.id}` : `${leadsPath}?open=${it.id}`)}
+              onClick={() => navigate(navTarget)}
               style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", cursor: "pointer",
                 borderBottom: i < arr.length - 1 ? "1px solid var(--bg-hover)" : "none",
@@ -120,8 +142,8 @@ export default function TodaysFollowUps() {
               onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: isCar ? "rgba(56,189,248,0.12)" : "rgba(96,165,250,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {isCar ? <Car size={15} color="#38bdf8" /> : <PhoneCall size={15} color="#60a5fa" />}
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: isInsurance ? "rgba(251,191,36,0.12)" : isCar ? "rgba(56,189,248,0.12)" : "rgba(96,165,250,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {isInsurance ? <ShieldAlert size={15} color="#fbbf24" /> : isCar ? <Car size={15} color="#38bdf8" /> : <PhoneCall size={15} color="#60a5fa" />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

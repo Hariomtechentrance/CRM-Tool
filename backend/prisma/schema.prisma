@@ -4106,6 +4106,7 @@ model CarLead {
   hasExchangeVehicle           Boolean? // buyer: do they have a car to exchange/trade in?
   tradeInVehicle               String? // free text details of that exchange car, e.g. "2018 Honda City"
   source                       CarLeadSource @default(OTHER)
+  sourceOther                  String? // manual label typed in when source = OTHER
   status                       CarLeadStatus @default(NEW) // "Lead Rating" filter — HOT/WARM/COLD/etc.
   leadStage                    CarLeadStage  @default(SEARCHING_CAR) // "Lead Status" filter — pipeline stage, see enum comment
   notes                        String?
@@ -4229,6 +4230,7 @@ model VehicleInsurance {
   source               String? // where this policy business came from (agent, direct, referral, etc.)
   renewedBy            String? // staff member who processed this renewal
   notes                String?
+  nextFollowUpDate     DateTime? // manual reminder date — same convention as CarLead.nextFollowUpDate
   // Identification mark for the "mixed with regular insurance enquiries"
   // problem: set true only by convertCarLead's auto-created first policy, so
   // the UI can badge/color-code a policy that originated from a converted
@@ -4245,6 +4247,7 @@ model VehicleInsurance {
   @@index([vehicleId])
   @@index([organizationId, endDate])
   @@index([organizationId, vehicleId, endDate])
+  @@index([organizationId, nextFollowUpDate])
 }
 
 // Pre-digital-adoption monthly totals, imported from a client's own tracking

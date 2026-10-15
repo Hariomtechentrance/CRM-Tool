@@ -122,6 +122,8 @@ const carLeadSchema = z.object({
   hasExchangeVehicle: z.boolean().optional(),
   tradeInVehicle: z.string().optional(),
   source: z.enum(["WALK_IN", "PHONE", "WEBSITE", "INSTAGRAM", "META_ADS", "SEO", "REFERRAL", "RS", "DS", "CTE", "OTHER"]).default("OTHER"),
+  // Manual label typed in when source = OTHER (e.g. "Newspaper Ad") — only meaningful alongside source: OTHER.
+  sourceOther: z.string().optional(),
   status: z.enum(["NEW", "HOT", "WARM", "COLD", "URGENT", "CONTACTED", "NOT_INTERESTED", "CONVERTED", "LOST"]).default("NEW"),
   // "Lead Status" pipeline filter — separate from `status` ("Lead Rating")
   // above, per the client's two-filter tracking sheet.
@@ -212,6 +214,7 @@ const insuranceSchema = z.object({
   source: z.string().optional(),
   renewedBy: z.string().optional(),
   notes: z.string().optional(),
+  nextFollowUpDate: z.string().optional(),
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -329,6 +332,7 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
         hasExchangeVehicle: data.hasExchangeVehicle,
         tradeInVehicle: up(data.tradeInVehicle),
         source: data.source,
+        sourceOther: data.source === "OTHER" ? up(data.sourceOther) : undefined,
         status: data.status,
         leadStage: data.leadStage,
         notes: data.notes || undefined,
@@ -387,6 +391,7 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
         nextFollowUpDate: data.nextFollowUpDate !== undefined ? (data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null) : undefined,
         lastContactedAt: data.lastContactedAt !== undefined ? (data.lastContactedAt ? new Date(data.lastContactedAt) : null) : undefined,
         colorPreference: data.colorPreference !== undefined ? up(data.colorPreference) : undefined,
+        sourceOther: data.source !== undefined ? (data.source === "OTHER" ? up(data.sourceOther) : null) : (data.sourceOther !== undefined ? up(data.sourceOther) : undefined),
         variant: data.variant !== undefined ? up(data.variant) : undefined,
         fuelType: data.fuelType !== undefined ? up(data.fuelType) : undefined,
         transmission: data.transmission !== undefined ? up(data.transmission) : undefined,
@@ -871,6 +876,7 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
             paymentMode: insuranceInput.paymentMode, sharing: insuranceInput.sharing,
             source: insuranceInput.source, renewedBy: insuranceInput.renewedBy,
             notes: insuranceInput.notes,
+            nextFollowUpDate: insuranceInput.nextFollowUpDate ? new Date(insuranceInput.nextFollowUpDate) : undefined,
             // Identification mark so this policy can be told apart from a
             // standalone insurance-only sale in the Insurance list/reports —
             // see the field comment on VehicleInsurance in schema.prisma.
@@ -1292,6 +1298,7 @@ export async function addInsurance(req: OrgRequest, res: Response): Promise<void
         paymentMode: data.paymentMode, sharing: data.sharing,
         source: data.source, renewedBy: data.renewedBy,
         notes: data.notes,
+        nextFollowUpDate: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : undefined,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
@@ -1312,6 +1319,7 @@ export async function updateInsurance(req: OrgRequest, res: Response): Promise<v
         ...data,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
+        nextFollowUpDate: data.nextFollowUpDate !== undefined ? (data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null) : undefined,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
@@ -1394,6 +1402,28 @@ export async function listExpiringInsurance(req: OrgRequest, res: Response): Pro
     vehicles.sort((a: any, b: any) => (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0));
 
     ok(res, { vehicles, total, overdueTotal, upcomingTotal, truncated: total > vehicles.length });
+  } catch (e) { serverError(res, e); }
+}
+
+// Insurance policies with a manually-set "next follow-up" due today or
+// overdue — same convention as CarLead.nextFollowUpDate, but on the policy
+// itself (e.g. "call them about the renewal quote"), independent of the
+// policy's own endDate/expiry. Powers the banner at the top of the
+// Vehicles & Insurance tab and the dashboard's Today's Follow-ups panel.
+export async function listInsuranceFollowUps(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    const policies = await db().vehicleInsurance.findMany({
+      where: { organizationId: orgId, nextFollowUpDate: { not: null, lte: endOfToday } },
+      orderBy: { nextFollowUpDate: "asc" },
+      take: 50,
+      include: {
+        vehicle: { select: { id: true, make: true, model: true, registrationNo: true, ownerName: true, ownerPhone: true, sellerName: true, sellerPhone: true, assignedToId: true } },
+      },
+    });
+    ok(res, { policies });
   } catch (e) { serverError(res, e); }
 }
 

@@ -6,7 +6,7 @@ import {
   listCarLeads, getCarLead, createCarLead, updateCarLead, deleteCarLead,
   bulkImportCarLeads, convertCarLead,
   listVehicles, getVehicle, createVehicle, updateVehicle, bulkImportVehicles,
-  addInsurance, updateInsurance, listExpiringInsurance,
+  addInsurance, updateInsurance, listExpiringInsurance, listInsuranceFollowUps,
   getCarsStats, getSalesReport, getMonthlyLeadReport, listWarranties,
   listHistoricalStats, bulkImportHistoricalStats, deleteHistoricalStat,
 } from "../controllers/cars.controller";
@@ -39,7 +39,8 @@ router.post("/vehicles/:vehicleId/insurance", addInsurance);
 
 router.get("/warranties",            listWarranties);
 
-router.get("/insurance/expiring",    listExpiringInsurance);
-router.patch("/insurance/:id",       updateInsurance);
+router.get("/insurance/expiring",       listExpiringInsurance);
+router.get("/insurance/due-followups",  listInsuranceFollowUps);
+router.patch("/insurance/:id",          updateInsurance);
 
 export default router;
