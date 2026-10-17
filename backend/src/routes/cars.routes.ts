@@ -5,8 +5,10 @@ import { requireCarsSection, requireAnyCarsSection } from "../middleware/require
 import {
   listCarLeads, getCarLead, createCarLead, updateCarLead, deleteCarLead,
   bulkImportCarLeads, convertCarLead, upsertCarBooking, upsertCarDelivery,
+  listCarLeadActivities, addCarLeadActivity,
   listVehicles, getVehicle, createVehicle, updateVehicle, bulkImportVehicles,
   addInsurance, updateInsurance, listExpiringInsurance, listInsuranceFollowUps,
+  listInsuranceActivities, addInsuranceActivity,
   getCarsStats, getSalesReport, getMonthlyLeadReport, listWarranties,
   listHistoricalStats, bulkImportHistoricalStats, deleteHistoricalStat,
 } from "../controllers/cars.controller";
@@ -39,6 +41,8 @@ router.delete("/leads/:id",          deleteCarLead);
 router.post("/leads/:id/convert",    convertCarLead);
 router.patch("/leads/:id/booking",   upsertCarBooking);
 router.patch("/leads/:id/delivery",  upsertCarDelivery);
+router.get("/leads/:id/activities",  listCarLeadActivities);
+router.post("/leads/:id/activities", addCarLeadActivity);
 
 router.get("/vehicles",              requireCarsSection("VEHICLES_INSURANCE"), listVehicles);
 router.post("/vehicles",             requireCarsSection("VEHICLES_INSURANCE"), createVehicle);
@@ -52,5 +56,7 @@ router.get("/warranties",            requireCarsSection("VEHICLES_INSURANCE"), l
 router.get("/insurance/expiring",       requireCarsSection("VEHICLES_INSURANCE"), listExpiringInsurance);
 router.get("/insurance/due-followups",  requireCarsSection("VEHICLES_INSURANCE"), listInsuranceFollowUps);
 router.patch("/insurance/:id",          requireCarsSection("VEHICLES_INSURANCE"), updateInsurance);
+router.get("/insurance/:id/activities",  requireCarsSection("VEHICLES_INSURANCE"), listInsuranceActivities);
+router.post("/insurance/:id/activities", requireCarsSection("VEHICLES_INSURANCE"), addInsuranceActivity);
 
 export default router;

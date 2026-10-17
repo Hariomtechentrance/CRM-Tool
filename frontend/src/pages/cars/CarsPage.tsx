@@ -67,7 +67,7 @@ const SOURCES: Record<string, string> = {
 // expanded-fields request.
 const REGISTRATION_PREFS: Record<string, string> = { LOCAL: "Local Registration", ANY: "Any Registration" };
 const PURCHASE_PLANS: Record<string, string> = { IMMEDIATE: "Immediate", WITHIN_A_WEEK: "In a Week", WITHIN_A_MONTH: "In a Month", ASAP: "ASAP" };
-const PAYMENT_PREFS: Record<string, string> = { CASH: "Cash", LOAN: "Loan" };
+const PAYMENT_PREFS: Record<string, string> = { CASH: "Cash", LOAN: "Finance" };
 const SELLER_INSURANCE_TYPES: Record<string, string> = { THIRD_PARTY: "Third Party", COMPREHENSIVE: "Comprehensive", ZERO_DEP: "0 Dep" };
 const SHOWROOM_HISTORY_OPTS: Record<string, string> = { YES: "Yes", NO: "No", PARTIAL: "Partial" };
 const HYPOTHECATION_OPTS: Record<string, string> = { YES: "Yes", CLOSED: "Closed", NO: "No" };
@@ -116,10 +116,10 @@ interface CarLead {
   preferredYearFrom?: number; preferredYearTo?: number;
   fuelPreferences?: string[]; transmissionPreferences?: string[];
   colorPreference?: string; registrationPref?: string;
-  purchasePlan?: string; paymentPreference?: string;
+  purchasePlan?: string; paymentPreference?: string; budgetRangeText?: string;
   // Seller-only intake fields
   variant?: string; fuelType?: string; transmission?: string;
-  mfgYear?: number; mfgMonth?: number; regYear?: number; regMonth?: number;
+  mfgYear?: string; mfgMonth?: number; regYear?: number; regMonth?: number;
   sellerInsuranceType?: string; insuranceValidTill?: string; kms?: number;
   showroomHistory?: string; hypothecationStatus?: string; refurbNotes?: string;
   // Buyer-only: deal terms + delivery checklist, present once saved
@@ -463,10 +463,11 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
     fuelPreferences: lead?.fuelPreferences?.join(", ") ?? "", transmissionPreferences: lead?.transmissionPreferences?.join(", ") ?? "",
     colorPreference: lead?.colorPreference ?? "", registrationPref: lead?.registrationPref ?? "",
     purchasePlan: lead?.purchasePlan ?? "", paymentPreference: lead?.paymentPreference ?? "",
+    budgetRangeText: lead?.budgetRangeText ?? "",
     // Seller-only
     variant: lead?.variant ?? "", fuelType: lead?.fuelType ?? "",
     transmission: lead?.transmission ?? (isNewSellerLead ? "MT" : ""),
-    mfgYear: lead?.mfgYear?.toString() ?? (isNewSellerLead ? String(new Date().getFullYear()) : ""),
+    mfgYear: lead?.mfgYear ?? (isNewSellerLead ? String(new Date().getFullYear()) : ""),
     mfgMonth: lead?.mfgMonth?.toString() ?? "",
     regYear: lead?.regYear?.toString() ?? "", regMonth: lead?.regMonth?.toString() ?? "",
     sellerInsuranceType: lead?.sellerInsuranceType ?? "", insuranceValidTill: lead?.insuranceValidTill?.slice(0, 10) ?? "",
@@ -479,10 +480,10 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   const [extraVehicles, setExtraVehicles] = useState<{ make: string; model: string }[]>(
     lead?.additionalInterestedVehicles?.length ? lead.additionalInterestedVehicles : []
   );
-  // Captured once at open — an existing lead can't be re-saved until its
-  // status is deliberately changed from whatever it was when opened, so a
-  // call never gets logged (notes/follow-up date updated) without the
-  // status decision that's supposed to go with it.
+  // Used only for the "✓ updated" / unchanged hint next to the Status field
+  // now — no longer blocks saving. A notes-only edit (or the dedicated
+  // Follow Up flow) is a legitimate save on its own; logging a call no
+  // longer requires a status decision in the same action.
   const [initialStatus] = useState(lead?.status ?? null);
   const statusUnchanged = !!lead && form.status === initialStatus;
   const [saving, setSaving] = useState(false);
@@ -508,7 +509,6 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 
   async function save() {
     if (!form.name.trim()) { setErr("Name is required"); return; }
-    if (statusUnchanged) { setErr("Update the status before saving — that's what tells the team this lead was actually followed up on."); return; }
     if (["CNR", "BUSY", "PRODUCT_NOT_FOUND"].includes(form.leadStage) && !form.nextFollowUpDate) {
       setErr("Set a Next Follow-up Date — required for CNR / Busy / Product Not Found so this lead doesn't go cold."); return;
     }
@@ -527,7 +527,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
         registrationPref: form.registrationPref || undefined,
         purchasePlan: form.purchasePlan || undefined,
         paymentPreference: form.paymentPreference || undefined,
-        mfgYear: form.mfgYear ? Number(form.mfgYear) : undefined,
+        mfgYear: form.mfgYear || undefined,
         mfgMonth: form.mfgMonth ? Number(form.mfgMonth) : undefined,
         regYear: form.regYear ? Number(form.regYear) : undefined,
         regMonth: form.regMonth ? Number(form.regMonth) : undefined,
@@ -625,16 +625,22 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
             <FixedSelect value={form.transmission} options={LEAD_TRANSMISSION_TYPES} placeholder="Select transmission…"
               onChange={v => setForm({ ...form, transmission: v })} />
           </div>
-          <div>
-            <label style={S.label}>Mfg Year / Month</label>
-            <div className="flex gap-2">
-              <YearSelect value={form.mfgYear} onChange={v => setForm({ ...form, mfgYear: v })} />
-              <select style={{ ...S.inp, width: "100%" }} value={form.mfgMonth} onChange={e => setForm({ ...form, mfgMonth: e.target.value })}>
-                <option value="">Month…</option>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+          {form.leadType === "SELLER" ? (
+            <div>
+              <label style={S.label}>Mfg Year / Month</label>
+              <div className="flex gap-2">
+                <YearSelect value={form.mfgYear} onChange={v => setForm({ ...form, mfgYear: v })} />
+                <select style={{ ...S.inp, width: "100%" }} value={form.mfgMonth} onChange={e => setForm({ ...form, mfgMonth: e.target.value })}>
+                  <option value="">Month…</option>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
             </div>
-          </div>
+          ) : (
+            // Buyer just needs a rough note, not a strict year/month pick —
+            // free text, numbers or words both fine (e.g. "2020" or "2019-20").
+            <div><label style={S.label}>Mfg Year / Month</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 2020 or 2019-20" value={form.mfgYear} onChange={e => setForm({ ...form, mfgYear: e.target.value })} /></div>
+          )}
           <div>
             <label style={S.label}>Reg Year / Month</label>
             <div className="flex gap-2">
@@ -645,15 +651,19 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
               </select>
             </div>
           </div>
-          <div>
-            <label style={S.label}>Insurance Type</label>
-            <select style={{ ...S.inp, width: "100%" }} value={form.sellerInsuranceType} onChange={e => setForm({ ...form, sellerInsuranceType: e.target.value })}>
-              <option value="">Select…</option>
-              {Object.entries(SELLER_INSURANCE_TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </select>
-          </div>
-          <div><label style={S.label}>Insurance Valid Till</label><input type="date" style={{ ...S.inp, width: "100%" }} value={form.insuranceValidTill} onChange={e => setForm({ ...form, insuranceValidTill: e.target.value })} /></div>
-          <div><label style={S.label}>KMs Driven</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.kms} onChange={e => setForm({ ...form, kms: e.target.value })} /></div>
+          {form.leadType === "SELLER" && (
+            <>
+              <div>
+                <label style={S.label}>Insurance Type</label>
+                <select style={{ ...S.inp, width: "100%" }} value={form.sellerInsuranceType} onChange={e => setForm({ ...form, sellerInsuranceType: e.target.value })}>
+                  <option value="">Select…</option>
+                  {Object.entries(SELLER_INSURANCE_TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </div>
+              <div><label style={S.label}>Insurance Valid Till</label><input type="date" style={{ ...S.inp, width: "100%" }} value={form.insuranceValidTill} onChange={e => setForm({ ...form, insuranceValidTill: e.target.value })} /></div>
+              <div><label style={S.label}>KMs Driven</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.kms} onChange={e => setForm({ ...form, kms: e.target.value })} /></div>
+            </>
+          )}
           <div>
             <label style={S.label}>Showroom History</label>
             <select style={{ ...S.inp, width: "100%" }} value={form.showroomHistory} onChange={e => setForm({ ...form, showroomHistory: e.target.value })}>
@@ -661,16 +671,35 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
               {Object.entries(SHOWROOM_HISTORY_OPTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
           </div>
-          <div>
-            <label style={S.label}>HYP (Hypothecation)</label>
-            <select style={{ ...S.inp, width: "100%" }} value={form.hypothecationStatus} onChange={e => setForm({ ...form, hypothecationStatus: e.target.value })}>
-              <option value="">Select…</option>
-              {Object.entries(HYPOTHECATION_OPTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </select>
-          </div>
-          <div><label style={S.label}>Asking Price Min (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMin} onChange={e => setForm({ ...form, budgetMin: e.target.value })} /></div>
-          <div><label style={S.label}>Asking Price Max (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMax} onChange={e => setForm({ ...form, budgetMax: e.target.value })} /></div>
-          <div className="sm:col-span-2"><label style={S.label}>Refurb</label><input style={{ ...S.inp, width: "100%" }} placeholder="Refurbishment notes" value={form.refurbNotes} onChange={e => setForm({ ...form, refurbNotes: e.target.value })} /></div>
+          {form.leadType === "SELLER" && (
+            <div>
+              <label style={S.label}>HYP (Hypothecation)</label>
+              <select style={{ ...S.inp, width: "100%" }} value={form.hypothecationStatus} onChange={e => setForm({ ...form, hypothecationStatus: e.target.value })}>
+                <option value="">Select…</option>
+                {Object.entries(HYPOTHECATION_OPTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </div>
+          )}
+          {form.leadType === "SELLER" ? (
+            <>
+              <div><label style={S.label}>Asking Price Min (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMin} onChange={e => setForm({ ...form, budgetMin: e.target.value })} /></div>
+              <div><label style={S.label}>Asking Price Max (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.budgetMax} onChange={e => setForm({ ...form, budgetMax: e.target.value })} /></div>
+            </>
+          ) : (
+            <>
+              <div><label style={S.label}>Budget</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 6L to 10L" value={form.budgetRangeText} onChange={e => setForm({ ...form, budgetRangeText: e.target.value })} /></div>
+              <div>
+                <label style={S.label}>Payment</label>
+                <select style={{ ...S.inp, width: "100%" }} value={form.paymentPreference} onChange={e => setForm({ ...form, paymentPreference: e.target.value })}>
+                  <option value="">Select…</option>
+                  {Object.entries(PAYMENT_PREFS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+          {form.leadType === "SELLER" && (
+            <div className="sm:col-span-2"><label style={S.label}>Refurb</label><input style={{ ...S.inp, width: "100%" }} placeholder="Refurbishment notes" value={form.refurbNotes} onChange={e => setForm({ ...form, refurbNotes: e.target.value })} /></div>
+          )}
 
           <div>
             <label style={S.label}>Assign To</label>
@@ -689,28 +718,26 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           </div>
           <div className="sm:col-span-2">
             <label style={S.label}>
-              Status {lead && (
-                <span style={{ marginLeft: 6, fontWeight: 700, textTransform: "none", letterSpacing: 0, color: statusUnchanged ? "#f87171" : "#4ade80" }}>
-                  {statusUnchanged ? "— update this before saving" : "✓ updated"}
-                </span>
+              Status {lead && !statusUnchanged && (
+                <span style={{ marginLeft: 6, fontWeight: 700, textTransform: "none", letterSpacing: 0, color: "#4ade80" }}>✓ updated</span>
               )}
             </label>
-            <select style={{ ...S.inp, width: "100%", border: lead && statusUnchanged ? "1px solid #f87171" : undefined }} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+            <select style={{ ...S.inp, width: "100%" }} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
               {LEAD_STATUSES.filter(s => s !== "CONVERTED").map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
             </select>
           </div>
           <div className="sm:col-span-2">
             <label style={S.label}>Lead Stage</label>
             <select style={{ ...S.inp, width: "100%" }} value={form.leadStage} onChange={e => setForm({ ...form, leadStage: e.target.value })}>
-              {LEAD_STAGES.map(s => <option key={s} value={s}>{LEAD_STAGE[s].label}</option>)}
+              {/* BUSY / PRODUCT_NOT_FOUND removed from the pickable list — still
+                  valid LEAD_STAGE entries (so any existing lead already on one
+                  of those stages still renders its badge correctly elsewhere),
+                  just no longer offered here. */}
+              {LEAD_STAGES.filter(s => s !== "BUSY" && s !== "PRODUCT_NOT_FOUND").map(s => <option key={s} value={s}>{LEAD_STAGE[s].label}</option>)}
             </select>
           </div>
         </div>
         <div className="flex items-center gap-4 mt-3">
-          <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#f87171", cursor: "pointer" }}>
-            <input type="checkbox" checked={form.isDoNotCall} onChange={e => setForm({ ...form, isDoNotCall: e.target.checked })} />
-            Do Not Call (DND)
-          </label>
           <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#4ade80", cursor: "pointer" }}>
             <input type="checkbox" checked={form.testDriveDone} onChange={e => setForm({ ...form, testDriveDone: e.target.checked })} />
             Test Drive Done
@@ -759,14 +786,6 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
                     {Object.entries(PURCHASE_PLANS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label style={S.label}>Payment</label>
-                  <select style={{ ...S.inp, width: "100%" }} value={form.paymentPreference} onChange={e => setForm({ ...form, paymentPreference: e.target.value })}>
-                    <option value="">Select…</option>
-                    {Object.entries(PAYMENT_PREFS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                  </select>
-                </div>
-
                 <div className="sm:col-span-2">
                   <label style={S.label}>Also open to</label>
                   {extraVehicles.map((ev, i) => (
@@ -852,7 +871,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           </div>
           <div className="flex gap-3">
             <button onClick={onClose} style={S.ghost}>Cancel</button>
-            <button onClick={save} disabled={saving || statusUnchanged} style={{ ...S.btn, opacity: statusUnchanged ? 0.5 : 1, cursor: statusUnchanged ? "not-allowed" : "pointer" }}>{saving ? "Saving…" : lead ? "Save Changes" : "Add Lead"}</button>
+            <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : lead ? "Save Changes" : "Add Lead"}</button>
           </div>
         </div>
       </div>
@@ -1038,6 +1057,101 @@ function DeliveryChecklistModal({ lead, existing, onClose, onSaved }: { lead: Ca
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>{deliveryId ? "Done" : "Cancel"}</button>
           <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : "Save Checklist"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Follow-up History — buyer leads, seller leads, and vehicle insurance
+// policies all share this one modal. Logging a follow-up here is a real
+// history entry (who, what, when), not an overwrite of a single notes
+// field — the thing that was actually broken before: opening a lead from
+// the Follow-ups tab showed no record of what was discussed last time,
+// because there was no "last time," just whatever the most recent edit to
+// the one flat notes box happened to leave behind.
+// ═══════════════════════════════════════════════════════════════
+interface FollowUpActivity {
+  id: string; note: string; followUpDate?: string; createdAt: string;
+  createdBy?: { id: string; name: string } | null;
+}
+function FollowUpHistoryModal({ title, listUrl, postUrl, currentFollowUpDate, onClose, onLogged }: {
+  title: string; listUrl: string; postUrl: string; currentFollowUpDate?: string;
+  onClose: () => void; onLogged?: (nextFollowUpDate?: string) => void;
+}) {
+  const [activities, setActivities] = useState<FollowUpActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [note, setNote] = useState("");
+  const [followUpDate, setFollowUpDate] = useState(currentFollowUpDate ? currentFollowUpDate.slice(0, 10) : "");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const load = () => {
+    api.get(listUrl).then(r => setActivities(r.data.data.activities ?? [])).catch(() => {}).finally(() => setLoading(false));
+  };
+  useEffect(load, [listUrl]);
+
+  async function submit() {
+    if (!note.trim()) { setErr("Note is required"); return; }
+    setSaving(true); setErr("");
+    try {
+      await api.post(postUrl, { note: note.trim(), followUpDate: followUpDate || undefined });
+      setNote("");
+      load();
+      onLogged?.(followUpDate || undefined);
+    } catch (e) { setErr(getApiError(e)); }
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Follow-up History — {title}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
+
+        <div style={{ flexShrink: 0 }}>
+          <label style={S.label}>Log this follow-up</label>
+          <textarea style={{ ...S.inp, width: "100%", minHeight: 60, resize: "vertical" } as React.CSSProperties}
+            placeholder='e.g. "Called, asked to call back tomorrow"' value={note} onChange={e => setNote(e.target.value)} />
+          <div className="flex items-end gap-2 mt-2">
+            <div style={{ flex: 1 }}>
+              <label style={S.label}>Next Follow-up Date</label>
+              <input type="date" style={{ ...S.inp, width: "100%" }} value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} />
+            </div>
+            <button onClick={submit} disabled={saving} style={S.btn}>{saving ? "Logging…" : "Log Follow-up"}</button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)", overflowY: "auto", flex: 1 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+            History {activities.length > 0 ? `(${activities.length})` : ""}
+          </p>
+          {loading ? (
+            <p style={{ fontSize: 12, color: "var(--text-ghost)" }}>Loading…</p>
+          ) : activities.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--text-ghost)" }}>No follow-ups logged yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {activities.map(a => (
+                <div key={a.id} style={{ padding: "8px 10px", borderRadius: 8, background: "var(--bg-hover)" }}>
+                  <div style={{ fontSize: 13, color: "var(--text-primary)", whiteSpace: "pre-wrap" }}>{a.note}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 4 }}>
+                    <strong style={{ color: "var(--text-secondary)" }}>{a.createdBy?.name ?? "Unknown"}</strong>
+                    {" · "}{new Date(a.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                    {a.followUpDate && <> · next follow-up set to {new Date(a.followUpDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end mt-4" style={{ flexShrink: 0 }}>
+          <button onClick={onClose} style={S.ghost}>Close</button>
         </div>
       </div>
     </div>
@@ -2017,6 +2131,12 @@ export default function CarsPage() {
   const [showImport, setShowImport] = useState(false);
   const [insuranceFor, setInsuranceFor] = useState<Vehicle | null>(null);
   const [editInsuranceRecord, setEditInsuranceRecord] = useState<Insurance | null>(null);
+  // Follow-up History modal — shared across Buyer leads, Seller leads, and
+  // Vehicle insurance policies (see FollowUpHistoryModal above).
+  const [followUpHistoryFor, setFollowUpHistoryFor] = useState<
+    { kind: "lead"; id: string; name: string; nextFollowUpDate?: string } |
+    { kind: "insurance"; id: string; name: string; nextFollowUpDate?: string } | null
+  >(null);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showVehicleImport, setShowVehicleImport] = useState(false);
   const [showHistoricalImport, setShowHistoricalImport] = useState(false);
@@ -2353,7 +2473,7 @@ export default function CarsPage() {
                 </div>
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
-                  <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up <ArrowRight size={11} /></button>
+                  <button onClick={() => setFollowUpHistoryFor({ kind: "lead", id: l.id, name: l.name, nextFollowUpDate: l.nextFollowUpDate })} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up <ArrowRight size={11} /></button>
                 </div>
               </div>
               );
@@ -2405,7 +2525,11 @@ export default function CarsPage() {
                           {customerName || "—"}{customerPhone ? ` · ${customerPhone}` : ""} · {p.provider}
                         </div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: due.color, flexShrink: 0 }}>{due.text || "Due"}</span>
+                      <div className="flex items-center gap-2" style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text || "Due"}</span>
+                        <button onClick={() => setFollowUpHistoryFor({ kind: "insurance", id: p.id, name: v ? `${v.make ?? ""} ${v.model ?? ""}`.trim() : "Policy", nextFollowUpDate: p.nextFollowUpDate })}
+                          style={{ ...S.ghost, padding: "4px 8px", fontSize: 11 }}>Follow Up</button>
+                      </div>
                     </div>
                   );
                 })}
@@ -2695,7 +2819,10 @@ export default function CarsPage() {
                                 <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text}</span>
                               </div>
                               {l.assignedTo?.name && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{l.assignedTo.name}</strong></div>}
-                              <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, width: "100%", justifyContent: "center", marginTop: 8 }}><Pencil size={11} /> Edit</button>
+                              <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
+                                <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
+                                <button onClick={() => setFollowUpHistoryFor({ kind: "lead", id: l.id, name: l.name, nextFollowUpDate: l.nextFollowUpDate })} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up</button>
+                              </div>
                             </div>
                           );
                         }
@@ -2722,9 +2849,14 @@ export default function CarsPage() {
                               <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text || "Due"}</span>
                             </div>
                             {employeeName(v?.assignedToId) && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{employeeName(v?.assignedToId)}</strong></div>}
-                            <button
-                              onClick={() => { if (!v) return; setInsuranceFor({ id: v.id, make: v.make ?? "", model: v.model ?? "", status: "IN_STOCK", insurances: [] } as Vehicle); setEditInsuranceRecord(p); }}
-                              style={{ ...S.ghost, width: "100%", justifyContent: "center", marginTop: 8 }}><Pencil size={11} /> Edit</button>
+                            <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
+                              <button
+                                onClick={() => { if (!v) return; setInsuranceFor({ id: v.id, make: v.make ?? "", model: v.model ?? "", status: "IN_STOCK", insurances: [] } as Vehicle); setEditInsuranceRecord(p); }}
+                                style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
+                              <button
+                                onClick={() => setFollowUpHistoryFor({ kind: "insurance", id: p.id, name: v ? `${v.make ?? ""} ${v.model ?? ""}`.trim() : "Policy", nextFollowUpDate: p.nextFollowUpDate })}
+                                style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up</button>
+                            </div>
                           </div>
                         );
                       })}
@@ -2826,6 +2958,16 @@ export default function CarsPage() {
       {insuranceFor && (
         <InsuranceModal vehicle={insuranceFor} existing={editInsuranceRecord ?? undefined}
           onClose={() => { setInsuranceFor(null); setEditInsuranceRecord(null); }} onSaved={load} />
+      )}
+      {followUpHistoryFor && (
+        <FollowUpHistoryModal
+          title={followUpHistoryFor.name}
+          listUrl={followUpHistoryFor.kind === "lead" ? `/cars/leads/${followUpHistoryFor.id}/activities` : `/cars/insurance/${followUpHistoryFor.id}/activities`}
+          postUrl={followUpHistoryFor.kind === "lead" ? `/cars/leads/${followUpHistoryFor.id}/activities` : `/cars/insurance/${followUpHistoryFor.id}/activities`}
+          currentFollowUpDate={followUpHistoryFor.nextFollowUpDate}
+          onClose={() => setFollowUpHistoryFor(null)}
+          onLogged={load}
+        />
       )}
       {detailVehicle && (
         <VehicleDetailModal vehicle={detailVehicle} onClose={() => setDetailVehicle(null)}

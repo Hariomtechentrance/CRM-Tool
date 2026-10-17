@@ -158,12 +158,13 @@ const carLeadSchema = z.object({
   registrationPref: z.enum(["LOCAL", "ANY"]).optional(),
   purchasePlan: z.enum(["IMMEDIATE", "WITHIN_A_WEEK", "WITHIN_A_MONTH", "ASAP"]).optional(),
   paymentPreference: z.enum(["CASH", "LOAN"]).optional(),
+  budgetRangeText: z.string().optional(),
 
   // Seller-only intake fields (the car being sold)
   variant: z.string().optional(),
   fuelType: z.string().optional(),
   transmission: z.string().optional(),
-  mfgYear: z.number().int().optional(),
+  mfgYear: z.string().optional(),
   mfgMonth: z.number().int().min(1).max(12).optional(),
   regYear: z.number().int().optional(),
   regMonth: z.number().int().min(1).max(12).optional(),
@@ -260,6 +261,15 @@ const carDeliverySchema = z.object({
   deliveryNoteAdded: z.boolean().optional(),
   deliveryDone: z.boolean().optional(),
   notes: z.string().optional(),
+});
+
+// Follow-up history entry — one logged call/note per row (see
+// CarLeadActivity / VehicleInsuranceActivity schema comments). Logging one
+// also sets the lead/policy's nextFollowUpDate when a date is given, same
+// combined action as the CRM Leads module's addLeadActivity.
+const activityLogSchema = z.object({
+  note: z.string().min(1, "Note is required"),
+  followUpDate: z.string().optional(),
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -419,6 +429,7 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
         registrationPref: data.registrationPref,
         purchasePlan: data.purchasePlan,
         paymentPreference: data.paymentPreference,
+        budgetRangeText: data.budgetRangeText || undefined,
         variant: up(data.variant),
         fuelType: up(data.fuelType),
         transmission: up(data.transmission),
@@ -549,6 +560,52 @@ export async function upsertCarDelivery(req: OrgRequest, res: Response): Promise
     bustCache(req.organizationId!, "/api/cars");
     writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "CAR_LEAD_DELIVERY_UPDATED", resource: "CarDelivery", resourceId: delivery.id, description: `Delivery checklist updated for lead: ${lead.name}`, ipAddress: getIp(req as any) });
     ok(res, delivery, "Delivery checklist updated");
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Follow-up history (buyer and seller leads) ──────────────────
+// A real log of every call/note, each with who logged it and when — unlike
+// CarLead.notes (a single field the next edit silently overwrites), nothing
+// here is ever lost across 10, 20, however many follow-up rounds a lead has.
+
+export async function listCarLeadActivities(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    if (!lead) { notFound(res, "Lead not found"); return; }
+    if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+    const activities = await db().carLeadActivity.findMany({
+      where: { carLeadId: lead.id },
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { id: true, name: true } } },
+    });
+    ok(res, { activities });
+  } catch (e) { serverError(res, e); }
+}
+
+export async function addCarLeadActivity(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    if (!lead) { notFound(res, "Lead not found"); return; }
+    if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+
+    const parsed = activityLogSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
+    const { note, followUpDate } = parsed.data;
+    const followUpDateParsed = followUpDate ? new Date(followUpDate) : undefined;
+
+    const [activity] = await db().$transaction([
+      db().carLeadActivity.create({
+        data: { organizationId: req.organizationId!, carLeadId: lead.id, note, followUpDate: followUpDateParsed, createdById: req.userId! },
+        include: { createdBy: { select: { id: true, name: true } } },
+      }),
+      db().carLead.update({
+        where: { id: lead.id },
+        data: { lastContactedAt: new Date(), ...(followUpDateParsed ? { nextFollowUpDate: followUpDateParsed } : {}) },
+      }),
+    ]);
+    bustCache(req.organizationId!, "/api/cars");
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "CAR_LEAD_FOLLOWUP_LOGGED", resource: "CarLeadActivity", resourceId: activity.id, description: `Follow-up logged for lead: ${lead.name}`, ipAddress: getIp(req as any) });
+    created(res, activity, "Follow-up logged");
   } catch (e) { serverError(res, e); }
 }
 
@@ -1465,6 +1522,46 @@ export async function updateInsurance(req: OrgRequest, res: Response): Promise<v
     });
     bustCache(req.organizationId!, "/api/cars");
     ok(res, insurance, "Insurance policy updated");
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Follow-up history (insurance policy reminders) ──────────────
+// Same convention as CarLeadActivity, scoped to a VehicleInsurance policy's
+// own "call them about the renewal" reminder instead of a lead.
+
+export async function listInsuranceActivities(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const insurance = await db().vehicleInsurance.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    if (!insurance) { notFound(res, "Insurance policy not found"); return; }
+    const activities = await db().vehicleInsuranceActivity.findMany({
+      where: { insuranceId: insurance.id },
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { id: true, name: true } } },
+    });
+    ok(res, { activities });
+  } catch (e) { serverError(res, e); }
+}
+
+export async function addInsuranceActivity(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const insurance = await db().vehicleInsurance.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    if (!insurance) { notFound(res, "Insurance policy not found"); return; }
+
+    const parsed = activityLogSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
+    const { note, followUpDate } = parsed.data;
+    const followUpDateParsed = followUpDate ? new Date(followUpDate) : undefined;
+
+    const [activity] = await db().$transaction([
+      db().vehicleInsuranceActivity.create({
+        data: { organizationId: req.organizationId!, insuranceId: insurance.id, note, followUpDate: followUpDateParsed, createdById: req.userId! },
+        include: { createdBy: { select: { id: true, name: true } } },
+      }),
+      ...(followUpDateParsed ? [db().vehicleInsurance.update({ where: { id: insurance.id }, data: { nextFollowUpDate: followUpDateParsed } })] : []),
+    ]);
+    bustCache(req.organizationId!, "/api/cars");
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "INSURANCE_FOLLOWUP_LOGGED", resource: "VehicleInsuranceActivity", resourceId: activity.id, description: `Follow-up logged for insurance policy ${insurance.id}`, ipAddress: getIp(req as any) });
+    created(res, activity, "Follow-up logged");
   } catch (e) { serverError(res, e); }
 }
 

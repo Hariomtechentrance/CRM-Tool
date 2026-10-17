@@ -8,43 +8,45 @@ datasource db {
 }
 
 model User {
-  id                  String                @id @default(cuid())
-  name                String
-  email               String                @unique
-  password            String
-  avatar              String?
-  isEmailVerified     Boolean               @default(false)
-  emailVerifyToken    String?               @unique
-  passwordResetToken  String?               @unique
-  passwordResetExpiry DateTime?
-  isSuperAdmin        Boolean               @default(false)
-  twoFactorSecret     String?
-  twoFactorEnabled    Boolean               @default(false)
-  lastLoginAt         DateTime?
-  isActive            Boolean               @default(true)
-  loginAttempts       Int                   @default(0)
-  lockedUntil         DateTime?
-  lastPasswordChange  DateTime?
-  passwordHistory     String[]              @default([])
-  phone               String?               @unique
-  phoneVerified       Boolean               @default(false)
-  firebaseUid         String?               @unique
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  sentInvites         OrgInvite[]           @relation("InvitedBy")
-  memberships         OrganizationMember[]
-  refreshTokens       RefreshToken[]
-  sessions            UserSession[]
-  apiKeys             ApiKey[]
-  communications      Communication[]
-  moduleAccess        UserModuleAccess[]
-  accessRequests      AccessRequest[]
-  orgModuleRequests   OrgModuleRequest[]    @relation("OrgModuleRequestedBy")
-  resolvedModuleReqs  OrgModuleRequest[]    @relation("OrgModuleResolvedBy")
-  gmailAccount        GmailAccount?
-  emailAccounts       EmailAccount[]
-  pushSubscriptions   WebPushSubscription[]
-  wbaProjectsCreated  WBAProject[]          @relation("WBAProjectCreatedBy")
+  id                         String                     @id @default(cuid())
+  name                       String
+  email                      String                     @unique
+  password                   String
+  avatar                     String?
+  isEmailVerified            Boolean                    @default(false)
+  emailVerifyToken           String?                    @unique
+  passwordResetToken         String?                    @unique
+  passwordResetExpiry        DateTime?
+  isSuperAdmin               Boolean                    @default(false)
+  twoFactorSecret            String?
+  twoFactorEnabled           Boolean                    @default(false)
+  lastLoginAt                DateTime?
+  isActive                   Boolean                    @default(true)
+  loginAttempts              Int                        @default(0)
+  lockedUntil                DateTime?
+  lastPasswordChange         DateTime?
+  passwordHistory            String[]                   @default([])
+  phone                      String?                    @unique
+  phoneVerified              Boolean                    @default(false)
+  firebaseUid                String?                    @unique
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+  sentInvites                OrgInvite[]                @relation("InvitedBy")
+  memberships                OrganizationMember[]
+  refreshTokens              RefreshToken[]
+  sessions                   UserSession[]
+  apiKeys                    ApiKey[]
+  communications             Communication[]
+  carLeadActivities          CarLeadActivity[]
+  vehicleInsuranceActivities VehicleInsuranceActivity[]
+  moduleAccess               UserModuleAccess[]
+  accessRequests             AccessRequest[]
+  orgModuleRequests          OrgModuleRequest[]         @relation("OrgModuleRequestedBy")
+  resolvedModuleReqs         OrgModuleRequest[]         @relation("OrgModuleResolvedBy")
+  gmailAccount               GmailAccount?
+  emailAccounts              EmailAccount[]
+  pushSubscriptions          WebPushSubscription[]
+  wbaProjectsCreated         WBAProject[]               @relation("WBAProjectCreatedBy")
 
   @@index([email])
 }
@@ -274,12 +276,14 @@ model Organization {
   courierLogs CourierLog[]
 
   // Phase 8 — Car Resale
-  carLeads           CarLead[]
-  vehicles           Vehicle[]
-  vehicleInsurances  VehicleInsurance[]
-  carHistoricalStats CarHistoricalStat[]
-  carBookings        CarBooking[]
-  carDeliveries      CarDelivery[]
+  carLeads                   CarLead[]
+  vehicles                   Vehicle[]
+  vehicleInsurances          VehicleInsurance[]
+  carHistoricalStats         CarHistoricalStat[]
+  carBookings                CarBooking[]
+  carDeliveries              CarDelivery[]
+  carLeadActivities          CarLeadActivity[]
+  vehicleInsuranceActivities VehicleInsuranceActivity[]
 
   // Phase 9 — Tailoring & Boutique
   tailorCustomers           TailorCustomer[]
@@ -4136,13 +4140,23 @@ model CarLead {
   registrationPref        CarRegistrationPref?
   purchasePlan            CarPurchasePlan?
   paymentPreference       CarPaymentPreference?
+  // Free-text budget range for the simplified Buyer form (e.g. "6L to 10L")
+  // — deliberately separate from budgetMin/budgetMax below, which stay
+  // numeric Floats because CSV import, the historical-import script, and
+  // the Convert-to-Sale purchase-price prefill all depend on them being
+  // real numbers. This is just what the Buyer form itself shows/writes.
+  budgetRangeText         String?
 
   // ── Seller-only intake fields (the car being sold) ─────────────
   variant             String?
   fuelType            String? // single value — free catalog value, see vehicleCatalog.ts FUEL_TYPES
   transmission        String? // single value — free catalog value, see vehicleCatalog.ts TRANSMISSION_TYPES
-  mfgYear             Int?
-  mfgMonth            Int? // 1-12
+  // Free text, not a structured year — the Buyer form just needs a quick
+  // "roughly what year" note, not strict validation (see the form's own
+  // comment). Seller's form still shows Year/Month pickers; Prisma just
+  // stores whatever string those produce the same as free text would.
+  mfgYear             String?
+  mfgMonth            Int? // 1-12, Seller-only (Buyer form doesn't show this)
   regYear             Int?
   regMonth            Int? // 1-12
   sellerInsuranceType InsuranceType?
@@ -4152,10 +4166,11 @@ model CarLead {
   hypothecationStatus CarHypothecationStatus?
   refurbNotes         String?
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  vehicle      Vehicle?     @relation(fields: [convertedVehicleId], references: [id])
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vehicle      Vehicle?          @relation(fields: [convertedVehicleId], references: [id])
   booking      CarBooking?
   delivery     CarDelivery?
+  activities   CarLeadActivity[]
 
   @@index([organizationId])
   @@index([organizationId, status])
@@ -4222,6 +4237,35 @@ model CarDelivery {
   @@index([organizationId])
 }
 
+// Follow-up history for a buyer or seller lead — every logged call/note is
+// its own row (who, what, when), not a single `CarLead.notes` field that
+// silently overwrites whatever the last person wrote. `CarLead.notes`
+// itself is untouched by this — same coexistence as Lead.notes +
+// LeadActivity in the CRM Leads module, just with a real `createdBy`
+// relation (LeadActivity's createdById has none, so it can never show an
+// author name) and modeled more directly on Communication/Party's pattern.
+model CarLeadActivity {
+  id             String    @id @default(cuid())
+  organizationId String
+  carLeadId      String
+  note           String
+  // The next-follow-up date set AT THE TIME of this entry, if any — logging
+  // a follow-up and scheduling the next one is one action (mirrors
+  // addLeadActivity's combined create+update-parent pattern), so this also
+  // becomes CarLead.nextFollowUpDate when present.
+  followUpDate   DateTime?
+  createdById    String
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  carLead      CarLead      @relation(fields: [carLeadId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  @@index([organizationId])
+  @@index([carLeadId])
+  @@index([createdAt])
+}
+
 enum VehicleStatus {
   IN_STOCK
   RESERVED
@@ -4267,8 +4311,8 @@ model Vehicle {
   addedToInsuranceGateway   Boolean   @default(false)
   addedToInsuranceGatewayAt DateTime?
 
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   insurances   VehicleInsurance[]
@@ -4312,14 +4356,36 @@ model VehicleInsurance {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  vehicle      Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  organization Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vehicle      Vehicle                    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  activities   VehicleInsuranceActivity[]
 
   @@index([organizationId])
   @@index([vehicleId])
   @@index([organizationId, endDate])
   @@index([organizationId, vehicleId, endDate])
   @@index([organizationId, nextFollowUpDate])
+}
+
+// Follow-up history for an insurance policy's own reminder (renewal calls,
+// quote follow-ups) — same convention as CarLeadActivity, just scoped to
+// VehicleInsurance instead of CarLead. VehicleInsurance.notes is untouched.
+model VehicleInsuranceActivity {
+  id             String    @id @default(cuid())
+  organizationId String
+  insuranceId    String
+  note           String
+  followUpDate   DateTime?
+  createdById    String
+  createdAt      DateTime  @default(now())
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  insurance    VehicleInsurance @relation(fields: [insuranceId], references: [id], onDelete: Cascade)
+  createdBy    User             @relation(fields: [createdById], references: [id])
+
+  @@index([organizationId])
+  @@index([insuranceId])
+  @@index([createdAt])
 }
 
 // Pre-digital-adoption monthly totals, imported from a client's own tracking
