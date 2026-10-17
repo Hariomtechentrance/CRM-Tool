@@ -357,3 +357,42 @@ export function getNavModules(enabledModules: string[]): ModuleDefinition[] {
   if (!enabledModules || enabledModules.length === 0) return ALL_MODULES;
   return ALL_MODULES.filter((m) => enabledModules.includes(m.key));
 }
+
+// Some modules (currently just Cars — see CARS_SECTIONS below) are
+// independently grantable by sub-section: a user can hold "CARS.BUYER"
+// without holding the whole-module "CARS" key. A plain `.includes(key)`
+// check would then wrongly hide that module everywhere (sidebar, dashboard
+// widgets) for a section-scoped user. Use this instead of `.includes()`
+// anywhere a user's moduleAccess list is checked against a module key.
+export function hasModuleAccess(moduleAccess: string[], key: string): boolean {
+  return moduleAccess.includes(key) || moduleAccess.some((m) => m.startsWith(`${key}.`));
+}
+
+// Cars module sub-sections — mirrors backend CarsSection /
+// CARS_SECTION_LABEL (backend/src/middleware/requireModuleAccess.ts).
+// Granting "CARS.<key>" gives a user just that section; granting the plain
+// "CARS" key (or OWNER/ADMIN) still gives every section, unchanged.
+export const CARS_SECTIONS = [
+  { key: "BUYER", label: "Buyer Leads" },
+  { key: "SELLER", label: "Seller Leads" },
+  { key: "VEHICLES_INSURANCE", label: "Vehicles & Insurance" },
+] as const;
+export type CarsSectionKey = (typeof CARS_SECTIONS)[number]["key"];
+
+// Any module-picker checkbox grid built from ALL_MODULES (employee creation,
+// invite flow, the admin access matrix) should offer Cars as three separate
+// tick-boxes instead of one all-or-nothing checkbox, so an admin can grant
+// e.g. just Vehicles & Insurance to one hire and just Buyer Leads to
+// another. Replaces the single "CARS" ModuleDefinition with three synthetic
+// ones carrying moduleKey "CARS.<SECTION>" — same shape, so existing
+// rendering code (checkbox label/key/colors) needs no structural change.
+export function expandCarsModule(modules: ModuleDefinition[]): ModuleDefinition[] {
+  return modules.flatMap((m) => {
+    if (m.key !== "CARS") return [m];
+    return CARS_SECTIONS.map((section) => ({
+      ...m,
+      key: `CARS.${section.key}`,
+      label: `Car Resale — ${section.label}`,
+    }));
+  });
+}

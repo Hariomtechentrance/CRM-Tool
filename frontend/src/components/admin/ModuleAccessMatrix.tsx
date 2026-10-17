@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ALL_MODULES } from "@/lib/modules";
+import { ALL_MODULES, expandCarsModule } from "@/lib/modules";
 import { Check, X, Search } from "lucide-react";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -30,8 +30,11 @@ export default function ModuleAccessMatrix({
 }) {
   const [q, setQ] = useState("");
 
+  // Car Resale shows as three separate columns (Buyer / Seller / Vehicles &
+  // Insurance) instead of one — each independently grantable, same as any
+  // other module column, just scoped to a Cars section.
   const modules = useMemo(
-    () => (enabledModules && enabledModules.length ? ALL_MODULES.filter((m) => enabledModules.includes(m.key)) : ALL_MODULES),
+    () => expandCarsModule(enabledModules && enabledModules.length ? ALL_MODULES.filter((m) => enabledModules.includes(m.key)) : ALL_MODULES),
     [enabledModules],
   );
   const rows = useMemo(() => {
@@ -82,7 +85,11 @@ export default function ModuleAccessMatrix({
                     {m.user.lastLoginAt ? new Date(m.user.lastLoginAt).toLocaleDateString("en-IN") : "Never"}
                   </td>
                   {modules.map((mod) => {
-                    const has = isAdmin || grantedKeys.has(mod.key);
+                    // A user holding the broad legacy "CARS" grant has every
+                    // Cars sub-section, same rule as the backend's
+                    // hasCarsSectionAccess() — shows all three as granted
+                    // instead of looking like they have none of them.
+                    const has = isAdmin || grantedKeys.has(mod.key) || (mod.key.startsWith("CARS.") && grantedKeys.has("CARS"));
                     return (
                       <td key={mod.key} style={{ textAlign: "center", padding: "6px 4px" }}>
                         <button

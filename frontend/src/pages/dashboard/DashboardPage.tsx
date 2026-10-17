@@ -15,6 +15,7 @@ import api from "@/lib/api";
 import EmployeeDashboard from "./EmployeeDashboard";
 import TodaysFollowUps from "@/components/TodaysFollowUps";
 import { isWBAOrg } from "@/lib/org";
+import { hasModuleAccess } from "@/lib/modules";
 
 interface Stats {
   members: number; parties: number; invoices: number; orders: number;
@@ -134,7 +135,7 @@ export default function DashboardPage() {
 
   // moduleAccess already equals enabledModules for OWNER/ADMIN — an isOrgAdmin
   // bypass here would show widgets for modules the org never enabled at all.
-  const canSee = (key: string) => moduleAccess.includes(key);
+  const canSee = (key: string) => hasModuleAccess(moduleAccess, key);
   const bentoLayout = canSee("ACCOUNTS") && canSee("DISPATCH") && canSee("PURCHASE");
   // WBA: leads live inside the CRM module now (Marketing is disabled for
   // them), so CRM access earns the same lead widgets Marketing would.

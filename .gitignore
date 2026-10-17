@@ -39,6 +39,9 @@ Thumbs.db
 # ── Claude Code ───────────────────────────────────────────────
 .claude/
 
+# ── Local dev credentials (never commit real or test passwords) ─
+LOCAL_DEV_CREDENTIALS.md
+
 # ── Client data exports (real contact PII — never commit) ─────
 *.csv
 *.xlsx

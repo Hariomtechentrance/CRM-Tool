@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
-import { ALL_MODULES } from "@/lib/modules";
+import { ALL_MODULES, expandCarsModule } from "@/lib/modules";
 import { Users, Shield, Check, Clock, CheckCircle, XCircle, Mail, UserPlus, ChevronDown, ChevronUp, Send, Trash2, AlertCircle } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import ModuleAccessMatrix from "@/components/admin/ModuleAccessMatrix";
@@ -39,7 +39,10 @@ const MODULE_GROUPS = [
   { label: "Core Business", modules: ALL_MODULES.filter((m) => m.category === "core") },
   { label: "Operations",    modules: ALL_MODULES.filter((m) => m.category === "operations") },
   { label: "Growth",        modules: ALL_MODULES.filter((m) => m.category === "growth") },
-  { label: "Industry",      modules: ALL_MODULES.filter((m) => m.category === "industry") },
+  // Car Resale (industry category) becomes three tick-boxes here — Buyer
+  // Leads / Seller Leads / Vehicles & Insurance — instead of one, so an
+  // admin can grant just one section to a hire instead of the whole module.
+  { label: "Industry",      modules: expandCarsModule(ALL_MODULES.filter((m) => m.category === "industry")) },
 ];
 
 interface MemberAccess {

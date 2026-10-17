@@ -222,3 +222,14 @@ For Gmail, use an **App Password** (not your account password). Generate at myac
 ```bash
 cd backend && npx prisma db push --force-reset
 ```
+
+---
+
+## Local Test Logins (Cars Module RBAC)
+
+Real test-account passwords are **not** kept in this file (or anywhere else
+committed to git) — see `LOCAL_DEV_CREDENTIALS.md` at the repo root, which is
+git-ignored. It covers logging in as the Shreya Cars org owner (full access)
+and as three section-scoped sub-users (Buyer Leads only / Seller Leads only /
+Vehicles & Insurance only), used to verify the Cars module's per-section
+access control locally before anything ships to production.

@@ -460,7 +460,14 @@ app.use("/api/contact",       contactRoutes);
 // the same URL (access level, staff-scoped visibility) — withCache keys only
 // on orgId+URL, so it would serve one user's response to another.
 app.use("/api/wba",           wbaRoutes);
-app.use("/api/cars",          withCache(20_000), carsRoutes);
+// Same reason as WBA above: since Cars sections (Buyer/Seller/Vehicles &
+// Insurance) became independently grantable per user, the exact same URL
+// (e.g. GET /cars/leads) legitimately returns different data — or should be
+// outright forbidden — depending on which sections the calling user holds.
+// withCache's orgId+URL key can't tell two users in the same org apart, so
+// it was serving one user's cached (and differently-authorized) response to
+// another, bypassing requireCarsSection entirely on a cache hit.
+app.use("/api/cars",          carsRoutes);
 app.use("/api/tailoring",     withCache(20_000), tailoringRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────

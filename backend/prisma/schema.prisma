@@ -278,6 +278,8 @@ model Organization {
   vehicles           Vehicle[]
   vehicleInsurances  VehicleInsurance[]
   carHistoricalStats CarHistoricalStat[]
+  carBookings        CarBooking[]
+  carDeliveries      CarDelivery[]
 
   // Phase 9 — Tailoring & Boutique
   tailorCustomers           TailorCustomer[]
@@ -4060,6 +4062,8 @@ enum CarLeadStage {
   IN_NEGOTIATION
   BOOKED
   CNR
+  BUSY
+  PRODUCT_NOT_FOUND
 }
 
 enum CarRegistrationPref {
@@ -4150,12 +4154,72 @@ model CarLead {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   vehicle      Vehicle?     @relation(fields: [convertedVehicleId], references: [id])
+  booking      CarBooking?
+  delivery     CarDelivery?
 
   @@index([organizationId])
   @@index([organizationId, status])
   @@index([organizationId, leadStage])
   @@index([organizationId, leadType, createdAt])
   @@index([assignedToId])
+}
+
+// Deal terms for a buyer or seller lead's booking — captured once `leadStage`
+// reaches IN_NEGOTIATION/BOOKED. 1:1 with CarLead, same @unique-FK convention
+// as CarLead.convertedVehicleId.
+enum CarBookingPaymentType {
+  CASH
+  FINANCE
+}
+
+model CarBooking {
+  id                 String                 @id @default(cuid())
+  organizationId     String
+  carLeadId          String                 @unique
+  carPrice           Float?
+  commission         Float?
+  paymentType        CarBookingPaymentType?
+  rtoCharge          Float?
+  warranty           String?
+  extraWork          String?
+  rsaIncluded        Boolean                @default(false)
+  rsaAmount          Float?
+  finalPrice         Float?
+  deliveryDate       DateTime?
+  termsAndConditions String?
+  insuranceIncluded  Boolean                @default(false)
+  notes              String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  carLead      CarLead      @relation(fields: [carLeadId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+// Post-booking delivery checklist for a buyer or seller lead. The Delivery Note itself
+// is a Document row (entityType: "CAR_DELIVERY", entityId: this row's id) —
+// reuses the existing generic document-upload mechanism, no new upload field.
+model CarDelivery {
+  id                String    @id @default(cuid())
+  organizationId    String
+  carLeadId         String    @unique
+  checkedOut        Boolean   @default(false)
+  checkedOutAt      DateTime?
+  documentsAdded    Boolean   @default(false)
+  documentsAddedAt  DateTime?
+  deliveryNoteAdded Boolean   @default(false)
+  deliveryDone      Boolean   @default(false)
+  deliveryDoneAt    DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  carLead      CarLead      @relation(fields: [carLeadId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 enum VehicleStatus {
@@ -4195,6 +4259,14 @@ model Vehicle {
   warrantyEndDate  DateTime? // soldAt + warrantyMonths, stored explicitly for easy querying
   assignedToId     String? // salesperson responsible — User.id, no FK (same loose-ref convention as CarLead.assignedToId)
   notes            String?
+
+  // ── Post-sale handoff checklist (buyer flow: "becomes a customer") ──────
+  docSentToRto              Boolean   @default(false)
+  docSentToRtoAt            DateTime?
+  docDelayChecklistNote     String?
+  addedToInsuranceGateway   Boolean   @default(false)
+  addedToInsuranceGatewayAt DateTime?
+
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

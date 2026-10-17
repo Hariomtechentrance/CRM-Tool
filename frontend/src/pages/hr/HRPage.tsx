@@ -6,7 +6,7 @@ import { kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, kPAN, kIFSC } from
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "@/stores/authStore";
 import { isWBAOrg, WBA_DESIGNATIONS, WBA_DEPARTMENTS, WBA_SALARY_TYPES, WBA_LEAVE_TYPES } from "@/lib/org";
-import { ALL_MODULES } from "@/lib/modules";
+import { ALL_MODULES, expandCarsModule } from "@/lib/modules";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const now = new Date();
@@ -1112,7 +1112,7 @@ export default function HRPage() {
                         <div style={{marginTop:10}}>
                           <label style={S.label}>Module Access ({loginForm.modules.length} selected)</label>
                           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))",gap:6,background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:8,padding:10,maxHeight:220,overflowY:"auto"}}>
-                            {ALL_MODULES.filter(m=>(activeOrg?.enabledModules ?? []).includes(m.key)).map(m=>{
+                            {expandCarsModule(ALL_MODULES.filter(m=>(activeOrg?.enabledModules ?? []).includes(m.key))).map(m=>{
                               const checked = loginForm.modules.includes(m.key);
                               return (
                                 <label key={m.key} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-sec)",cursor:"pointer"}}>

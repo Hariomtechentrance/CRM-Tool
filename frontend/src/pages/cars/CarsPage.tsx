@@ -50,6 +50,8 @@ const LEAD_STAGE: Record<string, { label: string; color: string; bg: string }> =
   IN_NEGOTIATION:      { label: "In Nego",        color: "#a78bfa", bg: "#2e1065" },
   BOOKED:               { label: "Booked",         color: "#4ade80", bg: "#14532d" },
   CNR:                  { label: "CNR",            color: "#f87171", bg: "#450a0a" },
+  BUSY:                 { label: "Busy",           color: "#f472b6", bg: "#500724" },
+  PRODUCT_NOT_FOUND:    { label: "Product Not Found", color: "#9ca3af", bg: "#374151" },
 };
 const LEAD_STAGES = Object.keys(LEAD_STAGE);
 
@@ -120,6 +122,20 @@ interface CarLead {
   mfgYear?: number; mfgMonth?: number; regYear?: number; regMonth?: number;
   sellerInsuranceType?: string; insuranceValidTill?: string; kms?: number;
   showroomHistory?: string; hypothecationStatus?: string; refurbNotes?: string;
+  // Buyer-only: deal terms + delivery checklist, present once saved
+  booking?: CarBooking | null;
+  delivery?: CarDelivery | null;
+}
+interface CarBooking {
+  id: string; carPrice?: number; commission?: number; paymentType?: string;
+  rtoCharge?: number; warranty?: string; extraWork?: string;
+  rsaIncluded?: boolean; rsaAmount?: number; finalPrice?: number; deliveryDate?: string;
+  termsAndConditions?: string; insuranceIncluded?: boolean; notes?: string;
+}
+interface CarDelivery {
+  id: string; checkedOut?: boolean; checkedOutAt?: string;
+  documentsAdded?: boolean; documentsAddedAt?: string;
+  deliveryNoteAdded?: boolean; deliveryDone?: boolean; deliveryDoneAt?: string; notes?: string;
 }
 interface Insurance {
   id: string; provider: string; policyNumber?: string; type: string;
@@ -140,6 +156,9 @@ interface Vehicle {
   ownerName?: string; ownerPhone?: string; ownerEmail?: string; ownerAddress?: string; soldAt?: string;
   warrantyMonths?: number; warrantyEndDate?: string;
   assignedToId?: string; notes?: string;
+  // Post-sale handoff checklist ("becomes a customer" — buyer flow)
+  docSentToRto?: boolean; docSentToRtoAt?: string; docDelayChecklistNote?: string;
+  addedToInsuranceGateway?: boolean; addedToInsuranceGatewayAt?: string;
   insurances: Insurance[];
   // Present only when this Vehicle was created by converting a CarLead —
   // leadType tells the UI whether it came from a Buyer or a Seller lead.
@@ -147,6 +166,23 @@ interface Vehicle {
   sourceLead?: { leadType: string } | null;
 }
 interface Employee { id: string; name: string; }
+
+// Follow-ups tab: one shared shape for the three sections it merges
+// (Buyer leads, Seller leads, Vehicles & Insurance) so the section/date
+// filters and the grouping-by-due-date logic don't need to know which
+// section a given item came from — only `section` and `nextFollowUpDate`.
+type FollowUpSection = "BUYER" | "SELLER" | "VEHICLE_INSURANCE";
+type FollowUpItem =
+  | { kind: "lead"; id: string; section: "BUYER" | "SELLER"; nextFollowUpDate?: string; lead: CarLead }
+  | { kind: "insurance"; id: string; section: "VEHICLE_INSURANCE"; nextFollowUpDate?: string; policy: Insurance };
+const FOLLOWUP_SECTION_LABEL: Record<FollowUpSection, string> = {
+  BUYER: "Buyer", SELLER: "Seller", VEHICLE_INSURANCE: "Vehicles & Insurance",
+};
+const FOLLOWUP_SECTION_BADGE: Record<FollowUpSection, { color: string; bg: string }> = {
+  BUYER: { color: "#818cf8", bg: "#1e1b4b" },
+  SELLER: { color: "#fb923c", bg: "#431407" },
+  VEHICLE_INSURANCE: { color: "#2dd4bf", bg: "#042f2e" },
+};
 
 // ── Insurance due-date helper (red within 30 days or already expired) ──
 function insuranceBadge(insurance?: Insurance): { text: string; color: string; bg: string } | null {
@@ -459,6 +495,12 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   // rarely touched day-to-day — collapsed by default so the curated field
   // set stays the first thing anyone sees on Edit; a chevron reveals them.
   const [showMore, setShowMore] = useState(false);
+  // Booking Details / Delivery Checklist — buyer and seller leads, kept local so
+  // saving either doesn't have to close or re-fetch the whole Edit Lead modal.
+  const [bookingData, setBookingData] = useState<CarBooking | null>(lead?.booking ?? null);
+  const [deliveryData, setDeliveryData] = useState<CarDelivery | null>(lead?.delivery ?? null);
+  const [showBooking, setShowBooking] = useState(false);
+  const [showDelivery, setShowDelivery] = useState(false);
 
   useEffect(() => {
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
@@ -467,6 +509,9 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   async function save() {
     if (!form.name.trim()) { setErr("Name is required"); return; }
     if (statusUnchanged) { setErr("Update the status before saving — that's what tells the team this lead was actually followed up on."); return; }
+    if (["CNR", "BUSY", "PRODUCT_NOT_FOUND"].includes(form.leadStage) && !form.nextFollowUpDate) {
+      setErr("Set a Next Follow-up Date — required for CNR / Busy / Product Not Found so this lead doesn't go cold."); return;
+    }
     setSaving(true); setErr("");
     try {
       const payload: any = {
@@ -784,6 +829,16 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
             )}
           </div>
         )}
+        {lead && (
+          <div className="flex items-center gap-2 mt-3">
+            <button type="button" onClick={() => setShowBooking(true)} style={S.ghost}>
+              {bookingData ? "✓ " : ""}Booking Details
+            </button>
+            <button type="button" onClick={() => setShowDelivery(true)} style={S.ghost}>
+              {deliveryData?.deliveryDone ? "✓ " : ""}Delivery Checklist
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-3 mt-4">
           <div className="flex gap-2">
             {lead && lead.status !== "CONVERTED" && onConvert && (
@@ -810,6 +865,181 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           onCancel={() => setConfirmDelete(false)}
         />
       )}
+      {showBooking && lead && (
+        <BookingModal lead={lead} existing={bookingData} onClose={() => setShowBooking(false)}
+          onSaved={booking => setBookingData(booking)} />
+      )}
+      {showDelivery && lead && (
+        <DeliveryChecklistModal lead={lead} existing={deliveryData} onClose={() => setShowDelivery(false)}
+          onSaved={delivery => setDeliveryData(delivery)} />
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Booking Details (buyer and seller leads — deal terms once in negotiation/booked)
+// ═══════════════════════════════════════════════════════════════
+function BookingModal({ lead, existing, onClose, onSaved }: { lead: CarLead; existing: CarBooking | null; onClose: () => void; onSaved: (booking: CarBooking) => void }) {
+  const [b, setB] = useState({
+    carPrice: existing?.carPrice?.toString() ?? "", commission: existing?.commission?.toString() ?? "",
+    paymentType: existing?.paymentType ?? "", rtoCharge: existing?.rtoCharge?.toString() ?? "",
+    warranty: existing?.warranty ?? "", extraWork: existing?.extraWork ?? "",
+    rsaIncluded: existing?.rsaIncluded ?? false, rsaAmount: existing?.rsaAmount?.toString() ?? "",
+    finalPrice: existing?.finalPrice?.toString() ?? "", deliveryDate: existing?.deliveryDate?.slice(0, 10) ?? "",
+    termsAndConditions: existing?.termsAndConditions ?? "", insuranceIncluded: existing?.insuranceIncluded ?? false,
+    notes: existing?.notes ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function save() {
+    setSaving(true); setErr("");
+    try {
+      const payload = {
+        ...b,
+        carPrice: b.carPrice ? Number(b.carPrice) : undefined,
+        commission: b.commission ? Number(b.commission) : undefined,
+        paymentType: b.paymentType || undefined,
+        rtoCharge: b.rtoCharge ? Number(b.rtoCharge) : undefined,
+        rsaAmount: b.rsaAmount ? Number(b.rsaAmount) : undefined,
+        finalPrice: b.finalPrice ? Number(b.finalPrice) : undefined,
+        deliveryDate: b.deliveryDate || undefined,
+      };
+      const res = await api.patch(`/cars/leads/${lead.id}/booking`, payload);
+      onSaved(res.data.data); onClose();
+    } catch (e) { setErr(getApiError(e)); }
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-xl mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Booking Details — {lead.name}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+          <div><label style={S.label}>Car Price (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={b.carPrice} onChange={e => setB({ ...b, carPrice: e.target.value })} /></div>
+          <div><label style={S.label}>Commission (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={b.commission} onChange={e => setB({ ...b, commission: e.target.value })} /></div>
+          <div>
+            <label style={S.label}>Cash / Finance</label>
+            <select style={{ ...S.inp, width: "100%" }} value={b.paymentType} onChange={e => setB({ ...b, paymentType: e.target.value })}>
+              <option value="">Select…</option>
+              <option value="CASH">Cash</option>
+              <option value="FINANCE">Finance</option>
+            </select>
+          </div>
+          <div><label style={S.label}>RTO Charge (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={b.rtoCharge} onChange={e => setB({ ...b, rtoCharge: e.target.value })} /></div>
+          <div><label style={S.label}>Warranty</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 1 year" value={b.warranty} onChange={e => setB({ ...b, warranty: e.target.value })} /></div>
+          <div><label style={S.label}>Extra Work</label><input style={{ ...S.inp, width: "100%" }} value={b.extraWork} onChange={e => setB({ ...b, extraWork: e.target.value })} /></div>
+          <div><label style={S.label}>Final Price (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={b.finalPrice} onChange={e => setB({ ...b, finalPrice: e.target.value })} /></div>
+          <div><label style={S.label}>Delivery Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={b.deliveryDate} onChange={e => setB({ ...b, deliveryDate: e.target.value })} /></div>
+        </div>
+
+        <div className="flex items-center gap-4 mb-3">
+          <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#4ade80", cursor: "pointer" }}>
+            <input type="checkbox" checked={b.rsaIncluded} onChange={e => setB({ ...b, rsaIncluded: e.target.checked })} />
+            RSA Included
+          </label>
+          {b.rsaIncluded && <input type="number" style={{ ...S.inp, width: 140 }} placeholder="RSA amount (₹)" value={b.rsaAmount} onChange={e => setB({ ...b, rsaAmount: e.target.value })} />}
+          <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#4ade80", cursor: "pointer" }}>
+            <input type="checkbox" checked={b.insuranceIncluded} onChange={e => setB({ ...b, insuranceIncluded: e.target.checked })} />
+            Insurance Included
+          </label>
+        </div>
+
+        <div className="mb-3">
+          <label style={S.label}>Terms &amp; Conditions</label>
+          <textarea style={{ ...S.inp, width: "100%", minHeight: 60, resize: "vertical" } as React.CSSProperties} value={b.termsAndConditions} onChange={e => setB({ ...b, termsAndConditions: e.target.value })} />
+        </div>
+        <div className="mb-1">
+          <label style={S.label}>Note</label>
+          <textarea style={{ ...S.inp, width: "100%", minHeight: 50, resize: "vertical" } as React.CSSProperties} value={b.notes} onChange={e => setB({ ...b, notes: e.target.value })} />
+        </div>
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button onClick={onClose} style={S.ghost}>Cancel</button>
+          <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : "Save Booking"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Delivery Checklist (buyer and seller leads — post-booking handover)
+// ═══════════════════════════════════════════════════════════════
+function DeliveryChecklistModal({ lead, existing, onClose, onSaved }: { lead: CarLead; existing: CarDelivery | null; onClose: () => void; onSaved: (delivery: CarDelivery) => void }) {
+  const [d, setD] = useState({
+    checkedOut: existing?.checkedOut ?? false, documentsAdded: existing?.documentsAdded ?? false,
+    deliveryNoteAdded: existing?.deliveryNoteAdded ?? false, deliveryDone: existing?.deliveryDone ?? false,
+    notes: existing?.notes ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  // The delivery row's own id, needed before a Delivery Note file can be
+  // attached (Document is keyed on entityId) — null until the checklist has
+  // been saved at least once.
+  const [deliveryId, setDeliveryId] = useState<string | null>(existing?.id ?? null);
+
+  async function save() {
+    setSaving(true); setErr("");
+    try {
+      const res = await api.patch(`/cars/leads/${lead.id}/delivery`, d);
+      setDeliveryId(res.data.data.id);
+      onSaved(res.data.data);
+    } catch (e) { setErr(getApiError(e)); }
+    setSaving(false);
+  }
+
+  const steps: { key: keyof typeof d; label: string; doneAt?: string }[] = [
+    { key: "checkedOut", label: "Check Out", doneAt: existing?.checkedOutAt },
+    { key: "documentsAdded", label: "Document Added", doneAt: existing?.documentsAddedAt },
+    { key: "deliveryNoteAdded", label: "Delivery Note Added" },
+    { key: "deliveryDone", label: "Delivery Done", doneAt: existing?.deliveryDoneAt },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-md mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Delivery Checklist — {lead.name}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
+
+        <div className="space-y-2 mb-3">
+          {steps.map(step => (
+            <label key={String(step.key)} className="flex items-center justify-between gap-2" style={{ padding: "8px 10px", borderRadius: 8, background: "var(--bg-hover)", cursor: "pointer" }}>
+              <span className="flex items-center gap-2" style={{ fontSize: 12, color: "var(--text-primary)" }}>
+                <input type="checkbox" checked={d[step.key] as boolean} onChange={e => setD({ ...d, [step.key]: e.target.checked })} />
+                {step.label}
+              </span>
+              {step.doneAt && <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>{new Date(step.doneAt).toLocaleDateString("en-IN")}</span>}
+            </label>
+          ))}
+        </div>
+
+        <label style={S.label}>Notes</label>
+        <textarea style={{ ...S.inp, width: "100%", minHeight: 50, resize: "vertical" } as React.CSSProperties} value={d.notes} onChange={e => setD({ ...d, notes: e.target.value })} />
+
+        {deliveryId ? (
+          <div className="mt-3">
+            <label style={S.label}>Delivery Note File</label>
+            <DocumentsPanel entityType="CAR_DELIVERY" entityId={deliveryId} compact />
+          </div>
+        ) : (
+          <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 10 }}>Save the checklist once to attach the Delivery Note file.</p>
+        )}
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button onClick={onClose} style={S.ghost}>{deliveryId ? "Done" : "Cancel"}</button>
+          <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : "Save Checklist"}</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1255,7 +1485,12 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
     sellerName: vehicle?.sellerName ?? lead?.name ?? "", sellerPhone: vehicle?.sellerPhone ?? lead?.phone ?? "", sellerEmail: vehicle?.sellerEmail ?? lead?.email ?? "",
     purchasedAt: vehicle?.purchasedAt ? vehicle.purchasedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
     assignedToId: vehicle?.assignedToId ?? "", notes: vehicle?.notes ?? "",
+    // Post-sale handoff checklist ("becomes a customer" — buyer flow only)
+    docSentToRto: vehicle?.docSentToRto ?? false, docSentToRtoAt: vehicle?.docSentToRtoAt?.slice(0, 10) ?? "",
+    docDelayChecklistNote: vehicle?.docDelayChecklistNote ?? "",
+    addedToInsuranceGateway: vehicle?.addedToInsuranceGateway ?? false, addedToInsuranceGatewayAt: vehicle?.addedToInsuranceGatewayAt?.slice(0, 10) ?? "",
   });
+  const isBuyerSale = vehicle?.status === "SOLD" && vehicle?.sourceLead?.leadType === "BUYER";
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -1334,6 +1569,32 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
 
         <label style={S.label}>Notes</label>
         <textarea style={{ ...S.inp, width: "100%", minHeight: 60, resize: "vertical" } as React.CSSProperties} value={v.notes} onChange={e => setV({ ...v, notes: e.target.value })} />
+
+        {isBuyerSale && (
+          <>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "16px 0 8px" }}>Handoff Checklist — Becomes a Customer</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2 flex items-center gap-2">
+                <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#4ade80", cursor: "pointer" }}>
+                  <input type="checkbox" checked={v.docSentToRto} onChange={e => setV({ ...v, docSentToRto: e.target.checked, docSentToRtoAt: e.target.checked && !v.docSentToRtoAt ? new Date().toISOString().slice(0, 10) : v.docSentToRtoAt })} />
+                  Doc Sent to RTO
+                </label>
+                {v.docSentToRto && <input type="date" style={{ ...S.inp, width: 160 }} value={v.docSentToRtoAt} onChange={e => setV({ ...v, docSentToRtoAt: e.target.value })} />}
+              </div>
+              <div className="sm:col-span-2">
+                <label style={S.label}>Doc Delay Checklist</label>
+                <textarea style={{ ...S.inp, width: "100%", minHeight: 50, resize: "vertical" } as React.CSSProperties} placeholder="e.g. Waiting on NOC from financier" value={v.docDelayChecklistNote} onChange={e => setV({ ...v, docDelayChecklistNote: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2 flex items-center gap-2">
+                <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#4ade80", cursor: "pointer" }}>
+                  <input type="checkbox" checked={v.addedToInsuranceGateway} onChange={e => setV({ ...v, addedToInsuranceGateway: e.target.checked, addedToInsuranceGatewayAt: e.target.checked && !v.addedToInsuranceGatewayAt ? new Date().toISOString().slice(0, 10) : v.addedToInsuranceGatewayAt })} />
+                  Added to Insurance Gateway
+                </label>
+                {v.addedToInsuranceGateway && <input type="date" style={{ ...S.inp, width: 160 }} value={v.addedToInsuranceGatewayAt} onChange={e => setV({ ...v, addedToInsuranceGatewayAt: e.target.value })} />}
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="flex justify-end gap-3 mt-4">
           <button onClick={onClose} style={S.ghost}>Cancel</button>
@@ -1677,8 +1938,37 @@ function HistoricalStatsModal({ onClose, onImported }: { onClose: () => void; on
 // ═══════════════════════════════════════════════════════════════
 // Main page
 // ═══════════════════════════════════════════════════════════════
+type CarsTab = "leads" | "sellerleads" | "vehicles" | "warranty" | "followups" | "reports";
+
 export default function CarsPage() {
-  const [tab, setTab] = useState<"leads" | "sellerleads" | "vehicles" | "warranty" | "followups" | "reports">("leads");
+  // Buyer Leads / Seller Leads / Vehicles & Insurance are independently
+  // grantable Cars sections (see requireModuleAccess.ts on the backend) —
+  // a user with only CARS.BUYER should only ever see the Buyer Leads tab,
+  // not the other two. Holding the broad legacy "CARS" key (or being
+  // OWNER/ADMIN) still unlocks every section, unchanged from before.
+  const { moduleAccess, activeOrg } = useAuthStore();
+  const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
+  const canSeeBuyer = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.BUYER");
+  const canSeeSeller = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.SELLER");
+  const canSeeInsurance = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.VEHICLES_INSURANCE");
+  const VISIBLE_TABS: CarsTab[] = [
+    ...(canSeeBuyer ? (["leads"] as const) : []),
+    ...(canSeeSeller ? (["sellerleads"] as const) : []),
+    ...(canSeeInsurance ? (["vehicles", "warranty"] as const) : []),
+    // Follow-ups and Monthly Report are cross-section views — the backend
+    // already scopes what each shows down to the sections this user has
+    // (listCarLeads/listInsuranceFollowUps), so both stay visible to anyone
+    // with at least one Cars section rather than being tied to just one.
+    ...((canSeeBuyer || canSeeSeller || canSeeInsurance) ? (["followups", "reports"] as const) : []),
+  ];
+
+  const [tab, setTabRaw] = useState<CarsTab>("leads");
+  const setTab = (t: CarsTab) => { if (VISIBLE_TABS.includes(t)) setTabRaw(t); };
+  // If access changes (or the remembered/default tab isn't one this user
+  // can see), land on the first tab they're actually allowed to view.
+  useEffect(() => {
+    if (!VISIBLE_TABS.includes(tab) && VISIBLE_TABS.length > 0) setTabRaw(VISIBLE_TABS[0]);
+  }, [canSeeBuyer, canSeeSeller, canSeeInsurance]); // eslint-disable-line react-hooks/exhaustive-deps
   const [monthlyReport, setMonthlyReport] = useState<any[]>([]);
   const [leads, setLeads] = useState<CarLead[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -1693,6 +1983,13 @@ export default function CarsPage() {
   // the policy's own endDate/expiry, not a reminder someone set.
   const [insuranceFollowUps, setInsuranceFollowUps] = useState<Insurance[]>([]);
   const [followUps, setFollowUps] = useState<CarLead[]>([]);
+  // Vehicles & Insurance's own policy-level follow-up reminders, pulled into
+  // this tab too (followUp=all — every date, not just due/overdue) so the
+  // Follow-ups tab is a true "all three sections" worklist.
+  const [followUpInsurance, setFollowUpInsurance] = useState<Insurance[]>([]);
+  const [followUpSection, setFollowUpSection] = useState<"ALL" | "BUYER" | "SELLER" | "VEHICLE_INSURANCE">("ALL");
+  const [followUpDateFrom, setFollowUpDateFrom] = useState("");
+  const [followUpDateTo, setFollowUpDateTo] = useState("");
   const [warrantyVehicles, setWarrantyVehicles] = useState<Vehicle[]>([]);
   const [warrantyTotals, setWarrantyTotals] = useState({ total: 0, truncated: false });
   const [stats, setStats] = useState<any>(null);
@@ -1829,8 +2126,12 @@ export default function CarsPage() {
         });
         setInsuranceFollowUps(fr.data.data.policies ?? []);
       } else if (tab === "followups") {
-        const r = await api.get("/cars/leads?followUp=all&limit=200");
-        setFollowUps(r.data.data.leads ?? []);
+        const [lr, ir] = await Promise.all([
+          api.get("/cars/leads?followUp=all&limit=200"),
+          api.get("/cars/insurance/due-followups?followUp=all"),
+        ]);
+        setFollowUps(lr.data.data.leads ?? []);
+        setFollowUpInsurance(ir.data.data.policies ?? []);
       } else if (tab === "warranty") {
         const r = await api.get("/cars/warranties");
         setWarrantyVehicles(r.data.data.vehicles ?? []);
@@ -1851,6 +2152,22 @@ export default function CarsPage() {
   // time (due within the next 30 days but not lapsed yet).
   const overdueVehicles = expiringVehiclesData.filter(v => v.insurances?.[0] && new Date(v.insurances[0].endDate).getTime() < Date.now());
   const upcomingVehicles = expiringVehiclesData.filter(v => v.insurances?.[0] && new Date(v.insurances[0].endDate).getTime() >= Date.now());
+
+  // Follow-ups tab: merges all three sections (Buyer leads, Seller leads,
+  // Vehicles & Insurance) into one worklist, each item tagged with where it
+  // came from so the section filter below can slice it — same merge pattern
+  // as the dashboard's TodaysFollowUps widget, just scoped to this org's
+  // Cars module and including future-dated reminders too (not just due).
+  const allFollowUps: FollowUpItem[] = [
+    ...followUps.map(l => ({ kind: "lead" as const, id: l.id, section: (l.leadType === "SELLER" ? "SELLER" : "BUYER") as const, nextFollowUpDate: l.nextFollowUpDate, lead: l })),
+    ...followUpInsurance.map(p => ({ kind: "insurance" as const, id: p.id, section: "VEHICLE_INSURANCE" as const, nextFollowUpDate: p.nextFollowUpDate, policy: p })),
+  ];
+  const filteredFollowUps = allFollowUps.filter(f => {
+    if (followUpSection !== "ALL" && f.section !== followUpSection) return false;
+    if (followUpDateFrom && (!f.nextFollowUpDate || f.nextFollowUpDate.slice(0, 10) < followUpDateFrom)) return false;
+    if (followUpDateTo && (!f.nextFollowUpDate || f.nextFollowUpDate.slice(0, 10) > followUpDateTo)) return false;
+    return true;
+  });
 
   return (
     <div className="p-4">
@@ -1883,31 +2200,43 @@ export default function CarsPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      {stats && (
+      {/* Stats — scoped to whichever section tab is active, instead of a
+          fixed mix that showed Buyer-lead counts even while looking at
+          Vehicles & Insurance (or vehicle counts while on Seller Leads). */}
+      {stats && (tab === "leads" || tab === "sellerleads" || tab === "vehicles" || tab === "warranty") && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
           {[
             // Buyer and Seller are separate tabs, so these three reflect
             // whichever one is currently active instead of a combined number
             // that hid how many of each type there actually were.
-            ...(() => {
+            ...(tab === "leads" || tab === "sellerleads" ? (() => {
               const cat = tab === "sellerleads" ? stats.seller : stats.buyer;
               const catLabel = tab === "sellerleads" ? "Seller" : "Buyer";
               const catTab = tab === "sellerleads" ? "sellerleads" : "leads";
+              const byStatusClick = (s: string) => () => { setTab(catTab); setStatusFilter(s); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); };
               return [
-                { label: `${catLabel} Leads`, value: cat?.total ?? 0, color: "#818cf8", onClick: () => { setTab(catTab); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
-                { label: "Hot", value: cat?.byStatus?.find((s: any) => s.status === "HOT")?._count ?? 0, color: "#f87171", onClick: () => { setTab(catTab); setStatusFilter("HOT"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
-                { label: "Urgent", value: cat?.byStatus?.find((s: any) => s.status === "URGENT")?._count ?? 0, color: "#fb923c", onClick: () => { setTab(catTab); setStatusFilter("URGENT"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
+                { label: `${catLabel} Leads`, value: cat?.total ?? 0, color: "#818cf8", onClick: byStatusClick("") },
+                // One tile per status (same set as the Status dropdown, minus
+                // CONVERTED which isn't manually chosen) so every bucket —
+                // not just Hot/Urgent — is visible at a glance here too.
+                ...LEAD_STATUSES.filter(s => s !== "CONVERTED").map(s => ({
+                  label: LEAD_STATUS[s].label,
+                  value: cat?.byStatus?.find((row: any) => row.status === s)?._count ?? 0,
+                  color: LEAD_STATUS[s].color,
+                  onClick: byStatusClick(s),
+                })),
                 // Buyer-only: backed by the "Lead Status" custom field (set
                 // when a call is logged), not the HOT/WARM/COLD status enum —
                 // shrinks as leads get their first call logged.
                 ...(tab !== "sellerleads" ? [{ label: "Not Contacted", value: stats.buyer?.notContacted ?? 0, color: "#facc15", onClick: () => { setTab("leads"); setStatusFilter(""); setContactedFilter(false); setNotContactedFilter(true); } }] : []),
               ];
-            })(),
-            { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
-            { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
-            { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
-            { label: "Insurance Due (30d)", value: stats.expiringSoon, color: stats.expiringSoon > 0 ? "#f87171" : "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
+            })() : []),
+            ...(tab === "vehicles" || tab === "warranty" ? [
+              { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
+              { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
+              { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
+              { label: "Insurance Due (30d)", value: stats.expiringSoon, color: stats.expiringSoon > 0 ? "#f87171" : "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
+            ] : []),
           ].map(k => (
             <button key={k.label} onClick={k.onClick} style={{ ...S.card, padding: "12px 14px", textAlign: "left", cursor: "pointer", border: "1px solid var(--border)" }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = k.color)}
@@ -1920,9 +2249,9 @@ export default function CarsPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs — only the sections this user has access to */}
       <div className="flex items-center gap-1 mb-4 flex-wrap" style={{ borderBottom: "1px solid var(--border)" }}>
-        {(["leads", "sellerleads", "vehicles", "warranty", "followups", "reports"] as const).map(tKey => (
+        {VISIBLE_TABS.map(tKey => (
           <button key={tKey} onClick={() => { setTab(tKey); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setSearch(""); }}
             style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: tab === tKey ? "2px solid #38bdf8" : "2px solid transparent", color: tab === tKey ? "#38bdf8" : "var(--text-ghost)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             {tKey === "leads" ? "Buyer Leads" : tKey === "sellerleads" ? "Seller Leads" : tKey === "vehicles" ? "Vehicles & Insurance"
@@ -2303,53 +2632,109 @@ export default function CarsPage() {
           </>
         )
       ) : tab === "followups" ? (
-        followUps.length === 0 ? (
-          <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No open leads have a follow-up date scheduled.</div>
-        ) : (
-          <div className="space-y-4">
-            {(["overdue", "today", "upcoming"] as const).map(group => {
-              const groupItems = followUps.filter(l => dueLabel(l.nextFollowUpDate).group === group);
-              if (groupItems.length === 0) return null;
-              const groupLabel = group === "overdue" ? "Overdue" : group === "today" ? "Due Today" : "Upcoming";
-              const groupColor = group === "overdue" ? "#f87171" : group === "today" ? "#fbbf24" : "var(--text-ghost)";
-              return (
-                <div key={group}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: groupColor, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>{groupLabel} ({groupItems.length})</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {groupItems.map(l => {
-                      const st = LEAD_STATUS[l.status] || LEAD_STATUS.NEW;
-                      const due = dueLabel(l.nextFollowUpDate);
-                      return (
-                        <div key={l.id} style={S.card}>
-                          <div className="flex items-start justify-between mb-2">
-                            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{l.name}</div>
-                            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 5, background: l.leadType === "SELLER" ? "#431407" : "#1e1b4b", color: l.leadType === "SELLER" ? "#fb923c" : "#818cf8", fontWeight: 700 }}>
-                              {l.leadType === "SELLER" ? "Seller" : "Buyer"}
-                            </span>
-                          </div>
-                          {(l.interestedMake || l.interestedModel) && (
-                            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4 }}>
-                              {[l.interestedMake, l.interestedModel].filter(Boolean).join(" ")}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-3 mb-2" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
-                            {l.phone && <span className="flex items-center gap-1"><Phone size={11} /> {l.phone}</span>}
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text}</span>
-                          </div>
-                          {l.assignedTo?.name && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{l.assignedTo.name}</strong></div>}
-                          <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, width: "100%", justifyContent: "center", marginTop: 8 }}><Pencil size={11} /> Edit</button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+        <>
+          {/* Section + date filters — slices the merged Buyer/Seller/Vehicles
+              & Insurance worklist below without a re-fetch. */}
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            {(["ALL", "BUYER", "SELLER", "VEHICLE_INSURANCE"] as const).map(sec => (
+              <button key={sec} onClick={() => setFollowUpSection(sec)}
+                style={{
+                  ...S.ghost, padding: "6px 12px",
+                  ...(followUpSection === sec ? { background: "#38bdf8", color: "#06273a", borderColor: "#38bdf8" } : {}),
+                }}>
+                {sec === "ALL" ? "All Sections" : FOLLOWUP_SECTION_LABEL[sec]}
+              </button>
+            ))}
+            <div className="flex items-center gap-2 ml-auto">
+              <label style={{ fontSize: 11, color: "var(--text-ghost)" }}>From</label>
+              <input type="date" style={S.inp} value={followUpDateFrom} onChange={e => setFollowUpDateFrom(e.target.value)} />
+              <label style={{ fontSize: 11, color: "var(--text-ghost)" }}>To</label>
+              <input type="date" style={S.inp} value={followUpDateTo} onChange={e => setFollowUpDateTo(e.target.value)} />
+              {(followUpDateFrom || followUpDateTo) && (
+                <button onClick={() => { setFollowUpDateFrom(""); setFollowUpDateTo(""); }} style={S.ghost}>Clear dates</button>
+              )}
+            </div>
           </div>
-        )
+          {filteredFollowUps.length === 0 ? (
+            <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No follow-ups match this filter.</div>
+          ) : (
+            <div className="space-y-4">
+              {(["overdue", "today", "upcoming"] as const).map(group => {
+                const groupItems = filteredFollowUps.filter(f => dueLabel(f.nextFollowUpDate).group === group);
+                if (groupItems.length === 0) return null;
+                const groupLabel = group === "overdue" ? "Overdue" : group === "today" ? "Due Today" : "Upcoming";
+                const groupColor = group === "overdue" ? "#f87171" : group === "today" ? "#fbbf24" : "var(--text-ghost)";
+                return (
+                  <div key={group}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: groupColor, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>{groupLabel} ({groupItems.length})</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {groupItems.map(f => {
+                        const due = dueLabel(f.nextFollowUpDate);
+                        const sectionBadge = FOLLOWUP_SECTION_BADGE[f.section];
+                        if (f.kind === "lead") {
+                          const l = f.lead;
+                          const st = LEAD_STATUS[l.status] || LEAD_STATUS.NEW;
+                          return (
+                            <div key={`lead-${f.id}`} style={S.card}>
+                              <div className="flex items-start justify-between mb-2">
+                                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{l.name}</div>
+                                <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 5, background: sectionBadge.bg, color: sectionBadge.color, fontWeight: 700 }}>
+                                  {FOLLOWUP_SECTION_LABEL[f.section]}
+                                </span>
+                              </div>
+                              {(l.interestedMake || l.interestedModel) && (
+                                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4 }}>
+                                  {[l.interestedMake, l.interestedModel].filter(Boolean).join(" ")}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-3 mb-2" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
+                                {l.phone && <span className="flex items-center gap-1"><Phone size={11} /> {l.phone}</span>}
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text}</span>
+                              </div>
+                              {l.assignedTo?.name && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{l.assignedTo.name}</strong></div>}
+                              <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, width: "100%", justifyContent: "center", marginTop: 8 }}><Pencil size={11} /> Edit</button>
+                            </div>
+                          );
+                        }
+                        const p = f.policy;
+                        const v = p.vehicle;
+                        const customerName = v?.ownerName || v?.sellerName || "";
+                        const customerPhone = v?.ownerPhone || v?.sellerPhone || "";
+                        return (
+                          <div key={`ins-${f.id}`} style={S.card}>
+                            <div className="flex items-start justify-between mb-2">
+                              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
+                                {v ? `${v.make ?? ""} ${v.model ?? ""}`.trim() : "Vehicle"}{v?.registrationNo ? ` · ${v.registrationNo}` : ""}
+                              </div>
+                              <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 5, background: sectionBadge.bg, color: sectionBadge.color, fontWeight: 700 }}>
+                                {FOLLOWUP_SECTION_LABEL[f.section]}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4 }}>{p.provider}</div>
+                            <div className="flex items-center gap-3 mb-2" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
+                              {customerName && <span>{customerName}</span>}
+                              {customerPhone && <span className="flex items-center gap-1"><Phone size={11} /> {customerPhone}</span>}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text || "Due"}</span>
+                            </div>
+                            {employeeName(v?.assignedToId) && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{employeeName(v?.assignedToId)}</strong></div>}
+                            <button
+                              onClick={() => { if (!v) return; setInsuranceFor({ id: v.id, make: v.make ?? "", model: v.model ?? "", status: "IN_STOCK", insurances: [] } as Vehicle); setEditInsuranceRecord(p); }}
+                              style={{ ...S.ghost, width: "100%", justifyContent: "center", marginTop: 8 }}><Pencil size={11} /> Edit</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       ) : (
         <div className="table-wrap">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { ok, created, badRequest, notFound, forbidden, serverError, conflict } from "../utils/response";
+import { assertCarsSection, hasCarsSectionAccess, CarsSection } from "../middleware/requireModuleAccess";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { writeAuditLog, getIp } from "../utils/auditLog";
 import { MemberRole, Prisma } from "@prisma/client";
@@ -84,6 +85,14 @@ async function contactedWhere(orgId: string): Promise<Record<string, unknown>> {
   return where;
 }
 
+// Call-outcome stages that don't move the deal forward — per the client's
+// own flow chart, each of these must carry a next-follow-up date so the lead
+// doesn't go cold. Checked against the EFFECTIVE stage/date (existing value
+// merged with whatever the request is changing), not just the raw request
+// body, so a partial update can't leave a CNR/BUSY/PRODUCT_NOT_FOUND lead
+// with no reminder by only touching one of the two fields.
+const CAR_LEAD_FOLLOWUP_REQUIRED_STAGES = new Set(["CNR", "BUSY", "PRODUCT_NOT_FOUND"]);
+
 function computeWarrantyEndDate(soldAt: Date | undefined | null, warrantyMonths: number | undefined | null): Date | undefined {
   if (!warrantyMonths) return undefined;
   const base = soldAt ?? new Date();
@@ -127,7 +136,7 @@ const carLeadSchema = z.object({
   status: z.enum(["NEW", "HOT", "WARM", "COLD", "URGENT", "CONTACTED", "NOT_INTERESTED", "CONVERTED", "LOST"]).default("NEW"),
   // "Lead Status" pipeline filter — separate from `status` ("Lead Rating")
   // above, per the client's two-filter tracking sheet.
-  leadStage: z.enum(["SEARCHING_CAR", "DETAILS_SENT", "TEST_DRIVE_PLANNED", "TEST_DRIVE_DONE", "IN_NEGOTIATION", "BOOKED", "CNR"]).default("SEARCHING_CAR"),
+  leadStage: z.enum(["SEARCHING_CAR", "DETAILS_SENT", "TEST_DRIVE_PLANNED", "TEST_DRIVE_DONE", "IN_NEGOTIATION", "BOOKED", "CNR", "BUSY", "PRODUCT_NOT_FOUND"]).default("SEARCHING_CAR"),
   notes: z.string().optional(),
   isDoNotCall: z.boolean().optional(),
   testDriveDone: z.boolean().optional(),
@@ -197,6 +206,13 @@ const vehicleSchema = z.object({
   warrantyMonths: z.number().int().optional(),
   assignedToId: z.string().optional(),
   notes: z.string().optional(),
+
+  // Post-sale handoff checklist ("becomes a customer" — see CarLead flow)
+  docSentToRto: z.boolean().optional(),
+  docSentToRtoAt: z.string().optional(),
+  docDelayChecklistNote: z.string().optional(),
+  addedToInsuranceGateway: z.boolean().optional(),
+  addedToInsuranceGatewayAt: z.string().optional(),
 });
 
 const insuranceSchema = z.object({
@@ -215,6 +231,35 @@ const insuranceSchema = z.object({
   renewedBy: z.string().optional(),
   notes: z.string().optional(),
   nextFollowUpDate: z.string().optional(),
+});
+
+// Deal-terms captured once a buyer or seller lead reaches IN_NEGOTIATION/BOOKED.
+const carBookingSchema = z.object({
+  carPrice: z.number().optional(),
+  commission: z.number().optional(),
+  paymentType: z.enum(["CASH", "FINANCE"]).optional(),
+  rtoCharge: z.number().optional(),
+  warranty: z.string().optional(),
+  extraWork: z.string().optional(),
+  rsaIncluded: z.boolean().optional(),
+  rsaAmount: z.number().optional(),
+  finalPrice: z.number().optional(),
+  deliveryDate: z.string().optional(),
+  termsAndConditions: z.string().optional(),
+  insuranceIncluded: z.boolean().optional(),
+  notes: z.string().optional(),
+});
+
+// Post-booking delivery checklist for a buyer or seller lead. The Delivery Note file
+// itself is attached via the generic Document endpoint (entityType:
+// "CAR_DELIVERY", entityId: the CarDelivery row's id) — deliveryNoteAdded
+// here is just the checklist tick, not the file.
+const carDeliverySchema = z.object({
+  checkedOut: z.boolean().optional(),
+  documentsAdded: z.boolean().optional(),
+  deliveryNoteAdded: z.boolean().optional(),
+  deliveryDone: z.boolean().optional(),
+  notes: z.string().optional(),
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -264,9 +309,23 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
     }
     // Buyer Leads tab defaults to BUYER for backward compatibility; Seller
     // Leads passes leadType=SELLER; the Follow-ups tab (followUp=all) shows
-    // both unless a specific leadType is also requested.
-    if (leadType) where.leadType = leadType;
-    else if (followUp !== "all") where.leadType = "BUYER";
+    // both unless a specific leadType is also requested. Each branch is also
+    // where section-level access is enforced — a Buyer-only user asking for
+    // SELLER (or the all-sections Follow-ups view) only ever gets back what
+    // they're allowed to see, not just a blocked request.
+    if (leadType) {
+      if (!(await assertCarsSection(req, res, leadType as CarsSection))) return;
+      where.leadType = leadType;
+    } else if (followUp === "all") {
+      const [canBuyer, canSeller] = await Promise.all([hasCarsSectionAccess(req, "BUYER"), hasCarsSectionAccess(req, "SELLER")]);
+      if (!canBuyer && !canSeller) { forbidden(res, "You do not have access to any Cars lead section."); return; }
+      if (canBuyer && !canSeller) where.leadType = "BUYER";
+      else if (canSeller && !canBuyer) where.leadType = "SELLER";
+      // else both allowed — leave leadType unfiltered, see both sections.
+    } else {
+      if (!(await assertCarsSection(req, res, "BUYER"))) return;
+      where.leadType = "BUYER";
+    }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -284,7 +343,7 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
       ? [{ nextFollowUpDate: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }]
       : { createdAt: "desc" };
     const [leads, total] = await Promise.all([
-      db().carLead.findMany({ where, skip, take: parseInt(limit), orderBy }),
+      db().carLead.findMany({ where, skip, take: parseInt(limit), orderBy, include: { booking: true, delivery: true } }),
       db().carLead.count({ where }),
     ]);
 
@@ -306,8 +365,12 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
 
 export async function getCarLead(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    const lead = await db().carLead.findFirst({
+      where: { id: req.params.id, organizationId: req.organizationId! },
+      include: { booking: true, delivery: true },
+    });
     if (!lead) { notFound(res, "Lead not found"); return; }
+    if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
     ok(res, lead);
   } catch (e) { serverError(res, e); }
 }
@@ -317,6 +380,11 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
     const parsed = carLeadSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const data = parsed.data;
+    if (!(await assertCarsSection(req, res, data.leadType as CarsSection))) return;
+    if (CAR_LEAD_FOLLOWUP_REQUIRED_STAGES.has(data.leadStage) && !data.nextFollowUpDate) {
+      badRequest(res, "A next follow-up date is required for this call outcome", { nextFollowUpDate: ["Required when Lead Status is CNR, Busy, or Product Not Found"] });
+      return;
+    }
     const lead = await db().carLead.create({
       data: {
         organizationId: req.organizationId!,
@@ -376,9 +444,20 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
   try {
     const existing = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Lead not found"); return; }
+    if (!(await assertCarsSection(req, res, existing.leadType as CarsSection))) return;
     const parsed = carLeadSchema.partial().safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const data = parsed.data;
+    // Changing leadType itself isn't a normal edit path, but guard it anyway
+    // so a Buyer-only user can't flip a lead to SELLER (or vice versa) as a
+    // way around not having that section.
+    if (data.leadType && data.leadType !== existing.leadType && !(await assertCarsSection(req, res, data.leadType as CarsSection))) return;
+    const effectiveStage = data.leadStage ?? existing.leadStage;
+    const effectiveFollowUpDate = data.nextFollowUpDate !== undefined ? data.nextFollowUpDate : existing.nextFollowUpDate;
+    if (CAR_LEAD_FOLLOWUP_REQUIRED_STAGES.has(effectiveStage) && !effectiveFollowUpDate) {
+      badRequest(res, "A next follow-up date is required for this call outcome", { nextFollowUpDate: ["Required when Lead Status is CNR, Busy, or Product Not Found"] });
+      return;
+    }
     const lead = await db().carLead.update({
       where: { id: existing.id },
       data: {
@@ -412,9 +491,64 @@ export async function deleteCarLead(req: OrgRequest, res: Response): Promise<voi
     }
     const existing = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Lead not found"); return; }
+    if (!(await assertCarsSection(req, res, existing.leadType as CarsSection))) return;
     await db().carLead.delete({ where: { id: existing.id } });
     bustCache(req.organizationId!, "/api/cars");
     ok(res, null, "Lead deleted");
+  } catch (e) { serverError(res, e); }
+}
+
+// ── Booking & Delivery (buyer and seller leads) ───────────────────────
+
+export async function upsertCarBooking(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    if (!lead) { notFound(res, "Lead not found"); return; }
+    if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+
+    const parsed = carBookingSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
+    const data = onlyProvided(req.body, parsed.data);
+    const deliveryDate = data.deliveryDate !== undefined ? (data.deliveryDate ? new Date(data.deliveryDate) : null) : undefined;
+
+    const booking = await db().carBooking.upsert({
+      where: { carLeadId: lead.id },
+      create: { organizationId: req.organizationId!, carLeadId: lead.id, ...data, deliveryDate },
+      update: { ...data, deliveryDate },
+    });
+    bustCache(req.organizationId!, "/api/cars");
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "CAR_LEAD_BOOKING_SAVED", resource: "CarBooking", resourceId: booking.id, description: `Booking details saved for lead: ${lead.name}`, ipAddress: getIp(req as any) });
+    ok(res, booking, "Booking details saved");
+  } catch (e) { serverError(res, e); }
+}
+
+export async function upsertCarDelivery(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
+    if (!lead) { notFound(res, "Lead not found"); return; }
+    if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+
+    const parsed = carDeliverySchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
+    const data = onlyProvided(req.body, parsed.data);
+
+    const existing = await db().carDelivery.findUnique({ where: { carLeadId: lead.id } });
+    const now = new Date();
+    const stamps: Record<string, Date> = {};
+    // Stamp the "done at" timestamp the first time each checklist item flips
+    // to true — never overwritten on a later save of the same item.
+    if (data.checkedOut && !existing?.checkedOutAt) stamps.checkedOutAt = now;
+    if (data.documentsAdded && !existing?.documentsAddedAt) stamps.documentsAddedAt = now;
+    if (data.deliveryDone && !existing?.deliveryDoneAt) stamps.deliveryDoneAt = now;
+
+    const delivery = await db().carDelivery.upsert({
+      where: { carLeadId: lead.id },
+      create: { organizationId: req.organizationId!, carLeadId: lead.id, ...data, ...stamps },
+      update: { ...data, ...stamps },
+    });
+    bustCache(req.organizationId!, "/api/cars");
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "CAR_LEAD_DELIVERY_UPDATED", resource: "CarDelivery", resourceId: delivery.id, description: `Delivery checklist updated for lead: ${lead.name}`, ipAddress: getIp(req as any) });
+    ok(res, delivery, "Delivery checklist updated");
   } catch (e) { serverError(res, e); }
 }
 
@@ -642,6 +776,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
   try {
     const { leads: rawLeads, assignedToId, leadType: rawLeadType } = req.body;
     const leadType = rawLeadType === "SELLER" ? "SELLER" : "BUYER";
+    if (!(await assertCarsSection(req, res, leadType as CarsSection))) return;
     if (!Array.isArray(rawLeads) || rawLeads.length === 0) { badRequest(res, "leads array is required"); return; }
     if (rawLeads.length > 5000) { badRequest(res, "Max 5000 leads per import — split larger files into multiple batches"); return; }
 
@@ -831,6 +966,10 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
   try {
     const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
+    // Converting touches both the lead's own section (closing it out) and
+    // Vehicles & Insurance (creating the Vehicle + first policy) — needs both.
+    if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+    if (!(await assertCarsSection(req, res, "VEHICLES_INSURANCE"))) return;
     if (lead.convertedVehicleId) { conflict(res, "This lead was already converted"); return; }
 
     const vParsed = vehicleSchema.safeParse(req.body.vehicle);
@@ -1040,6 +1179,8 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
         purchasedAt: data.purchasedAt !== undefined ? (data.purchasedAt ? new Date(data.purchasedAt) : null) : undefined,
         registrationDate: data.registrationDate !== undefined ? (data.registrationDate ? new Date(data.registrationDate) : null) : undefined,
         warrantyEndDate,
+        docSentToRtoAt: data.docSentToRtoAt !== undefined ? (data.docSentToRtoAt ? new Date(data.docSentToRtoAt) : null) : undefined,
+        addedToInsuranceGatewayAt: data.addedToInsuranceGatewayAt !== undefined ? (data.addedToInsuranceGatewayAt ? new Date(data.addedToInsuranceGatewayAt) : null) : undefined,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
@@ -1405,20 +1546,28 @@ export async function listExpiringInsurance(req: OrgRequest, res: Response): Pro
   } catch (e) { serverError(res, e); }
 }
 
-// Insurance policies with a manually-set "next follow-up" due today or
-// overdue — same convention as CarLead.nextFollowUpDate, but on the policy
-// itself (e.g. "call them about the renewal quote"), independent of the
-// policy's own endDate/expiry. Powers the banner at the top of the
-// Vehicles & Insurance tab and the dashboard's Today's Follow-ups panel.
+// Insurance policies with a manually-set "next follow-up" — same convention
+// as CarLead.nextFollowUpDate, but on the policy itself (e.g. "call them
+// about the renewal quote"), independent of the policy's own endDate/expiry.
+// Default (no params): due today or overdue, capped at 50 — powers the
+// banner at the top of the Vehicles & Insurance tab and the dashboard's
+// Today's Follow-ups panel. followUp=all: every policy with any follow-up
+// date at all (past, today, or future), capped at 200 — same "all" shape as
+// CarLead's followUp=all, for the unified cross-section Follow-ups tab.
 export async function listInsuranceFollowUps(req: OrgRequest, res: Response): Promise<void> {
   try {
     const orgId = req.organizationId!;
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+    const { followUp } = req.query as Record<string, string>;
+    const where: any = { organizationId: orgId, nextFollowUpDate: { not: null } };
+    if (followUp !== "all") {
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      where.nextFollowUpDate.lte = endOfToday;
+    }
     const policies = await db().vehicleInsurance.findMany({
-      where: { organizationId: orgId, nextFollowUpDate: { not: null, lte: endOfToday } },
+      where,
       orderBy: { nextFollowUpDate: "asc" },
-      take: 50,
+      take: followUp === "all" ? 200 : 50,
       include: {
         vehicle: { select: { id: true, make: true, model: true, registrationNo: true, ownerName: true, ownerPhone: true, sellerName: true, sellerPhone: true, assignedToId: true } },
       },

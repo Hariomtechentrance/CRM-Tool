@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
-import { getNavModules } from "@/lib/modules";
+import { getNavModules, hasModuleAccess } from "@/lib/modules";
 import { isWBAOrg } from "@/lib/org";
 import type { OrganizationSummary } from "@/types";
 import { useEffect, useRef, useState } from "react";
@@ -208,7 +208,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   // moduleAccess already equals enabledModules for OWNER/ADMIN (seeded by
   // syncModulesFromOrg) — an isOrgAdmin bypass here would show nav for
   // modules the org never enabled at all, not just skip per-user grants.
-  const canSee = (key: string) => moduleAccess.includes(key);
+  const canSee = (key: string) => hasModuleAccess(moduleAccess, key);
 
   // Employee-level functional roles from HR profile
   const orgRole = employeeProfile?.orgRole ?? null; // PROJECT_MANAGER | TEAM_LEAD | HR | MANAGEMENT | EMPLOYEE
