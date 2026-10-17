@@ -2159,7 +2159,7 @@ export default function CarsPage() {
   // as the dashboard's TodaysFollowUps widget, just scoped to this org's
   // Cars module and including future-dated reminders too (not just due).
   const allFollowUps: FollowUpItem[] = [
-    ...followUps.map(l => ({ kind: "lead" as const, id: l.id, section: (l.leadType === "SELLER" ? "SELLER" : "BUYER") as const, nextFollowUpDate: l.nextFollowUpDate, lead: l })),
+    ...followUps.map(l => ({ kind: "lead" as const, id: l.id, section: l.leadType === "SELLER" ? "SELLER" as const : "BUYER" as const, nextFollowUpDate: l.nextFollowUpDate, lead: l })),
     ...followUpInsurance.map(p => ({ kind: "insurance" as const, id: p.id, section: "VEHICLE_INSURANCE" as const, nextFollowUpDate: p.nextFollowUpDate, policy: p })),
   ];
   const filteredFollowUps = allFollowUps.filter(f => {
