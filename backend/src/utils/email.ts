@@ -200,3 +200,16 @@ export function resetPasswordTemplate(name: string, token: string): string {
     ${note("This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.")}
   `);
 }
+
+// ── OTP login ─────────────────────────────────────────────────
+const otpCode = (code: string) =>
+  `<div style="margin:20px 0;padding:18px;background:#f8f8fc;border-radius:8px;text-align:center;font-size:32px;font-weight:800;letter-spacing:0.35em;color:#1a1a2e">${esc(code)}</div>`;
+
+export function loginOtpTemplate(name: string, code: string): string {
+  return emailLayout("Your sign-in code", `
+    ${h1("Your Sign-In Code")}
+    ${p(`Hi <strong style="color:#1a1a2e">${esc(name)}</strong>, use this code to sign in to BusinessOS.`)}
+    ${otpCode(code)}
+    ${note("This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.")}
+  `);
+}

@@ -29,7 +29,8 @@ const FEATURES = [
   { icon: Globe,      text: "Works for any business type or industry" },
 ];
 
-type Step = "credentials" | "phone-2fa" | "totp-2fa";
+type Step = "credentials" | "phone-2fa" | "totp-2fa"
+  | "email-otp-request" | "email-otp-verify" | "phone-otp-request" | "phone-otp-verify";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -44,6 +45,8 @@ export default function LoginPage() {
   const [apiError,  setApiError]  = useState("");
   const [loading,   setLoading]   = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
+  const [otpEmail,    setOtpEmail]    = useState(""); // email the login-OTP was sent to
+  const [phoneInput,  setPhoneInput]  = useState(""); // user-typed number for Phone OTP login (E.164)
 
   const [warming,   setWarming]   = useState(false);
 
@@ -192,6 +195,90 @@ export default function LoginPage() {
     setLoading(false);
   }
 
+  // ── Shared: route a verify response into the 2FA gate or a finished login —
+  // same shape the password path already handles in onSubmit.
+  function handleAuthResult(authData: any) {
+    if (authData?.requires2FA) {
+      setTempToken(authData.tempToken);
+      setOtp("");
+      setStep("totp-2fa");
+      return;
+    }
+    setAuth(authData as AuthResponse);
+    navigate(authData.user.isSuperAdmin ? "/super-admin/dashboard" : "/dashboard");
+  }
+
+  // ── Email OTP login ───────────────────────────────────────────
+  async function requestEmailOtp() {
+    if (!/^\S+@\S+\.\S+$/.test(otpEmail)) { setApiError("Enter a valid email address"); return; }
+    setApiError(""); setLoading(true);
+    try {
+      await api.post("/auth/login-otp/request", { email: otpEmail });
+      setOtp("");
+      setStep("email-otp-verify");
+      setResendCountdown(60);
+    } catch (e) {
+      setApiError(getApiError(e));
+    }
+    setLoading(false);
+  }
+
+  async function verifyEmailOtp() {
+    if (otp.length !== 6) { setApiError("Enter the 6-digit code"); return; }
+    setApiError(""); setLoading(true);
+    try {
+      const res = await api.post("/auth/login-otp/verify", { email: otpEmail, otp });
+      handleAuthResult(res.data.data);
+    } catch (e) {
+      setApiError(getApiError(e));
+    }
+    setLoading(false);
+  }
+
+  async function resendEmailOtp() {
+    if (resendCountdown > 0) return;
+    setLoading(true);
+    try { await api.post("/auth/login-otp/request", { email: otpEmail }); setResendCountdown(60); }
+    catch (e) { setApiError(getApiError(e)); }
+    setLoading(false);
+  }
+
+  // ── Phone OTP login ───────────────────────────────────────────
+  async function sendPhoneOtpLogin() {
+    if (!/^\+[1-9]\d{7,14}$/.test(phoneInput)) { setApiError("Enter a full phone number with country code, e.g. +91XXXXXXXXXX"); return; }
+    setApiError(""); setLoading(true);
+    setOtp("");
+    setStep("phone-otp-verify");
+    await sendPhoneOtp(phoneInput);
+    setLoading(false);
+  }
+
+  async function resendPhoneOtpLogin() {
+    if (resendCountdown > 0) return;
+    setLoading(true);
+    verifierRef.current?.clear?.();
+    verifierRef.current = null;
+    await sendPhoneOtp(phoneInput);
+    setLoading(false);
+  }
+
+  async function verifyPhoneOtpLogin() {
+    if (otp.length !== 6) { setApiError("Enter the 6-digit code"); return; }
+    setLoading(true); setApiError("");
+    try {
+      const result = await confirmResultRef.current!.confirm(otp);
+      const firebaseIdToken = await result.user.getIdToken();
+      await auth?.signOut(); // we use our own JWT session
+
+      const res = await api.post("/auth/login-phone-otp", { firebaseIdToken });
+      handleAuthResult(res.data.data);
+    } catch (e: any) {
+      const msg = e?.code === "auth/invalid-verification-code" ? "Incorrect OTP. Please try again." : getApiError(e);
+      setApiError(msg);
+    }
+    setLoading(false);
+  }
+
   // ── TOTP (authenticator app) 2FA screen ─────────────────────
   if (step === "totp-2fa") {
     return (
@@ -234,6 +321,197 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // ── Email OTP: request screen ─────────────────────────────────
+  if (step === "email-otp-request") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ width: "100%", maxWidth: 420 }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
+              <Mail size={22} color="white" />
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Sign in with Email OTP</h1>
+            <p style={{ fontSize: 14, color: "var(--text-faint)" }}>We'll email you a 6-digit code</p>
+          </div>
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 28px 24px" }}>
+            {apiError && (
+              <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 13, color: "#f87171" }}>
+                {apiError}
+              </div>
+            )}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+                Email address
+              </label>
+              <input
+                value={otpEmail} onChange={e => setOtpEmail(e.target.value.trim())}
+                onKeyDown={e => { if (e.key === "Enter") requestEmailOtp(); }}
+                placeholder="you@company.com" autoFocus
+                style={{ width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 9, padding: "10px 14px", color: "var(--text-primary)", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <button onClick={requestEmailOtp} disabled={loading}
+              style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}>
+              {loading ? "Sending…" : "Send Code →"}
+            </button>
+            <button onClick={() => { setStep("credentials"); setApiError(""); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 12, margin: "14px auto 0", padding: 0 }}>
+              <ArrowLeft size={12} /> Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Email OTP: verify screen ──────────────────────────────────
+  if (step === "email-otp-verify") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ width: "100%", maxWidth: 420 }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
+              <Mail size={22} color="white" />
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Check your email</h1>
+            <p style={{ fontSize: 14, color: "var(--text-faint)" }}>
+              Enter the 6-digit code sent to <strong>{otpEmail}</strong>
+            </p>
+          </div>
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 28px 24px" }}>
+            {apiError && (
+              <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 13, color: "#f87171" }}>
+                {apiError}
+              </div>
+            )}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+                OTP Code
+              </label>
+              <input
+                value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onKeyDown={e => { if (e.key === "Enter") verifyEmailOtp(); }}
+                placeholder="• • • • • •" maxLength={6} autoFocus
+                style={{ width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 9, padding: "10px 16px", color: "var(--text-primary)", fontSize: 22, letterSpacing: "0.4em", textAlign: "center", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+              />
+            </div>
+            <button onClick={verifyEmailOtp} disabled={loading || otp.length !== 6}
+              style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, cursor: loading || otp.length !== 6 ? "not-allowed" : "pointer", opacity: loading || otp.length !== 6 ? 0.6 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}>
+              {loading ? "Verifying…" : "Verify & Sign In →"}
+            </button>
+            <div style={{ textAlign: "center", marginTop: 14, fontSize: 13, color: "var(--text-ghost)" }}>
+              Didn't receive it?{" "}
+              <button onClick={resendEmailOtp} disabled={resendCountdown > 0 || loading}
+                style={{ background: "none", border: "none", color: resendCountdown > 0 ? "var(--text-ghost)" : "#818cf8", cursor: resendCountdown > 0 ? "default" : "pointer", fontWeight: 600, fontSize: 13, padding: 0 }}>
+                {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend code"}
+              </button>
+            </div>
+            <button onClick={() => { setStep("credentials"); setOtp(""); setApiError(""); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 12, margin: "14px auto 0", padding: 0 }}>
+              <ArrowLeft size={12} /> Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Phone OTP: request screen ─────────────────────────────────
+  if (step === "phone-otp-request") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ width: "100%", maxWidth: 420 }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
+              <ShieldCheck size={22} color="white" />
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Sign in with Phone OTP</h1>
+            <p style={{ fontSize: 14, color: "var(--text-faint)" }}>Only works if you've linked &amp; verified a phone number in Settings</p>
+          </div>
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 28px 24px" }}>
+            {apiError && (
+              <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 13, color: "#f87171" }}>
+                {apiError}
+              </div>
+            )}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+                Phone number
+              </label>
+              <input
+                value={phoneInput} onChange={e => setPhoneInput(e.target.value.trim())}
+                onKeyDown={e => { if (e.key === "Enter") sendPhoneOtpLogin(); }}
+                placeholder="+91XXXXXXXXXX" autoFocus
+                style={{ width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 9, padding: "10px 14px", color: "var(--text-primary)", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <button onClick={sendPhoneOtpLogin} disabled={loading}
+              style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}>
+              {loading ? "Sending…" : "Send Code →"}
+            </button>
+            <button onClick={() => { setStep("credentials"); setApiError(""); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 12, margin: "14px auto 0", padding: 0 }}>
+              <ArrowLeft size={12} /> Back to sign in
+            </button>
+          </div>
+        </div>
+        <div ref={recaptchaRef} />
+      </div>
+    );
+  }
+
+  // ── Phone OTP: verify screen ───────────────────────────────────
+  if (step === "phone-otp-verify") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ width: "100%", maxWidth: 420 }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", marginBottom: 14, boxShadow: "0 8px 32px rgba(99,102,241,0.4)" }}>
+              <ShieldCheck size={22} color="white" />
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Enter the code</h1>
+            <p style={{ fontSize: 14, color: "var(--text-faint)" }}>
+              Enter the 6-digit code sent to <strong>{phoneInput}</strong>
+            </p>
+          </div>
+          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 28px 24px" }}>
+            {apiError && (
+              <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)", borderRadius: 8, fontSize: 13, color: "#f87171" }}>
+                {apiError}
+              </div>
+            )}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+                OTP Code
+              </label>
+              <input
+                value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="• • • • • •" maxLength={6}
+                style={{ width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 9, padding: "10px 16px", color: "var(--text-primary)", fontSize: 22, letterSpacing: "0.4em", textAlign: "center", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+              />
+            </div>
+            <button onClick={verifyPhoneOtpLogin} disabled={loading || otp.length !== 6}
+              style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "white", fontSize: 14, fontWeight: 600, cursor: loading || otp.length !== 6 ? "not-allowed" : "pointer", opacity: loading || otp.length !== 6 ? 0.6 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}>
+              {loading ? "Verifying…" : "Verify & Sign In →"}
+            </button>
+            <div style={{ textAlign: "center", marginTop: 14, fontSize: 13, color: "var(--text-ghost)" }}>
+              Didn't receive it?{" "}
+              <button onClick={resendPhoneOtpLogin} disabled={resendCountdown > 0 || loading}
+                style={{ background: "none", border: "none", color: resendCountdown > 0 ? "var(--text-ghost)" : "#818cf8", cursor: resendCountdown > 0 ? "default" : "pointer", fontWeight: 600, fontSize: 13, padding: 0 }}>
+                {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend OTP"}
+              </button>
+            </div>
+            <button onClick={() => { setStep("credentials"); setOtp(""); setApiError(""); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer", fontSize: 12, margin: "14px auto 0", padding: 0 }}>
+              <ArrowLeft size={12} /> Back to sign in
+            </button>
+          </div>
+        </div>
+        <div ref={recaptchaRef} />
       </div>
     );
   }
@@ -369,6 +647,21 @@ export default function LoginPage() {
             </div>
           </form>
 
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            <span style={{ fontSize: 12, color: "var(--text-ghost)", whiteSpace: "nowrap" }}>or sign in with a one-time code</span>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="button" onClick={() => { setApiError(""); setStep("email-otp-request"); }}
+              style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid var(--border-input)", background: "var(--bg-hover)", color: "var(--text-primary)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              Email OTP
+            </button>
+            <button type="button" onClick={() => { setApiError(""); setStep("phone-otp-request"); }}
+              style={{ flex: 1, height: 40, borderRadius: 10, border: "1px solid var(--border-input)", background: "var(--bg-hover)", color: "var(--text-primary)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              Phone OTP
+            </button>
+          </div>
 
         </div>
 

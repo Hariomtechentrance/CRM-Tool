@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { timingSafeEqual } from "crypto";
+import { timingSafeEqual, randomInt } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
@@ -20,6 +20,9 @@ import {
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  loginOtpRequestSchema,
+  loginOtpVerifySchema,
+  firebaseIdTokenSchema,
 } from "../validators/auth.validator";
 import {
   ok,
@@ -30,7 +33,7 @@ import {
   serverError,
   notFound,
 } from "../utils/response";
-import { sendEmail, verifyEmailTemplate, resetPasswordTemplate, esc } from "../utils/email";
+import { sendEmail, verifyEmailTemplate, resetPasswordTemplate, loginOtpTemplate, esc } from "../utils/email";
 import { writeAuditLog, getIp } from "../utils/auditLog";
 import { AuthRequest, invalidateUserSecState } from "../middleware/auth";
 
@@ -421,7 +424,7 @@ export async function getMe(req: AuthRequest, res: Response): Promise<void> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, name: true, email: true, avatar: true, isSuperAdmin: true, createdAt: true },
+      select: { id: true, name: true, email: true, avatar: true, isSuperAdmin: true, createdAt: true, phone: true, phoneVerified: true },
     });
     if (!user) { notFound(res, "User not found"); return; }
     ok(res, user);
@@ -580,6 +583,101 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
   }
 }
 
+// ── Email OTP login (alternative to password) ─────────────────
+// Request step: generate a 6-digit code, hash it the same way a password-reset
+// token is hashed, email it, and respond identically whether or not the
+// address exists — same enumeration-safety convention as forgotPassword.
+export async function requestLoginOtp(req: Request, res: Response): Promise<void> {
+  try {
+    const parsed = loginOtpRequestSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Invalid email"); return; }
+
+    const user: any = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    const generic = () => ok(res, null, "If this email exists, a sign-in code has been sent.");
+    if (!user || !user.isActive) { generic(); return; }
+
+    const code = String(randomInt(100000, 1000000)); // 6 digits, zero can't lead since range starts at 100000
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { loginOtpCodeHash: hashToken(code), loginOtpExpiry: expiry },
+    });
+
+    // Dev convenience only — never in production — so the flow is testable
+    // without a real email provider configured. Mirrors sendEmail()'s own
+    // always-on `[email] to=... subject=...` console log.
+    if (process.env.NODE_ENV !== "production") console.log(`[login-otp] ${user.email} code=${code}`);
+
+    await sendEmail({ to: user.email, subject: "Your BusinessOS sign-in code", html: loginOtpTemplate(user.name, code) });
+    generic();
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
+// Verify step: same lockout accounting as password login, same post-check
+// branch into 2FA or a finished session.
+export async function verifyLoginOtp(req: Request, res: Response): Promise<void> {
+  try {
+    const parsed = loginOtpVerifySchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
+    const { email, otp } = parsed.data;
+
+    const user: any = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.isActive) { unauthorized(res, "Invalid or expired code"); return; }
+
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      const mins = Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000);
+      unauthorized(res, `Account locked. Try again in ${mins} minute${mins !== 1 ? "s" : ""}.`);
+      return;
+    }
+
+    const validCode = user.loginOtpCodeHash && user.loginOtpExpiry && new Date(user.loginOtpExpiry) > new Date()
+      && user.loginOtpCodeHash === hashToken(otp);
+
+    if (!validCode) {
+      const attempts = (user.loginAttempts || 0) + 1;
+      const locking = attempts % MAX_FAIL === 0;
+      const lockMs = locking ? lockDurationFor(attempts) : 0;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: locking
+          ? { loginAttempts: attempts, lockedUntil: new Date(Date.now() + lockMs) }
+          : { loginAttempts: attempts },
+      });
+      writeAuditLog({ userEmail: user.email, userName: user.name, action: "LOGIN_OTP_FAILED", resource: "User", resourceId: user.id, description: locking ? `Account locked ${Math.round(lockMs / 60000)}m after ${attempts} failed attempts` : "Invalid or expired code", ipAddress: getIp(req as any) });
+      unauthorized(res, locking
+        ? `Too many failed attempts. Account locked for ${Math.round(lockMs / 60000)} minute${lockMs > 60000 ? "s" : ""}.`
+        : "Invalid or expired code."
+      );
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { loginOtpCodeHash: null, loginOtpExpiry: null, loginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
+    });
+    writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_OTP_SUCCESS", resource: "User", resourceId: user.id, description: "Signed in via email OTP", ipAddress: getIp(req as any) });
+
+    // Same 2FA gate as password login — OTP replaces the password step only.
+    if (user.twoFactorEnabled) {
+      const challengeToken = jwt.sign(
+        { userId: user.id, action: "totp_2fa" },
+        process.env.JWT_ACCESS_SECRET!,
+        { expiresIn: "5m", algorithm: "HS256" },
+      );
+      writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_2FA_CHALLENGE", resource: "User", resourceId: user.id, description: "Email OTP OK — awaiting TOTP", ipAddress: getIp(req as any) });
+      ok(res, { requires2FA: true, method: "totp", tempToken: challengeToken });
+      return;
+    }
+
+    await finalizeLogin(req, res, user);
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
 // ── Change password (authenticated) ──────────────────────────
 export async function changePassword(req: AuthRequest, res: Response): Promise<void> {
   try {
@@ -731,6 +829,91 @@ export async function verifyPhone2FA(req: Request, res: Response): Promise<void>
       user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, isSuperAdmin: user.isSuperAdmin },
       organizations: memberships.map((m: any) => ({ ...m.organization, role: m.role })),
     });
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Link & verify a phone number (authenticated, from Settings) ────────────
+// Prerequisite for Phone OTP login: a user must have a verified phone on file
+// before they can sign in with it. The client completes Firebase phone
+// verification itself (same RecaptchaVerifier/signInWithPhoneNumber flow as
+// the login page) and hands us the resulting ID token to confirm server-side.
+export async function linkPhone(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const parsed = firebaseIdTokenSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "firebaseIdToken is required"); return; }
+
+    let decoded: any;
+    try {
+      decoded = await verifyFirebaseIdToken(parsed.data.firebaseIdToken);
+    } catch {
+      unauthorized(res, "Phone verification failed. Please try again.");
+      return;
+    }
+    const phone = decoded.phone_number;
+    if (!phone) { badRequest(res, "That verification wasn't for a phone number."); return; }
+
+    try {
+      const user = await prisma.user.update({
+        where: { id: req.userId! },
+        data: { phone, phoneVerified: true, firebaseUid: decoded.uid },
+        select: { id: true, phone: true, phoneVerified: true },
+      });
+      writeAuditLog({ userId: req.userId, action: "PHONE_LINKED", resource: "User", resourceId: req.userId, description: `Linked phone ${phone}`, ipAddress: getIp(req as any) });
+      ok(res, user, "Phone number linked.");
+    } catch (e: any) {
+      if (e?.code === "P2002") { conflict(res, "This phone number is already linked to another account."); return; }
+      throw e;
+    }
+  } catch (err) { serverError(res, err); }
+}
+
+// ── Phone OTP login (alternative to password) ──────────────────────────────
+// The client runs the same Firebase phone-verification flow directly (no
+// password involved) and sends us the resulting ID token. Firebase itself
+// already proved the user controls this phone, so there's no server-side
+// guessable secret here — no lockout accounting needed on a mismatch, same as
+// how verifyPhone2FA doesn't apply one either.
+export async function loginPhoneOtp(req: Request, res: Response): Promise<void> {
+  try {
+    const parsed = firebaseIdTokenSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "firebaseIdToken is required"); return; }
+
+    let decoded: any;
+    try {
+      decoded = await verifyFirebaseIdToken(parsed.data.firebaseIdToken);
+    } catch {
+      unauthorized(res, "Phone verification failed. Please try again.");
+      return;
+    }
+    const phone = decoded.phone_number;
+    if (!phone) { badRequest(res, "That verification wasn't for a phone number."); return; }
+
+    const user: any = await prisma.user.findUnique({ where: { phone } });
+    if (!user || !user.isActive || !user.phoneVerified) {
+      unauthorized(res, "No account is set up for sign-in with this phone number.");
+      return;
+    }
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      const mins = Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000);
+      unauthorized(res, `Account locked. Try again in ${mins} minute${mins !== 1 ? "s" : ""}.`);
+      return;
+    }
+
+    await prisma.user.update({ where: { id: user.id }, data: { loginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() } });
+    writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_PHONE_OTP_SUCCESS", resource: "User", resourceId: user.id, description: "Signed in via phone OTP", ipAddress: getIp(req as any) });
+
+    if (user.twoFactorEnabled) {
+      const challengeToken = jwt.sign(
+        { userId: user.id, action: "totp_2fa" },
+        process.env.JWT_ACCESS_SECRET!,
+        { expiresIn: "5m", algorithm: "HS256" },
+      );
+      writeAuditLog({ userId: user.id, userEmail: user.email, userName: user.name, action: "LOGIN_2FA_CHALLENGE", resource: "User", resourceId: user.id, description: "Phone OTP OK — awaiting TOTP", ipAddress: getIp(req as any) });
+      ok(res, { requires2FA: true, method: "totp", tempToken: challengeToken });
+      return;
+    }
+
+    await finalizeLogin(req, res, user);
   } catch (err) { serverError(res, err); }
 }
 

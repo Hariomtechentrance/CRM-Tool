@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
-import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog } from "lucide-react";
+import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog, Phone } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { kPhone, kAlpha, kGSTIN } from "@/lib/fieldRules";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import type { ConfirmationResult } from "firebase/auth";
+import { auth, isFirebaseReady } from "@/lib/firebase";
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -515,9 +518,125 @@ export default function SettingsPage() {
       )}
 
       {/* ── SECURITY / 2FA ── */}
-      {tab === "security" && <TwoFactorSettings />}
+      {tab === "security" && (<><TwoFactorSettings /><PhoneLinkSettings /></>)}
       </>
       )}
+    </div>
+  );
+}
+
+// ── Link & verify a phone number — prerequisite for "Login with Phone OTP"
+// on the sign-in page. Reuses the same Firebase RecaptchaVerifier +
+// signInWithPhoneNumber flow LoginPage.tsx already uses for phone 2FA.
+function PhoneLinkSettings() {
+  const [phoneNumber, setPhoneNumber]   = useState(""); // E.164, e.g. +91XXXXXXXXXX
+  const [linkedPhone, setLinkedPhone]   = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "code-sent" | "linked">("loading");
+  const [otp, setOtp]       = useState("");
+  const [msg, setMsg]       = useState("");
+  const [error, setError]   = useState("");
+
+  const recaptchaRef      = useRef<HTMLDivElement>(null);
+  const verifierRef       = useRef<RecaptchaVerifier | null>(null);
+  const confirmResultRef  = useRef<ConfirmationResult | null>(null);
+
+  useEffect(() => {
+    api.get("/auth/me").then(r => {
+      const u = r.data.data;
+      if (u.phoneVerified && u.phone) { setLinkedPhone(u.phone); setStatus("linked"); }
+      else setStatus("idle");
+    }).catch(() => setStatus("idle"));
+    return () => { verifierRef.current?.clear?.(); };
+  }, []);
+
+  async function sendCode() {
+    setError(""); setMsg("");
+    if (!auth) { setError("Phone linking is not available (Firebase not configured)."); return; }
+    if (!/^\+[1-9]\d{7,14}$/.test(phoneNumber)) { setError("Enter a full phone number with country code, e.g. +91XXXXXXXXXX"); return; }
+    try {
+      if (!verifierRef.current) {
+        verifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current!, { size: "invisible" });
+      }
+      confirmResultRef.current = await signInWithPhoneNumber(auth, phoneNumber, verifierRef.current);
+      setStatus("code-sent");
+    } catch (e: any) {
+      setError("Could not send code: " + (e?.message || "unknown error"));
+      verifierRef.current?.clear?.();
+      verifierRef.current = null;
+    }
+  }
+
+  async function verifyAndLink() {
+    if (otp.length !== 6) { setError("Enter the 6-digit code"); return; }
+    setError("");
+    try {
+      const result = await confirmResultRef.current!.confirm(otp);
+      const firebaseIdToken = await result.user.getIdToken();
+      await auth?.signOut(); // this CRM uses its own JWT session, not Firebase's
+
+      const r = await api.post("/auth/link-phone", { firebaseIdToken });
+      setLinkedPhone(r.data.data.phone);
+      setStatus("linked");
+      setMsg("Phone number linked. You can now sign in with Phone OTP.");
+    } catch (e: any) {
+      const apiMsg = e?.response?.data?.message;
+      setError(apiMsg || (e?.code === "auth/invalid-verification-code" ? "Incorrect code. Please try again." : "Could not link this phone number."));
+    }
+  }
+
+  const S2 = {
+    card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24, marginBottom: 20 } as React.CSSProperties,
+    input: { width: "100%", background: "var(--bg-hover)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "9px 12px", color: "var(--text-primary)", outline: "none", boxSizing: "border-box" as const, fontSize: 14 } as React.CSSProperties,
+    btn: { background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", color: "white", padding: "9px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 } as React.CSSProperties,
+  };
+
+  if (status === "loading") return null;
+
+  return (
+    <div style={S2.card}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: "#6366f115", border: "1px solid #6366f130", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Phone size={18} color="#818cf8" />
+        </div>
+        <div>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Phone Number</p>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-ghost)" }}>Link &amp; verify a phone number to sign in with Phone OTP</p>
+        </div>
+        <div style={{ marginLeft: "auto" }}>
+          <span style={{ padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, background: status === "linked" ? "#10b98120" : "#6b728020", color: status === "linked" ? "#10b981" : "var(--text-ghost)" }}>
+            {status === "linked" ? "Linked" : "Not linked"}
+          </span>
+        </div>
+      </div>
+
+      {msg && <div style={{ background: "#10b98115", border: "1px solid #10b98130", borderRadius: 8, padding: "10px 14px", color: "#10b981", fontSize: 13, marginBottom: 16 }}>{msg}</div>}
+      {error && <div style={{ background: "#ef444415", border: "1px solid #ef444430", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
+      {status === "linked" && (
+        <p style={{ fontSize: 13, color: "var(--text-ghost)" }}>Linked to <strong style={{ color: "var(--text-primary)" }}>{linkedPhone}</strong>.</p>
+      )}
+
+      {status === "idle" && (
+        <div style={{ display: "flex", gap: 10, maxWidth: 360 }}>
+          <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value.trim())}
+            placeholder="+91XXXXXXXXXX" style={{ ...S2.input, flex: 1 }} />
+          <button style={S2.btn} onClick={sendCode}>Send Code</button>
+        </div>
+      )}
+
+      {status === "code-sent" && (
+        <div style={{ display: "flex", gap: 10, maxWidth: 360 }}>
+          <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="000000" maxLength={6} style={{ ...S2.input, flex: 1, textAlign: "center", letterSpacing: "0.2em" }} />
+          <button style={S2.btn} onClick={verifyAndLink} disabled={otp.length !== 6}>Verify &amp; Link</button>
+        </div>
+      )}
+
+      {!isFirebaseReady && status === "idle" && (
+        <p style={{ fontSize: 12, color: "var(--text-ghost)", marginTop: 10 }}>Phone linking isn't available in this environment.</p>
+      )}
+
+      <div ref={recaptchaRef} />
     </div>
   );
 }

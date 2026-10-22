@@ -40,5 +40,18 @@ export const resetPasswordSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number"),
 });
 
+export const loginOtpRequestSchema = z.object({
+  email: z.string().email("Invalid email address").max(254),
+});
+
+export const loginOtpVerifySchema = z.object({
+  email: z.string().email("Invalid email address").max(254),
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
+export const firebaseIdTokenSchema = z.object({
+  firebaseIdToken: z.string().min(1, "firebaseIdToken is required"),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

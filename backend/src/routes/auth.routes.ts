@@ -3,6 +3,7 @@ import {
   register, verifyEmail, login, refreshToken, logout, getMe,
   forgotPassword, resetPassword, claimSuperAdmin,
   changePassword, unlockAccount, googleLogin, verifyPhone2FA, verify2FALogin,
+  requestLoginOtp, verifyLoginOtp, linkPhone, loginPhoneOtp,
 } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth";
 import { requireSuperAdmin } from "../middleware/superAdmin";
@@ -23,5 +24,9 @@ router.post("/unlock/:userId",  authenticate, requireSuperAdmin, unlockAccount);
 router.post("/google-login",    googleLogin);
 router.post("/verify-phone-2fa", verifyPhone2FA);
 router.post("/verify-2fa-login", verify2FALogin);
+router.post("/login-otp/request", requestLoginOtp);
+router.post("/login-otp/verify",  verifyLoginOtp);
+router.post("/link-phone",        authenticate, linkPhone);
+router.post("/login-phone-otp",   loginPhoneOtp);
 
 export default router;

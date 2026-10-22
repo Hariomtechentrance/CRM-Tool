@@ -17,6 +17,8 @@ model User {
   emailVerifyToken           String?                    @unique
   passwordResetToken         String?                    @unique
   passwordResetExpiry        DateTime?
+  loginOtpCodeHash           String?
+  loginOtpExpiry             DateTime?
   isSuperAdmin               Boolean                    @default(false)
   twoFactorSecret            String?
   twoFactorEnabled           Boolean                    @default(false)
