@@ -55,7 +55,7 @@ function resolveNotContactedSince(raw: string | undefined): Date | undefined {
 // Builds the Prisma `where` for "buyer leads with no Lead Status value",
 // optionally bounded to leads created on/after `since` (undefined = no bound).
 async function notContactedWhere(orgId: string, since: Date | undefined): Promise<Record<string, unknown>> {
-  const where: Record<string, unknown> = { organizationId: orgId, leadType: "BUYER" };
+  const where: Record<string, unknown> = { organizationId: orgId, leadType: "BUYER", isDoNotCall: false };
   if (since) where.createdAt = { gte: since };
   const fieldId = await getLeadStatusFieldId(orgId);
   if (fieldId) {
@@ -70,7 +70,7 @@ async function notContactedWhere(orgId: string, since: Date | undefined): Promis
 // treated as contacted. Keep this paired with notContactedWhere() so the two
 // Buyer Leads filters use the same source of truth.
 async function contactedWhere(orgId: string): Promise<Record<string, unknown>> {
-  const where: Record<string, unknown> = { organizationId: orgId, leadType: "BUYER" };
+  const where: Record<string, unknown> = { organizationId: orgId, leadType: "BUYER", isDoNotCall: false };
   const fieldId = await getLeadStatusFieldId(orgId);
   if (!fieldId) {
     where.id = "__NO_CONTACTED_LEADS__";
@@ -207,6 +207,7 @@ const vehicleSchema = z.object({
   warrantyMonths: z.number().int().optional(),
   assignedToId: z.string().optional(),
   notes: z.string().optional(),
+  isDoNotCall: z.boolean().optional(),
 
   // Post-sale handoff checklist ("becomes a customer" — see CarLead flow)
   docSentToRto: z.boolean().optional(),
@@ -280,7 +281,7 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
   try {
     const { status, leadStage, search, assignedToId, dnc, followUp, leadType, contacted, notContacted, notContactedSince, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const where: any = { organizationId: req.organizationId! };
+    const where: any = { organizationId: req.organizationId!, isDoNotCall: dnc === "true" };
     if (status) where.status = status;
     if (leadStage) where.leadStage = leadStage;
     if (assignedToId) where.assignedToId = assignedToId;
@@ -294,7 +295,7 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
     } else if (notContacted === "true") {
       Object.assign(where, await notContactedWhere(req.organizationId!, resolveNotContactedSince(notContactedSince)));
     }
-    if (dnc === "true") where.isDoNotCall = true;
+    where.isDoNotCall = dnc === "true";
     // "Due today or overdue" worklist — same shape as the CRM Leads module's
     // equivalent filter, used by the dashboard's Today's Follow-ups panel.
     // Also surfaces recent never-contacted buyer leads (no nextFollowUpDate
@@ -316,6 +317,7 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
     if (followUp === "all") {
       where.status = { notIn: ["CONVERTED", "LOST", "NOT_INTERESTED"] };
       where.nextFollowUpDate = { not: null };
+      where.isDoNotCall = false;
     }
     // Buyer Leads tab defaults to BUYER for backward compatibility; Seller
     // Leads passes leadType=SELLER; the Follow-ups tab (followUp=all) shows
@@ -1114,9 +1116,9 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
 
 export async function listVehicles(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, search, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, search, dnc, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const where: any = { organizationId: req.organizationId! };
+    const where: any = { organizationId: req.organizationId!, isDoNotCall: dnc === "true" };
     if (status) where.status = status;
     if (search) {
       where.OR = [
@@ -1457,7 +1459,7 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
 // Warranty tab: every sold vehicle that has warranty info, soonest-expiring first.
 export async function listWarranties(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const where = { organizationId: req.organizationId!, status: "SOLD" as const, warrantyEndDate: { not: null } };
+    const where = { organizationId: req.organizationId!, status: "SOLD" as const, warrantyEndDate: { not: null }, isDoNotCall: false };
     // Capped the same way as listExpiringInsurance (see its comment) — an
     // org with tens of thousands of sold vehicles can have thousands of
     // warranty-tracked ones too; this was pulling every full Vehicle row
@@ -1608,7 +1610,7 @@ export async function listExpiringInsurance(req: OrgRequest, res: Response): Pro
         WHERE "organizationId" = ${orgId}
         ORDER BY "vehicleId", "endDate" DESC
       ) latest ON latest."vehicleId" = v.id
-      WHERE v."organizationId" = ${orgId} AND latest."endDate" <= ${cutoff} ${lowerClause}
+      WHERE v."organizationId" = ${orgId} AND v."isDoNotCall" = false AND latest."endDate" <= ${cutoff} ${lowerClause}
       ORDER BY latest."endDate" ASC
       LIMIT 200
     `;
@@ -1624,6 +1626,7 @@ export async function listExpiringInsurance(req: OrgRequest, res: Response): Pro
         WHERE "organizationId" = ${orgId}
         ORDER BY "vehicleId", "endDate" DESC
       ) latest
+      JOIN "Vehicle" v ON v.id = latest."vehicleId" AND v."organizationId" = ${orgId} AND v."isDoNotCall" = false
       WHERE latest."endDate" <= ${cutoff} ${lowerClause}
     `;
     const total = Number(totalRows[0]?.total ?? 0);
@@ -1655,7 +1658,7 @@ export async function listInsuranceFollowUps(req: OrgRequest, res: Response): Pr
   try {
     const orgId = req.organizationId!;
     const { followUp } = req.query as Record<string, string>;
-    const where: any = { organizationId: orgId, nextFollowUpDate: { not: null } };
+    const where: any = { organizationId: orgId, nextFollowUpDate: { not: null }, vehicle: { isDoNotCall: false } };
     if (followUp !== "all") {
       const endOfToday = new Date();
       endOfToday.setHours(23, 59, 59, 999);
@@ -1905,18 +1908,18 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
     const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() + 30); cutoff30.setHours(23, 59, 59, 999);
 
     const [totalLeads, byStatus, buyerLeads, byStatusBuyer, sellerLeads, byStatusSeller, totalVehicles, inStock, sold, expiringSoonRows] = await Promise.all([
-      db().carLead.count({ where: { organizationId: orgId } }),
-      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId }, _count: true }),
+      db().carLead.count({ where: { organizationId: orgId, isDoNotCall: false } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, isDoNotCall: false }, _count: true }),
       // Buyer/Seller are shown as separate tabs in the UI, so "Total Leads /
       // Hot / Urgent" needs its own count per category — a single combined
       // number was hiding how many of each type there actually were.
-      db().carLead.count({ where: { organizationId: orgId, leadType: "BUYER" } }),
-      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "BUYER" }, _count: true }),
-      db().carLead.count({ where: { organizationId: orgId, leadType: "SELLER" } }),
-      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "SELLER" }, _count: true }),
-      db().vehicle.count({ where: { organizationId: orgId } }),
-      db().vehicle.count({ where: { organizationId: orgId, status: "IN_STOCK" } }),
-      db().vehicle.count({ where: { organizationId: orgId, status: "SOLD" } }),
+      db().carLead.count({ where: { organizationId: orgId, leadType: "BUYER", isDoNotCall: false } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "BUYER", isDoNotCall: false }, _count: true }),
+      db().carLead.count({ where: { organizationId: orgId, leadType: "SELLER", isDoNotCall: false } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "SELLER", isDoNotCall: false }, _count: true }),
+      db().vehicle.count({ where: { organizationId: orgId, isDoNotCall: false } }),
+      db().vehicle.count({ where: { organizationId: orgId, status: "IN_STOCK", isDoNotCall: false } }),
+      db().vehicle.count({ where: { organizationId: orgId, status: "SOLD", isDoNotCall: false } }),
       // Counted directly in Postgres instead of pulling every vehicle (+ its
       // insurance history) into Node just to filter in JS — at real data
       // volumes (tens of thousands of vehicles) that findMany was the
@@ -1924,11 +1927,12 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
       // the service was hitting Render's memory limit and auto-restarting.
       prisma.$queryRaw<{ count: bigint }[]>`
         SELECT COUNT(*) as count FROM (
-          SELECT DISTINCT ON ("vehicleId") "endDate"
+          SELECT DISTINCT ON ("vehicleId") "vehicleId", "endDate"
           FROM "VehicleInsurance"
           WHERE "organizationId" = ${orgId}
           ORDER BY "vehicleId", "endDate" DESC
         ) latest
+        JOIN "Vehicle" v ON v.id = latest."vehicleId" AND v."organizationId" = ${orgId} AND v."isDoNotCall" = false
         WHERE "endDate" <= ${cutoff30}
       `,
       // Runs once per org (a COUNT query short-circuits every call after) —

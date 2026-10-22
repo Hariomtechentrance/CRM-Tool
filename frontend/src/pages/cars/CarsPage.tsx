@@ -155,7 +155,7 @@ interface Vehicle {
   registrationDate?: string;
   ownerName?: string; ownerPhone?: string; ownerEmail?: string; ownerAddress?: string; soldAt?: string;
   warrantyMonths?: number; warrantyEndDate?: string;
-  assignedToId?: string; notes?: string;
+  assignedToId?: string; notes?: string; isDoNotCall?: boolean;
   // Post-sale handoff checklist ("becomes a customer" — buyer flow)
   docSentToRto?: boolean; docSentToRtoAt?: string; docDelayChecklistNote?: string;
   addedToInsuranceGateway?: boolean; addedToInsuranceGatewayAt?: string;
@@ -1720,12 +1720,21 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Read-only vehicle detail view — core fields plus every column a bulk
-// import found that didn't map onto one of them (registration/insurance/
-// loan details, etc.), shown individually via CustomFieldRenderer instead
-// of being buried in the vehicle's notes field.
+// Vehicle detail view with a saved call-notes field and DND controls.
 // ═══════════════════════════════════════════════════════════════
-function VehicleDetailModal({ vehicle, onClose, onEdit, onEditInsurance }: { vehicle: Vehicle; onClose: () => void; onEdit?: () => void; onEditInsurance?: () => void }) {
+function VehicleDetailModal({ vehicle, onClose, onEdit, onEditInsurance, onSaveNotes, onToggleDnd, actionError }: {
+  vehicle: Vehicle;
+  onClose: () => void;
+  onEdit?: () => void;
+  onEditInsurance?: () => void;
+  onSaveNotes: (notes: string) => Promise<void>;
+  onToggleDnd: (vehicle: Vehicle, isDoNotCall: boolean) => Promise<boolean>;
+  actionError: string;
+}) {
+  const [notes, setNotes] = useState(vehicle.notes ?? "");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesError, setNotesError] = useState("");
+  const [dndBusy, setDndBusy] = useState(false);
   const row = (label: string, value?: string | number | null) => value === undefined || value === null || value === "" ? null : (
     <div>
       <label style={S.label}>{label}</label>
@@ -1735,9 +1744,24 @@ function VehicleDetailModal({ vehicle, onClose, onEdit, onEditInsurance }: { veh
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
       <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
+        {actionError && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{actionError}</div>}
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{vehicle.make} {vehicle.model} {vehicle.variant ? `(${vehicle.variant})` : ""}</h3>
           <div className="flex items-center gap-2">
+            <button
+              disabled={dndBusy}
+              onClick={async () => {
+                setDndBusy(true);
+                const updated = await onToggleDnd(vehicle, !vehicle.isDoNotCall);
+                setDndBusy(false);
+                if (updated && !vehicle.isDoNotCall) onClose();
+              }}
+              style={vehicle.isDoNotCall
+                ? { ...S.ghost, color: "#4ade80", borderColor: "rgba(74,222,128,0.4)", fontSize: 11, padding: "5px 10px" }
+                : { ...S.btn, background: "#dc2626", fontSize: 11, padding: "5px 10px" }}
+            >
+              {vehicle.isDoNotCall ? "Move to normal" : "DNT"}
+            </button>
             {onEdit && <button onClick={onEdit} style={{ ...S.ghost, fontSize: 11, padding: "5px 10px" }}><Pencil size={11} /> Edit</button>}
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
           </div>
@@ -1790,13 +1814,35 @@ function VehicleDetailModal({ vehicle, onClose, onEdit, onEditInsurance }: { veh
             )}
           </div>
         )}
-        {vehicle.notes && (
-          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
-            <label style={S.label}>Notes</label>
-            <div style={{ fontSize: 13, color: "var(--text-secondary)", whiteSpace: "pre-wrap" }}>{vehicle.notes}</div>
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+          <label style={S.label}>Notes</label>
+          <textarea
+            style={{ ...S.inp, width: "100%", minHeight: 100, resize: "vertical" }}
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Add call notes or important details to review before the next follow-up…"
+          />
+          {notesError && <div style={{ marginTop: 6, color: "#f87171", fontSize: 12 }}>{notesError}</div>}
+          <div className="flex justify-end mt-2">
+            <button
+              disabled={savingNotes}
+              onClick={async () => {
+                setSavingNotes(true);
+                setNotesError("");
+                try {
+                  await onSaveNotes(notes);
+                } catch (e) {
+                  setNotesError(getApiError(e));
+                } finally {
+                  setSavingNotes(false);
+                }
+              }}
+              style={S.btn}
+            >
+              {savingNotes ? "Saving…" : "Save Notes"}
+            </button>
           </div>
-        )}
-        <CustomFieldRenderer entity="VEHICLE" entityId={vehicle.id} readOnly />
+        </div>
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 8 }}>Documents</div>
           <DocumentsPanel entityType="VEHICLE" entityId={vehicle.id} compact />
@@ -2052,7 +2098,7 @@ function HistoricalStatsModal({ onClose, onImported }: { onClose: () => void; on
 // ═══════════════════════════════════════════════════════════════
 // Main page
 // ═══════════════════════════════════════════════════════════════
-type CarsTab = "leads" | "sellerleads" | "vehicles" | "warranty" | "followups" | "reports";
+type CarsTab = "leads" | "sellerleads" | "vehicles" | "warranty" | "followups" | "reports" | "dnd";
 
 export default function CarsPage() {
   // Buyer Leads / Seller Leads / Vehicles & Insurance are independently
@@ -2074,6 +2120,7 @@ export default function CarsPage() {
     // (listCarLeads/listInsuranceFollowUps), so both stay visible to anyone
     // with at least one Cars section rather than being tied to just one.
     ...((canSeeBuyer || canSeeSeller || canSeeInsurance) ? (["followups", "reports"] as const) : []),
+    ...((canSeeBuyer || canSeeSeller || canSeeInsurance) ? (["dnd"] as const) : []),
   ];
 
   const [tab, setTabRaw] = useState<CarsTab>("leads");
@@ -2085,6 +2132,15 @@ export default function CarsPage() {
   }, [canSeeBuyer, canSeeSeller, canSeeInsurance]); // eslint-disable-line react-hooks/exhaustive-deps
   const [monthlyReport, setMonthlyReport] = useState<any[]>([]);
   const [leads, setLeads] = useState<CarLead[]>([]);
+  const [dndBuyerLeads, setDndBuyerLeads] = useState<CarLead[]>([]);
+  const [dndSellerLeads, setDndSellerLeads] = useState<CarLead[]>([]);
+  const [dndBuyerTotal, setDndBuyerTotal] = useState(0);
+  const [dndSellerTotal, setDndSellerTotal] = useState(0);
+  const [dndVehicles, setDndVehicles] = useState<Vehicle[]>([]);
+  const [dndVehicleTotal, setDndVehicleTotal] = useState(0);
+  const [dndPage, setDndPage] = useState(1);
+  const DND_PAGE_SIZE = 50;
+  const [actionError, setActionError] = useState("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [expiringVehiclesData, setExpiringVehiclesData] = useState<Vehicle[]>([]);
   // Real org-wide totals from the API, not `expiringVehiclesData.length` —
@@ -2146,6 +2202,31 @@ export default function CarsPage() {
   const [vehicleMenuOpenId, setVehicleMenuOpenId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const employeeName = (id?: string) => employees.find(e => e.id === id)?.name;
+
+  async function setLeadDnd(lead: CarLead, isDoNotCall: boolean) {
+    setActionError("");
+    try {
+      await api.patch(`/cars/leads/${lead.id}`, { isDoNotCall });
+      if (tab === "dnd") setDndPage(1);
+      await load();
+    } catch (e) {
+      setActionError(getApiError(e));
+    }
+  }
+
+  async function setVehicleDnd(vehicle: Vehicle, isDoNotCall: boolean): Promise<boolean> {
+    setActionError("");
+    try {
+      const response = await api.patch(`/cars/vehicles/${vehicle.id}`, { isDoNotCall });
+      if (tab === "dnd") setDndPage(1);
+      await load();
+      if (detailVehicle?.id === vehicle.id) setDetailVehicle(response.data.data);
+      return true;
+    } catch (e) {
+      setActionError(getApiError(e));
+      return false;
+    }
+  }
 
   useEffect(() => {
     if (!vehicleMenuOpenId) return;
@@ -2252,6 +2333,19 @@ export default function CarsPage() {
         ]);
         setFollowUps(lr.data.data.leads ?? []);
         setFollowUpInsurance(ir.data.data.policies ?? []);
+      } else if (tab === "dnd") {
+        const params = new URLSearchParams({ dnc: "true", page: String(dndPage), limit: String(DND_PAGE_SIZE) });
+        const [buyerRes, sellerRes, vehicleRes] = await Promise.all([
+          canSeeBuyer ? api.get(`/cars/leads?${params}&leadType=BUYER`) : Promise.resolve(null),
+          canSeeSeller ? api.get(`/cars/leads?${params}&leadType=SELLER`) : Promise.resolve(null),
+          canSeeInsurance ? api.get(`/cars/vehicles?${params}`) : Promise.resolve(null),
+        ]);
+        setDndBuyerLeads(buyerRes?.data.data.leads ?? []);
+        setDndBuyerTotal(buyerRes?.data.data.total ?? 0);
+        setDndSellerLeads(sellerRes?.data.data.leads ?? []);
+        setDndSellerTotal(sellerRes?.data.data.total ?? 0);
+        setDndVehicles(vehicleRes?.data.data.vehicles ?? []);
+        setDndVehicleTotal(vehicleRes?.data.data.total ?? 0);
       } else if (tab === "warranty") {
         const r = await api.get("/cars/warranties");
         setWarrantyVehicles(r.data.data.vehicles ?? []);
@@ -2262,7 +2356,7 @@ export default function CarsPage() {
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [tab, search, statusFilter, leadStageFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, salesPeriod, insuranceFrom, insuranceTo]);
+  }, [tab, search, statusFilter, leadStageFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, salesPeriod, insuranceFrom, insuranceTo, dndPage, canSeeBuyer, canSeeSeller, canSeeInsurance]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -2288,6 +2382,7 @@ export default function CarsPage() {
     if (followUpDateTo && (!f.nextFollowUpDate || f.nextFollowUpDate.slice(0, 10) > followUpDateTo)) return false;
     return true;
   });
+  const dndTotalPages = Math.max(1, Math.ceil(Math.max(dndBuyerTotal, dndSellerTotal, dndVehicleTotal) / DND_PAGE_SIZE));
 
   return (
     <div className="p-4">
@@ -2372,10 +2467,10 @@ export default function CarsPage() {
       {/* Tabs — only the sections this user has access to */}
       <div className="flex items-center gap-1 mb-4 flex-wrap" style={{ borderBottom: "1px solid var(--border)" }}>
         {VISIBLE_TABS.map(tKey => (
-          <button key={tKey} onClick={() => { setTab(tKey); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setSearch(""); }}
+          <button key={tKey} onClick={() => { setTab(tKey); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setSearch(""); if (tKey === "dnd") setDndPage(1); }}
             style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: tab === tKey ? "2px solid #38bdf8" : "2px solid transparent", color: tab === tKey ? "#38bdf8" : "var(--text-ghost)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             {tKey === "leads" ? "Buyer Leads" : tKey === "sellerleads" ? "Seller Leads" : tKey === "vehicles" ? "Vehicles & Insurance"
-              : tKey === "warranty" ? "Warranty" : tKey === "followups" ? "Follow-ups" : "Monthly Report"}
+              : tKey === "warranty" ? "Warranty" : tKey === "followups" ? "Follow-ups" : tKey === "dnd" ? "DND" : "Monthly Report"}
           </button>
         ))}
       </div>
@@ -2445,6 +2540,11 @@ export default function CarsPage() {
         </div>
       )}
 
+      {actionError && (
+        <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>
+          {actionError}
+        </div>
+      )}
       {loading ? (
         <div style={{ padding: 40, textAlign: "center", color: "var(--text-ghost)" }}>Loading…</div>
       ) : tab === "leads" || tab === "sellerleads" ? (
@@ -2474,6 +2574,7 @@ export default function CarsPage() {
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
                   <button onClick={() => setFollowUpHistoryFor({ kind: "lead", id: l.id, name: l.name, nextFollowUpDate: l.nextFollowUpDate })} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up <ArrowRight size={11} /></button>
+                  <button onClick={() => void setLeadDnd(l, true)} style={{ ...S.btn, flex: 1, justifyContent: "center", background: "#dc2626" }} title="Move this contact to Do Not Disturb">DNT</button>
                 </div>
               </div>
               );
@@ -2495,6 +2596,51 @@ export default function CarsPage() {
           )}
           </>
         )
+      ) : tab === "dnd" ? (
+        <div className="space-y-3">
+          {[...dndBuyerLeads, ...dndSellerLeads].map(lead => (
+            <div key={lead.id} style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13 }}>{lead.name}</div>
+                <div style={{ color: "var(--text-ghost)", fontSize: 11 }}>
+                  {lead.leadType === "SELLER" ? "Seller Lead" : "Buyer Lead"}{lead.phone ? ` · ${lead.phone}` : ""}
+                  {(lead.interestedMake || lead.interestedModel) ? ` · ${[lead.interestedMake, lead.interestedModel].filter(Boolean).join(" ")}` : ""}
+                </div>
+              </div>
+              <button onClick={() => void setLeadDnd(lead, false)} style={{ ...S.ghost, color: "#4ade80", borderColor: "rgba(74,222,128,0.4)" }}>
+                Move to normal
+              </button>
+            </div>
+          ))}
+          {dndVehicles.map(vehicle => (
+            <div key={vehicle.id} style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13 }}>{vehicle.make} {vehicle.model}{vehicle.registrationNo ? ` · ${vehicle.registrationNo}` : ""}</div>
+                <div style={{ color: "var(--text-ghost)", fontSize: 11 }}>
+                  Vehicles & Insurance · {vehicle.ownerName || vehicle.sellerName || "Customer"}
+                  {(vehicle.ownerPhone || vehicle.sellerPhone) ? ` · ${vehicle.ownerPhone || vehicle.sellerPhone}` : ""}
+                </div>
+              </div>
+              <button onClick={() => void setVehicleDnd(vehicle, false)} style={{ ...S.ghost, color: "#4ade80", borderColor: "rgba(74,222,128,0.4)" }}>
+                Move to normal
+              </button>
+            </div>
+          ))}
+          {dndBuyerTotal + dndSellerTotal + dndVehicleTotal === 0 && (
+            <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No contacts are currently marked DND.</div>
+          )}
+          {dndTotalPages > 1 && (
+            <div className="flex items-center justify-between mt-4" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
+              <span>Page {dndPage} of {dndTotalPages}</span>
+              <div className="flex items-center gap-2">
+                <button disabled={dndPage <= 1} onClick={() => setDndPage(page => Math.max(1, page - 1))}
+                  style={{ ...S.ghost, opacity: dndPage <= 1 ? 0.4 : 1 }}>Previous</button>
+                <button disabled={dndPage >= dndTotalPages} onClick={() => setDndPage(page => page + 1)}
+                  style={{ ...S.ghost, opacity: dndPage >= dndTotalPages ? 0.4 : 1 }}>Next</button>
+              </div>
+            </div>
+          )}
+        </div>
       ) : tab === "vehicles" ? (
         <>
           {insuranceFollowUps.length > 0 && (
@@ -2972,7 +3118,14 @@ export default function CarsPage() {
       {detailVehicle && (
         <VehicleDetailModal vehicle={detailVehicle} onClose={() => setDetailVehicle(null)}
           onEdit={() => { setEditVehicle(detailVehicle); setDetailVehicle(null); }}
-          onEditInsurance={() => { setInsuranceFor(detailVehicle); setEditInsuranceRecord(detailVehicle.insurances?.[0] ?? null); setDetailVehicle(null); }} />
+          onEditInsurance={() => { setInsuranceFor(detailVehicle); setEditInsuranceRecord(detailVehicle.insurances?.[0] ?? null); setDetailVehicle(null); }}
+          onSaveNotes={async notes => {
+            const response = await api.patch(`/cars/vehicles/${detailVehicle.id}`, { notes });
+            setDetailVehicle(response.data.data);
+            await load();
+          }}
+          onToggleDnd={setVehicleDnd}
+          actionError={actionError} />
       )}
       {(showAddVehicle || acquireLead || editVehicle) && (
         <AddVehicleModal employees={employees} lead={acquireLead} vehicle={editVehicle}

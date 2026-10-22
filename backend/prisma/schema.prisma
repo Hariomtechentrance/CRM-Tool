@@ -4303,6 +4303,7 @@ model Vehicle {
   warrantyEndDate  DateTime? // soldAt + warrantyMonths, stored explicitly for easy querying
   assignedToId     String? // salesperson responsible — User.id, no FK (same loose-ref convention as CarLead.assignedToId)
   notes            String?
+  isDoNotCall      Boolean       @default(false)
 
   // ── Post-sale handoff checklist (buyer flow: "becomes a customer") ──────
   docSentToRto              Boolean   @default(false)
@@ -4320,6 +4321,7 @@ model Vehicle {
 
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([organizationId, isDoNotCall])
 }
 
 enum InsuranceType {
