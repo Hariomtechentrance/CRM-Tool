@@ -480,6 +480,12 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   const [extraVehicles, setExtraVehicles] = useState<{ make: string; model: string }[]>(
     lead?.additionalInterestedVehicles?.length ? lead.additionalInterestedVehicles : []
   );
+  // Make / Model / Fuel Type are multi-select (checkbox dropdown, comma-joined
+  // string — same no-schema-change pattern already used for Vehicle's
+  // fuelType/transmission via MultiCatalogSelect) so one lead can record more
+  // than one make/model/fuel combination directly on the primary fields.
+  const selectedCarMakes = form.interestedMake ? form.interestedMake.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const carModelOptions = Array.from(new Set(selectedCarMakes.flatMap(m => modelsForMake(m))));
   // Used only for the "✓ updated" / unchanged hint next to the Status field
   // now — no longer blocks saving. A notes-only edit (or the dedicated
   // Follow Up flow) is a legitimate save on its own; logging a call no
@@ -599,17 +605,13 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           </div>
           <div>
             <label style={S.label}>Make</label>
-            <CatalogSelect value={form.interestedMake} options={VEHICLE_MAKES} placeholder="Select make…"
-              onChange={v => setForm({ ...form, interestedMake: v, interestedModel: "" })} />
+            <MultiCatalogSelect value={form.interestedMake} options={VEHICLE_MAKES} placeholder="Select make(s)…"
+              onChange={v => setForm({ ...form, interestedMake: v })} />
           </div>
           <div>
             <label style={S.label}>Model</label>
-            {modelsForMake(form.interestedMake).length > 0 ? (
-              <CatalogSelect value={form.interestedModel} options={modelsForMake(form.interestedMake)} placeholder="Select model…"
-                onChange={v => setForm({ ...form, interestedModel: v })} />
-            ) : (
-              <input style={{ ...S.inp, width: "100%" }} placeholder="Type model…" value={form.interestedModel} onChange={e => setForm({ ...form, interestedModel: e.target.value })} />
-            )}
+            <MultiCatalogSelect value={form.interestedModel} options={carModelOptions} placeholder="Select model(s)…"
+              onChange={v => setForm({ ...form, interestedModel: v })} />
           </div>
           <div>
             <label style={S.label}>Variant</label>
@@ -617,7 +619,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           </div>
           <div>
             <label style={S.label}>Fuel Type</label>
-            <FixedSelect value={form.fuelType} options={LEAD_FUEL_TYPES} placeholder="Select fuel type…"
+            <MultiCatalogSelect value={form.fuelType} options={LEAD_FUEL_TYPES} placeholder="Select fuel type(s)…"
               onChange={v => setForm({ ...form, fuelType: v })} />
           </div>
           <div>
