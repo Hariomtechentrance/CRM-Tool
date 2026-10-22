@@ -746,6 +746,10 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
             <input type="checkbox" checked={form.bookingDone} onChange={e => setForm({ ...form, bookingDone: e.target.checked })} />
             Booking Done
           </label>
+          <label className="flex items-center gap-2" style={{ fontSize: 12, color: "#f87171", cursor: "pointer" }}>
+            <input type="checkbox" checked={form.isDoNotCall} onChange={e => setForm({ ...form, isDoNotCall: e.target.checked })} />
+            DND
+          </label>
         </div>
 
         <button type="button" onClick={() => setShowMore(s => !s)}
@@ -1760,7 +1764,7 @@ function VehicleDetailModal({ vehicle, onClose, onEdit, onEditInsurance, onSaveN
                 ? { ...S.ghost, color: "#4ade80", borderColor: "rgba(74,222,128,0.4)", fontSize: 11, padding: "5px 10px" }
                 : { ...S.btn, background: "#dc2626", fontSize: 11, padding: "5px 10px" }}
             >
-              {vehicle.isDoNotCall ? "Move to normal" : "DNT"}
+              {vehicle.isDoNotCall ? "Move to normal" : "DND"}
             </button>
             {onEdit && <button onClick={onEdit} style={{ ...S.ghost, fontSize: 11, padding: "5px 10px" }}><Pencil size={11} /> Edit</button>}
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
@@ -2574,7 +2578,7 @@ export default function CarsPage() {
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
                   <button onClick={() => setFollowUpHistoryFor({ kind: "lead", id: l.id, name: l.name, nextFollowUpDate: l.nextFollowUpDate })} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up <ArrowRight size={11} /></button>
-                  <button onClick={() => void setLeadDnd(l, true)} style={{ ...S.btn, flex: 1, justifyContent: "center", background: "#dc2626" }} title="Move this contact to Do Not Disturb">DNT</button>
+                  <button onClick={() => void setLeadDnd(l, true)} style={{ ...S.btn, flex: 1, justifyContent: "center", background: "#dc2626" }} title="Move this contact to Do Not Disturb">DND</button>
                 </div>
               </div>
               );
@@ -2601,9 +2605,20 @@ export default function CarsPage() {
           {[...dndBuyerLeads, ...dndSellerLeads].map(lead => (
             <div key={lead.id} style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
-                <div style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13 }}>{lead.name}</div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em",
+                    padding: "2px 8px", borderRadius: 999,
+                    ...(lead.leadType === "SELLER"
+                      ? { background: "rgba(168,85,247,0.15)", color: "#c084fc", border: "1px solid rgba(168,85,247,0.3)" }
+                      : { background: "rgba(56,189,248,0.15)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.3)" }),
+                  }}>
+                    {lead.leadType === "SELLER" ? "Seller Lead" : "Buyer Lead"}
+                  </span>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13 }}>{lead.name}</span>
+                </div>
                 <div style={{ color: "var(--text-ghost)", fontSize: 11 }}>
-                  {lead.leadType === "SELLER" ? "Seller Lead" : "Buyer Lead"}{lead.phone ? ` · ${lead.phone}` : ""}
+                  {lead.phone ?? ""}
                   {(lead.interestedMake || lead.interestedModel) ? ` · ${[lead.interestedMake, lead.interestedModel].filter(Boolean).join(" ")}` : ""}
                 </div>
               </div>
@@ -2615,9 +2630,18 @@ export default function CarsPage() {
           {dndVehicles.map(vehicle => (
             <div key={vehicle.id} style={{ ...S.card, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
-                <div style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13 }}>{vehicle.make} {vehicle.model}{vehicle.registrationNo ? ` · ${vehicle.registrationNo}` : ""}</div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em",
+                    padding: "2px 8px", borderRadius: 999,
+                    background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)",
+                  }}>
+                    Vehicles & Insurance
+                  </span>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 13 }}>{vehicle.make} {vehicle.model}{vehicle.registrationNo ? ` · ${vehicle.registrationNo}` : ""}</span>
+                </div>
                 <div style={{ color: "var(--text-ghost)", fontSize: 11 }}>
-                  Vehicles & Insurance · {vehicle.ownerName || vehicle.sellerName || "Customer"}
+                  {vehicle.ownerName || vehicle.sellerName || "Customer"}
                   {(vehicle.ownerPhone || vehicle.sellerPhone) ? ` · ${vehicle.ownerPhone || vehicle.sellerPhone}` : ""}
                 </div>
               </div>
