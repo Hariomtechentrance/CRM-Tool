@@ -218,6 +218,7 @@ model Organization {
   automationRules    LeadAutomationRule[]
   whatsappConfig     WhatsAppConfig?
   whatsappMessages   WhatsAppMessage[]
+  whatsappBookingSessions WhatsAppBookingSession[]
   leadForms          LeadForm[]
   apiKeys            ApiKey[]
   ipAllowlist        OrgIpAllowlist[]
@@ -2487,6 +2488,26 @@ model WhatsAppMessage {
   @@index([createdAt])
 }
 
+// Tracks where a WhatsApp number is mid-conversation in the clinic booking
+// bot (handleClinicBotMessage) — each webhook call is stateless, so this is
+// the only memory the bot has between messages. A session older than 15
+// minutes is treated as expired and the flow restarts from scratch.
+model WhatsAppBookingSession {
+  id             String   @id @default(cuid())
+  organizationId String
+  phone          String
+  step           String // CHOOSE_DOCTOR | CHOOSE_DATE | CHOOSE_SLOT | ENTER_NAME | CONFIRM
+  doctorId       String?
+  date           String? // "YYYY-MM-DD"
+  timeSlot       String?
+  name           String?
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, phone])
+}
+
 // ─────────────────────────────────────────────────────────────
 //  LEAD CAPTURE FORMS
 // ─────────────────────────────────────────────────────────────
@@ -3294,6 +3315,9 @@ model Doctor {
   consultationFee    Decimal?                 @db.Decimal(10, 2)
   availableDays      String[]                 @default([])
   slotDuration       Int                      @default(30)
+  workStartTime      String? // "HH:MM", 24h — start of the bookable window on each available day
+  workEndTime        String? // "HH:MM", 24h — end of the bookable window
+  isPubliclyBookable Boolean                  @default(true) // shown on the public /book/:orgSlug page + WhatsApp bot
   bio                String?
   isVerified         Boolean                  @default(false)
   verificationStatus DoctorVerificationStatus @default(PENDING)

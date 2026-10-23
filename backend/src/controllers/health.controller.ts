@@ -388,7 +388,8 @@ export async function createDoctor(req: OrgRequest, res: Response): Promise<void
   try {
     const orgId = req.organizationId!;
     const { name, email, phone, specialization, qualification, registrationNo, experience,
-            department, consultationFee, availableDays, slotDuration, bio, documents } = req.body;
+            department, consultationFee, availableDays, slotDuration, workStartTime, workEndTime,
+            isPubliclyBookable, bio, documents } = req.body;
 
     if (!name?.trim()) { badRequest(res, "Doctor name is required"); return; }
     if (!specialization?.trim()) { badRequest(res, "Specialization is required"); return; }
@@ -412,6 +413,9 @@ export async function createDoctor(req: OrgRequest, res: Response): Promise<void
         consultationFee: consultationFee ? Number(consultationFee) : null,
         availableDays: Array.isArray(availableDays) ? availableDays : [],
         slotDuration: slotDuration ? Number(slotDuration) : 30,
+        workStartTime: workStartTime || null,
+        workEndTime: workEndTime || null,
+        isPubliclyBookable: isPubliclyBookable !== undefined ? !!isPubliclyBookable : true,
         bio: bio || null,
         documents: documents?.length
           ? { create: documents.map((d: any) => ({ docType: d.docType, docNumber: d.docNumber || null, fileUrl: d.fileUrl || null, fileName: d.fileName || null })) }
@@ -428,7 +432,7 @@ export async function updateDoctor(req: OrgRequest, res: Response): Promise<void
     const existing = await db().doctor.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
     if (!existing) { notFound(res, "Doctor not found"); return; }
 
-    const allowed = ["name","email","phone","specialization","qualification","registrationNo","experience","department","consultationFee","availableDays","slotDuration","bio","isActive"];
+    const allowed = ["name","email","phone","specialization","qualification","registrationNo","experience","department","consultationFee","availableDays","slotDuration","workStartTime","workEndTime","isPubliclyBookable","bio","isActive"];
     const data: any = {};
     for (const f of allowed) {
       if (req.body[f] !== undefined) data[f] = req.body[f];

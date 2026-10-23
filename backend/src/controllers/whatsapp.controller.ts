@@ -4,6 +4,7 @@ import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
 import { ok, created, badRequest, notFound, serverError } from "../utils/response";
 import axios from "axios";
+import { handleClinicBotMessage } from "../lib/clinicBot";
 
 const db = () => (prisma as any);
 
@@ -15,7 +16,7 @@ async function getConfig(organizationId: string) {
 }
 
 // ── Helper: send via Cloud API ────────────────────────────────
-async function sendViaApi(
+export async function sendViaApi(
   phoneNumberId: string,
   accessToken: string,
   to: string,
@@ -318,6 +319,21 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
               waMessageId: msg.id,
             },
           });
+
+          // Clinic appointment-booking bot — only acts on plain text messages,
+          // and only once it recognizes a booking trigger or an in-progress
+          // session; anything else is left as just the logged message above.
+          if (msg.type === "text") {
+            try {
+              await handleClinicBotMessage(
+                { phoneNumberId: config.phoneNumberId, accessToken: config.accessToken, organizationId: config.organizationId },
+                from,
+                text,
+              );
+            } catch (e) {
+              console.error("[clinicBot]", e);
+            }
+          }
         }
       }
     }

@@ -4,9 +4,10 @@ import api from "@/lib/api";
 import {
   Heart, Plus, X, User, Activity, Clipboard, TestTube,
   Stethoscope, Calendar, CheckCircle, XCircle, Clock,
-  AlertTriangle, Search, FileText, Shield, Pencil,
+  AlertTriangle, Search, FileText, Shield, Pencil, Link as LinkIcon, Copy,
 } from "lucide-react";
 import { kPhone } from "@/lib/fieldRules";
+import { useAuthStore } from "@/stores/authStore";
 
 const S = {
   page: { padding: "24px 28px", background: "var(--bg-main)", minHeight: "100vh" } as React.CSSProperties,
@@ -41,7 +42,7 @@ const DAYS = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
 const DOC_TYPES = ["MEDICAL_LICENSE","AADHAAR","PAN","DEGREE","GOVT_ID","OTHER"];
 
 const EMPTY_PATIENT = { name: "", phone: "", email: "", dob: "", gender: "", bloodGroup: "", address: "", allergies: "", notes: "", emergencyName: "", emergencyPhone: "" };
-const EMPTY_DOCTOR = { name: "", email: "", phone: "", specialization: "", qualification: "", registrationNo: "", experience: "", department: "", consultationFee: "", bio: "", availableDays: [] as string[], slotDuration: "30", documents: [] as any[] };
+const EMPTY_DOCTOR = { name: "", email: "", phone: "", specialization: "", qualification: "", registrationNo: "", experience: "", department: "", consultationFee: "", bio: "", availableDays: [] as string[], slotDuration: "30", workStartTime: "10:00", workEndTime: "18:00", isPubliclyBookable: true, documents: [] as any[] };
 const EMPTY_APPT = { patientId: "", doctorId: "", appointmentDate: "", timeSlot: "", type: "CONSULTATION", chiefComplaint: "", notes: "" };
 const EMPTY_VISIT = { patientId: "", visitType: "OPD", chiefComplaint: "", diagnosis: "", vitalsBP: "", vitalsPulse: "", vitalsTemp: "", vitalsWeight: "", notes: "", followUpDate: "" };
 const emptyRx = () => ({ patientId: "", medicines: [{ name: "", dosage: "", frequency: "", duration: "" }], instructions: "", diet: "", followUpDays: "", validUntil: "" });
@@ -222,6 +223,8 @@ function MedicineList({ medicines }: { medicines: any[] }) {
 
 export default function HealthPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const orgSlug = useAuthStore(s => s.activeOrg?.slug);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [tab, setTab] = useState<TabType>("patients");
   const [patients, setPatients] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
@@ -586,6 +589,27 @@ export default function HealthPage() {
       )}
 
       {/* ── DOCTORS ── */}
+      {tab === "doctors" && orgSlug && (
+        <div style={{ ...S.card, marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <LinkIcon size={16} color="#818cf8" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>Public booking link</p>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--text-ghost)", wordBreak: "break-all" }}>
+              {window.location.origin}/book/{orgSlug}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/book/${orgSlug}`);
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 2000);
+            }}
+            style={{ ...S.btnSm, background: "#6366f120", color: "#818cf8", border: "1px solid #6366f140", display: "flex", alignItems: "center", gap: 6 }}>
+            <Copy size={12} /> {linkCopied ? "Copied!" : "Copy Link"}
+          </button>
+          <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>Share this on your website or WhatsApp — patients see open slots and book directly, no login needed. Each doctor's "Publicly bookable" checkbox controls who shows up here.</span>
+        </div>
+      )}
       {tab === "doctors" && (
         <div style={S.card}>
           <div className="overflow-x-auto">
@@ -1106,6 +1130,16 @@ export default function HealthPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+                <div className="grid-r2">
+                  <div><label style={S.label}>Work Start Time</label><input type="time" style={S.input} value={doctorForm.workStartTime} onChange={e => setDoctorForm(f => ({ ...f, workStartTime: e.target.value }))} /></div>
+                  <div><label style={S.label}>Work End Time</label><input type="time" style={S.input} value={doctorForm.workEndTime} onChange={e => setDoctorForm(f => ({ ...f, workEndTime: e.target.value }))} /></div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2" style={{ fontSize: 12, color: "var(--text-sec)", cursor: "pointer" }}>
+                    <input type="checkbox" checked={doctorForm.isPubliclyBookable} onChange={e => setDoctorForm(f => ({ ...f, isPubliclyBookable: e.target.checked }))} />
+                    Publicly bookable — show on the website/WhatsApp booking page (Available Days + Work Start/End Time + Slot Duration together define the bookable grid)
+                  </label>
                 </div>
 
                 {/* Documents section */}

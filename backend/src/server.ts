@@ -67,6 +67,7 @@ import appointmentRoutes from "./routes/appointment.routes";
 import automationRoutes from "./routes/automation.routes";
 import whatsappRoutes from "./routes/whatsapp.routes";
 import leadFormRoutes from "./routes/leadForm.routes";
+import publicHealthRoutes from "./routes/publicHealth.routes";
 import sessionRoutes from "./routes/session.routes";
 import apiKeyRoutes from "./routes/apiKey.routes";
 import securityRoutes from "./routes/security.routes";
@@ -345,6 +346,7 @@ app.use("/api/auth/link-phone",        replayGuard, strictLimiterLocal, strictLi
 app.use("/api/auth/login-phone-otp",   replayGuard, strictLimiterLocal, strictLimiter);
 app.use("/api/2fa",                 replayGuard, strictLimiterLocal, strictLimiter);
 app.use("/api/gst",                 heavyLimiter);
+app.use("/api/public/clinic",       authLimiterLocal, authLimiter);
 app.use("/api",                     apiLimiter);
 
 // ── Health + readiness checks ─────────────────────────────────
@@ -442,6 +444,7 @@ app.use("/api/appointments",  appointmentRoutes);
 app.use("/api/automations",   automationRoutes);
 app.use("/api/whatsapp",      whatsappRoutes);
 app.use("/api/lead-forms",    leadFormRoutes);
+app.use("/api/public/clinic", publicHealthRoutes);
 app.use("/api/sessions",      sessionRoutes);
 app.use("/api/api-keys",      apiKeyRoutes);
 app.use("/api/security",      securityRoutes);

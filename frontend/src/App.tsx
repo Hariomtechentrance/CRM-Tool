@@ -33,6 +33,7 @@ const AutomationPage = lazy(() => import("@/pages/leads/AutomationPage"));
 const LeadFormsPage = lazy(() => import("@/pages/leads/LeadFormsPage"));
 const WhatsAppPage = lazy(() => import("@/pages/whatsapp/WhatsAppPage"));
 const LeadCaptureFormPage = lazy(() => import("@/pages/public/LeadCaptureFormPage"));
+const BookAppointmentPage = lazy(() => import("@/pages/public/BookAppointmentPage"));
 const SupportPage = lazy(() => import("@/pages/support/SupportPage"));
 const TradePage = lazy(() => import("@/pages/trade/TradePage"));
 const RetailPage = lazy(() => import("@/pages/retail/RetailPage"));
@@ -147,6 +148,7 @@ export default function App() {
         <Route path="/health-portal/doctor"    element={<DoctorDashboardPage />} />
         <Route path="/public/project/:token" element={<PublicProjectPage />} />
         <Route path="/forms/:id"             element={<LeadCaptureFormPage />} />
+        <Route path="/book/:orgSlug"         element={<BookAppointmentPage />} />
         <Route path="/login"          element={<LoginPage />} />
         <Route path="/register"       element={<Navigate to="/login" replace />} />
         <Route path="/create-org"     element={<CreateOrgPage />} />
