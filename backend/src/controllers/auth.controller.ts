@@ -36,6 +36,7 @@ import {
 import { sendEmail, verifyEmailTemplate, resetPasswordTemplate, loginOtpTemplate, esc } from "../utils/email";
 import { writeAuditLog, getIp } from "../utils/auditLog";
 import { AuthRequest, invalidateUserSecState } from "../middleware/auth";
+import { cacheService } from "../lib/cache";
 
 const MAX_FAIL  = 5;
 const PASS_MIN_LENGTH = 8;
@@ -352,6 +353,39 @@ async function finalizeLogin(req: Request, res: Response, user: any): Promise<vo
   })();
 }
 
+interface RefreshPair { accessToken: string; refreshToken: string }
+
+function rotationCacheKey(tokenHash: string): string {
+  return `refresh-rotated:${tokenHash}`;
+}
+
+// Two requests presenting the SAME already-rotated-away token land here from
+// two different places (the token was never found at all, or was found but
+// lost the race on the delete below) — a flaky mobile connection retrying a
+// request that actually succeeded, or a backgrounded tab's reload racing its
+// own in-flight refresh, can genuinely present the identical old token twice
+// within a very short window. Poll briefly for the winning request's grace
+// record rather than checking once — cacheService writes land asynchronously
+// (Redis round trip) and the loser can reach this point before that write
+// completes. If nothing shows up, this really is stale or never-legitimate:
+// treat it as theft and nuke the whole session family.
+async function replayRotationOrRevoke(req: Request, res: Response, payload: { userId: string }, tokenHash: string): Promise<void> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const replay = await cacheService.get<RefreshPair>(rotationCacheKey(tokenHash));
+    if (replay) {
+      setAuthCookies(res, replay.accessToken, replay.refreshToken);
+      ok(res, replay);
+      return;
+    }
+    if (attempt < 5) await new Promise((r) => setTimeout(r, 150));
+  }
+  await prisma.refreshToken.deleteMany({ where: { userId: payload.userId } });
+  await (prisma as any).userSession.updateMany({ where: { userId: payload.userId }, data: { isActive: false } });
+  invalidateUserSecState(payload.userId);
+  writeAuditLog({ userId: payload.userId, action: "REFRESH_TOKEN_REUSE", resource: "RefreshToken", description: "Rotated-away refresh token replayed — all sessions revoked", ipAddress: getIp(req as any) });
+  unauthorized(res, "Session security check failed. Please log in again.");
+}
+
 export async function refreshToken(req: Request, res: Response): Promise<void> {
   try {
     // Accept the refresh token from the httpOnly cookie (browser SPA) or the
@@ -368,17 +402,11 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const stored = await prisma.refreshToken.findUnique({ where: { token: hashToken(token) } });
+    const tokenHash = hashToken(token);
+    const stored = await prisma.refreshToken.findUnique({ where: { token: tokenHash } });
     if (!stored) {
-      // The token has a valid signature but is not in the store — it was already
-      // rotated away. Either the legitimate client retried, or a stolen token is
-      // being replayed. Treat as compromise: nuke the whole family so neither
-      // party keeps a working session, and force a fresh login.
-      await prisma.refreshToken.deleteMany({ where: { userId: payload.userId } });
-      await (prisma as any).userSession.updateMany({ where: { userId: payload.userId }, data: { isActive: false } });
-      invalidateUserSecState(payload.userId);
-      writeAuditLog({ userId: payload.userId, action: "REFRESH_TOKEN_REUSE", resource: "RefreshToken", description: "Rotated-away refresh token replayed — all sessions revoked", ipAddress: getIp(req as any) });
-      unauthorized(res, "Session security check failed. Please log in again.");
+      // Signature's valid but it's not in the store — already rotated away.
+      await replayRotationOrRevoke(req, res, payload, tokenHash);
       return;
     }
     if (stored.expiresAt < new Date()) {
@@ -389,8 +417,19 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user || !user.isActive) { unauthorized(res); return; }
 
-    // Rotate: delete old, issue new
-    await prisma.refreshToken.delete({ where: { token: hashToken(token) } });
+    // Rotate: delete old, issue new. Two concurrent requests for the same
+    // token can both pass the findUnique above before either's delete lands
+    // — the loser's delete then throws P2025 ("record to delete does not
+    // exist"), which is just this same race, one step later.
+    try {
+      await prisma.refreshToken.delete({ where: { token: tokenHash } });
+    } catch (err: any) {
+      if (err?.code === "P2025") {
+        await replayRotationOrRevoke(req, res, payload, tokenHash);
+        return;
+      }
+      throw err;
+    }
 
     const newAccessToken = signAccessToken({ userId: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin });
     const newTokenId = uuidv4();
@@ -400,8 +439,18 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
       data: { id: newTokenId, token: hashToken(newRefreshToken), userId: user.id, expiresAt: getRefreshExpiryDate() },
     });
 
+    const responseBody: RefreshPair = { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    // Written BEFORE responding (not fire-and-forget) so a losing concurrent
+    // request's poll above has the best chance of finding it already there.
+    // 20s comfortably covers a mobile retry/reload racing its own in-flight
+    // request without meaningfully widening the window a genuinely stolen
+    // token would need to land in — an attacker would need the exact token
+    // AND to race the legitimate request within ~20s of its real use, not
+    // just possess it at leisure.
+    await cacheService.set(rotationCacheKey(tokenHash), responseBody, 20_000).catch(() => {});
+
     setAuthCookies(res, newAccessToken, newRefreshToken);
-    ok(res, { accessToken: newAccessToken, refreshToken: newRefreshToken });
+    ok(res, responseBody);
   } catch (err) {
     serverError(res, err);
   }
