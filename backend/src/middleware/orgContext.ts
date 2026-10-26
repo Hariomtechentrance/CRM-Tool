@@ -2,7 +2,7 @@ import { Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "./auth";
 import { MemberRole } from "@prisma/client";
-import { forbidden, notFound } from "../utils/response";
+import { forbidden, notFound, serverError } from "../utils/response";
 import { apiCache } from "../lib/cache";
 
 export interface OrgRequest extends AuthRequest {
@@ -61,7 +61,23 @@ export async function requireOrgContext(
     forbidden(res, "Organization context required. Send x-organization-id header.");
     return;
   }
-  const state = await loadOrgCtxState(req.userId!, orgId);
+  // Unlike authenticate()'s deliberate fail-OPEN on a DB blip, this can't fail
+  // open the same way — the org id comes from a client-supplied header with
+  // nothing else verifying it, so trusting it without the DB check would be a
+  // tenant-isolation hole, not just an availability tradeoff. Instead, a
+  // transient error (e.g. a free-tier DB waking up, connection-pool pressure
+  // under concurrent logins) becomes a proper retryable 503 — the same shape
+  // serverError() already produces elsewhere — so the frontend's existing
+  // auto-retry-on-503 logic actually kicks in, instead of this request
+  // falling through to the generic error handler's non-retryable response
+  // and looking like a random logout right after signing in.
+  let state;
+  try {
+    state = await loadOrgCtxState(req.userId!, orgId);
+  } catch (err) {
+    serverError(res, err);
+    return;
+  }
   if (!state || !state.orgActive) {
     notFound(res, "Organization not found");
     return;
