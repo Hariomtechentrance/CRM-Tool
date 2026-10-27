@@ -2282,10 +2282,18 @@ export default function CarsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      // The stats tiles (Buyer/Seller/Vehicle counts) only render on these
+      // four tabs — Follow-ups, Monthly Report and DND never show them, so
+      // fetching /cars/stats for those was pure dead weight. It's also a
+      // genuinely slow endpoint on this infra (multiple DB round trips), so
+      // it's fired in parallel with the tab's own data below instead of
+      // being awaited first — previously every tab click paid for stats
+      // sequentially before its actual content even started loading.
+      const needsStats = tab === "leads" || tab === "sellerleads" || tab === "vehicles" || tab === "warranty";
       const statsParams = new URLSearchParams();
       if (notContactedSince) statsParams.set("notContactedSince", notContactedSince);
-      const [statsRes] = await Promise.all([api.get(`/cars/stats?${statsParams}`)]);
-      setStats(statsRes.data.data);
+      const statsPromise = needsStats ? api.get(`/cars/stats?${statsParams}`) : Promise.resolve(null);
+
       if (tab === "leads" || tab === "sellerleads") {
         const filterSig = `${tab}|${search}|${statusFilter}|${leadStageFilter}|${notContactedFilter}|${contactedFilter}|${notContactedSince}`;
         let page = leadsPage;
@@ -2306,7 +2314,8 @@ export default function CarsPage() {
         params.set("leadType", tab === "sellerleads" ? "SELLER" : "BUYER");
         params.set("page", String(page));
         params.set("limit", String(LEADS_PAGE_SIZE));
-        const r = await api.get(`/cars/leads?${params}`);
+        const [statsRes, r] = await Promise.all([statsPromise, api.get(`/cars/leads?${params}`)]);
+        if (statsRes) setStats(statsRes.data.data);
         setLeads(r.data.data.leads ?? []);
         setLeadsTotal(r.data.data.total ?? 0);
       } else if (tab === "vehicles") {
@@ -2316,12 +2325,14 @@ export default function CarsPage() {
         const insParams = new URLSearchParams();
         if (insuranceFrom) insParams.set("from", insuranceFrom);
         if (insuranceTo) insParams.set("to", insuranceTo); else insParams.set("days", "30");
-        const [vr, sr, er, fr] = await Promise.all([
+        const [statsRes, vr, sr, er, fr] = await Promise.all([
+          statsPromise,
           api.get(`/cars/vehicles?${params}`),
           api.get(`/cars/sales-report?period=${salesPeriod}`),
           api.get(`/cars/insurance/expiring?${insParams}`),
           api.get(`/cars/insurance/due-followups`),
         ]);
+        if (statsRes) setStats(statsRes.data.data);
         setVehicles(vr.data.data.vehicles ?? []);
         setSalesReport(sr.data.data);
         setExpiringVehiclesData(er.data.data.vehicles ?? []);
@@ -2357,7 +2368,8 @@ export default function CarsPage() {
         setDndVehicles(vehicleRes?.data.data.vehicles ?? []);
         setDndVehicleTotal(vehicleRes?.data.data.total ?? 0);
       } else if (tab === "warranty") {
-        const r = await api.get("/cars/warranties");
+        const [statsRes, r] = await Promise.all([statsPromise, api.get("/cars/warranties")]);
+        if (statsRes) setStats(statsRes.data.data);
         setWarrantyVehicles(r.data.data.vehicles ?? []);
         setWarrantyTotals({ total: r.data.data.total ?? 0, truncated: r.data.data.truncated ?? false });
       } else {
