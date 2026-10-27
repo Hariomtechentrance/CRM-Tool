@@ -2333,12 +2333,16 @@ export default function CarsPage() {
         });
         setInsuranceFollowUps(fr.data.data.policies ?? []);
       } else if (tab === "followups") {
+        // Insurance due-followups is gated to VEHICLES_INSURANCE access —
+        // a Buyer/Seller-only user would 403 on it, which previously failed
+        // the whole Promise.all and left BOTH lists empty (the lead
+        // follow-ups too), even though they're allowed to see those.
         const [lr, ir] = await Promise.all([
           api.get("/cars/leads?followUp=all&limit=200"),
-          api.get("/cars/insurance/due-followups?followUp=all"),
+          canSeeInsurance ? api.get("/cars/insurance/due-followups?followUp=all") : Promise.resolve(null),
         ]);
         setFollowUps(lr.data.data.leads ?? []);
-        setFollowUpInsurance(ir.data.data.policies ?? []);
+        setFollowUpInsurance(ir?.data.data.policies ?? []);
       } else if (tab === "dnd") {
         const params = new URLSearchParams({ dnc: "true", page: String(dndPage), limit: String(DND_PAGE_SIZE) });
         const [buyerRes, sellerRes, vehicleRes] = await Promise.all([
