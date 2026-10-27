@@ -10,7 +10,7 @@ interface WAMessage { id: string; direction: string; toPhone: string; fromPhone?
 // ── Setup guide ───────────────────────────────────────────────
 function SetupGuide({ onConfigured }: { onConfigured: () => void }) {
   const { activeOrg } = useAuthStore();
-  const [form, setForm] = useState({ phoneNumberId: "", accessToken: "", wabaId: "", phoneNumber: "", displayName: "" });
+  const [form, setForm] = useState({ phoneNumberId: "", accessToken: "", wabaId: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,6 +19,9 @@ function SetupGuide({ onConfigured }: { onConfigured: () => void }) {
     if (!form.phoneNumberId || !form.accessToken) { setError("Phone Number ID and Access Token are required"); return; }
     setSaving(true); setError("");
     try {
+      // The backend verifies these against Meta itself and pulls the real
+      // phone number + business name back automatically — nothing else to
+      // type or go hunting for in Meta's dashboard.
       await api.post("/whatsapp/config", form, { headers: { "x-organization-id": activeOrg?.id } });
       onConfigured();
     } catch (err: any) { setError(err.response?.data?.message || "Failed to save"); }
@@ -42,16 +45,21 @@ function SetupGuide({ onConfigured }: { onConfigured: () => void }) {
       {/* Steps */}
       <div className="space-y-3 mb-6">
         {[
-          { n: "1", title: "Create Meta Business Account", desc: "Go to business.facebook.com and create/verify your business account." },
-          { n: "2", title: "Set up WhatsApp Business API", desc: "Go to developers.facebook.com → My Apps → Create App → Business → Add WhatsApp product." },
-          { n: "3", title: "Get Phone Number ID & Token", desc: "In WhatsApp → API Setup, copy the Phone Number ID and generate a permanent System User token." },
-          { n: "4", title: "Add Webhook (optional)", desc: `Set webhook URL to your-backend.com/api/whatsapp/webhook for incoming messages.` },
+          { n: "1", title: "Create Meta Business Account", desc: "Create/verify your business account — free, one-time.", link: "https://business.facebook.com", linkLabel: "business.facebook.com" },
+          { n: "2", title: "Set up WhatsApp Business API", desc: "My Apps → Create App → Business → Add WhatsApp product.", link: "https://developers.facebook.com/apps", linkLabel: "developers.facebook.com" },
+          { n: "3", title: "Get Phone Number ID & Token", desc: "In WhatsApp → API Setup, copy the Phone Number ID and generate a permanent System User token. These are the only two things you need below." },
+          { n: "4", title: "Add Webhook (optional)", desc: "Only needed for incoming messages / the booking bot. Set the webhook URL to your-backend.com/api/whatsapp/webhook — skip this if you just need to send messages." },
         ].map(s => (
           <div key={s.n} className="flex gap-3 p-3 rounded-xl" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
             <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: "#4f46e5" }}>{s.n}</div>
             <div>
               <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.title}</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{s.desc}</p>
+              {s.link && (
+                <a href={s.link} target="_blank" rel="noreferrer" className="text-xs mt-1 inline-flex items-center gap-1" style={{ color: "#4f46e5" }}>
+                  Open {s.linkLabel} <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
           </div>
         ))}
@@ -62,9 +70,7 @@ function SetupGuide({ onConfigured }: { onConfigured: () => void }) {
         {[
           { key: "phoneNumberId", label: "Phone Number ID *", placeholder: "e.g. 123456789012345" },
           { key: "accessToken", label: "Access Token *", placeholder: "Paste your permanent system user token" },
-          { key: "wabaId", label: "WABA ID (for templates)", placeholder: "WhatsApp Business Account ID" },
-          { key: "phoneNumber", label: "Phone Number", placeholder: "e.g. +91 98765 43210" },
-          { key: "displayName", label: "Display Name", placeholder: "e.g. OM Import Export" },
+          { key: "wabaId", label: "WABA ID (optional, only needed for message templates)", placeholder: "WhatsApp Business Account ID" },
         ].map(({ key, label, placeholder }) => (
           <div key={key}>
             <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>{label}</label>
@@ -81,7 +87,7 @@ function SetupGuide({ onConfigured }: { onConfigured: () => void }) {
         {error && <p className="text-xs text-red-400">{error}</p>}
         <button type="submit" disabled={saving} className="w-full py-2.5 rounded-xl text-sm font-medium text-white"
           style={{ background: saving ? "#16a34a99" : "#16a34a" }}>
-          {saving ? "Connecting…" : "Connect WhatsApp"}
+          {saving ? "Verifying with Meta & connecting…" : "Connect WhatsApp"}
         </button>
       </form>
     </div>

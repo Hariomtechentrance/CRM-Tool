@@ -60,10 +60,37 @@ export async function saveWhatsAppConfig(req: OrgRequest, res: Response): Promis
   try {
     const d = configSchema.safeParse(req.body);
     if (!d.success) { badRequest(res, "Invalid config", d.error.flatten()); return; }
+
+    // Confirm the Phone Number ID + Access Token actually work, and pull the
+    // real phone number + business name straight from Meta instead of asking
+    // the person to find and copy them manually — the two fields they can
+    // paste in are the only ones that genuinely require digging through
+    // Meta's dashboard; the rest is just metadata Meta already knows.
+    let displayPhoneNumber = d.data.phoneNumber;
+    let verifiedName = d.data.displayName;
+    try {
+      const meta = await axios.get(`${WA_API_BASE}/${d.data.phoneNumberId}`, {
+        params: { fields: "display_phone_number,verified_name" },
+        headers: { Authorization: `Bearer ${d.data.accessToken}` },
+      });
+      displayPhoneNumber = meta.data?.display_phone_number || displayPhoneNumber;
+      verifiedName = meta.data?.verified_name || verifiedName;
+    } catch (err: any) {
+      const metaMessage = err?.response?.data?.error?.message;
+      badRequest(res, metaMessage
+        ? `Couldn't connect to WhatsApp: ${metaMessage}`
+        : "Couldn't verify this Phone Number ID and Access Token with Meta. Double-check both are correct and the token hasn't expired.");
+      return;
+    }
+
     const config = await db().whatsAppConfig.upsert({
       where: { organizationId: req.organizationId! },
-      create: { organizationId: req.organizationId!, ...d.data, webhookVerifyToken: d.data.webhookVerifyToken || "" },
-      update: { ...d.data, updatedAt: new Date() },
+      create: {
+        organizationId: req.organizationId!, ...d.data,
+        phoneNumber: displayPhoneNumber, displayName: verifiedName,
+        webhookVerifyToken: d.data.webhookVerifyToken || "",
+      },
+      update: { ...d.data, phoneNumber: displayPhoneNumber, displayName: verifiedName, updatedAt: new Date() },
     });
     ok(res, { connected: true, phoneNumber: config.phoneNumber, displayName: config.displayName });
   } catch (e) { serverError(res, e); }
