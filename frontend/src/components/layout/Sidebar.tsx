@@ -232,6 +232,13 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const showComm     = (canSee("CRM") || canSee("MARKETING")) && !wbaOrg;
   const showPMDash   = (canSee("PROJECTS") || isPM) && !wbaOrg;
   const showTeamPage = isTL;
+  // Cars-only orgs (no CRM/MARKETING) still need to message their customers
+  // on WhatsApp — give them a direct link to it instead of the full
+  // Communication group (Email/Activities/Automations/Lead Forms don't fit
+  // how the Cars module tracks its own leads and follow-ups separately).
+  // Skip it if showComm is already surfacing WhatsApp via that group, so an
+  // org with both Cars and CRM/Marketing enabled doesn't get it twice.
+  const showCarsWhatsApp = carsOrg && !showComm;
 
   const commLinks: FlyoutLink[] = [
     { href: "/email",        label: t("nav_email"),        Icon: Mail },
@@ -324,6 +331,12 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             <RailButton active={flyout === "comm" || isGroupActive(commLinks)} onClick={() => toggleFlyout("comm")} title={t("nav_communication")}>
               <MessageCircle style={{ width: 18, height: 18 }} />
             </RailButton>
+          )}
+
+          {showCarsWhatsApp && (
+            <NavLink to="/whatsapp" onClick={closeAll} className={({ isActive }) => railLinkClass(isActive)} style={{ width: 40, height: 40 }} title={t("nav_whatsapp")}>
+              <MessageCircle style={{ width: 18, height: 18 }} />
+            </NavLink>
           )}
 
           {showPMDash && (
