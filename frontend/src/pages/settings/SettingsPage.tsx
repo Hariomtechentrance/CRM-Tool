@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { ALL_MODULES } from "@/lib/modules";
-import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog, Phone } from "lucide-react";
+import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog, Phone, Trash2 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { kPhone, kAlpha, kGSTIN } from "@/lib/fieldRules";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
@@ -71,6 +71,7 @@ export default function SettingsPage() {
   const [form, setForm] = useState({ name: "", taxId: "", phone: "", email: "", address: "", city: "", state: "", country: "India", currency: "INR", website: "" });
   const [hrSettings, setHrSettings] = useState({ ...HR_DEFAULTS });
   const [members, setMembers] = useState<Member[]>([]);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [empForm, setEmpForm] = useState({ name: "", jobRole: "STAFF", description: "", email: "", password: "", confirmPassword: "", phone: "", modules: [] as string[] });
   const [addingEmployee, setAddingEmployee] = useState(false);
@@ -152,6 +153,18 @@ export default function SettingsPage() {
       );
     }
     setAddingEmployee(false);
+  };
+
+  const removeMember = async (m: Member) => {
+    if (!confirm(`Remove ${m.name} (${m.email}) from this organization? They'll immediately lose access — this can be undone by re-adding them.`)) return;
+    setRemovingMemberId(m.id);
+    try {
+      await api.delete(`/organizations/current/members/${m.id}`);
+      setMembers(prev => prev.filter(x => x.id !== m.id));
+    } catch (e: any) {
+      alert(e?.response?.data?.message || "Could not remove this member.");
+    }
+    setRemovingMemberId(null);
   };
 
   const f = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
@@ -321,7 +334,16 @@ export default function SettingsPage() {
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{m.name}</div>
                 <div style={{ fontSize: 12, color: "var(--text-ghost)" }}>{m.email}</div>
               </div>
-              <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 5, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>{m.role}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 5, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>{m.role}</span>
+                {m.role !== "OWNER" && m.id !== user?.id && (
+                  <button onClick={() => removeMember(m)} disabled={removingMemberId === m.id}
+                    title="Remove from organization"
+                    style={{ background: "none", border: "none", cursor: removingMemberId === m.id ? "not-allowed" : "pointer", color: "#ef4444", opacity: removingMemberId === m.id ? 0.5 : 1, padding: 4, display: "flex" }}>
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
