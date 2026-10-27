@@ -352,10 +352,15 @@ export function getDefaultModules(businessType: string): string[] {
     .map((m) => m.key);
 }
 
-// Sidebar nav items for enabled modules (always includes Dashboard)
+// Sidebar nav items for enabled modules (always includes Dashboard).
+// Must use hasModuleAccess, not a plain .includes() — a Cars section-scoped
+// user's grant list holds "CARS.BUYER" etc., never the bare "CARS" key, so a
+// plain .includes("CARS") always misses it and drops Cars out of the sidebar
+// entirely for exactly the users who need it most. (hasModuleAccess is a
+// function declaration further down this file — hoisted, safe to call here.)
 export function getNavModules(enabledModules: string[]): ModuleDefinition[] {
   if (!enabledModules || enabledModules.length === 0) return ALL_MODULES;
-  return ALL_MODULES.filter((m) => enabledModules.includes(m.key));
+  return ALL_MODULES.filter((m) => hasModuleAccess(enabledModules, m.key));
 }
 
 // Some modules (currently just Cars — see CARS_SECTIONS below) are

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Lock, Send, CheckCircle } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
-import { ALL_MODULES } from "@/lib/modules";
+import { ALL_MODULES, hasModuleAccess } from "@/lib/modules";
 
 interface Props {
   moduleKey: string;
@@ -18,10 +18,15 @@ export default function AccessGate({ moduleKey, children }: Props) {
   const mod = ALL_MODULES.find((m) => m.key === moduleKey);
 
   // moduleAccess already equals the org's enabledModules for OWNER/ADMIN (see
-  // authStore.setAuth / syncModulesFromOrg) — so this one check is correct for
-  // every role. It must NOT also bypass for isAdmin: that would let an
-  // OWNER/ADMIN reach a module the org never enabled, just by knowing the URL.
-  if (moduleAccess.includes(moduleKey)) {
+  // authStore.setAuth / syncModulesFromOrg). For a STAFF member it's their
+  // real per-module grant list instead — and for Cars, that list holds the
+  // section-scoped key ("CARS.BUYER" etc.), never the bare "CARS" moduleKey
+  // this gate is given, so a plain .includes() always missed it and blocked
+  // every section-scoped Cars user from the page entirely. hasModuleAccess
+  // handles both shapes. Still must NOT also bypass for isAdmin: that would
+  // let an OWNER/ADMIN reach a module the org never enabled, just by knowing
+  // the URL.
+  if (hasModuleAccess(moduleAccess, moduleKey)) {
     return <>{children}</>;
   }
 
