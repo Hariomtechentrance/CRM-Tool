@@ -11,6 +11,7 @@ import {
   listInsuranceActivities, addInsuranceActivity,
   getCarsStats, getSalesReport, getMonthlyLeadReport, listWarranties,
   listHistoricalStats, bulkImportHistoricalStats, deleteHistoricalStat,
+  listCarsAssigneeLabels, addCarsAssigneeLabel,
 } from "../controllers/cars.controller";
 
 const router = Router();
@@ -27,6 +28,8 @@ router.use(authenticate, requireOrgContext);
 router.get("/stats",                 requireAnyCarsSection(), getCarsStats);
 router.get("/sales-report",          requireAnyCarsSection(), getSalesReport);
 router.get("/leads/monthly-report",  requireAnyCarsSection(), getMonthlyLeadReport);
+router.get("/assignee-labels",       requireAnyCarsSection(), listCarsAssigneeLabels);
+router.post("/assignee-labels",      requireAnyCarsSection(), addCarsAssigneeLabel);
 
 router.get("/historical-stats",              requireCarsSection("VEHICLES_INSURANCE"), listHistoricalStats);
 router.post("/historical-stats/bulk-import", requireCarsSection("VEHICLES_INSURANCE"), bulkImportHistoricalStats);

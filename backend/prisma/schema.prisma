@@ -154,6 +154,10 @@ model Organization {
   brandingColor      String?
   complianceConfig   Json?
   enabledModules     String[]             @default([])
+  // Quick-add names for the Cars module's "Assign To" fields — cosmetic
+  // labels any Cars-section staff can add on the fly (not real Employee
+  // records, no login/role implications). See cars.controller.ts.
+  carsAssigneeLabels String[]             @default([])
   isActive           Boolean              @default(true)
   plan               String               @default("FREE")
   planExpiresAt      DateTime?
@@ -4071,7 +4075,13 @@ enum CarLeadSource {
   RS
   DS
   CTE
+  OLX
   OTHER
+}
+
+enum CarVehicleCustomerType {
+  NEW
+  PRE_EXISTING
 }
 
 enum CarLeadType {
@@ -4149,6 +4159,11 @@ model CarLead {
   bookingDone                  Boolean       @default(false)
   lastContactedAt              DateTime? // last call attempt — set manually, no calling integration
   assignedToId                 String? // User.id — no FK relation (loose ref, same convention as Lead.assignedToId)
+  // A quick-add name typed straight into "Assign To" that isn't a real
+  // Employee — cosmetic only, kept in sync with Organization.carsAssigneeLabels
+  // (see cars.controller.ts listAssigneeLabels/addAssigneeLabel). Mutually
+  // exclusive with assignedToId — set one, the other is cleared.
+  assignedToLabel              String?
   nextFollowUpDate             DateTime?
   convertedVehicleId           String?       @unique
   createdAt                    DateTime      @default(now())
@@ -4328,8 +4343,16 @@ model Vehicle {
   warrantyMonths   Int? // set at time of sale
   warrantyEndDate  DateTime? // soldAt + warrantyMonths, stored explicitly for easy querying
   assignedToId     String? // salesperson responsible — User.id, no FK (same loose-ref convention as CarLead.assignedToId)
+  assignedToLabel  String? // quick-add cosmetic name, see CarLead.assignedToLabel
   notes            String?
   isDoNotCall      Boolean       @default(false)
+
+  // Is this customer brand-new to the dealership, or have they bought/sold
+  // with us before? preExistingType records which side of a past deal they
+  // were on (buyer or seller) — only meaningful, and required by the form,
+  // when customerType is PRE_EXISTING.
+  customerType    CarVehicleCustomerType @default(NEW)
+  preExistingType CarLeadType?
 
   // ── Post-sale handoff checklist (buyer flow: "becomes a customer") ──────
   docSentToRto              Boolean   @default(false)

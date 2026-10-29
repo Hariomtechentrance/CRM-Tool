@@ -60,8 +60,12 @@ const LEAD_STAGES = Object.keys(LEAD_STAGE);
 const SOURCES: Record<string, string> = {
   WALK_IN: "Walk-in", PHONE: "Phone", WEBSITE: "Website",
   INSTAGRAM: "Instagram", META_ADS: "Meta Ads", SEO: "SEO (Organic)",
-  REFERRAL: "Referral", RS: "RS", DS: "DS", CTE: "CTE (CarTrade)", OTHER: "Other",
+  REFERRAL: "Referral", RS: "RS", DS: "DS", CTE: "CTE (CarTrade)", OLX: "OLX", OTHER: "Other",
 };
+// Specify Source and the Assign To quick-add box are both free-typed names
+// (a source label, a person's name) — letters and spaces only, sanitized as
+// the user types rather than rejected after the fact.
+const sanitizeAlpha = (s: string) => s.replace(/[^A-Za-z ]/g, "");
 
 // Buyer/seller intake-form dropdown catalogs added for the two-filter +
 // expanded-fields request.
@@ -108,7 +112,7 @@ interface CarLead {
   hasExchangeVehicle?: boolean; tradeInVehicle?: string; source: string; sourceOther?: string; status: string; notes?: string;
   leadStage?: string;
   isDoNotCall?: boolean; testDriveDone?: boolean; bookingDone?: boolean; lastContactedAt?: string;
-  assignedToId?: string; assignedTo?: { name: string } | null;
+  assignedToId?: string; assignedToLabel?: string; assignedTo?: { name: string } | null;
   nextFollowUpDate?: string; convertedVehicleId?: string; createdAt: string;
   // Shared buyer/seller
   location?: string;
@@ -145,7 +149,7 @@ interface Insurance {
   notes?: string;
   nextFollowUpDate?: string;
   convertedFromCarLead?: boolean;
-  vehicle?: { id: string; make?: string; model?: string; registrationNo?: string; ownerName?: string; ownerPhone?: string; sellerName?: string; sellerPhone?: string; assignedToId?: string };
+  vehicle?: { id: string; make?: string; model?: string; registrationNo?: string; ownerName?: string; ownerPhone?: string; sellerName?: string; sellerPhone?: string; assignedToId?: string; assignedToLabel?: string };
 }
 interface Vehicle {
   id: string; make: string; model: string; variant?: string; year?: number;
@@ -155,7 +159,10 @@ interface Vehicle {
   registrationDate?: string;
   ownerName?: string; ownerPhone?: string; ownerEmail?: string; ownerAddress?: string; soldAt?: string;
   warrantyMonths?: number; warrantyEndDate?: string;
-  assignedToId?: string; notes?: string; isDoNotCall?: boolean;
+  assignedToId?: string; assignedToLabel?: string; notes?: string; isDoNotCall?: boolean;
+  // Is this customer new to the dealership, or have they bought/sold with
+  // us before (and if so, as a Buyer or Seller)?
+  customerType?: "NEW" | "PRE_EXISTING"; preExistingType?: "BUYER" | "SELLER";
   // Post-sale handoff checklist ("becomes a customer" — buyer flow)
   docSentToRto?: boolean; docSentToRtoAt?: string; docDelayChecklistNote?: string;
   addedToInsuranceGateway?: boolean; addedToInsuranceGatewayAt?: string;
@@ -421,6 +428,61 @@ function InsuranceFields({ value, onChange }: { value: InsuranceFormState; onCha
   );
 }
 
+// "Assign To" / "Handled By" — a real Employee (assignedToId) or a quick-add
+// cosmetic name (assignedToLabel) kept on the org itself, see
+// Organization.carsAssigneeLabels. The two are mutually exclusive, so this
+// renders as one dropdown with a small "+ Add name" escape hatch below it
+// rather than two separate controls.
+function AssignToSelect({ assignedToId, assignedToLabel, employees, labels, onChange, onAddLabel }: {
+  assignedToId?: string; assignedToLabel?: string; employees: Employee[]; labels: string[];
+  onChange: (next: { assignedToId?: string; assignedToLabel?: string }) => void;
+  onAddLabel: (name: string) => Promise<void>;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const value = assignedToLabel ? `label:${assignedToLabel}` : assignedToId ? `emp:${assignedToId}` : "";
+
+  function handleSelect(v: string) {
+    if (v.startsWith("emp:")) onChange({ assignedToId: v.slice(4), assignedToLabel: undefined });
+    else if (v.startsWith("label:")) onChange({ assignedToId: undefined, assignedToLabel: v.slice(6) });
+    else onChange({ assignedToId: undefined, assignedToLabel: undefined });
+  }
+
+  async function addName() {
+    const name = newName.trim();
+    if (!name || busy) return;
+    setBusy(true);
+    try {
+      await onAddLabel(name);
+      onChange({ assignedToId: undefined, assignedToLabel: name.toUpperCase() });
+      setNewName(""); setAdding(false);
+    } catch { /* onAddLabel's caller surfaces the error */ }
+    setBusy(false);
+  }
+
+  return (
+    <div>
+      <select style={{ ...S.inp, width: "100%" }} value={value} onChange={e => handleSelect(e.target.value)}>
+        <option value="">Unassigned</option>
+        {employees.map(emp => <option key={emp.id} value={`emp:${emp.id}`}>{emp.name}</option>)}
+        {labels.map(name => <option key={name} value={`label:${name}`}>{name}</option>)}
+      </select>
+      {adding ? (
+        <div className="flex gap-1" style={{ marginTop: 6 }}>
+          <input style={{ ...S.inp, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="Type a name…" autoFocus
+            value={newName} onChange={e => setNewName(sanitizeAlpha(e.target.value))}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addName(); } }} />
+          <button type="button" onClick={addName} disabled={busy || !newName.trim()} style={{ ...S.ghost, padding: "0 8px", fontSize: 11 }}>Add</button>
+          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} style={{ ...S.ghost, padding: "0 8px", fontSize: 11 }}>✕</button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setAdding(true)} style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 11, cursor: "pointer", padding: "4px 0 0", textAlign: "left" }}>+ Add name</button>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Add / Edit Lead modal
 // ═══════════════════════════════════════════════════════════════
@@ -449,13 +511,13 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
     interestedModel: lead?.interestedModel ?? seedValues?.interestedModel ?? (isNewSellerLead ? DEFAULT_SELLER_MODEL : ""),
     budgetMin: lead?.budgetMin?.toString() ?? "", budgetMax: lead?.budgetMax?.toString() ?? "",
     hasExchangeVehicle: lead?.hasExchangeVehicle ?? false,
-    tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? "WALK_IN", sourceOther: lead?.sourceOther ?? "",
+    tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? "", sourceOther: lead?.sourceOther ?? "",
     status: lead?.status ?? "NEW", notes: lead?.notes ?? "",
     leadStage: lead?.leadStage ?? "SEARCHING_CAR",
     isDoNotCall: lead?.isDoNotCall ?? false,
     testDriveDone: lead?.testDriveDone ?? false,
     bookingDone: lead?.bookingDone ?? false,
-    assignedToId: lead?.assignedToId ?? "",
+    assignedToId: lead?.assignedToId ?? "", assignedToLabel: lead?.assignedToLabel ?? "",
     nextFollowUpDate: lead?.nextFollowUpDate ? lead.nextFollowUpDate.slice(0, 10) : "",
     location: lead?.location ?? "",
     // Buyer-only
@@ -486,6 +548,8 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   // than one make/model/fuel combination directly on the primary fields.
   const selectedCarMakes = form.interestedMake ? form.interestedMake.split(",").map(s => s.trim()).filter(Boolean) : [];
   const carModelOptions = Array.from(new Set(selectedCarMakes.flatMap(m => modelsForMake(m))));
+  const selectedCarModels = form.interestedModel ? form.interestedModel.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const carVariantOptions = Array.from(new Set(selectedCarMakes.flatMap(mk => selectedCarModels.flatMap(md => variantsForModel(mk, md)))));
   // Used only for the "✓ updated" / unchanged hint next to the Status field
   // now — no longer blocks saving. A notes-only edit (or the dedicated
   // Follow Up flow) is a legitimate save on its own; logging a call no
@@ -495,6 +559,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [assigneeLabels, setAssigneeLabels] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const role = useAuthStore(s => s.activeOrg?.role);
   const canDelete = !!lead && !!role && !["STAFF", "VIEWER"].includes(role);
@@ -511,10 +576,19 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 
   useEffect(() => {
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
+    api.get("/cars/assignee-labels").then(r => setAssigneeLabels(r.data.data ?? [])).catch(() => {});
   }, []);
+
+  async function addAssigneeLabel(name: string) {
+    const r = await api.post("/cars/assignee-labels", { name });
+    setAssigneeLabels(r.data.data ?? []);
+  }
 
   async function save() {
     if (!form.name.trim()) { setErr("Name is required"); return; }
+    if (!form.phone.trim()) { setErr("Phone number is required"); return; }
+    if (!form.source) { setErr("Lead Source is required"); return; }
+    if (form.source === "OTHER" && !form.sourceOther.trim()) { setErr("Please specify the lead source"); return; }
     if (["CNR", "BUSY", "PRODUCT_NOT_FOUND"].includes(form.leadStage) && !form.nextFollowUpDate) {
       setErr("Set a Next Follow-up Date — required for CNR / Busy / Product Not Found so this lead doesn't go cold."); return;
     }
@@ -587,16 +661,17 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           <div><label style={S.label}>Email</label><input style={{ ...S.inp, width: "100%" }} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
 
           <div>
-            <label style={S.label}>Lead Source</label>
+            <label style={S.label}>Lead Source *</label>
             <select style={{ ...S.inp, width: "100%" }} value={form.source}
               onChange={e => { const v = e.target.value; setForm({ ...form, source: v, sourceOther: v === "OTHER" ? form.sourceOther : "" }); }}>
+              <option value="" disabled>Select source…</option>
               {Object.entries(SOURCES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </select>
           </div>
           {form.source === "OTHER" ? (
             <div>
-              <label style={S.label}>Specify Source</label>
-              <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Newspaper Ad" value={form.sourceOther} onChange={e => setForm({ ...form, sourceOther: e.target.value })} />
+              <label style={S.label}>Specify Source *</label>
+              <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Newspaper Ad" value={form.sourceOther} onChange={e => setForm({ ...form, sourceOther: sanitizeAlpha(e.target.value) })} />
             </div>
           ) : <div />}
 
@@ -615,7 +690,8 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           </div>
           <div>
             <label style={S.label}>Variant</label>
-            <input style={{ ...S.inp, width: "100%" }} placeholder="Type variant…" value={form.variant} onChange={e => setForm({ ...form, variant: e.target.value })} />
+            <MultiCatalogSelect value={form.variant} options={carVariantOptions} placeholder="Select variant(s)…"
+              onChange={v => setForm({ ...form, variant: v })} />
           </div>
           <div>
             <label style={S.label}>Fuel Type</label>
@@ -705,10 +781,9 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 
           <div>
             <label style={S.label}>Assign To</label>
-            <select style={{ ...S.inp, width: "100%" }} value={form.assignedToId} onChange={e => setForm({ ...form, assignedToId: e.target.value })}>
-              <option value="">Unassigned</option>
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-            </select>
+            <AssignToSelect assignedToId={form.assignedToId} assignedToLabel={form.assignedToLabel}
+              employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
+              onChange={next => setForm({ ...form, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />
           </div>
           <div className="sm:col-span-2">
             <label style={S.label}>Next Follow-up Date</label>
@@ -1604,7 +1679,8 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
     purchasePrice: vehicle?.purchasePrice?.toString() ?? (lead?.budgetMin ? String(lead.budgetMin) : ""),
     sellerName: vehicle?.sellerName ?? lead?.name ?? "", sellerPhone: vehicle?.sellerPhone ?? lead?.phone ?? "", sellerEmail: vehicle?.sellerEmail ?? lead?.email ?? "",
     purchasedAt: vehicle?.purchasedAt ? vehicle.purchasedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
-    assignedToId: vehicle?.assignedToId ?? "", notes: vehicle?.notes ?? "",
+    assignedToId: vehicle?.assignedToId ?? "", assignedToLabel: vehicle?.assignedToLabel ?? "", notes: vehicle?.notes ?? "",
+    customerType: vehicle?.customerType ?? "NEW", preExistingType: vehicle?.preExistingType ?? "",
     // Post-sale handoff checklist ("becomes a customer" — buyer flow only)
     docSentToRto: vehicle?.docSentToRto ?? false, docSentToRtoAt: vehicle?.docSentToRtoAt?.slice(0, 10) ?? "",
     docDelayChecklistNote: vehicle?.docDelayChecklistNote ?? "",
@@ -1613,10 +1689,23 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
   const isBuyerSale = vehicle?.status === "SOLD" && vehicle?.sourceLead?.leadType === "BUYER";
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [assigneeLabels, setAssigneeLabels] = useState<string[]>([]);
+
+  useEffect(() => {
+    api.get("/cars/assignee-labels").then(r => setAssigneeLabels(r.data.data ?? [])).catch(() => {});
+  }, []);
+
+  async function addAssigneeLabel(name: string) {
+    const r = await api.post("/cars/assignee-labels", { name });
+    setAssigneeLabels(r.data.data ?? []);
+  }
 
   async function save() {
     // Make/Model are deliberately not required here — a vehicle can be
     // logged before those details are known and filled in later via Edit.
+    if (v.customerType === "PRE_EXISTING" && !v.preExistingType) {
+      setErr("Select whether this pre-existing customer is a Buyer or Seller"); return;
+    }
     setSaving(true); setErr("");
     try {
       const payload: Record<string, unknown> = {
@@ -1625,6 +1714,7 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
         odometer: v.odometer ? Number(v.odometer) : undefined,
         purchasePrice: v.purchasePrice ? Number(v.purchasePrice) : undefined,
         assignedToId: v.assignedToId || undefined,
+        preExistingType: v.customerType === "PRE_EXISTING" ? v.preExistingType : undefined,
       };
       let vehicleId = vehicle?.id;
       if (vehicle) {
@@ -1673,14 +1763,37 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
 
         <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>Purchase (who you bought it from)</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          <div className="col-span-2 sm:col-span-3">
+            <label style={S.label}>Customer Type</label>
+            <div className="flex gap-2">
+              {(["NEW", "PRE_EXISTING"] as const).map(t => (
+                <button key={t} type="button" onClick={() => setV({ ...v, customerType: t, preExistingType: t === "NEW" ? "" : v.preExistingType })}
+                  style={{ flex: 1, padding: "8px", borderRadius: 8, border: v.customerType === t ? "1px solid #38bdf8" : "1px solid var(--border)", background: v.customerType === t ? "rgba(56,189,248,0.12)" : "var(--bg-hover)", color: v.customerType === t ? "#38bdf8" : "var(--text-secondary)", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                  {t === "NEW" ? "New" : "Pre-existing"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {v.customerType === "PRE_EXISTING" && (
+            <div className="col-span-2 sm:col-span-3">
+              <label style={S.label}>Pre-existing Customer Is a *</label>
+              <div className="flex gap-2">
+                {(["BUYER", "SELLER"] as const).map(t => (
+                  <button key={t} type="button" onClick={() => setV({ ...v, preExistingType: t })}
+                    style={{ flex: 1, padding: "8px", borderRadius: 8, border: v.preExistingType === t ? "1px solid #38bdf8" : "1px solid var(--border)", background: v.preExistingType === t ? "rgba(56,189,248,0.12)" : "var(--bg-hover)", color: v.preExistingType === t ? "#38bdf8" : "var(--text-secondary)", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                    {t === "BUYER" ? "Buyer" : "Seller"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div><label style={S.label}>Purchase Price (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={v.purchasePrice} onChange={e => setV({ ...v, purchasePrice: e.target.value })} /></div>
           <div><label style={S.label}>Purchase Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={v.purchasedAt} onChange={e => setV({ ...v, purchasedAt: e.target.value })} /></div>
           <div>
             <label style={S.label}>Handled By</label>
-            <select style={{ ...S.inp, width: "100%" }} value={v.assignedToId} onChange={e => setV({ ...v, assignedToId: e.target.value })}>
-              <option value="">Unassigned</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
+            <AssignToSelect assignedToId={v.assignedToId} assignedToLabel={v.assignedToLabel}
+              employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
+              onChange={next => setV({ ...v, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />
           </div>
           <div><label style={S.label}>Customer Name</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerName} onChange={e => setV({ ...v, sellerName: e.target.value })} /></div>
           <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerPhone} onChange={e => setV({ ...v, sellerPhone: e.target.value })} /></div>
@@ -2835,7 +2948,7 @@ export default function CarsPage() {
                               {v.sellerPhone && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.sellerPhone}</div>}
                             </>
                           ) : "—"}
-                          {employeeName(v.assignedToId) && <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>Handled by {employeeName(v.assignedToId)}</div>}
+                          {(v.assignedToLabel || employeeName(v.assignedToId)) && <div style={{ fontSize: 10, color: "var(--text-ghost)" }}>Handled by {v.assignedToLabel || employeeName(v.assignedToId)}</div>}
                         </td>
                         <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--bg-hover)" }}>
                           <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
@@ -3006,7 +3119,7 @@ export default function CarsPage() {
                                 <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
                                 <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text}</span>
                               </div>
-                              {l.assignedTo?.name && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{l.assignedTo.name}</strong></div>}
+                              {(l.assignedToLabel || l.assignedTo?.name) && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{l.assignedToLabel || l.assignedTo?.name}</strong></div>}
                               <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
                                 <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
                                 <button onClick={() => setFollowUpHistoryFor({ kind: "lead", id: l.id, name: l.name, nextFollowUpDate: l.nextFollowUpDate })} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up</button>
@@ -3036,7 +3149,7 @@ export default function CarsPage() {
                             <div className="flex items-center justify-between">
                               <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text || "Due"}</span>
                             </div>
-                            {employeeName(v?.assignedToId) && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{employeeName(v?.assignedToId)}</strong></div>}
+                            {(v?.assignedToLabel || employeeName(v?.assignedToId)) && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{v?.assignedToLabel || employeeName(v?.assignedToId)}</strong></div>}
                             <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
                               <button
                                 onClick={() => { if (!v) return; setInsuranceFor({ id: v.id, make: v.make ?? "", model: v.model ?? "", status: "IN_STOCK", insurances: [] } as Vehicle); setEditInsuranceRecord(p); }}

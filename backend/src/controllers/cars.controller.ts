@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { ok, created, badRequest, notFound, forbidden, serverError, conflict } from "../utils/response";
-import { assertCarsSection, hasCarsSectionAccess, CarsSection } from "../middleware/requireModuleAccess";
+import { assertCarsSection, hasCarsSectionAccess, hasAnyCarsSectionAccess, CarsSection } from "../middleware/requireModuleAccess";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { writeAuditLog, getIp } from "../utils/auditLog";
 import { MemberRole, Prisma } from "@prisma/client";
@@ -121,7 +121,10 @@ function onlyProvided<T extends Record<string, unknown>>(body: Record<string, un
 const carLeadSchema = z.object({
   leadType: z.enum(["BUYER", "SELLER"]).default("BUYER"),
   name: z.string().min(1),
-  phone: z.string().optional(),
+  // Required — Zod's .partial() (used for updates) turns this back into
+  // .optional(), so an update that omits phone entirely still leaves it
+  // untouched; one that explicitly sends "" is still rejected either way.
+  phone: z.string().min(1, "Phone is required"),
   email: z.string().email().optional().or(z.literal("")),
   interestedMake: z.string().optional(),
   interestedModel: z.string().optional(),
@@ -130,9 +133,16 @@ const carLeadSchema = z.object({
   budgetMax: z.number().optional(),
   hasExchangeVehicle: z.boolean().optional(),
   tradeInVehicle: z.string().optional(),
-  source: z.enum(["WALK_IN", "PHONE", "WEBSITE", "INSTAGRAM", "META_ADS", "SEO", "REFERRAL", "RS", "DS", "CTE", "OTHER"]).default("OTHER"),
-  // Manual label typed in when source = OTHER (e.g. "Newspaper Ad") — only meaningful alongside source: OTHER.
-  sourceOther: z.string().optional(),
+  // No .default() any more — Lead Source must be an explicit choice, same
+  // reasoning as phone above.
+  source: z.enum(["WALK_IN", "PHONE", "WEBSITE", "INSTAGRAM", "META_ADS", "SEO", "REFERRAL", "RS", "DS", "CTE", "OLX", "OTHER"]),
+  // Manual label typed in when source = OTHER (e.g. "Newspaper Ad") — only
+  // meaningful alongside source: OTHER, where it's required (checked in the
+  // controller against the *effective* source, same pattern as the
+  // follow-up-date-required check below). Letters/spaces only.
+  sourceOther: z.string().regex(/^[A-Za-z ]*$/, "Letters only").optional(),
+  // Quick-add cosmetic name for Assign To — see Organization.carsAssigneeLabels.
+  assignedToLabel: z.string().max(60).optional(),
   status: z.enum(["NEW", "HOT", "WARM", "COLD", "URGENT", "CONTACTED", "NOT_INTERESTED", "CONVERTED", "LOST"]).default("NEW"),
   // "Lead Status" pipeline filter — separate from `status` ("Lead Rating")
   // above, per the client's two-filter tracking sheet.
@@ -206,8 +216,16 @@ const vehicleSchema = z.object({
   soldAt: z.string().optional(),
   warrantyMonths: z.number().int().optional(),
   assignedToId: z.string().optional(),
+  // Quick-add cosmetic name for Handled By — see Organization.carsAssigneeLabels.
+  assignedToLabel: z.string().max(60).optional(),
   notes: z.string().optional(),
   isDoNotCall: z.boolean().optional(),
+
+  // Is this customer new to the dealership or have they dealt with us
+  // before (and if so, as a buyer or seller)? Required together — see the
+  // controller check right after parsing.
+  customerType: z.enum(["NEW", "PRE_EXISTING"]).default("NEW"),
+  preExistingType: z.enum(["BUYER", "SELLER"]).optional(),
 
   // Post-sale handoff checklist ("becomes a customer" — see CarLead flow)
   docSentToRto: z.boolean().optional(),
@@ -397,6 +415,10 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
       badRequest(res, "A next follow-up date is required for this call outcome", { nextFollowUpDate: ["Required when Lead Status is CNR, Busy, or Product Not Found"] });
       return;
     }
+    if (data.source === "OTHER" && !data.sourceOther?.trim()) {
+      badRequest(res, "Please specify the lead source", { sourceOther: ["Required when Lead Source is Other"] });
+      return;
+    }
     const lead = await db().carLead.create({
       data: {
         organizationId: req.organizationId!,
@@ -413,6 +435,10 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
         tradeInVehicle: up(data.tradeInVehicle),
         source: data.source,
         sourceOther: data.source === "OTHER" ? up(data.sourceOther) : undefined,
+        // Mutually exclusive with assignedToId — a quick-add cosmetic name
+        // means this lead isn't assigned to a real Employee.
+        assignedToId: data.assignedToLabel?.trim() ? undefined : (data.assignedToId || undefined),
+        assignedToLabel: data.assignedToLabel?.trim() ? up(data.assignedToLabel) : undefined,
         status: data.status,
         leadStage: data.leadStage,
         notes: data.notes || undefined,
@@ -420,7 +446,6 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
         testDriveDone: data.testDriveDone ?? false,
         bookingDone: data.bookingDone ?? false,
         lastContactedAt: data.lastContactedAt ? new Date(data.lastContactedAt) : undefined,
-        assignedToId: data.assignedToId || undefined,
         nextFollowUpDate: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : undefined,
         location: data.location || undefined,
         preferredYearFrom: data.preferredYearFrom,
@@ -471,6 +496,12 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
       badRequest(res, "A next follow-up date is required for this call outcome", { nextFollowUpDate: ["Required when Lead Status is CNR, Busy, or Product Not Found"] });
       return;
     }
+    const effectiveSource = data.source ?? existing.source;
+    const effectiveSourceOther = data.sourceOther !== undefined ? data.sourceOther : existing.sourceOther;
+    if (effectiveSource === "OTHER" && !effectiveSourceOther?.trim()) {
+      badRequest(res, "Please specify the lead source", { sourceOther: ["Required when Lead Source is Other"] });
+      return;
+    }
     const lead = await db().carLead.update({
       where: { id: existing.id },
       data: {
@@ -490,6 +521,10 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
         fuelPreferences: data.fuelPreferences !== undefined ? data.fuelPreferences.map(f => up(f)!) : undefined,
         transmissionPreferences: data.transmissionPreferences !== undefined ? data.transmissionPreferences.map(t => up(t)!) : undefined,
         insuranceValidTill: data.insuranceValidTill !== undefined ? (data.insuranceValidTill ? new Date(data.insuranceValidTill) : null) : undefined,
+        // Mutually exclusive with assignedToId — picking a quick-add cosmetic
+        // name clears any real Employee assignment, and vice versa.
+        assignedToId: data.assignedToLabel?.trim() ? null : (data.assignedToId !== undefined ? (data.assignedToId || null) : undefined),
+        assignedToLabel: data.assignedToLabel !== undefined ? (data.assignedToLabel?.trim() ? up(data.assignedToLabel) : null) : (data.assignedToId?.trim() ? null : undefined),
       },
     });
     bustCache(req.organizationId!, "/api/cars");
@@ -1161,6 +1196,10 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
     const parsed = vehicleSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const v = parsed.data;
+    if (v.customerType === "PRE_EXISTING" && !v.preExistingType) {
+      badRequest(res, "Select whether this pre-existing customer is a Buyer or Seller", { preExistingType: ["Required when Customer Type is Pre-existing"] });
+      return;
+    }
 
     // A registration number identifies one physical vehicle — never allow
     // two Vehicle records for the same reg no in the same org. (Multiple
@@ -1190,8 +1229,11 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
         soldAt,
         warrantyMonths: v.warrantyMonths,
         warrantyEndDate: computeWarrantyEndDate(soldAt, v.warrantyMonths),
-        assignedToId: v.assignedToId || undefined,
+        assignedToId: v.assignedToLabel?.trim() ? undefined : (v.assignedToId || undefined),
+        assignedToLabel: v.assignedToLabel?.trim() ? up(v.assignedToLabel) : undefined,
         notes: v.notes,
+        customerType: v.customerType,
+        preExistingType: v.customerType === "PRE_EXISTING" ? v.preExistingType : undefined,
       },
     });
     bustCache(req.organizationId!, "/api/cars");
@@ -1221,6 +1263,13 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
       if (dupe) { conflict(res, `Registration number ${data.registrationNo} is already used by another vehicle in inventory.`); return; }
     }
 
+    const effectiveCustomerType = data.customerType ?? existing.customerType;
+    const effectivePreExistingType = data.preExistingType !== undefined ? data.preExistingType : existing.preExistingType;
+    if (effectiveCustomerType === "PRE_EXISTING" && !effectivePreExistingType) {
+      badRequest(res, "Select whether this pre-existing customer is a Buyer or Seller", { preExistingType: ["Required when Customer Type is Pre-existing"] });
+      return;
+    }
+
     const soldAt = data.soldAt !== undefined ? (data.soldAt ? new Date(data.soldAt) : null) : undefined;
     // Recompute warranty end date if either warrantyMonths or soldAt changed
     // in this update, using whichever soldAt is now in effect.
@@ -1240,10 +1289,45 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
         warrantyEndDate,
         docSentToRtoAt: data.docSentToRtoAt !== undefined ? (data.docSentToRtoAt ? new Date(data.docSentToRtoAt) : null) : undefined,
         addedToInsuranceGatewayAt: data.addedToInsuranceGatewayAt !== undefined ? (data.addedToInsuranceGatewayAt ? new Date(data.addedToInsuranceGatewayAt) : null) : undefined,
+        // Switching back to NEW clears any stale Buyer/Seller sub-choice.
+        preExistingType: data.customerType === "NEW" ? null : (data.preExistingType !== undefined ? data.preExistingType : undefined),
+        assignedToId: data.assignedToLabel?.trim() ? null : (data.assignedToId !== undefined ? (data.assignedToId || null) : undefined),
+        assignedToLabel: data.assignedToLabel !== undefined ? (data.assignedToLabel?.trim() ? up(data.assignedToLabel) : null) : (data.assignedToId?.trim() ? null : undefined),
       },
     });
     bustCache(req.organizationId!, "/api/cars");
     ok(res, vehicle, "Vehicle updated");
+  } catch (e) { serverError(res, e); }
+}
+
+// ── "Assign To" quick-add labels ────────────────────────────────
+// Cosmetic names any Cars-section staff can add on the fly to the Assign
+// To / Handled By dropdowns — deliberately NOT real Employee records (that
+// needs Manager+ and a password), just a short shared list of names kept
+// on the org itself. See CarLead.assignedToLabel / Vehicle.assignedToLabel.
+export async function listCarsAssigneeLabels(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (!(await hasAnyCarsSectionAccess(req))) { forbidden(res, "You do not have access to the Cars module."); return; }
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { carsAssigneeLabels: true } });
+    ok(res, org?.carsAssigneeLabels ?? []);
+  } catch (e) { serverError(res, e); }
+}
+
+const assigneeLabelSchema = z.object({ name: z.string().trim().min(1).max(60).regex(/^[A-Za-z ]+$/, "Letters only") });
+
+export async function addCarsAssigneeLabel(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (!(await hasAnyCarsSectionAccess(req))) { forbidden(res, "You do not have access to the Cars module."); return; }
+    const parsed = assigneeLabelSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
+    const name = up(parsed.data.name)!;
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { carsAssigneeLabels: true } });
+    const existing = org?.carsAssigneeLabels ?? [];
+    const next = existing.includes(name) ? existing : [...existing, name];
+    if (next !== existing) {
+      await prisma.organization.update({ where: { id: req.organizationId! }, data: { carsAssigneeLabels: next } });
+    }
+    created(res, next);
   } catch (e) { serverError(res, e); }
 }
 
@@ -1669,7 +1753,7 @@ export async function listInsuranceFollowUps(req: OrgRequest, res: Response): Pr
       orderBy: { nextFollowUpDate: "asc" },
       take: followUp === "all" ? 200 : 50,
       include: {
-        vehicle: { select: { id: true, make: true, model: true, registrationNo: true, ownerName: true, ownerPhone: true, sellerName: true, sellerPhone: true, assignedToId: true } },
+        vehicle: { select: { id: true, make: true, model: true, registrationNo: true, ownerName: true, ownerPhone: true, sellerName: true, sellerPhone: true, assignedToId: true, assignedToLabel: true } },
       },
     });
     ok(res, { policies });
