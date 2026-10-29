@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PhoneCall, Car, Building2, ArrowUpRight, ShieldAlert } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
-import { isWBAOrg } from "@/lib/org";
+import { isWBAOrg, isDeployraOrg } from "@/lib/org";
 import api from "@/lib/api";
 
 // "section" replaces the old flat "kind" — Buyer and Seller car leads used to
@@ -61,9 +61,10 @@ export default function TodaysFollowUps() {
   const { moduleAccess, activeOrg, user } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
   const wbaOrg = isWBAOrg(activeOrg);
-  // WBA: leads live inside the CRM module now (Marketing is disabled for
+  const deployraOrg = isDeployraOrg(activeOrg);
+  // WBA/Deployra: leads live inside the CRM module (Marketing is disabled for
   // them), so CRM access earns the same worklist visibility Marketing would.
-  const canSeeMarketing = isOrgAdmin || moduleAccess.includes("MARKETING") || (wbaOrg && moduleAccess.includes("CRM"));
+  const canSeeMarketing = isOrgAdmin || moduleAccess.includes("MARKETING") || ((wbaOrg || deployraOrg) && moduleAccess.includes("CRM"));
   // Cars sections are independently grantable (see requireModuleAccess.ts on
   // the backend) — holding the broad legacy "CARS" key still unlocks every
   // section; holding only "CARS.BUYER" unlocks just that one.
@@ -71,7 +72,7 @@ export default function TodaysFollowUps() {
   const canSeeSeller = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.SELLER");
   const canSeeInsurance = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.VEHICLES_INSURANCE");
   const canSeeCars = canSeeBuyer || canSeeSeller || canSeeInsurance;
-  const leadsPath = wbaOrg ? "/crm" : "/marketing";
+  const leadsPath = (wbaOrg || deployraOrg) ? "/crm" : "/marketing";
   const navigate = useNavigate();
   const [items, setItems] = useState<FollowUpItem[]>([]);
   const [loading, setLoading] = useState(true);

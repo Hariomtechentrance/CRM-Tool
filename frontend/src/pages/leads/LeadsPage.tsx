@@ -5,7 +5,7 @@ import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import { useTranslation } from 'react-i18next';
 import { kPhone, kAlpha } from "@/lib/fieldRules";
 import { useAuthStore } from "@/stores/authStore";
-import { isWBAOrg, isWBAAssignmentManager } from "@/lib/org";
+import { isWBAOrg, isWBAAssignmentManager, isDeployraOrg } from "@/lib/org";
 import { WBA_CATEGORIES } from "@/pages/wba/WBAPage";
 
 const LEAD_FIELD_FILTER: Record<string, React.KeyboardEventHandler<HTMLInputElement>> = { phone: kPhone, phone2: kPhone, city: kAlpha };
@@ -40,7 +40,7 @@ const GRADES = ["A","B","C","D"];
 const GRADE_COLOR: Record<string,string> = { A:"#4ade80", B:"#60a5fa", C:"#fbbf24", D:"#f87171" };
 
 interface Lead {
-  id: string; name: string; company?: string; email?: string; phone?: string; phone2?: string;
+  id: string; name: string; company?: string; email?: string; website?: string; phone?: string; phone2?: string;
   city?: string; industry?: string; source: string; status: string; value?: number;
   score: number; leadGrade?: string; isDoNotCall: boolean; tags: string[]; notes?: string;
   nextFollowUpDate?: string; noFollowUp?: boolean; lastContactedAt?: string; assignedToId?: string;
@@ -225,9 +225,11 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
   // employee — enforced server-side too, this just keeps the control from
   // inviting a rejected request from anyone else.
   const wbaOrg = isWBAOrg(activeOrg);
+  const deployraOrg = isDeployraOrg(activeOrg);
   const canAssign = !wbaOrg || isWBAAssignmentManager(user?.email);
   const [form, setForm] = useState({
     name: lead?.name ?? "", company: lead?.company ?? "", email: lead?.email ?? "",
+    website: lead?.website ?? "",
     phone: lead?.phone ?? "", phone2: lead?.phone2 ?? "", city: lead?.city ?? "",
     industry: lead?.industry ?? "", source: lead?.source ?? "OTHER", status: lead?.status ?? "NEW",
     value: lead?.value?.toString() ?? "", assignedToId: lead?.assignedToId ?? "",
@@ -247,6 +249,7 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
     try {
       const payload = {
         name: form.name, company: form.company || undefined, email: form.email || undefined,
+        website: form.website || undefined,
         phone: form.phone || undefined, phone2: form.phone2 || undefined, city: form.city || undefined,
         industry: form.industry || undefined, source: form.source, status: form.status,
         value: form.value ? parseFloat(form.value) : undefined,
@@ -276,7 +279,15 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
         </div>
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[["Name *","name","text","Full name"],["Company","company","text","Company"],["Phone","phone","text","+91 98765"],["Alt Phone","phone2","text","Alternate"],["Email","email","email","email@..."],["City","city","text","Mumbai"]].map(([l,k,t,ph]) => (
+            {[
+              [deployraOrg ? "Agency Name *" : "Name *", "name", "text", deployraOrg ? "Agency / business name" : "Full name"],
+              ["Company", "company", "text", "Company"],
+              [deployraOrg ? "Contact *" : "Phone", "phone", "text", "+91 98765"],
+              ["Alt Phone", "phone2", "text", "Alternate"],
+              [deployraOrg ? "Email *" : "Email", "email", "email", "email@..."],
+              [deployraOrg ? "Website *" : "Website", "website", "text", "https://..."],
+              ["City", "city", "text", "Mumbai"],
+            ].map(([l,k,t,ph]) => (
               <div key={String(k)}>
                 <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>{l}</label>
                 <input
@@ -324,8 +335,9 @@ export function LeadFormModal({ lead, employees, campaigns, onClose, onSaved }: 
             </div>
           </div>
           <div>
-            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Industry</label>
-            <input style={{ ...S.inp, width: "100%" }} value={form.industry} onChange={e => f("industry")(e.target.value)} placeholder="Real Estate, IT, Manufacturing..." />
+            <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>{deployraOrg ? "Domain" : "Industry"}</label>
+            <input style={{ ...S.inp, width: "100%" }} value={form.industry} onChange={e => f("industry")(e.target.value)}
+              placeholder={deployraOrg ? "Barber, Clinic, Cafe, Resale Car Shop..." : "Real Estate, IT, Manufacturing..."} />
           </div>
           <div>
             <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Tags</label>
@@ -402,6 +414,8 @@ function parseLeadCsvText(csvText: string): Record<string, string>[] {
 }
 
 function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onClose: () => void; onImported: () => void }) {
+  const { activeOrg } = useAuthStore();
+  const deployraOrg = isDeployraOrg(activeOrg);
   const [csvText, setCsvText] = useState("");
   const [fileName, setFileName] = useState("");
   const [fileRows, setFileRows] = useState<Record<string, any>[] | null>(null);
@@ -411,7 +425,9 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
   const [result, setResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const sample = `name,phone,email,company,city\nRaj Patel,9876543210,raj@abc.com,ABC Corp,Mumbai\nPriya Singh,9123456789,,XYZ Ltd,Delhi`;
+  const sample = deployraOrg
+    ? `name,website,email,phone,domain,notes\nRaj Hair Studio,https://rajhairstudio.in,raj@rajhairstudio.in,9876543210,Barber,Interested in a CRM demo\nCity Clinic,https://cityclinic.in,contact@cityclinic.in,9123456789,Clinic,Called once no answer`
+    : `name,phone,email,company,city\nRaj Patel,9876543210,raj@abc.com,ABC Corp,Mumbai\nPriya Singh,9123456789,,XYZ Ltd,Delhi`;
 
   async function handleFile(file: File) {
     setFileError(""); setFileName(file.name); setFileRows(null);
@@ -467,13 +483,19 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
                 <div className="text-xs" style={{ color: "#a5b4fc" }}>Skipped (duplicates)</div>
               </div>
             </div>
-            {result.errors.length > 0 && <p className="text-xs text-red-400">{result.errors.join(", ")}</p>}
+            {result.errors.length > 0 && (
+              <div className="text-xs text-red-400 space-y-0.5 max-h-32 overflow-y-auto">
+                {result.errors.map((e, i) => <p key={i}>{e}</p>)}
+              </div>
+            )}
             <button onClick={onClose} style={{ ...S.btn, width: "100%", justifyContent: "center" }}>Done</button>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>
-              Works with your own template or a real CRM export — HubSpot's contacts export (First Name/Last Name, Phone Number, Associated Company, Lead Status, etc.) is recognized directly, along with JustDial, Facebook Leads, and IndiaMart exports. Any column that isn't recognized is still kept, added to that lead's notes instead of being dropped.
+              {deployraOrg
+                ? "Required for every row: Agency Name, Website, Email and Contact (phone) — rows missing any of these are skipped and listed below after import. Domain (e.g. Barber, Clinic, Cafe, Resale Car Shop) is optional but recommended. Status, Notes and Next Follow-up Date columns are picked up automatically if present."
+                : "Works with your own template or a real CRM export — HubSpot's contacts export (First Name/Last Name, Phone Number, Associated Company, Lead Status, etc.) is recognized directly, along with JustDial, Facebook Leads, and IndiaMart exports. Any column that isn't recognized is still kept, added to that lead's notes instead of being dropped."}
             </p>
             <div>
               <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-ghost)" }}>Upload a File (.csv or .xlsx)</label>
@@ -748,6 +770,11 @@ export default function LeadsPage() {
   const { t } = useTranslation();
   const { activeOrg } = useAuthStore();
   const wbaOrg = isWBAOrg(activeOrg);
+  const deployraOrg = isDeployraOrg(activeOrg);
+  // Deployra: same "follow-ups clickable + a logged call must be paired with
+  // an updated status" cold-calling discipline WBA already has — just without
+  // WBA's Convert-to-Project / Shubham-only-assignment rules, which stay WBA-only.
+  const coldCallWorkflow = wbaOrg || deployraOrg;
   const [tab, setTab] = useState<"queue"|"all"|"kanban">("queue");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -833,9 +860,9 @@ export default function LeadsPage() {
             { label: "Lost", value: stats.lost, color: "#94a3b8", onClick: () => { setTab("all"); setFilterStatus("LOST"); setSearch(""); setPage(1); } },
             { label: "Conv %", value: `${stats.convRate}%`, color: stats.convRate > 20 ? "#4ade80" : "#fbbf24", onClick: undefined },
           ].map(k => (
-            <div key={k.label} onClick={wbaOrg ? k.onClick : undefined}
-              style={{ ...S.card, padding: "12px 14px", cursor: wbaOrg && k.onClick ? "pointer" : "default" }}
-              onMouseEnter={e => { if (wbaOrg && k.onClick) e.currentTarget.style.borderColor = k.color; }}
+            <div key={k.label} onClick={coldCallWorkflow ? k.onClick : undefined}
+              style={{ ...S.card, padding: "12px 14px", cursor: coldCallWorkflow && k.onClick ? "pointer" : "default" }}
+              onMouseEnter={e => { if (coldCallWorkflow && k.onClick) e.currentTarget.style.borderColor = k.color; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}>
               <div className="text-xl font-bold" style={{ color: k.color }}>{k.value}</div>
               <div className="text-[11px] leading-tight" style={{ color: "var(--text-ghost)" }}>{k.label}</div>
@@ -941,7 +968,7 @@ export default function LeadsPage() {
 
       {showAdd && <LeadFormModal employees={employees} campaigns={campaigns} onClose={() => { setShowAdd(false); if (searchParams.get("quickAdd")) { searchParams.delete("quickAdd"); setSearchParams(searchParams, { replace: true }); } }} onSaved={load} />}
       {editLead && <LeadFormModal lead={editLead} employees={employees} campaigns={campaigns} onClose={() => setEditLead(null)} onSaved={load} />}
-      {logLead && <LogActivityModal lead={logLead} wbaOrg={wbaOrg} onClose={() => setLogLead(null)} onSaved={load} />}
+      {logLead && <LogActivityModal lead={logLead} wbaOrg={coldCallWorkflow} onClose={() => setLogLead(null)} onSaved={load} />}
       {bookLead && <BookAppointmentModal lead={bookLead} onClose={() => setBookLead(null)} onSaved={load} />}
       {showImport && <ImportModal campaigns={campaigns} onClose={() => setShowImport(false)} onImported={load} />}
       {showDueModal && <DueLeadsModal employees={employees} onClose={() => setShowDueModal(false)} onChanged={load} />}

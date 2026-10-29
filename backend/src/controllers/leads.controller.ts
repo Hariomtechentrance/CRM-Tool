@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ok, created, badRequest, notFound, forbidden, serverError } from "../utils/response";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { isWBAOrgId, isWBAAssignmentManager, LEAD_DEFAULT_FOLLOWUP_MS } from "../utils/wbaOrg";
+import { isDeployraOrgId } from "../utils/deployraOrg";
 import { MemberRole } from "@prisma/client";
 
 const db = () => (prisma as any);
@@ -13,6 +14,7 @@ const leadSchema = z.object({
   name: z.string().min(1),
   company: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  website: z.string().optional(),
   phone: z.string().optional(),
   phone2: z.string().optional(),
   city: z.string().optional(),
@@ -305,15 +307,20 @@ export async function addLeadActivity(req: OrgRequest, res: Response): Promise<v
 // Same generous-matching + notes-fallback approach as the Cars module's
 // importers, so a real export's columns are never silently dropped.
 const LEAD_FIELD_ALIASES: Record<string, string[]> = {
-  name: ["name", "full name", "contact name"],
+  name: ["name", "full name", "contact name", "agency name", "agency"],
   firstName: ["first name"],
   lastName: ["last name"],
-  phone: ["phone", "phone number", "mobile", "mobile number", "mobile_phone", "contact number"],
+  phone: ["phone", "phone number", "mobile", "mobile number", "mobile_phone", "contact number", "contact"],
   email: ["email", "email address", "email_address"],
   company: ["company", "company name", "company_name", "associated company", "organization"],
+  website: ["website", "web site", "web", "url", "company website"],
   city: ["city", "location"],
-  industry: ["industry"],
-  leadStatus: ["lead status", "status"],
+  // "domain" (e.g. barber, clinic, cafe, resale car shop) is just a business
+  // category — same idea as "industry", so it's folded into the same column.
+  industry: ["industry", "domain", "business domain", "category"],
+  leadStatus: ["lead status", "status", "contact status"],
+  notesCol: ["notes", "note", "remarks", "comment", "comments"],
+  nextFollowUp: ["next follow up date", "next follow-up date", "follow up date", "followup date", "next followup", "next follow up"],
   createDate: ["create date", "created date"],
   lastActivityDate: ["last activity date", "last activity"],
 };
@@ -354,13 +361,19 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
     const results = { created: 0, skipped: 0, errors: [] as string[] };
     const orgId = req.organizationId!;
     const recognizedKeys = new Set(Object.values(LEAD_FIELD_ALIASES).flat());
+    // Deployra: agency leads are scraped from online directories, so Agency
+    // Name, Website, Email and Contact (phone) are required on every row —
+    // anything else about this importer stays the same for every other org.
+    const deployraOrg = await isDeployraOrgId(orgId);
 
     const batchSize = 50;
+    let rowNumber = 1; // header is row 1, so the first data row is row 2
     for (let i = 0; i < rawLeads.length; i += batchSize) {
       const batch = rawLeads.slice(i, i + batchSize);
       const toCreate: any[] = [];
 
       for (const rawRow of batch) {
+        rowNumber++;
         const row: Record<string, any> = Object.create(null);
         for (const [k, v] of Object.entries(rawRow)) row[k.trim().toLowerCase()] = v;
 
@@ -371,12 +384,27 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
 
         const phone = leadPick(row, LEAD_FIELD_ALIASES.phone);
         const email = leadPick(row, LEAD_FIELD_ALIASES.email);
+        const website = leadPick(row, LEAD_FIELD_ALIASES.website);
         const company = leadPick(row, LEAD_FIELD_ALIASES.company);
         const city = leadPick(row, LEAD_FIELD_ALIASES.city);
         const rawStatus = leadPick(row, LEAD_FIELD_ALIASES.leadStatus).toUpperCase();
         const status = IMPORT_STATUS_MAP[rawStatus] || "NEW";
+        const notesCol = leadPick(row, LEAD_FIELD_ALIASES.notesCol);
+        const nextFollowUpDate = parseImportDate(leadPick(row, LEAD_FIELD_ALIASES.nextFollowUp));
         const createdAt = parseImportDate(leadPick(row, LEAD_FIELD_ALIASES.createDate)) ?? new Date();
         const lastContactedAt = parseImportDate(leadPick(row, LEAD_FIELD_ALIASES.lastActivityDate));
+
+        if (deployraOrg) {
+          const missing: string[] = [];
+          if (!website) missing.push("Website");
+          if (!email) missing.push("Email");
+          if (!phone) missing.push("Contact");
+          if (missing.length > 0) {
+            results.skipped++;
+            results.errors.push(`Row ${rowNumber} (${name}): missing ${missing.join(", ")}`);
+            continue;
+          }
+        }
 
         // Deduplicate by phone within same org
         if (phone) {
@@ -387,7 +415,7 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
         // Anything not mapped to a real column (e.g. HubSpot's Record ID,
         // Contact owner, Primary Associated Company ID) is preserved as a
         // labeled note line rather than silently dropped.
-        const noteLines: string[] = [];
+        const noteLines: string[] = notesCol ? [notesCol] : [];
         if (rawStatus && !IMPORT_STATUS_MAP[rawStatus]) noteLines.push(`Status (from import): ${rawStatus}`);
         for (const [key, value] of Object.entries(row)) {
           if (recognizedKeys.has(key)) continue;
@@ -401,6 +429,7 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
           name,
           phone: phone || undefined,
           email: email || undefined,
+          website: website || undefined,
           company: company || undefined,
           city: city || undefined,
           industry: leadPick(row, LEAD_FIELD_ALIASES.industry) || undefined,
@@ -409,6 +438,7 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
           notes: noteLines.length > 0 ? noteLines.join("\n") : undefined,
           campaignId: campaignId || undefined,
           assignedToId: assignedToId || undefined,
+          nextFollowUpDate,
           createdAt,
           lastContactedAt,
           updatedAt: new Date(),

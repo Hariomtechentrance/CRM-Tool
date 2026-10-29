@@ -1536,6 +1536,7 @@ model Lead {
   name             String
   company          String?
   email            String?
+  website          String?
   phone            String?
   phone2           String?
   city             String?
