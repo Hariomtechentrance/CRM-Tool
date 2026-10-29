@@ -66,6 +66,9 @@ const SOURCES: Record<string, string> = {
 // (a source label, a person's name) — letters and spaces only, sanitized as
 // the user types rather than rejected after the fact.
 const sanitizeAlpha = (s: string) => s.replace(/[^A-Za-z ]/g, "");
+// Phone fields across the Cars module — digits only, capped at 10 as the
+// user types rather than rejected after the fact.
+const sanitizeDigits10 = (s: string) => s.replace(/\D/g, "").slice(0, 10);
 
 // Buyer/seller intake-form dropdown catalogs added for the two-filter +
 // expanded-fields request.
@@ -586,7 +589,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 
   async function save() {
     if (!form.name.trim()) { setErr("Name is required"); return; }
-    if (!form.phone.trim()) { setErr("Phone number is required"); return; }
+    if (form.phone.length !== 10) { setErr("Phone number must be exactly 10 digits"); return; }
     if (!form.source) { setErr("Lead Source is required"); return; }
     if (form.source === "OTHER" && !form.sourceOther.trim()) { setErr("Please specify the lead source"); return; }
     if (["CNR", "BUSY", "PRODUCT_NOT_FOUND"].includes(form.leadStage) && !form.nextFollowUpDate) {
@@ -654,9 +657,9 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
               fields, imported custom fields) lives behind "Show more fields". */}
           <div className="sm:col-span-2">
             <label style={S.label}>Name *</label>
-            <input style={{ ...S.inp, width: "100%" }} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+            <input style={{ ...S.inp, width: "100%" }} value={form.name} onChange={e => setForm({ ...form, name: sanitizeAlpha(e.target.value) })} />
           </div>
-          <div><label style={S.label}>Phone</label><input style={{ ...S.inp, width: "100%" }} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+          <div><label style={S.label}>Phone *</label><input style={{ ...S.inp, width: "100%" }} inputMode="numeric" value={form.phone} onChange={e => setForm({ ...form, phone: sanitizeDigits10(e.target.value) })} /></div>
           <div><label style={S.label}>Location</label><input style={{ ...S.inp, width: "100%" }} placeholder="City / area" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
           <div><label style={S.label}>Email</label><input style={{ ...S.inp, width: "100%" }} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
 
@@ -1555,6 +1558,7 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
 
   async function save() {
     if (!v.make.trim() || !v.model.trim()) { setErr("Make and model are required"); return; }
+    if (v.ownerPhone && v.ownerPhone.length !== 10) { setErr("Customer phone must be exactly 10 digits"); return; }
     if (addInsurance && (!ins.provider.trim() || !ins.endDate)) { setErr("Insurance provider and end date are required (or uncheck 'add insurance now')"); return; }
     setSaving(true); setErr("");
     try {
@@ -1593,8 +1597,8 @@ function ConvertModal({ lead, onClose, onConverted }: { lead: CarLead; onClose: 
           <div><label style={S.label}>Fuel Type</label><MultiCatalogSelect value={v.fuelType} options={FUEL_TYPES} placeholder="Select fuel type(s)…" onChange={fuelType => setV({ ...v, fuelType })} /></div>
           <div><label style={S.label}>Transmission</label><MultiCatalogSelect value={v.transmission} options={TRANSMISSION_TYPES} placeholder="Select transmission(s)…" onChange={transmission => setV({ ...v, transmission })} /></div>
           <div><label style={S.label}>Sale Price (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={v.salePrice} onChange={e => setV({ ...v, salePrice: e.target.value })} /></div>
-          <div><label style={S.label}>Customer Name</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerName} onChange={e => setV({ ...v, ownerName: e.target.value })} /></div>
-          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerPhone} onChange={e => setV({ ...v, ownerPhone: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Name</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerName} onChange={e => setV({ ...v, ownerName: sanitizeAlpha(e.target.value) })} /></div>
+          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} inputMode="numeric" value={v.ownerPhone} onChange={e => setV({ ...v, ownerPhone: sanitizeDigits10(e.target.value) })} /></div>
           <div><label style={S.label}>Customer Email</label><input style={{ ...S.inp, width: "100%" }} value={v.ownerEmail} onChange={e => setV({ ...v, ownerEmail: e.target.value })} /></div>
         </div>
 
@@ -1664,6 +1668,147 @@ function InsuranceModal({ vehicle, existing, onClose, onSaved }: { vehicle: Vehi
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Pre-order — a customer wants a specific car that isn't in stock right
+// now. Deliberately a separate, much simpler modal from LeadModal rather
+// than a third branch bolted onto it — none of LeadModal's buyer/seller
+// process machinery (stage pipeline, test drive, booking, delivery,
+// convert-to-vehicle) applies here; this is just "note what they want and
+// how long they'll wait," stored as a CarLead with leadType PRE_ORDER,
+// reusing its existing Buyer-shaped intake fields (interestedMake/Model,
+// fuelPreferences, etc.) rather than adding new columns for the same data.
+// ═══════════════════════════════════════════════════════════════
+function PreOrderModal({ lead, onClose, onSaved }: { lead: CarLead | null; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    name: lead?.name ?? "", phone: lead?.phone ?? "", location: lead?.location ?? "", email: lead?.email ?? "",
+    interestedMake: lead?.interestedMake ?? "", interestedModel: lead?.interestedModel ?? "", variant: lead?.variant ?? "",
+    fuelPreferences: lead?.fuelPreferences?.join(", ") ?? "", transmissionPreferences: lead?.transmissionPreferences?.join(", ") ?? "",
+    preferredYearFrom: lead?.preferredYearFrom?.toString() ?? "", preferredYearTo: lead?.preferredYearTo?.toString() ?? "",
+    colorPreference: lead?.colorPreference ?? "", budgetRangeText: lead?.budgetRangeText ?? "",
+    purchasePlan: lead?.purchasePlan ?? "", notes: lead?.notes ?? "",
+    assignedToId: lead?.assignedToId ?? "", assignedToLabel: lead?.assignedToLabel ?? "",
+  });
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [assigneeLabels, setAssigneeLabels] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
+    api.get("/cars/assignee-labels").then(r => setAssigneeLabels(r.data.data ?? [])).catch(() => {});
+  }, []);
+
+  async function addAssigneeLabel(name: string) {
+    const r = await api.post("/cars/assignee-labels", { name });
+    setAssigneeLabels(r.data.data ?? []);
+  }
+
+  const selectedMakes = form.interestedMake ? form.interestedMake.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const modelOptions = Array.from(new Set(selectedMakes.flatMap(m => modelsForMake(m))));
+  const selectedModels = form.interestedModel ? form.interestedModel.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const variantOptions = Array.from(new Set(selectedMakes.flatMap(mk => selectedModels.flatMap(md => variantsForModel(mk, md)))));
+
+  // Share-with-other-dealers copy — deliberately leaves out name, phone and
+  // budget (what you'd ask another dealer to help find, without handing
+  // them your customer's contact info or what they're willing to pay).
+  function copyDetails() {
+    const lines = [
+      [form.interestedMake, form.interestedModel, form.variant].filter(Boolean).join(" "),
+      form.fuelPreferences && `Fuel: ${form.fuelPreferences}`,
+      form.transmissionPreferences && `Transmission: ${form.transmissionPreferences}`,
+      (form.preferredYearFrom || form.preferredYearTo) && `Year: ${form.preferredYearFrom || "Any"}–${form.preferredYearTo || "Any"}`,
+      form.colorPreference && `Color: ${form.colorPreference}`,
+      form.location && `Location: ${form.location}`,
+      form.purchasePlan && `Wanted: ${PURCHASE_PLANS[form.purchasePlan] || form.purchasePlan}`,
+      form.notes && `Notes: ${form.notes}`,
+    ].filter(Boolean);
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => setErr("Could not copy — your browser blocked clipboard access"));
+  }
+
+  async function save() {
+    if (!form.name.trim()) { setErr("Name is required"); return; }
+    if (form.phone.length !== 10) { setErr("Phone number must be exactly 10 digits"); return; }
+    setSaving(true); setErr("");
+    try {
+      const payload: any = {
+        ...form,
+        leadType: "PRE_ORDER",
+        source: lead?.source || "WALK_IN",
+        preferredYearFrom: form.preferredYearFrom ? Number(form.preferredYearFrom) : undefined,
+        preferredYearTo: form.preferredYearTo ? Number(form.preferredYearTo) : undefined,
+        fuelPreferences: form.fuelPreferences ? form.fuelPreferences.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+        transmissionPreferences: form.transmissionPreferences ? form.transmissionPreferences.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+        purchasePlan: form.purchasePlan || undefined,
+      };
+      if (lead) await api.patch(`/cars/leads/${lead.id}`, payload);
+      else await api.post("/cars/leads", payload);
+      onSaved(); onClose();
+    } catch (e) { setErr(getApiError(e)); }
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-end" style={{ background: "rgba(0,0,0,0.4)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{lead ? "Edit Pre-order" : "Add Pre-order"}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2"><label style={S.label}>Name *</label><input style={{ ...S.inp, width: "100%" }} value={form.name} onChange={e => setForm({ ...form, name: sanitizeAlpha(e.target.value) })} /></div>
+          <div><label style={S.label}>Phone *</label><input style={{ ...S.inp, width: "100%" }} inputMode="numeric" value={form.phone} onChange={e => setForm({ ...form, phone: sanitizeDigits10(e.target.value) })} /></div>
+          <div><label style={S.label}>Location</label><input style={{ ...S.inp, width: "100%" }} placeholder="City / area" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
+          <div className="sm:col-span-2"><label style={S.label}>Email</label><input style={{ ...S.inp, width: "100%" }} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+
+          <div className="sm:col-span-2" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+            Vehicle Wanted
+          </div>
+          <div><label style={S.label}>Make</label><MultiCatalogSelect value={form.interestedMake} options={VEHICLE_MAKES} placeholder="Select make(s)…" onChange={v => setForm({ ...form, interestedMake: v })} /></div>
+          <div><label style={S.label}>Model</label><MultiCatalogSelect value={form.interestedModel} options={modelOptions} placeholder="Select model(s)…" onChange={v => setForm({ ...form, interestedModel: v })} /></div>
+          <div><label style={S.label}>Variant</label><MultiCatalogSelect value={form.variant} options={variantOptions} placeholder="Select variant(s)…" onChange={v => setForm({ ...form, variant: v })} /></div>
+          <div><label style={S.label}>Fuel Type</label><MultiCatalogSelect value={form.fuelPreferences} options={FUEL_TYPES} placeholder="Select fuel type(s)…" onChange={v => setForm({ ...form, fuelPreferences: v })} /></div>
+          <div><label style={S.label}>Transmission</label><MultiCatalogSelect value={form.transmissionPreferences} options={TRANSMISSION_TYPES} placeholder="Select transmission(s)…" onChange={v => setForm({ ...form, transmissionPreferences: v })} /></div>
+          <div><label style={S.label}>Color Preference</label><input style={{ ...S.inp, width: "100%" }} value={form.colorPreference} onChange={e => setForm({ ...form, colorPreference: e.target.value })} /></div>
+          <div><label style={S.label}>Mfg Year From</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.preferredYearFrom} onChange={e => setForm({ ...form, preferredYearFrom: e.target.value })} /></div>
+          <div><label style={S.label}>Mfg Year To</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.preferredYearTo} onChange={e => setForm({ ...form, preferredYearTo: e.target.value })} /></div>
+          <div><label style={S.label}>Budget</label><input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 6L to 10L" value={form.budgetRangeText} onChange={e => setForm({ ...form, budgetRangeText: e.target.value })} /></div>
+          <div>
+            <label style={S.label}>Wanted Within</label>
+            <select style={{ ...S.inp, width: "100%" }} value={form.purchasePlan} onChange={e => setForm({ ...form, purchasePlan: e.target.value })}>
+              <option value="">Select…</option>
+              {Object.entries(PURCHASE_PLANS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </div>
+
+          <div className="sm:col-span-2" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-ghost)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+            Other
+          </div>
+          <div>
+            <label style={S.label}>Assign To</label>
+            <AssignToSelect assignedToId={form.assignedToId} assignedToLabel={form.assignedToLabel}
+              employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
+              onChange={next => setForm({ ...form, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />
+          </div>
+          <div className="sm:col-span-2"><label style={S.label}>Notes</label><textarea style={{ ...S.inp, width: "100%", minHeight: 60, resize: "vertical" } as React.CSSProperties} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+        </div>
+
+        <div className="flex justify-between items-center mt-4">
+          <button type="button" onClick={copyDetails} style={S.ghost}>{copied ? "Copied!" : "Copy Details (no name/phone/budget)"}</button>
+          <div className="flex gap-3">
+            <button onClick={onClose} style={S.ghost}>Cancel</button>
+            <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : "Save"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Add Vehicle (acquisition — independent of any buyer lead)
 // ═══════════════════════════════════════════════════════════════
 // Doubles as Add Vehicle and Edit Vehicle — pass `vehicle` to edit (PATCHes
@@ -1706,6 +1851,7 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
     if (v.customerType === "PRE_EXISTING" && !v.preExistingType) {
       setErr("Select whether this pre-existing customer is a Buyer or Seller"); return;
     }
+    if (v.sellerPhone && v.sellerPhone.length !== 10) { setErr("Customer phone must be exactly 10 digits"); return; }
     setSaving(true); setErr("");
     try {
       const payload: Record<string, unknown> = {
@@ -1795,8 +1941,8 @@ function AddVehicleModal({ employees, lead, vehicle, onClose, onSaved }: { emplo
               employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
               onChange={next => setV({ ...v, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />
           </div>
-          <div><label style={S.label}>Customer Name</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerName} onChange={e => setV({ ...v, sellerName: e.target.value })} /></div>
-          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerPhone} onChange={e => setV({ ...v, sellerPhone: e.target.value })} /></div>
+          <div><label style={S.label}>Customer Name</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerName} onChange={e => setV({ ...v, sellerName: sanitizeAlpha(e.target.value) })} /></div>
+          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} inputMode="numeric" value={v.sellerPhone} onChange={e => setV({ ...v, sellerPhone: sanitizeDigits10(e.target.value) })} /></div>
           <div><label style={S.label}>Customer Email</label><input style={{ ...S.inp, width: "100%" }} value={v.sellerEmail} onChange={e => setV({ ...v, sellerEmail: e.target.value })} /></div>
         </div>
 
@@ -1988,6 +2134,7 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
 
   async function save() {
     if (!form.ownerName.trim()) { setErr("Customer name is required"); return; }
+    if (form.ownerPhone && form.ownerPhone.length !== 10) { setErr("Customer phone must be exactly 10 digits"); return; }
     if (addInsurance && (!ins.provider.trim() || !ins.endDate)) { setErr("Insurance provider and end date are required (or uncheck 'add insurance now')"); return; }
     setSaving(true); setErr("");
     try {
@@ -2016,8 +2163,8 @@ function MarkSoldModal({ vehicle, onClose, onSold }: { vehicle: Vehicle; onClose
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
 
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="col-span-2"><label style={S.label}>Customer Name *</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerName} onChange={e => setForm({ ...form, ownerName: e.target.value })} /></div>
-          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerPhone} onChange={e => setForm({ ...form, ownerPhone: e.target.value })} /></div>
+          <div className="col-span-2"><label style={S.label}>Customer Name *</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerName} onChange={e => setForm({ ...form, ownerName: sanitizeAlpha(e.target.value) })} /></div>
+          <div><label style={S.label}>Customer Phone</label><input style={{ ...S.inp, width: "100%" }} inputMode="numeric" value={form.ownerPhone} onChange={e => setForm({ ...form, ownerPhone: sanitizeDigits10(e.target.value) })} /></div>
           <div><label style={S.label}>Customer Email</label><input style={{ ...S.inp, width: "100%" }} value={form.ownerEmail} onChange={e => setForm({ ...form, ownerEmail: e.target.value })} /></div>
           <div><label style={S.label}>Sale Price (₹)</label><input type="number" style={{ ...S.inp, width: "100%" }} value={form.salePrice} onChange={e => setForm({ ...form, salePrice: e.target.value })} /></div>
           <div><label style={S.label}>Sale Date</label><input type="date" style={{ ...S.inp, width: "100%" }} value={form.soldAt} onChange={e => setForm({ ...form, soldAt: e.target.value })} /></div>
@@ -2217,22 +2364,24 @@ function HistoricalStatsModal({ onClose, onImported }: { onClose: () => void; on
 // ═══════════════════════════════════════════════════════════════
 // Main page
 // ═══════════════════════════════════════════════════════════════
-type CarsTab = "leads" | "sellerleads" | "vehicles" | "warranty" | "followups" | "reports" | "dnd";
+type CarsTab = "leads" | "sellerleads" | "preorder" | "vehicles" | "warranty" | "followups" | "reports" | "dnd";
 
 export default function CarsPage() {
-  // Buyer Leads / Seller Leads / Vehicles & Insurance are independently
-  // grantable Cars sections (see requireModuleAccess.ts on the backend) —
-  // a user with only CARS.BUYER should only ever see the Buyer Leads tab,
-  // not the other two. Holding the broad legacy "CARS" key (or being
-  // OWNER/ADMIN) still unlocks every section, unchanged from before.
+  // Buyer Leads / Seller Leads / Pre-order / Vehicles & Insurance are
+  // independently grantable Cars sections (see requireModuleAccess.ts on
+  // the backend) — a user with only CARS.BUYER should only ever see the
+  // Buyer Leads tab, not the others. Holding the broad legacy "CARS" key
+  // (or being OWNER/ADMIN) still unlocks every section, unchanged from before.
   const { moduleAccess, activeOrg } = useAuthStore();
   const isOrgAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
   const canSeeBuyer = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.BUYER");
   const canSeeSeller = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.SELLER");
   const canSeeInsurance = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.VEHICLES_INSURANCE");
+  const canSeePreOrder = isOrgAdmin || moduleAccess.includes("CARS") || moduleAccess.includes("CARS.PRE_ORDER");
   const VISIBLE_TABS: CarsTab[] = [
     ...(canSeeBuyer ? (["leads"] as const) : []),
     ...(canSeeSeller ? (["sellerleads"] as const) : []),
+    ...(canSeePreOrder ? (["preorder"] as const) : []),
     ...(canSeeInsurance ? (["vehicles", "warranty"] as const) : []),
     // Follow-ups and Monthly Report are cross-section views — the backend
     // already scopes what each shows down to the sections this user has
@@ -2294,12 +2443,40 @@ export default function CarsPage() {
   const LEADS_PAGE_SIZE = 50;
   const [leadsPage, setLeadsPage] = useState(1);
   const [leadsTotal, setLeadsTotal] = useState(0);
+  // Pre-order — kept as its own state rather than sharing leads/leadsPage
+  // with Buyer/Seller: it's a much simpler list with no status/stage
+  // filters, so sharing that machinery would just carry over filter state
+  // that doesn't apply here.
+  const [preOrders, setPreOrders] = useState<CarLead[]>([]);
+  const [preOrdersPage, setPreOrdersPage] = useState(1);
+  const [preOrdersTotal, setPreOrdersTotal] = useState(0);
   const [insuranceFrom, setInsuranceFrom] = useState("");
   const [insuranceTo, setInsuranceTo] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [editLead, setEditLead] = useState<CarLead | null>(null);
+  const [showPreOrderModal, setShowPreOrderModal] = useState(false);
+  const [editPreOrder, setEditPreOrder] = useState<CarLead | null>(null);
+  const [copiedPreOrderId, setCopiedPreOrderId] = useState<string | null>(null);
+  // One-click copy from the list row — same "share with other dealers"
+  // shape as the modal's own Copy Details button (no name/phone/budget).
+  function copyPreOrderDetails(l: CarLead) {
+    const lines = [
+      [l.interestedMake, l.interestedModel, l.variant].filter(Boolean).join(" "),
+      l.fuelPreferences?.length && `Fuel: ${l.fuelPreferences.join(", ")}`,
+      l.transmissionPreferences?.length && `Transmission: ${l.transmissionPreferences.join(", ")}`,
+      (l.preferredYearFrom || l.preferredYearTo) && `Year: ${l.preferredYearFrom || "Any"}–${l.preferredYearTo || "Any"}`,
+      l.colorPreference && `Color: ${l.colorPreference}`,
+      l.location && `Location: ${l.location}`,
+      l.purchasePlan && `Wanted: ${PURCHASE_PLANS[l.purchasePlan] || l.purchasePlan}`,
+      l.notes && `Notes: ${l.notes}`,
+    ].filter(Boolean);
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      setCopiedPreOrderId(l.id);
+      setTimeout(() => setCopiedPreOrderId(null), 2000);
+    }).catch(() => setActionError("Could not copy — your browser blocked clipboard access"));
+  }
   const [convertLead, setConvertLead] = useState<CarLead | null>(null);
   const [exchangeSeed, setExchangeSeed] = useState<{ name: string; phone: string; interestedMake: string; interestedModel: string } | null>(null);
   const [acquireLead, setAcquireLead] = useState<CarLead | null>(null);
@@ -2431,6 +2608,12 @@ export default function CarsPage() {
         if (statsRes) setStats(statsRes.data.data);
         setLeads(r.data.data.leads ?? []);
         setLeadsTotal(r.data.data.total ?? 0);
+      } else if (tab === "preorder") {
+        const params = new URLSearchParams({ leadType: "PRE_ORDER", page: String(preOrdersPage), limit: String(LEADS_PAGE_SIZE) });
+        if (search) params.set("search", search);
+        const r = await api.get(`/cars/leads?${params}`);
+        setPreOrders(r.data.data.leads ?? []);
+        setPreOrdersTotal(r.data.data.total ?? 0);
       } else if (tab === "vehicles") {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
@@ -2491,7 +2674,7 @@ export default function CarsPage() {
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [tab, search, statusFilter, leadStageFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, salesPeriod, insuranceFrom, insuranceTo, dndPage, canSeeBuyer, canSeeSeller, canSeeInsurance]);
+  }, [tab, search, statusFilter, leadStageFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, preOrdersPage, salesPeriod, insuranceFrom, insuranceTo, dndPage, canSeeBuyer, canSeeSeller, canSeeInsurance]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -2536,6 +2719,8 @@ export default function CarsPage() {
               <button onClick={() => setShowImport(true)} style={S.ghost}><Upload style={{ width: 13, height: 13 }} /> Import CSV</button>
               <button onClick={() => { setEditLead(null); setShowLeadModal(true); }} style={S.btn}><Plus style={{ width: 13, height: 13 }} /> Add {tab === "sellerleads" ? "Seller " : ""}Lead</button>
             </>
+          ) : tab === "preorder" ? (
+            <button onClick={() => { setEditPreOrder(null); setShowPreOrderModal(true); }} style={S.btn}><Plus style={{ width: 13, height: 13 }} /> Add Pre-order</button>
           ) : tab === "vehicles" ? (
             <>
               <button onClick={() => downloadCsvTemplate("vehicles-insurance-template.csv", VEHICLE_CSV_TEMPLATE)} style={S.ghost} title="Download the exact CSV format Import expects">
@@ -2604,13 +2789,22 @@ export default function CarsPage() {
         {VISIBLE_TABS.map(tKey => (
           <button key={tKey} onClick={() => { setTab(tKey); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setSearch(""); if (tKey === "dnd") setDndPage(1); }}
             style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: tab === tKey ? "2px solid #38bdf8" : "2px solid transparent", color: tab === tKey ? "#38bdf8" : "var(--text-ghost)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-            {tKey === "leads" ? "Buyer Leads" : tKey === "sellerleads" ? "Seller Leads" : tKey === "vehicles" ? "Vehicles & Insurance"
+            {tKey === "leads" ? "Buyer Leads" : tKey === "sellerleads" ? "Seller Leads" : tKey === "preorder" ? "Pre-order" : tKey === "vehicles" ? "Vehicles & Insurance"
               : tKey === "warranty" ? "Warranty" : tKey === "followups" ? "Follow-ups" : tKey === "dnd" ? "DND" : "Monthly Report"}
           </button>
         ))}
       </div>
 
       {/* Search + filter */}
+      {tab === "preorder" && (
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="relative" style={{ maxWidth: 280, flex: 1 }}>
+          <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
+          <input style={{ ...S.inp, width: "100%", paddingLeft: 30 }} placeholder="Search name, phone, model…" value={search} onChange={e => { setSearch(e.target.value); setPreOrdersPage(1); }} />
+        </div>
+      </div>
+      )}
+
       {(tab === "leads" || tab === "sellerleads" || tab === "vehicles") && (
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="relative" style={{ maxWidth: 280, flex: 1 }}>
@@ -2726,6 +2920,53 @@ export default function CarsPage() {
                 <span>Page {leadsPage} of {Math.ceil(leadsTotal / LEADS_PAGE_SIZE)}</span>
                 <button disabled={leadsPage * LEADS_PAGE_SIZE >= leadsTotal} onClick={() => setLeadsPage(p => p + 1)}
                   style={{ ...S.ghost, opacity: leadsPage * LEADS_PAGE_SIZE >= leadsTotal ? 0.4 : 1, cursor: leadsPage * LEADS_PAGE_SIZE >= leadsTotal ? "default" : "pointer" }}>Next</button>
+              </div>
+            </div>
+          )}
+          </>
+        )
+      ) : tab === "preorder" ? (
+        preOrders.length === 0 ? (
+          <div style={{ ...S.card, textAlign: "center", padding: 40, color: "var(--text-ghost)" }}>No pre-orders yet — add one when a customer's wanted car isn't in stock.</div>
+        ) : (
+          <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {preOrders.map(l => {
+              const copied = copiedPreOrderId === l.id;
+              return (
+              <div key={l.id} style={{ ...S.card, cursor: "pointer" }} onClick={() => { setEditPreOrder(l); setShowPreOrderModal(true); }}>
+                <div className="flex items-start justify-between" style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{l.name}</div>
+                  {l.phone && <span style={{ fontSize: 11, color: "var(--text-ghost)" }} className="flex items-center gap-1"><Phone size={10} /> {l.phone}</span>}
+                </div>
+                {(l.interestedMake || l.interestedModel || l.variant) && (
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4 }}>
+                    {[l.interestedMake, l.interestedModel, l.variant].filter(Boolean).join(" ")}
+                  </div>
+                )}
+                {l.budgetRangeText && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginBottom: 8 }}>Budget: {l.budgetRangeText}</div>}
+                {l.purchasePlan && (
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: "rgba(56,189,248,0.12)", color: "#38bdf8", fontWeight: 700 }}>{PURCHASE_PLANS[l.purchasePlan] || l.purchasePlan}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => { setEditPreOrder(l); setShowPreOrderModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
+                  <button onClick={() => copyPreOrderDetails(l)} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>{copied ? "Copied!" : "Copy Details"}</button>
+                </div>
+              </div>
+              );
+            })}
+          </div>
+          {preOrdersTotal > LEADS_PAGE_SIZE && (
+            <div className="flex items-center justify-between mt-4" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
+              <span>Showing {(preOrdersPage - 1) * LEADS_PAGE_SIZE + 1}–{Math.min(preOrdersPage * LEADS_PAGE_SIZE, preOrdersTotal)} of {preOrdersTotal}</span>
+              <div className="flex items-center gap-2">
+                <button disabled={preOrdersPage <= 1} onClick={() => setPreOrdersPage(p => Math.max(1, p - 1))}
+                  style={{ ...S.ghost, opacity: preOrdersPage <= 1 ? 0.4 : 1, cursor: preOrdersPage <= 1 ? "default" : "pointer" }}>Previous</button>
+                <span>Page {preOrdersPage} of {Math.ceil(preOrdersTotal / LEADS_PAGE_SIZE)}</span>
+                <button disabled={preOrdersPage * LEADS_PAGE_SIZE >= preOrdersTotal} onClick={() => setPreOrdersPage(p => p + 1)}
+                  style={{ ...S.ghost, opacity: preOrdersPage * LEADS_PAGE_SIZE >= preOrdersTotal ? 0.4 : 1, cursor: preOrdersPage * LEADS_PAGE_SIZE >= preOrdersTotal ? "default" : "pointer" }}>Next</button>
               </div>
             </div>
           )}
@@ -3255,6 +3496,9 @@ export default function CarsPage() {
         />
       )}
       {showImport && <ImportModal leadType={tab === "sellerleads" ? "SELLER" : "BUYER"} onClose={() => setShowImport(false)} onImported={load} />}
+      {showPreOrderModal && (
+        <PreOrderModal lead={editPreOrder} onClose={() => setShowPreOrderModal(false)} onSaved={load} />
+      )}
       {convertLead && <ConvertModal lead={convertLead} onClose={() => setConvertLead(null)} onConverted={() => { load(); setTab("vehicles"); }} />}
       {insuranceFor && (
         <InsuranceModal vehicle={insuranceFor} existing={editInsuranceRecord ?? undefined}

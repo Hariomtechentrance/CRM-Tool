@@ -119,12 +119,13 @@ function onlyProvided<T extends Record<string, unknown>>(body: Record<string, un
 
 // ── Validators ───────────────────────────────────────────────
 const carLeadSchema = z.object({
-  leadType: z.enum(["BUYER", "SELLER"]).default("BUYER"),
-  name: z.string().min(1),
+  leadType: z.enum(["BUYER", "SELLER", "PRE_ORDER"]).default("BUYER"),
+  name: z.string().min(1).regex(/^[A-Za-z ]+$/, "Letters only"),
   // Required — Zod's .partial() (used for updates) turns this back into
   // .optional(), so an update that omits phone entirely still leaves it
   // untouched; one that explicitly sends "" is still rejected either way.
-  phone: z.string().min(1, "Phone is required"),
+  // Exactly 10 digits — no country code, spaces or dashes.
+  phone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits"),
   email: z.string().email().optional().or(z.literal("")),
   interestedMake: z.string().optional(),
   interestedModel: z.string().optional(),
@@ -202,15 +203,15 @@ const vehicleSchema = z.object({
   fuelType: z.string().optional(),
   transmission: z.string().optional(),
   purchasePrice: z.number().optional(),
-  sellerName: z.string().optional(),
-  sellerPhone: z.string().optional(),
+  sellerName: z.string().regex(/^[A-Za-z ]*$/, "Letters only").optional(),
+  sellerPhone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits").optional().or(z.literal("")),
   sellerEmail: z.string().email().optional().or(z.literal("")),
   purchasedAt: z.string().optional(),
   registrationDate: z.string().optional(),
   salePrice: z.number().optional(),
   status: z.enum(["IN_STOCK", "RESERVED", "SOLD"]).default("IN_STOCK"),
-  ownerName: z.string().optional(),
-  ownerPhone: z.string().optional(),
+  ownerName: z.string().regex(/^[A-Za-z ]*$/, "Letters only").optional(),
+  ownerPhone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits").optional().or(z.literal("")),
   ownerEmail: z.string().email().optional().or(z.literal("")),
   ownerAddress: z.string().optional(),
   soldAt: z.string().optional(),
@@ -347,11 +348,17 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
       if (!(await assertCarsSection(req, res, leadType as CarsSection))) return;
       where.leadType = leadType;
     } else if (followUp === "all") {
-      const [canBuyer, canSeller] = await Promise.all([hasCarsSectionAccess(req, "BUYER"), hasCarsSectionAccess(req, "SELLER")]);
-      if (!canBuyer && !canSeller) { forbidden(res, "You do not have access to any Cars lead section."); return; }
-      if (canBuyer && !canSeller) where.leadType = "BUYER";
-      else if (canSeller && !canBuyer) where.leadType = "SELLER";
-      // else both allowed — leave leadType unfiltered, see both sections.
+      // Generic over however many lead-bearing sections exist (Buyer,
+      // Seller, Pre-order — anything added later too) rather than a
+      // hardcoded two-way check, so a new section can never leak into this
+      // view for someone who doesn't actually have it, and someone with
+      // only the new section isn't wrongly shut out of their own follow-ups.
+      const leadSections: CarsSection[] = ["BUYER", "SELLER", "PRE_ORDER"];
+      const accessFlags = await Promise.all(leadSections.map(s => hasCarsSectionAccess(req, s)));
+      const allowedTypes = leadSections.filter((_, i) => accessFlags[i]);
+      if (allowedTypes.length === 0) { forbidden(res, "You do not have access to any Cars lead section."); return; }
+      if (allowedTypes.length < leadSections.length) where.leadType = { in: allowedTypes };
+      // else every section allowed — leave leadType unfiltered.
     } else {
       if (!(await assertCarsSection(req, res, "BUYER"))) return;
       where.leadType = "BUYER";

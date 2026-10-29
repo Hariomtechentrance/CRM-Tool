@@ -4087,6 +4087,11 @@ enum CarVehicleCustomerType {
 enum CarLeadType {
   BUYER
   SELLER
+  // A customer wants a specific car that isn't in stock right now — same
+  // CarLead row shape as a Buyer lead (reuses interestedMake/Model,
+  // fuelPreferences, etc.), just a different section/tab and no
+  // buyer-process fields (booking, delivery, convert-to-vehicle).
+  PRE_ORDER
 }
 
 // "Lead Status" pipeline/funnel stage — kept separate from `status` (the

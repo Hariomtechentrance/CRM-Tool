@@ -72,11 +72,11 @@ export function requireModuleAccess(moduleKey: string) {
 // directly once they know which leadType a given request/record is. Routes
 // that are unambiguous (vehicles, insurance, historical stats) use
 // requireCarsSection() as router middleware instead.
-export type CarsSection = "BUYER" | "SELLER" | "VEHICLES_INSURANCE";
+export type CarsSection = "BUYER" | "SELLER" | "VEHICLES_INSURANCE" | "PRE_ORDER";
 export const CARS_SECTION_LABEL: Record<CarsSection, string> = {
-  BUYER: "Buyer Leads", SELLER: "Seller Leads", VEHICLES_INSURANCE: "Vehicles & Insurance",
+  BUYER: "Buyer Leads", SELLER: "Seller Leads", VEHICLES_INSURANCE: "Vehicles & Insurance", PRE_ORDER: "Pre-order",
 };
-const ALL_CARS_SECTIONS: CarsSection[] = ["BUYER", "SELLER", "VEHICLES_INSURANCE"];
+const ALL_CARS_SECTIONS: CarsSection[] = ["BUYER", "SELLER", "VEHICLES_INSURANCE", "PRE_ORDER"];
 
 export async function hasCarsSectionAccess(req: OrgRequest, section: CarsSection): Promise<boolean> {
   const role = req.memberRole;
