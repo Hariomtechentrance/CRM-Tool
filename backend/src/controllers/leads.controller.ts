@@ -17,8 +17,13 @@ const leadSchema = z.object({
   phone2: z.string().optional(),
   city: z.string().optional(),
   industry: z.string().optional(),
-  source: z.enum(["WEBSITE", "REFERRAL", "SOCIAL_MEDIA", "EMAIL", "PHONE", "EXHIBITION", "JUSTDIAL", "INDIAMART", "FACEBOOK", "INSTAGRAM", "WHATSAPP", "OTHER"]).default("OTHER"),
-  status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "NEGOTIATION", "WON", "LOST"]).default("NEW"),
+  // No .default() here — updateLead uses leadSchema.partial(), and a
+  // defaulted field re-applies its default on a PATCH that simply omits
+  // it, silently resetting an existing lead's real source/status back to
+  // OTHER/NEW. createLead applies the "defaults to OTHER/NEW" behavior
+  // explicitly instead, so create keeps working the same way.
+  source: z.enum(["WEBSITE", "REFERRAL", "SOCIAL_MEDIA", "EMAIL", "PHONE", "EXHIBITION", "JUSTDIAL", "INDIAMART", "FACEBOOK", "INSTAGRAM", "WHATSAPP", "OTHER"]).optional(),
+  status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "NEGOTIATION", "WON", "LOST"]).optional(),
   value: z.number().optional(),
   campaignId: z.string().optional(),
   assignedToId: z.string().optional(),
@@ -175,10 +180,12 @@ export async function createLead(req: OrgRequest, res: Response): Promise<void> 
     if (data.data.assignedToId && await isWBAOrgId(req.organizationId!) && !isWBAAssignmentManager(req.userEmail)) {
       forbidden(res, "Only Shubham can assign a lead to an employee"); return;
     }
-    const { nextFollowUpDate, lastContactedAt, email, ...rest } = data.data;
+    const { nextFollowUpDate, lastContactedAt, email, source, status, ...rest } = data.data;
     const lead = await db().lead.create({
       data: {
         ...rest,
+        source: source ?? "OTHER",
+        status: status ?? "NEW",
         email: email || undefined,
         organizationId: req.organizationId!,
         ...(nextFollowUpDate && { nextFollowUpDate: new Date(nextFollowUpDate) }),
