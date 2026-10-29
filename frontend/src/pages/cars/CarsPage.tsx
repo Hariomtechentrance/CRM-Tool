@@ -60,7 +60,7 @@ const LEAD_STAGES = Object.keys(LEAD_STAGE);
 const SOURCES: Record<string, string> = {
   WALK_IN: "Walk-in", PHONE: "Phone", WEBSITE: "Website",
   INSTAGRAM: "Instagram", META_ADS: "Meta Ads", SEO: "SEO (Organic)",
-  REFERRAL: "Referral", RS: "RS", DS: "DS", CTE: "CTE (CarTrade)", OLX: "OLX", OTHER: "Other",
+  REFERRAL: "Referral", RS: "RS", DS: "DS", CTE: "CTE (CarTrade)", OLX: "OLX", CAR_DEKHO: "Car Dekho", OTHER: "Other",
 };
 // Specify Source and the Assign To quick-add box are both free-typed names
 // (a source label, a person's name) — letters and spaces only, sanitized as

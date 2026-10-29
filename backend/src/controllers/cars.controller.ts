@@ -136,7 +136,7 @@ const carLeadSchema = z.object({
   tradeInVehicle: z.string().optional(),
   // No .default() any more — Lead Source must be an explicit choice, same
   // reasoning as phone above.
-  source: z.enum(["WALK_IN", "PHONE", "WEBSITE", "INSTAGRAM", "META_ADS", "SEO", "REFERRAL", "RS", "DS", "CTE", "OLX", "OTHER"]),
+  source: z.enum(["WALK_IN", "PHONE", "WEBSITE", "INSTAGRAM", "META_ADS", "SEO", "REFERRAL", "RS", "DS", "CTE", "OLX", "CAR_DEKHO", "OTHER"]),
   // Manual label typed in when source = OTHER (e.g. "Newspaper Ad") — only
   // meaningful alongside source: OTHER, where it's required (checked in the
   // controller against the *effective* source, same pattern as the
