@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
+import { isDeployraOrg } from "@/lib/org";
 import type { Party, PartyType } from "@/types";
 import {
   kDigits, kDecimal, kAlphaNum, kName, kAlpha, kPhone, kGSTIN, kPAN, kIFSC, upperReg,
@@ -56,6 +58,7 @@ interface Props {
 
 export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOMER" }: Props) {
   const isEdit = !!party;
+  const deployraOrg = isDeployraOrg(useAuthStore(s => s.activeOrg));
   const [tab, setTab] = useState<Tab>("Basic");
   const [apiError, setApiError] = useState("");
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
@@ -151,10 +154,13 @@ export function PartyForm({ open, onClose, onSaved, party, defaultType = "CUSTOM
           <>
             <Select
               label="Party Type *"
-              options={[{ value: "CUSTOMER", label: "Customer" }, { value: "SUPPLIER", label: "Supplier" }, { value: "BOTH", label: "Both (Customer & Supplier)" }]}
+              options={deployraOrg
+                ? [{ value: "CUSTOMER", label: "Customer" }]
+                : [{ value: "CUSTOMER", label: "Customer" }, { value: "SUPPLIER", label: "Supplier" }, { value: "BOTH", label: "Both (Customer & Supplier)" }]}
               value={watch("type")}
               onChange={(e) => setValue("type", e.target.value as PartyType)}
               error={errors.type?.message}
+              disabled={deployraOrg}
             />
             <Input label="Company / Party Name *" placeholder="ABC Traders Pvt Ltd" error={errors.name?.message} maxLength={200} onKeyDown={kName} {...register("name")} />
             <Input label="Display Name" placeholder="Short name shown in lists" maxLength={200} onKeyDown={kName} {...register("displayName")} />

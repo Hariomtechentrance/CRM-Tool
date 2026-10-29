@@ -11,7 +11,7 @@ import { getInitials, formatDateTime } from "@/lib/utils";
 import type { Party, CrmStats, PartyType } from "@/types";
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "@/stores/authStore";
-import { isWBAOrg } from "@/lib/org";
+import { isWBAOrg, isDeployraOrg } from "@/lib/org";
 import LeadsPage from "@/pages/leads/LeadsPage";
 
 interface FollowUp {
@@ -110,6 +110,8 @@ const TYPE_TABS: { key: PartyType | "ALL"; label: string }[] = [
   { key: "SUPPLIER", label: "Suppliers" },
   { key: "BOTH", label: "Both" },
 ];
+// Deployra: no Supplier concept in CRM — Customers only.
+const CUSTOMER_ONLY_TYPE_TABS = TYPE_TABS.filter(t => t.key === "ALL" || t.key === "CUSTOMER");
 
 const TYPE_BADGE: Record<PartyType, { label: string; variant: "blue" | "green" | "purple" }> = {
   CUSTOMER: { label: "Customer", variant: "blue" },
@@ -122,6 +124,8 @@ export default function CrmPage() {
   const navigate = useNavigate();
   const { activeOrg } = useAuthStore();
   const wbaOrg = isWBAOrg(activeOrg);
+  const deployraOrg = isDeployraOrg(activeOrg);
+  const typeTabs = deployraOrg ? CUSTOMER_ONLY_TYPE_TABS : TYPE_TABS;
   // WBA: leads live inside the CRM module now (Marketing is disabled for
   // them) — everything else about CRM is unchanged for every other org.
   const [mainTab, setMainTab] = useState<"parties" | "leads">(wbaOrg ? "leads" : "parties");
@@ -208,9 +212,11 @@ export default function CrmPage() {
           <Button variant="outline" icon={<Upload className="w-4 h-4" />} onClick={() => setShowImport(true)}>
             Import CSV
           </Button>
-          <Button variant="outline" icon={<Plus className="w-4 h-4" />} onClick={() => { setDefaultType("SUPPLIER"); setShowForm(true); }}>
-            Add Supplier
-          </Button>
+          {!deployraOrg && (
+            <Button variant="outline" icon={<Plus className="w-4 h-4" />} onClick={() => { setDefaultType("SUPPLIER"); setShowForm(true); }}>
+              Add Supplier
+            </Button>
+          )}
           <Button icon={<Plus className="w-4 h-4" />} onClick={() => { setDefaultType("CUSTOMER"); setShowForm(true); }}>
             Add Customer
           </Button>
@@ -223,7 +229,7 @@ export default function CrmPage() {
           {[
             { label: "Total Parties", value: stats.total, icon: <Building2 className="w-5 h-5 text-slate-600" />, bg: "bg-slate-50" },
             { label: "Customers", value: stats.customers, icon: <Users className="w-5 h-5 text-blue-600" />, bg: "bg-blue-50" },
-            { label: "Suppliers", value: stats.suppliers, icon: <TruckIcon className="w-5 h-5 text-green-600" />, bg: "bg-green-50" },
+            ...(deployraOrg ? [] : [{ label: "Suppliers", value: stats.suppliers, icon: <TruckIcon className="w-5 h-5 text-green-600" />, bg: "bg-green-50" }]),
             { label: "Follow-ups This Week", value: stats.followUpsThisWeek, icon: <Calendar className="w-5 h-5 text-orange-600" />, bg: "bg-orange-50", onClick: () => setShowFollowUps(true) },
           ].map((s) => (
             <Card key={s.label}>
@@ -250,7 +256,7 @@ export default function CrmPage() {
         <div className="p-4 flex flex-col sm:flex-row gap-3">
           {/* Type tabs */}
           <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
-            {TYPE_TABS.map((t) => (
+            {typeTabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}

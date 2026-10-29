@@ -58,3 +58,17 @@ export const WBA_LEAVE_TYPES = [
   "Unpaid",
   "Other",
 ] as const;
+
+/**
+ * Deployra Private Limited (our own org) — CRM only tracks Customers, no
+ * Supplier concept. Matches the same resilient id/slug/name pattern as WBA.
+ * Server-side enforcement is in backend/src/utils/deployraOrg.ts.
+ */
+export function isDeployraOrg(org?: OrganizationSummary | null): boolean {
+  if (!org) return false;
+  return (
+    org.id === "cmtwpl9wt0000yojyu7he2z6n" ||
+    (org.slug ?? "").toLowerCase() === "deployra-private-limited" ||
+    (org.name ?? "").trim().toLowerCase() === "deployra private limited"
+  );
+}

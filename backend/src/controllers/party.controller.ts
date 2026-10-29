@@ -11,6 +11,7 @@ import {
 } from "../validators/party.validator";
 import { ok, created, badRequest, notFound, serverError, forbidden } from "../utils/response";
 import { MemberRole } from "@prisma/client";
+import { isDeployraOrgId } from "../utils/deployraOrg";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -86,8 +87,12 @@ export async function createParty(req: OrgRequest, res: Response): Promise<void>
     const parsed = createPartySchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
 
+    // Deployra: Customers only — no Supplier concept in CRM. Coerce rather
+    // than reject, since the frontend already hides the option entirely.
+    const type = (await isDeployraOrgId(req.organizationId!)) ? "CUSTOMER" : parsed.data.type;
+
     const party = await prisma.party.create({
-      data: { ...parsed.data, assignedToId: parsed.data.assignedToId || null, organizationId: req.organizationId! },
+      data: { ...parsed.data, type, assignedToId: parsed.data.assignedToId || null, organizationId: req.organizationId! },
     });
     created(res, party, "Party created successfully");
   } catch (err) { serverError(res, err); }
@@ -103,6 +108,9 @@ export async function updateParty(req: OrgRequest, res: Response): Promise<void>
 
     const updateData: Record<string, unknown> = { ...parsed.data };
     if ("assignedToId" in updateData) updateData.assignedToId = (updateData.assignedToId as string) || null;
+    // Deployra: Customers only — don't let an edit switch an existing
+    // party to Supplier/Both.
+    if ("type" in updateData && (await isDeployraOrgId(req.organizationId!))) updateData.type = "CUSTOMER";
     const updated = await prisma.party.update({ where: { id: party.id }, data: updateData });
     ok(res, updated, "Party updated");
   } catch (err) { serverError(res, err); }
@@ -312,6 +320,7 @@ export async function bulkImportParties(req: OrgRequest, res: Response): Promise
 
     const errors: string[] = [];
     let created = 0;
+    const deployraOrg = await isDeployraOrgId(req.organizationId!);
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
@@ -319,7 +328,8 @@ export async function bulkImportParties(req: OrgRequest, res: Response): Promise
       if (!name) { errors.push(`Row ${i + 2}: Name is required`); continue; }
 
       const rawType = (r["Type"] || r["type"] || "CUSTOMER").trim().toUpperCase();
-      const type = ["CUSTOMER", "SUPPLIER", "BOTH"].includes(rawType) ? rawType as any : "CUSTOMER";
+      // Deployra: Customers only — ignore whatever the sheet's Type column says.
+      const type = deployraOrg ? "CUSTOMER" : (["CUSTOMER", "SUPPLIER", "BOTH"].includes(rawType) ? rawType as any : "CUSTOMER");
 
       try {
         await prisma.party.create({
