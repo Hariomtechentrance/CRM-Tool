@@ -119,7 +119,7 @@ export async function handleClinicBotMessage(config: Config, fromPhone: string, 
       await reply(config.phoneNumberId, config.accessToken, fromPhone, "I didn't understand that date. Try DD-MM-YYYY, \"today\" or \"tomorrow\".");
       return true;
     }
-    const doctor = await db().doctor.findUnique({ where: { id: session.doctorId } });
+    const doctor = await db().doctor.findFirst({ where: { id: session.doctorId, organizationId: config.organizationId } });
     const existing = await db().healthAppointment.findMany({
       where: { doctorId: session.doctorId, appointmentDate: new Date(dateStr + "T00:00:00Z"), status: { in: ["SCHEDULED", "CONFIRMED"] } },
       select: { timeSlot: true },
@@ -141,7 +141,7 @@ export async function handleClinicBotMessage(config: Config, fromPhone: string, 
     // A fresh date also lands here (switching days without restarting) —
     // only treat a bare number as a slot pick, anything else as a new date.
     const asNumber = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : null;
-    const doctor = await db().doctor.findUnique({ where: { id: session.doctorId } });
+    const doctor = await db().doctor.findFirst({ where: { id: session.doctorId, organizationId: config.organizationId } });
 
     if (asNumber === null) {
       const dateStr = parseDateInput(trimmed);
@@ -193,7 +193,7 @@ export async function handleClinicBotMessage(config: Config, fromPhone: string, 
       await reply(config.phoneNumberId, config.accessToken, fromPhone, "Please send your full name.");
       return true;
     }
-    const doctor = await db().doctor.findUnique({ where: { id: session.doctorId } });
+    const doctor = await db().doctor.findFirst({ where: { id: session.doctorId, organizationId: config.organizationId } });
     await db().whatsAppBookingSession.update({ where: { id: session.id }, data: { step: "CONFIRM", name: trimmed } });
     await reply(config.phoneNumberId, config.accessToken, fromPhone,
       `Confirm booking:\nDoctor: ${doctor.name}\nDate: ${session.date}\nTime: ${session.timeSlot}\nName: ${trimmed}\n\nReply YES to confirm or NO to cancel.`);

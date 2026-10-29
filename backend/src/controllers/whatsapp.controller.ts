@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import crypto from "crypto";
 import { prisma } from "../lib/prisma";
 import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
@@ -294,12 +295,36 @@ export async function listMessages(req: OrgRequest, res: Response): Promise<void
   } catch (e) { serverError(res, e); }
 }
 
+// One Meta App serves every org's WhatsApp number through this single
+// webhook URL (orgs are matched by phoneNumberId in the payload, not by
+// the app itself) — so the app-level secret and verify token are each a
+// single value shared across all orgs, not per-org. Set in Meta's App
+// Dashboard → Settings → Basic (App Secret) and whatever string you choose
+// as the Verify Token when subscribing the webhook.
+const WHATSAPP_APP_SECRET = process.env.WHATSAPP_APP_SECRET;
+const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
+if (!WHATSAPP_APP_SECRET || !WHATSAPP_VERIFY_TOKEN) {
+  console.warn("[WA Webhook] WHATSAPP_APP_SECRET / WHATSAPP_VERIFY_TOKEN not set — webhook signature verification is DISABLED. Anyone can POST forged WhatsApp events until these are configured.");
+}
+
+function verifyMetaSignature(req: Request): boolean {
+  if (!WHATSAPP_APP_SECRET) return true; // not yet configured — see warning above
+  const header = req.headers["x-hub-signature-256"];
+  const rawBody = (req as any).rawBody as Buffer | undefined;
+  if (typeof header !== "string" || !rawBody) return false;
+  const expected = "sha256=" + crypto.createHmac("sha256", WHATSAPP_APP_SECRET).update(rawBody).digest("hex");
+  const a = Buffer.from(header);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 // ── Webhook verification (GET) ────────────────────────────────
 export async function verifyWebhook(req: Request, res: Response): Promise<void> {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
-  if (mode === "subscribe" && token) {
+  const tokenOk = WHATSAPP_VERIFY_TOKEN ? token === WHATSAPP_VERIFY_TOKEN : !!token;
+  if (mode === "subscribe" && tokenOk) {
     res.status(200).send(challenge);
     return;
   }
@@ -309,6 +334,7 @@ export async function verifyWebhook(req: Request, res: Response): Promise<void> 
 // ── Webhook events (POST) — incoming messages ─────────────────
 export async function handleWebhook(req: Request, res: Response): Promise<void> {
   try {
+    if (!verifyMetaSignature(req)) { res.sendStatus(403); return; }
     res.sendStatus(200);
     const body = req.body;
     if (body?.object !== "whatsapp_business_account") return;

@@ -214,7 +214,11 @@ app.use(cors({
 // the frontend also chunks large imports into smaller requests (see
 // VehicleImportModal/ImportModal), this just keeps a single chunk from
 // getting rejected on genuinely large free-text fields.
-app.use(express.json({ limit: "10mb" }));
+// `verify` stashes the exact raw bytes before JSON parsing — needed by the
+// WhatsApp webhook to check Meta's X-Hub-Signature-256 HMAC, which is
+// computed over the raw body, not the re-serialized parsed object (those
+// don't byte-for-byte match: key order, whitespace, number formatting).
+app.use(express.json({ limit: "10mb", verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
 app.use(express.urlencoded({ extended: false, limit: "10mb" }));  // extended:false prevents prototype pollution
 app.use(cookieParser());
 
@@ -280,6 +284,20 @@ const chatLimiter = rateLimit({
   store: makeRLStore("rl_chat:"),
   passOnStoreError: true,
   message: { success: false, message: "Too many chat messages. Please wait a moment." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// WhatsApp webhook — unauthenticated by design (Meta can't log in as an
+// org user), so this is its only real throttle; generous enough for a
+// genuine burst of inbound messages, capped against abuse of the now
+// signature-gated but still publicly reachable URL.
+const whatsappWebhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  store: makeRLStore("rl_wa_webhook:"),
+  passOnStoreError: true,
+  message: { success: false, message: "Rate limit exceeded." },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -358,7 +376,6 @@ app.get("/api/health", async (_req, res) => {
       status: "ok",
       db: "connected",
       circuitBreaker: dbBreaker.getState(),
-      pid: process.pid,
       timestamp: new Date().toISOString(),
       app: "BusinessOS API",
     });
@@ -377,7 +394,6 @@ app.get("/api/health", async (_req, res) => {
 app.get("/api/metrics", (_req, res) => {
   const mem = process.memoryUsage();
   res.json({
-    pid: process.pid,
     uptime: Math.round(process.uptime()),
     memoryMB: {
       heapUsed:  Math.round(mem.heapUsed  / 1_048_576),
@@ -389,7 +405,6 @@ app.get("/api/metrics", (_req, res) => {
       state:    dbBreaker.getState(),
       failures: dbBreaker.getFailures(),
     },
-    node: process.version,
     timestamp: new Date().toISOString(),
   });
 });
@@ -442,6 +457,7 @@ app.use("/api/gmail",         gmailRoutes);
 app.use("/api/email-accounts", emailAccountRoutes);
 app.use("/api/appointments",  appointmentRoutes);
 app.use("/api/automations",   automationRoutes);
+app.use("/api/whatsapp/webhook", whatsappWebhookLimiter);
 app.use("/api/whatsapp",      whatsappRoutes);
 app.use("/api/lead-forms",    leadFormRoutes);
 app.use("/api/public/clinic", publicHealthRoutes);
