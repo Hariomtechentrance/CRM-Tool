@@ -380,6 +380,7 @@ export function hasModuleAccess(moduleAccess: string[], key: string): boolean {
 export const CARS_SECTIONS = [
   { key: "BUYER", label: "Buyer Leads" },
   { key: "SELLER", label: "Seller Leads" },
+  { key: "PRE_ORDER", label: "Pre-order" },
   { key: "VEHICLES_INSURANCE", label: "Vehicles & Insurance" },
 ] as const;
 export type CarsSectionKey = (typeof CARS_SECTIONS)[number]["key"];
