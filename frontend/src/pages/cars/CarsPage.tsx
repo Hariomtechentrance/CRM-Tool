@@ -1796,9 +1796,20 @@ function PreOrderModal({ lead, onClose, onSaved }: { lead: CarLead | null; onClo
           <div className="sm:col-span-2"><label style={S.label}>Notes</label><textarea style={{ ...S.inp, width: "100%", minHeight: 60, resize: "vertical" } as React.CSSProperties} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
         </div>
 
-        <div className="flex justify-between items-center mt-4">
+        <div className="flex justify-between items-center mt-4 flex-wrap gap-2">
           <button type="button" onClick={copyDetails} style={S.ghost}>{copied ? "Copied!" : "Copy Details (no name/phone/budget)"}</button>
           <div className="flex gap-3">
+            {lead && (
+              <button type="button" onClick={async () => {
+                if (!confirm(`Convert "${lead.name}"'s pre-order to a Buyer lead? It'll move to the Buyer Leads section.`)) return;
+                setSaving(true); setErr("");
+                try {
+                  await api.patch(`/cars/leads/${lead.id}`, { leadType: "BUYER" });
+                  onSaved(); onClose();
+                } catch (e) { setErr(getApiError(e)); }
+                setSaving(false);
+              }} disabled={saving} style={{ ...S.btn, background: "#16a34a" }}>Converted <ArrowRight size={11} /></button>
+            )}
             <button onClick={onClose} style={S.ghost}>Cancel</button>
             <button onClick={save} disabled={saving} style={S.btn}>{saving ? "Saving…" : "Save"}</button>
           </div>
@@ -2477,6 +2488,19 @@ export default function CarsPage() {
       setTimeout(() => setCopiedPreOrderId(null), 2000);
     }).catch(() => setActionError("Could not copy — your browser blocked clipboard access"));
   }
+  // The wanted car is now available — move this pre-order straight into
+  // Buyer Leads. It's the same CarLead row, just a different leadType, so
+  // everything already captured (make/model/budget/notes/assignee) carries
+  // over as-is and the normal buyer process (booking, delivery, convert to
+  // a vehicle sale) picks up from there in the Buyer Leads tab.
+  async function convertPreOrderToBuyer(l: CarLead) {
+    if (!confirm(`Convert "${l.name}"'s pre-order to a Buyer lead? It'll move to the Buyer Leads section.`)) return;
+    try {
+      await api.patch(`/cars/leads/${l.id}`, { leadType: "BUYER" });
+      await load();
+      setTab("leads");
+    } catch (e) { setActionError(getApiError(e)); }
+  }
   const [convertLead, setConvertLead] = useState<CarLead | null>(null);
   const [exchangeSeed, setExchangeSeed] = useState<{ name: string; phone: string; interestedMake: string; interestedModel: string } | null>(null);
   const [acquireLead, setAcquireLead] = useState<CarLead | null>(null);
@@ -2950,9 +2974,12 @@ export default function CarsPage() {
                     <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: "rgba(56,189,248,0.12)", color: "#38bdf8", fontWeight: 700 }}>{PURCHASE_PLANS[l.purchasePlan] || l.purchasePlan}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
                   <button onClick={() => { setEditPreOrder(l); setShowPreOrderModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
-                  <button onClick={() => copyPreOrderDetails(l)} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>{copied ? "Copied!" : "Copy Details"}</button>
+                  <button onClick={() => copyPreOrderDetails(l)} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}>{copied ? "Copied!" : "Copy Details"}</button>
+                  <button onClick={() => void convertPreOrderToBuyer(l)} style={{ ...S.btn, flex: 1, justifyContent: "center", background: "#16a34a" }} title="The car is now available — move this to Buyer Leads">
+                    Converted <ArrowRight size={11} />
+                  </button>
                 </div>
               </div>
               );
