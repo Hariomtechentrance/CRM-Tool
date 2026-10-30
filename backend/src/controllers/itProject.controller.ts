@@ -4,6 +4,18 @@ import { v4 as uuidv4 } from "uuid";
 import { OrgRequest } from "../middleware/orgContext";
 import { ok, created, notFound, badRequest, forbidden, serverError } from "../utils/response";
 import { MemberRole } from "@prisma/client";
+import { isDeployraOrgId, isDeployraProjectManagerEmployee } from "../utils/deployraOrg";
+
+// Deployra: assigning a developer to a project is restricted to
+// Owner/Admin/Manager or the Project Manager — everyone else gets a 403.
+// Every other org keeps today's behavior (no role check).
+async function assertDeployraCanAssignProject(req: OrgRequest, res: Response): Promise<boolean> {
+  if (!(await isDeployraOrgId(req.organizationId!))) return true;
+  const privilegedRole = req.memberRole === MemberRole.OWNER || req.memberRole === MemberRole.ADMIN || req.memberRole === MemberRole.MANAGER;
+  if (privilegedRole || (await isDeployraProjectManagerEmployee(req.userId, req.organizationId!))) return true;
+  forbidden(res, "Only a Project Manager, Admin or Manager can assign this project");
+  return false;
+}
 
 const db = () => (prisma as any);
 
@@ -179,6 +191,7 @@ export async function updateProject(req: OrgRequest, res: Response): Promise<voi
 // ── Add project member ────────────────────────────────────────
 export async function addMember(req: OrgRequest, res: Response): Promise<void> {
   try {
+    if (!(await assertDeployraCanAssignProject(req, res))) return;
     const orgId = req.organizationId!;
     const projectId = req.params.id;
     const { employeeId, role } = req.body;
@@ -205,6 +218,7 @@ export async function addMember(req: OrgRequest, res: Response): Promise<void> {
 // ── Remove project member ─────────────────────────────────────
 export async function removeMember(req: OrgRequest, res: Response): Promise<void> {
   try {
+    if (!(await assertDeployraCanAssignProject(req, res))) return;
     const orgId = req.organizationId!;
     const projectId = req.params.id;
     const memberId = req.params.memberId;
@@ -355,7 +369,18 @@ export async function getMyWork(req: OrgRequest, res: Response): Promise<void> {
       take: 10,
     });
 
-    ok(res, { board, tasks, timeLogs });
+    // Projects this employee is a member of — distinct from `tasks` above
+    // (task assignment). A project can be assigned to a developer (e.g. via
+    // a lead conversion) before any task exists under it yet, and it should
+    // still show up here rather than being invisible until a task is added.
+    const memberships = await db().projectMember.findMany({
+      where: { employeeId, project: { organizationId: orgId } },
+      include: { project: { select: { id: true, name: true, status: true, projectType: true, clientName: true, createdAt: true } } },
+      orderBy: { joinedAt: "desc" },
+    });
+    const myProjects = memberships.map((m: any) => ({ ...m.project, role: m.role }));
+
+    ok(res, { board, tasks, timeLogs, myProjects });
   } catch (err) {
     serverError(res, err);
   }

@@ -25,3 +25,35 @@ export async function isDeployraOrgId(organizationId: string): Promise<boolean> 
   });
   return isDeployraOrg(org);
 }
+
+/**
+ * Deployra's "fresh/raw leads" pool (unassigned, just-imported) is only
+ * visible to Sales + Admin/Manager — everyone else only sees leads already
+ * assigned to them (enforced in leads.controller.ts listLeads). "Sales" has
+ * no dedicated role in the schema, so — same resilient-match idea as WBA's
+ * designation list in frontend/src/lib/org.ts — it's identified by the
+ * linked Employee's designation containing "sales", case-insensitive.
+ */
+export async function isDeployraSalesEmployee(userId: string | undefined, organizationId: string): Promise<boolean> {
+  if (!userId) return false;
+  const employee = await prisma.employee.findFirst({
+    where: { organizationId, userId },
+    select: { designation: true },
+  });
+  return (employee?.designation ?? "").toLowerCase().includes("sales");
+}
+
+/**
+ * Deployra: assigning/removing a developer on a Project converted from a
+ * lead is restricted to Owner/Admin/Manager or whoever is marked as the
+ * Project Manager (Employee.orgRole) — enforced in projects.controller.ts
+ * upsertProjectMember/removeProjectMember.
+ */
+export async function isDeployraProjectManagerEmployee(userId: string | undefined, organizationId: string): Promise<boolean> {
+  if (!userId) return false;
+  const employee = await prisma.employee.findFirst({
+    where: { organizationId, userId },
+    select: { orgRole: true },
+  });
+  return (employee?.orgRole ?? "").toUpperCase() === "PROJECT_MANAGER";
+}

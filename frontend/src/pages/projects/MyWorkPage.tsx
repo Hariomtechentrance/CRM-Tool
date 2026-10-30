@@ -147,6 +147,7 @@ export default function MyWorkPage() {
   const [selEmpId, setSelEmpId] = useState("");
   const [board, setBoard] = useState<Record<TStatus, Task[]>>({ TODO: [], IN_PROGRESS: [], IN_REVIEW: [], DONE: [] });
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
+  const [myProjects, setMyProjects] = useState<{ id: string; name: string; status: string; role: string; clientName?: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [logTaskId, setLogTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"board" | "list" | "time">("board");
@@ -167,6 +168,7 @@ export default function MyWorkPage() {
       const d = await r.json();
       setBoard(d.data?.board ?? { TODO: [], IN_PROGRESS: [], IN_REVIEW: [], DONE: [] });
       setTimeLogs(d.data?.timeLogs ?? []);
+      setMyProjects(d.data?.myProjects ?? []);
     }
     setLoading(false);
   }
@@ -216,6 +218,21 @@ export default function MyWorkPage() {
               <p style={{ fontSize: 10, color: "var(--text-ghost)" }}>{l}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* My Projects — projects this employee is a member of, independent of tasks */}
+      {myProjects.length > 0 && (
+        <div className="rounded-xl p-4 mb-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+          <p className="text-xs font-bold mb-2" style={{ color: "var(--text-ghost)" }}>MY PROJECTS</p>
+          <div className="flex flex-wrap gap-2">
+            {myProjects.map(p => (
+              <div key={p.id} className="rounded-lg px-3 py-2 text-xs" style={{ background: "var(--bg-hover)", border: "1px solid var(--border)" }}>
+                <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{p.name}</span>
+                <span style={{ color: "var(--text-ghost)" }}> · {p.role} · {p.status}{p.clientName ? ` · ${p.clientName}` : ""}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

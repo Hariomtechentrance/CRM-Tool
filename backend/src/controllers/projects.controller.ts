@@ -4,6 +4,19 @@ import { OrgRequest } from "../middleware/orgContext";
 import { z } from "zod";
 import { ok, created, badRequest, notFound, forbidden, serverError } from "../utils/response";
 import { MemberRole } from "@prisma/client";
+import { isDeployraOrgId, isDeployraProjectManagerEmployee } from "../utils/deployraOrg";
+
+// Deployra: assigning a developer to a project (one converted from a lead,
+// or any other) is restricted to Owner/Admin/Manager or the Project Manager
+// — everyone else gets a 403. Every other org keeps today's behavior
+// (anyone reaching the route can assign/remove a member).
+async function assertDeployraCanAssignProject(req: OrgRequest, res: Response): Promise<boolean> {
+  if (!(await isDeployraOrgId(req.organizationId!))) return true;
+  const privilegedRole = req.memberRole === MemberRole.OWNER || req.memberRole === MemberRole.ADMIN || req.memberRole === MemberRole.MANAGER;
+  if (privilegedRole || (await isDeployraProjectManagerEmployee(req.userId, req.organizationId!))) return true;
+  forbidden(res, "Only a Project Manager, Admin or Manager can assign this project");
+  return false;
+}
 
 const projectSchema = z.object({
   name: z.string().min(1),
@@ -297,6 +310,7 @@ export async function getProjectTeam(req: OrgRequest, res: Response): Promise<vo
 // ── Add / update project member ─────────────────────────────
 export async function upsertProjectMember(req: OrgRequest, res: Response): Promise<void> {
   try {
+    if (!(await assertDeployraCanAssignProject(req, res))) return;
     const { employeeId, role } = req.body as { employeeId: string; role: string };
     if (!employeeId || !role) { badRequest(res, "employeeId and role required"); return; }
 
@@ -318,6 +332,7 @@ export async function upsertProjectMember(req: OrgRequest, res: Response): Promi
 // ── Remove project member ───────────────────────────────────
 export async function removeProjectMember(req: OrgRequest, res: Response): Promise<void> {
   try {
+    if (!(await assertDeployraCanAssignProject(req, res))) return;
     const { projectId, employeeId } = req.params as { projectId: string; employeeId: string };
     await prisma.projectMember.deleteMany({ where: { projectId, employeeId } });
     ok(res, null, "Member removed");

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ok, created, badRequest, notFound, forbidden, serverError } from "../utils/response";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { isWBAOrgId, isWBAAssignmentManager, LEAD_DEFAULT_FOLLOWUP_MS } from "../utils/wbaOrg";
-import { isDeployraOrgId } from "../utils/deployraOrg";
+import { isDeployraOrgId, isDeployraSalesEmployee } from "../utils/deployraOrg";
 import { MemberRole } from "@prisma/client";
 
 const db = () => (prisma as any);
@@ -125,6 +125,17 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
       const sdPartyIds = [...new Set(sdProjects.map((p: { partyId: string | null }) => p.partyId).filter(Boolean))];
       if (sdPartyIds.length > 0) {
         where.AND = [...(where.AND ?? []), { OR: [{ partyId: null }, { partyId: { notIn: sdPartyIds } }] }];
+      }
+    }
+
+    // Deployra: the fresh/raw (unassigned) lead pool is only visible to
+    // Sales + Owner/Admin/Manager — anyone else only ever sees leads already
+    // assigned to them, no matter what filter they pass. Overrides any
+    // assignedToId/myQueue the request tried to set, so it can't be bypassed.
+    if (await isDeployraOrgId(req.organizationId!)) {
+      const privilegedRole = req.memberRole === MemberRole.OWNER || req.memberRole === MemberRole.ADMIN || req.memberRole === MemberRole.MANAGER;
+      if (!privilegedRole && !(await isDeployraSalesEmployee(req.userId, req.organizationId!))) {
+        where.assignedToId = req.userId;
       }
     }
 
@@ -484,6 +495,27 @@ export async function convertLeadToDeal(req: OrgRequest, res: Response): Promise
       await db().lead.update({ where: { id: req.params.id as string }, data: { status: "WON", convertedAt: new Date() } });
       bustCache(req.organizationId!, "/api/leads");
       created(res, { project, message: "Lead converted to a Service Delivery project" });
+      return;
+    }
+
+    // Deployra: a converted lead becomes a real Project (the generic
+    // Project/ProjectMember model, not WBA's WBAProject) that a developer
+    // can then be assigned to — see MyWorkPage for the developer-facing view
+    // and projects.controller.ts for who's allowed to do that assigning.
+    if (await isDeployraOrgId(req.organizationId!)) {
+      const project = await db().project.create({
+        data: {
+          organizationId: req.organizationId!,
+          name: lead.company || lead.name,
+          description: lead.notes || undefined,
+          clientName: lead.company || lead.name,
+          managerId: req.userId,
+          createdById: req.userId,
+        },
+      });
+      await db().lead.update({ where: { id: req.params.id as string }, data: { status: "WON", convertedAt: new Date() } });
+      bustCache(req.organizationId!, "/api/leads");
+      created(res, { project, message: "Lead converted to a project" });
       return;
     }
 
