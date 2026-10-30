@@ -2840,26 +2840,23 @@ export default function CarsPage() {
           <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-ghost)" }} />
           <input style={{ ...S.inp, width: "100%", paddingLeft: 30 }} placeholder={tab === "vehicles" ? "Search make, model, reg. no, owner…" : "Search name, phone, model…"} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <select style={S.inp} value={contactedFilter ? "__CONTACTED__" : notContactedFilter ? "__NOT_CONTACTED__" : statusFilter} onChange={e => {
-          if (e.target.value === "__CONTACTED__") { setContactedFilter(true); setNotContactedFilter(false); setStatusFilter(""); setNotContactedSince(""); }
-          else if (e.target.value === "__NOT_CONTACTED__") { setContactedFilter(false); setNotContactedFilter(true); setStatusFilter(""); }
-          else { setContactedFilter(false); setNotContactedFilter(false); setNotContactedSince(""); setStatusFilter(e.target.value); }
+        <select style={S.inp} value={contactedFilter ? "__CONTACTED__" : notContactedFilter ? "__NOT_CONTACTED__" : leadOriginFilter ? `__ORIGIN_${leadOriginFilter}__` : statusFilter} onChange={e => {
+          const val = e.target.value;
+          if (val === "__CONTACTED__") { setContactedFilter(true); setNotContactedFilter(false); setStatusFilter(""); setLeadOriginFilter(""); setNotContactedSince(""); }
+          else if (val === "__NOT_CONTACTED__") { setContactedFilter(false); setNotContactedFilter(true); setStatusFilter(""); setLeadOriginFilter(""); }
+          else if (val.startsWith("__ORIGIN_")) { setContactedFilter(false); setNotContactedFilter(false); setNotContactedSince(""); setStatusFilter(""); setLeadOriginFilter(val.slice(9, -2)); }
+          else { setContactedFilter(false); setNotContactedFilter(false); setNotContactedSince(""); setLeadOriginFilter(""); setStatusFilter(val); }
         }}>
           <option value="">All statuses</option>
           {tab === "vehicles"
             ? Object.keys(VEHICLE_STATUS).map(s => <option key={s} value={s}>{VEHICLE_STATUS[s].label}</option>)
             : LEAD_STATUSES.map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
+          {tab === "vehicles" && <option value="__ORIGIN_BUYER__">From Buyer Lead</option>}
+          {tab === "vehicles" && <option value="__ORIGIN_SELLER__">From Seller Lead</option>}
+          {tab === "vehicles" && <option value="__ORIGIN_DIRECT__">Direct entry (no lead)</option>}
           {tab === "leads" && <option value="__NOT_CONTACTED__">Not Contacted</option>}
           {tab === "leads" && <option value="__CONTACTED__">Contacted (Lead Status set)</option>}
         </select>
-        {tab === "vehicles" && (
-          <select style={S.inp} value={leadOriginFilter} onChange={e => setLeadOriginFilter(e.target.value)}>
-            <option value="">All sources (Buyer + Seller + Direct)</option>
-            <option value="BUYER">From Buyer Lead</option>
-            <option value="SELLER">From Seller Lead</option>
-            <option value="DIRECT">Direct entry (no lead)</option>
-          </select>
-        )}
         {(tab === "leads" || tab === "sellerleads") && (
           <select style={S.inp} value={leadStageFilter} onChange={e => setLeadStageFilter(e.target.value)}>
             <option value="">All stages</option>
