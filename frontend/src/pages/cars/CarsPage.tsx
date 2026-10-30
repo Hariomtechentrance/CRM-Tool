@@ -2847,10 +2847,8 @@ export default function CarsPage() {
           else if (val.startsWith("__ORIGIN_")) { setContactedFilter(false); setNotContactedFilter(false); setNotContactedSince(""); setStatusFilter(""); setLeadOriginFilter(val.slice(9, -2)); }
           else { setContactedFilter(false); setNotContactedFilter(false); setNotContactedSince(""); setLeadOriginFilter(""); setStatusFilter(val); }
         }}>
-          <option value="">All statuses</option>
-          {tab === "vehicles"
-            ? Object.keys(VEHICLE_STATUS).map(s => <option key={s} value={s}>{VEHICLE_STATUS[s].label}</option>)
-            : LEAD_STATUSES.map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
+          <option value="">{tab === "vehicles" ? "All" : "All statuses"}</option>
+          {tab !== "vehicles" && LEAD_STATUSES.map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
           {tab === "vehicles" && <option value="__ORIGIN_BUYER__">From Buyer Lead</option>}
           {tab === "vehicles" && <option value="__ORIGIN_SELLER__">From Seller Lead</option>}
           {tab === "vehicles" && <option value="__ORIGIN_DIRECT__">Direct entry (no lead)</option>}
