@@ -2447,6 +2447,7 @@ export default function CarsPage() {
   const [stats, setStats] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [leadOriginFilter, setLeadOriginFilter] = useState(""); // Vehicles & Insurance tab: BUYER | SELLER | DIRECT
   const [leadStageFilter, setLeadStageFilter] = useState("");
   const [notContactedFilter, setNotContactedFilter] = useState(false);
   const [contactedFilter, setContactedFilter] = useState(false);
@@ -2645,6 +2646,7 @@ export default function CarsPage() {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
         if (statusFilter) params.set("status", statusFilter);
+        if (leadOriginFilter) params.set("leadOrigin", leadOriginFilter);
         const insParams = new URLSearchParams();
         if (insuranceFrom) insParams.set("from", insuranceFrom);
         if (insuranceTo) insParams.set("to", insuranceTo); else insParams.set("days", "30");
@@ -2701,7 +2703,7 @@ export default function CarsPage() {
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [tab, search, statusFilter, leadStageFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, preOrdersPage, salesPeriod, insuranceFrom, insuranceTo, dndPage, canSeeBuyer, canSeeSeller, canSeeInsurance]);
+  }, [tab, search, statusFilter, leadOriginFilter, leadStageFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, preOrdersPage, salesPeriod, insuranceFrom, insuranceTo, dndPage, canSeeBuyer, canSeeSeller, canSeeInsurance]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -2850,6 +2852,14 @@ export default function CarsPage() {
           {tab === "leads" && <option value="__NOT_CONTACTED__">Not Contacted</option>}
           {tab === "leads" && <option value="__CONTACTED__">Contacted (Lead Status set)</option>}
         </select>
+        {tab === "vehicles" && (
+          <select style={S.inp} value={leadOriginFilter} onChange={e => setLeadOriginFilter(e.target.value)}>
+            <option value="">All sources (Buyer + Seller + Direct)</option>
+            <option value="BUYER">From Buyer Lead</option>
+            <option value="SELLER">From Seller Lead</option>
+            <option value="DIRECT">Direct entry (no lead)</option>
+          </select>
+        )}
         {(tab === "leads" || tab === "sellerleads") && (
           <select style={S.inp} value={leadStageFilter} onChange={e => setLeadStageFilter(e.target.value)}>
             <option value="">All stages</option>
@@ -3210,12 +3220,12 @@ export default function CarsPage() {
                         <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)", borderBottom: "1px solid var(--bg-hover)" }}>
                           {v.status === "SOLD" ? (
                             <>
-                              <div>{v.ownerName || "—"} <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>(buyer)</span></div>
+                              <div>{v.ownerName || "—"}</div>
                               {v.ownerPhone && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerPhone}</div>}
                             </>
                           ) : v.sellerName ? (
                             <>
-                              <div>{v.sellerName} <span style={{ fontSize: 10, color: "var(--text-ghost)" }}>(seller)</span></div>
+                              <div>{v.sellerName}</div>
                               {v.sellerPhone && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.sellerPhone}</div>}
                             </>
                           ) : "—"}

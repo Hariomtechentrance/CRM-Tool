@@ -1175,10 +1175,15 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
 
 export async function listVehicles(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, search, dnc, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, search, dnc, leadOrigin, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId!, isDoNotCall: dnc === "true" };
     if (status) where.status = status;
+    // Lets the Vehicles & Insurance list be verified against where each row
+    // actually came from: a real Buyer/Seller lead conversion (sourceLead),
+    // vs a direct Add Vehicle entry with no lead behind it at all.
+    if (leadOrigin === "BUYER" || leadOrigin === "SELLER") where.sourceLead = { leadType: leadOrigin };
+    else if (leadOrigin === "DIRECT") where.sourceLead = null;
     if (search) {
       where.OR = [
         { make: { contains: search, mode: "insensitive" } },
