@@ -595,6 +595,9 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
     if (["CNR", "BUSY", "PRODUCT_NOT_FOUND"].includes(form.leadStage) && !form.nextFollowUpDate) {
       setErr("Set a Next Follow-up Date — required for CNR / Busy / Product Not Found so this lead doesn't go cold."); return;
     }
+    if (form.leadType === "BUYER" && !form.assignedToId && !form.assignedToLabel.trim()) {
+      setErr("Assign To is required for buyer leads"); return;
+    }
     setSaving(true); setErr("");
     try {
       const payload: any = {
@@ -783,7 +786,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           )}
 
           <div>
-            <label style={S.label}>Assign To</label>
+            <label style={S.label}>Assign To{form.leadType === "BUYER" ? " *" : ""}</label>
             <AssignToSelect assignedToId={form.assignedToId} assignedToLabel={form.assignedToLabel}
               employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
               onChange={next => setForm({ ...form, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />

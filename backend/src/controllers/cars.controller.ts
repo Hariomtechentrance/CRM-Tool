@@ -426,6 +426,10 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
       badRequest(res, "Please specify the lead source", { sourceOther: ["Required when Lead Source is Other"] });
       return;
     }
+    if (data.leadType === "BUYER" && !data.assignedToId && !data.assignedToLabel?.trim()) {
+      badRequest(res, "Assign To is required for buyer leads", { assignedToId: ["Required for buyer leads"] });
+      return;
+    }
     const lead = await db().carLead.create({
       data: {
         organizationId: req.organizationId!,
@@ -507,6 +511,13 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
     const effectiveSourceOther = data.sourceOther !== undefined ? data.sourceOther : existing.sourceOther;
     if (effectiveSource === "OTHER" && !effectiveSourceOther?.trim()) {
       badRequest(res, "Please specify the lead source", { sourceOther: ["Required when Lead Source is Other"] });
+      return;
+    }
+    const effectiveLeadType = data.leadType ?? existing.leadType;
+    const effectiveAssignedToId = data.assignedToLabel?.trim() ? null : (data.assignedToId !== undefined ? (data.assignedToId || null) : existing.assignedToId);
+    const effectiveAssignedToLabel = data.assignedToLabel !== undefined ? (data.assignedToLabel?.trim() || null) : (data.assignedToId?.trim() ? null : existing.assignedToLabel);
+    if (effectiveLeadType === "BUYER" && !effectiveAssignedToId && !effectiveAssignedToLabel?.trim()) {
+      badRequest(res, "Assign To is required for buyer leads", { assignedToId: ["Required for buyer leads"] });
       return;
     }
     const lead = await db().carLead.update({
@@ -983,6 +994,12 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
 
         const salesperson = pick(row, FIELD_ALIASES.assignedSalesperson);
         const matchedEmployeeId = salesperson ? employeeByName.get(salesperson.toLowerCase()) : undefined;
+
+        if (leadType === "BUYER" && !matchedEmployeeId && !assignedToId) {
+          results.skipped++;
+          results.errors.push(`${name}: missing Assign To (no recognized salesperson column and no default assignee selected for this import)`);
+          continue;
+        }
 
         const interestedModel = up([pick(row, FIELD_ALIASES.model), pick(row, FIELD_ALIASES.variant)].filter(Boolean).join(" ") || undefined);
 
