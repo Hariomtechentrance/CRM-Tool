@@ -426,7 +426,7 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
   const [importing, setImporting] = useState(false);
 
   const sample = deployraOrg
-    ? `name,website,email,phone,domain,notes\nRaj Hair Studio,https://rajhairstudio.in,raj@rajhairstudio.in,9876543210,Barber,Interested in a CRM demo\nCity Clinic,https://cityclinic.in,contact@cityclinic.in,9123456789,Clinic,Called once no answer`
+    ? `name,phone,website,email,domain,notes\nRaj Hair Studio,9876543210,https://rajhairstudio.in,raj@rajhairstudio.in,Barber,Interested in a CRM demo\nCity Clinic,9123456789,,,Clinic,Called once no answer`
     : `name,phone,email,company,city\nRaj Patel,9876543210,raj@abc.com,ABC Corp,Mumbai\nPriya Singh,9123456789,,XYZ Ltd,Delhi`;
 
   async function handleFile(file: File) {
@@ -494,7 +494,7 @@ function ImportModal({ campaigns, onClose, onImported }: { campaigns: any[]; onC
           <div className="space-y-3">
             <p className="text-[11px]" style={{ color: "var(--text-ghost)" }}>
               {deployraOrg
-                ? "Required for every row: Agency Name, Website, Email and Contact (phone) — rows missing any of these are skipped and listed below after import. Domain (e.g. Barber, Clinic, Cafe, Resale Car Shop) is optional but recommended. Status, Notes and Next Follow-up Date columns are picked up automatically if present."
+                ? "Required for every row: Agency Name and Contact (phone) — rows missing either are skipped and listed below after import. Website, Email and Domain (e.g. Barber, Clinic, Cafe, Resale Car Shop) are optional — scraped lead sheets (Google Maps listings etc.) rarely have an email or real website, so these are no longer required. Status, Notes and Next Follow-up Date columns are picked up automatically if present."
                 : "Works with your own template or a real CRM export — HubSpot's contacts export (First Name/Last Name, Phone Number, Associated Company, Lead Status, etc.) is recognized directly, along with JustDial, Facebook Leads, and IndiaMart exports. Any column that isn't recognized is still kept, added to that lead's notes instead of being dropped."}
             </p>
             <div>

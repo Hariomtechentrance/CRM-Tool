@@ -394,16 +394,14 @@ export async function bulkImportLeads(req: OrgRequest, res: Response): Promise<v
         const createdAt = parseImportDate(leadPick(row, LEAD_FIELD_ALIASES.createDate)) ?? new Date();
         const lastContactedAt = parseImportDate(leadPick(row, LEAD_FIELD_ALIASES.lastActivityDate));
 
-        if (deployraOrg) {
-          const missing: string[] = [];
-          if (!website) missing.push("Website");
-          if (!email) missing.push("Email");
-          if (!phone) missing.push("Contact");
-          if (missing.length > 0) {
-            results.skipped++;
-            results.errors.push(`Row ${rowNumber} (${name}): missing ${missing.join(", ")}`);
-            continue;
-          }
+        // Website/Email were mandatory here originally, but real-world
+        // scraped lead sheets (Google Maps business listings etc.) almost
+        // never carry an email and rarely a real website — only Contact is
+        // actually enforceable without rejecting nearly every row.
+        if (deployraOrg && !phone) {
+          results.skipped++;
+          results.errors.push(`Row ${rowNumber} (${name}): missing Contact`);
+          continue;
         }
 
         // Deduplicate by phone within same org
