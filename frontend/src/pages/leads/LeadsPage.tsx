@@ -785,6 +785,9 @@ export default function LeadsPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSource, setFilterSource] = useState("");
   const [filterGrade, setFilterGrade] = useState("");
+  const [filterIndustry, setFilterIndustry] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+  const [filterOptions, setFilterOptions] = useState<{ industries: string[]; cities: string[] }>({ industries: [], cities: [] });
   const [searchParams, setSearchParams] = useSearchParams();
   const [showAdd, setShowAdd] = useState(searchParams.get("quickAdd") === "lead");
   const [editLead, setEditLead] = useState<Lead | null>(null);
@@ -805,6 +808,8 @@ export default function LeadsPage() {
         if (filterStatus) params.set("status", filterStatus);
         if (filterSource) params.set("source", filterSource);
         if (filterGrade) params.set("grade", filterGrade);
+        if (filterIndustry) params.set("industry", filterIndustry);
+        if (filterCity) params.set("city", filterCity);
       }
       const [lr, sr] = await Promise.all([api.get(`/leads?${params}`), api.get("/leads/stats")]);
       setLeads(lr.data.data.leads ?? []);
@@ -812,7 +817,7 @@ export default function LeadsPage() {
       setStats(sr.data.data);
     } catch {}
     setLoading(false);
-  }, [tab, search, filterStatus, filterSource, filterGrade, page]);
+  }, [tab, search, filterStatus, filterSource, filterGrade, filterIndustry, filterCity, page]);
 
   useEffect(() => {
     load();
@@ -820,6 +825,10 @@ export default function LeadsPage() {
     // so "Assign To" shows the same people list no matter who's opening this form.
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
     api.get("/leads/campaigns").then(r => setCampaigns(r.data.data ?? [])).catch(() => {});
+    // Domain/City dropdown values — real distinct values already on existing
+    // leads, not a fixed managed list, so a new value typed on any lead just
+    // shows up here next load, nothing to configure separately.
+    api.get("/leads/filter-options").then(r => setFilterOptions(r.data.data ?? { industries: [], cities: [] })).catch(() => {});
   }, [load]);
 
   // Deep link from the dashboard's "Today's Follow-ups" panel: ?open=<leadId>
@@ -904,6 +913,18 @@ export default function LeadsPage() {
               <option value="">All Grades</option>
               {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
+            {deployraOrg && (
+              <select style={S.inp} value={filterIndustry} onChange={e => { setFilterIndustry(e.target.value); setPage(1); }}>
+                <option value="">All Domains</option>
+                {filterOptions.industries.map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            )}
+            {deployraOrg && (
+              <select style={S.inp} value={filterCity} onChange={e => { setFilterCity(e.target.value); setPage(1); }}>
+                <option value="">All Cities</option>
+                {filterOptions.cities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
           </>}
           <button onClick={load} style={S.ghost}><RefreshCw style={{ width: 13, height: 13 }} /></button>
           <span className="text-xs ml-auto" style={{ color: "var(--text-ghost)" }}>{total} leads</span>

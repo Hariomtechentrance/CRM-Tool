@@ -63,16 +63,41 @@ const campaignSchema = z.object({
   description: z.string().optional(),
 });
 
+// Distinct Domain/City values already present on this org's leads — feeds
+// the Leads page's filter dropdowns. Deliberately not a managed/fixed list:
+// Domain and City are free-text fields on the lead itself (manual add, edit,
+// or bulk import), so a brand-new value typed there just shows up here next
+// time this is fetched — nothing else to configure.
+export async function getLeadFilterOptions(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const orgId = req.organizationId!;
+    const [industries, cities] = await Promise.all([
+      db().lead.findMany({ where: { organizationId: orgId, isActive: true, industry: { not: null } }, select: { industry: true }, distinct: ["industry"] }),
+      db().lead.findMany({ where: { organizationId: orgId, isActive: true, city: { not: null } }, select: { city: true }, distinct: ["city"] }),
+    ]);
+    ok(res, {
+      industries: industries.map((i: { industry: string }) => i.industry).filter(Boolean).sort(),
+      cities: cities.map((c: { city: string }) => c.city).filter(Boolean).sort(),
+    });
+  } catch (e) { serverError(res, e); }
+}
+
 // ── List leads ────────────────────────────────────────────────
 export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
   try {
-    const { status, source, search, assignedToId, grade, myQueue, followUp, page = "1", limit = "50" } = req.query as Record<string, string>;
+    const { status, source, search, assignedToId, grade, myQueue, followUp, industry, city, page = "1", limit = "50" } = req.query as Record<string, string>;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId!, isActive: true };
 
     if (status) where.status = status;
     if (source) where.source = source;
     if (grade) where.leadGrade = grade;
+    // Exact match, not contains — these come from the Domain/City filter
+    // dropdowns (getLeadFilterOptions), which list the real distinct values
+    // already on existing leads, so a bare dropdown pick should narrow to
+    // exactly that value rather than a fuzzy match.
+    if (industry) where.industry = industry;
+    if (city) where.city = city;
     if (assignedToId) where.assignedToId = assignedToId;
     if (myQueue === "true") {
       where.assignedToId = req.userId;

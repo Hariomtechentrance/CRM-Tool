@@ -3,7 +3,7 @@ import { authenticate } from "../middleware/auth";
 import { requireOrgContext } from "../middleware/orgContext";
 import {
   listLeads, getLead, createLead, updateLead, deleteLead, addLeadActivity,
-  listCampaigns, createCampaign, getLeadStats,
+  listCampaigns, createCampaign, getLeadStats, getLeadFilterOptions,
   bulkImportLeads, convertLeadToDeal,
 } from "../controllers/leads.controller";
 
@@ -11,6 +11,7 @@ const router = Router();
 router.use(authenticate, requireOrgContext);
 
 router.get("/stats",           getLeadStats);
+router.get("/filter-options",  getLeadFilterOptions);
 router.get("/campaigns",       listCampaigns);
 router.post("/campaigns",      createCampaign);
 router.post("/bulk-import",    bulkImportLeads);
