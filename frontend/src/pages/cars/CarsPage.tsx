@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
-  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2, Clock,
+  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2, Clock, Tag,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
@@ -205,15 +205,16 @@ function insuranceBadge(insurance?: Insurance): { text: string; color: string; b
   return { text: `Valid till ${end.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`, color: "#4ade80", bg: "#14532d" };
 }
 
-// Visible marker for which conversion path a Vehicle/Insurance record came
-// from — the client's ask: tell at a glance whether a sale in Vehicles &
-// Insurance originated from a Buyer lead ("Convert to Sale") or a Seller
-// lead ("Buy Car"), vs. a vehicle added directly via Add Vehicle (no badge).
+// Visible marker for where a Vehicle/Insurance record actually came from —
+// driven by customerType/preExistingType (the same fields the Add/Edit
+// Vehicle form's New/Pre-existing toggle sets, and the row menu's "Mark as
+// Buyer/Seller/New" quick actions update), not sourceLead — almost nothing
+// in this org's data is a real lead conversion, so that relation was always
+// empty and the badge never showed.
 function leadOriginBadge(vehicle?: Vehicle | null): { text: string; color: string; bg: string } | null {
-  const leadType = vehicle?.sourceLead?.leadType;
-  if (leadType === "BUYER") return { text: "FROM BUYER LEAD", color: "#818cf8", bg: "#1e1b4b" };
-  if (leadType === "SELLER") return { text: "FROM SELLER LEAD", color: "#fb923c", bg: "#431407" };
-  return null;
+  if (vehicle?.preExistingType === "BUYER") return { text: "BUYER", color: "#818cf8", bg: "#1e1b4b" };
+  if (vehicle?.preExistingType === "SELLER") return { text: "SELLER", color: "#fb923c", bg: "#431407" };
+  return { text: "NEW", color: "#94a3b8", bg: "#1e293b" };
 }
 
 // ── Warranty due-date helper (same red/amber/green convention as insurance) ──
@@ -2552,6 +2553,25 @@ export default function CarsPage() {
     }
   }
 
+  // Quick-set a vehicle's origin from the row menu — same customerType/
+  // preExistingType fields the Add/Edit Vehicle form's New/Pre-existing
+  // toggle already uses, just a one-click shortcut so staff don't have to
+  // open the full edit form to correct/tag where a vehicle actually came
+  // from (most of this org's data was bulk-imported with no real lead link).
+  async function setVehicleOrigin(vehicle: Vehicle, origin: "BUYER" | "SELLER" | "NEW"): Promise<void> {
+    setActionError("");
+    try {
+      const payload = origin === "NEW"
+        ? { customerType: "NEW" as const, preExistingType: undefined }
+        : { customerType: "PRE_EXISTING" as const, preExistingType: origin };
+      const response = await api.patch(`/cars/vehicles/${vehicle.id}`, payload);
+      await load();
+      if (detailVehicle?.id === vehicle.id) setDetailVehicle(response.data.data);
+    } catch (e) {
+      setActionError(getApiError(e));
+    }
+  }
+
   useEffect(() => {
     if (!vehicleMenuOpenId) return;
     const close = () => setVehicleMenuOpenId(null);
@@ -2848,9 +2868,9 @@ export default function CarsPage() {
         }}>
           <option value="">{tab === "vehicles" ? "All" : "All statuses"}</option>
           {tab !== "vehicles" && LEAD_STATUSES.map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
-          {tab === "vehicles" && <option value="__ORIGIN_BUYER__">From Buyer Lead</option>}
-          {tab === "vehicles" && <option value="__ORIGIN_SELLER__">From Seller Lead</option>}
-          {tab === "vehicles" && <option value="__ORIGIN_DIRECT__">New</option>}
+          {tab === "vehicles" && <option value="__ORIGIN_BUYER__">Buyer</option>}
+          {tab === "vehicles" && <option value="__ORIGIN_SELLER__">Seller</option>}
+          {tab === "vehicles" && <option value="__ORIGIN_NEW__">New</option>}
           {tab === "leads" && <option value="__NOT_CONTACTED__">Not Contacted</option>}
           {tab === "leads" && <option value="__CONTACTED__">Contacted (Lead Status set)</option>}
         </select>
@@ -3257,6 +3277,9 @@ export default function CarsPage() {
                                   { label: currentInsurance ? "Edit Insurance" : "Add Insurance", icon: <ShieldAlert size={12} />, onClick: () => { setInsuranceFor(v); setEditInsuranceRecord(currentInsurance ?? null); setVehicleMenuOpenId(null); } },
                                   { label: "View Details", icon: <Car size={12} />, onClick: () => { setDetailVehicle(v); setVehicleMenuOpenId(null); } },
                                   { label: "Documents", icon: <FileText size={12} />, onClick: () => { setDetailVehicle(v); setVehicleMenuOpenId(null); } },
+                                  { label: "Mark as Buyer", icon: <Tag size={12} />, onClick: () => { setVehicleOrigin(v, "BUYER"); setVehicleMenuOpenId(null); } },
+                                  { label: "Mark as Seller", icon: <Tag size={12} />, onClick: () => { setVehicleOrigin(v, "SELLER"); setVehicleMenuOpenId(null); } },
+                                  { label: "Mark as New", icon: <Tag size={12} />, onClick: () => { setVehicleOrigin(v, "NEW"); setVehicleMenuOpenId(null); } },
                                 ].map(item => (
                                   <button key={item.label} onClick={item.onClick} style={{
                                     display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 10px",

@@ -1179,11 +1179,13 @@ export async function listVehicles(req: OrgRequest, res: Response): Promise<void
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const where: any = { organizationId: req.organizationId!, isDoNotCall: dnc === "true" };
     if (status) where.status = status;
-    // Lets the Vehicles & Insurance list be verified against where each row
-    // actually came from: a real Buyer/Seller lead conversion (sourceLead),
-    // vs a direct Add Vehicle entry with no lead behind it at all.
-    if (leadOrigin === "BUYER" || leadOrigin === "SELLER") where.sourceLead = { leadType: leadOrigin };
-    else if (leadOrigin === "DIRECT") where.sourceLead = null;
+    // Lets the Vehicles & Insurance list be filtered by where each row
+    // actually came from. Driven by customerType/preExistingType (settable
+    // via Edit Vehicle or the row menu's "Mark as Buyer/Seller/New"), not
+    // sourceLead — almost nothing in real org data is an actual lead
+    // conversion, so filtering on that relation always returned nothing.
+    if (leadOrigin === "BUYER" || leadOrigin === "SELLER") { where.customerType = "PRE_EXISTING"; where.preExistingType = leadOrigin; }
+    else if (leadOrigin === "NEW") where.customerType = "NEW";
     if (search) {
       where.OR = [
         { make: { contains: search, mode: "insensitive" } },
