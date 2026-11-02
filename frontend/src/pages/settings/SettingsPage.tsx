@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
-import { ALL_MODULES } from "@/lib/modules";
-import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog, Phone, Trash2 } from "lucide-react";
+import { ALL_MODULES, expandCarsModule } from "@/lib/modules";
+import { Settings, Building2, Users, Shield, X, Plus, Check, Zap, Lock, SmartphoneNfc, UserCog, Phone, Trash2, KeyRound } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { kPhone, kAlpha, kGSTIN } from "@/lib/fieldRules";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
@@ -77,6 +77,11 @@ export default function SettingsPage() {
   const [addingEmployee, setAddingEmployee] = useState(false);
   const [addEmployeeError, setAddEmployeeError] = useState("");
   const [addEmployeeDone, setAddEmployeeDone] = useState(false);
+  const [resetPasswordMember, setResetPasswordMember] = useState<Member | null>(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState({ password: "", confirmPassword: "" });
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState("");
+  const [resetPasswordDone, setResetPasswordDone] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -165,6 +170,28 @@ export default function SettingsPage() {
       alert(e?.response?.data?.message || "Could not remove this member.");
     }
     setRemovingMemberId(null);
+  };
+
+  const resetMemberPassword = async () => {
+    if (!resetPasswordMember) return;
+    setResetPasswordError("");
+    if (resetPasswordForm.password !== resetPasswordForm.confirmPassword) {
+      setResetPasswordError("Passwords do not match.");
+      return;
+    }
+    if (resetPasswordForm.password.length < 8) {
+      setResetPasswordError("Password must be at least 8 characters.");
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      await api.patch(`/organizations/current/members/${resetPasswordMember.id}/password`, resetPasswordForm);
+      setResetPasswordDone(true);
+      setTimeout(() => { setResetPasswordDone(false); setResetPasswordMember(null); setResetPasswordForm({ password: "", confirmPassword: "" }); }, 2000);
+    } catch (e: any) {
+      setResetPasswordError(e?.response?.data?.message || "Could not reset this member's password.");
+    }
+    setResettingPassword(false);
   };
 
   const f = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
@@ -337,6 +364,13 @@ export default function SettingsPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 5, background: "#6366f120", color: "#818cf8", fontWeight: 600 }}>{m.role}</span>
                 {m.role !== "OWNER" && m.id !== user?.id && (
+                  <button onClick={() => { setResetPasswordMember(m); setResetPasswordForm({ password: "", confirmPassword: "" }); setResetPasswordError(""); }}
+                    title="Reset password"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)", padding: 4, display: "flex" }}>
+                    <KeyRound size={14} />
+                  </button>
+                )}
+                {m.role !== "OWNER" && m.id !== user?.id && (
                   <button onClick={() => removeMember(m)} disabled={removingMemberId === m.id}
                     title="Remove from organization"
                     style={{ background: "none", border: "none", cursor: removingMemberId === m.id ? "not-allowed" : "pointer", color: "#ef4444", opacity: removingMemberId === m.id ? 0.5 : 1, padding: 4, display: "flex" }}>
@@ -380,7 +414,7 @@ export default function SettingsPage() {
                     <div>
                       <label style={S.label}>Modules</label>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {ALL_MODULES.filter(m => activeOrg?.enabledModules?.includes(m.key)).map(m => {
+                        {expandCarsModule(ALL_MODULES.filter(m => activeOrg?.enabledModules?.includes(m.key))).map(m => {
                           const on = empForm.modules.includes(m.key);
                           return (
                             <button type="button" key={m.key}
@@ -423,6 +457,45 @@ export default function SettingsPage() {
                   <button onClick={() => setShowAddEmployee(false)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
                   <button onClick={addEmployee} style={S.btn} disabled={addingEmployee || !empForm.name || !empForm.email || !empForm.password || !empForm.confirmPassword}>
                     {addingEmployee ? "Adding..." : "Add Employee"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── RESET PASSWORD MODAL ── */}
+      {resetPasswordMember && (
+        <div style={S.modal} onClick={e => e.target === e.currentTarget && setResetPasswordMember(null)}>
+          <div className="modal-inner" style={{ maxWidth: 380 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ color: "var(--text-primary)", margin: 0, fontSize: 16, fontWeight: 700 }}>Reset Password</h3>
+              <button onClick={() => setResetPasswordMember(null)} style={{ background: "none", border: "none", color: "var(--text-ghost)", cursor: "pointer" }}><X size={18} /></button>
+            </div>
+            {resetPasswordDone ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <Check size={32} color="#10b981" style={{ margin: "0 auto 10px", display: "block" }} />
+                <div style={{ color: "#10b981", fontWeight: 600 }}>Password reset — share the new password with them directly.</div>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 14 }}>
+                  Setting a new password for <strong style={{ color: "var(--text-primary)" }}>{resetPasswordMember.name}</strong> ({resetPasswordMember.email}).
+                </p>
+                {resetPasswordError && <div style={{ background: "#ef444415", border: "1px solid #ef444430", borderRadius: 8, padding: "8px 12px", color: "#f87171", fontSize: 12.5, marginBottom: 14 }}>{resetPasswordError}</div>}
+                <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
+                  <div><label style={S.label}>New Password</label>
+                    <input type="password" style={S.input} value={resetPasswordForm.password} onChange={e => setResetPasswordForm(p => ({ ...p, password: e.target.value }))} placeholder="Min 8 characters" />
+                  </div>
+                  <div><label style={S.label}>Confirm New Password</label>
+                    <input type="password" style={S.input} value={resetPasswordForm.confirmPassword} onChange={e => setResetPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={() => setResetPasswordMember(null)} style={{ ...S.btn, background: "var(--bg-hover)", color: "var(--text-sec)" }}>Cancel</button>
+                  <button onClick={resetMemberPassword} style={S.btn} disabled={resettingPassword || !resetPasswordForm.password || !resetPasswordForm.confirmPassword}>
+                    {resettingPassword ? "Resetting..." : "Reset Password"}
                   </button>
                 </div>
               </>

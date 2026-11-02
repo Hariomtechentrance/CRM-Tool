@@ -565,6 +565,41 @@ export async function removeMember(req: OrgRequest, res: Response): Promise<void
   }
 }
 
+// ── Admin-initiated password reset — only self-service (emailed link,
+// forgotPassword) or the caller's own account (changePassword) existed
+// before; this lets Owner/Admin set a team member's password directly. ────
+export async function resetMemberPassword(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (req.memberRole !== MemberRole.OWNER && req.memberRole !== MemberRole.ADMIN) {
+      forbidden(res, "Only Owner or Admin can reset a member's password"); return;
+    }
+    const memberId = req.params.memberId as string;
+    const { password, confirmPassword } = req.body as { password?: string; confirmPassword?: string };
+    if (password !== confirmPassword) { badRequest(res, "Passwords do not match"); return; }
+    const strength = isStrongPassword(password || "");
+    if (!strength.ok) { badRequest(res, strength.reason || "Password is too weak"); return; }
+
+    const target = await prisma.organizationMember.findFirst({
+      where: { userId: memberId, organizationId: req.organizationId! },
+    });
+    if (!target) { notFound(res, "Member not found"); return; }
+    // Same restriction as removeMember/updateMemberRole — nobody resets the
+    // owner's password through this tool, not even another Admin.
+    if (target.role === MemberRole.OWNER) { forbidden(res, "Cannot reset the organization owner's password"); return; }
+
+    const hash = await bcrypt.hash(password!, 12);
+    await prisma.user.update({ where: { id: memberId }, data: { password: hash } });
+    // Same reasoning as removeMember: drop cached auth state rather than a
+    // platform-wide refresh-token revoke, since this user may belong to
+    // other orgs too.
+    invalidateUserSecState(memberId);
+    writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "MEMBER_PASSWORD_RESET", resource: "User", resourceId: memberId, description: `Reset password for member (${target.role})`, ipAddress: getIp(req as any) });
+    ok(res, null, "Password reset");
+  } catch (err) {
+    serverError(res, err);
+  }
+}
+
 // ── Module requests — an org's own admin can no longer just enable a new
 // module for themselves; they ask the platform's super admin instead. ──────
 export async function requestOrgModule(req: OrgRequest, res: Response): Promise<void> {
@@ -665,8 +700,12 @@ export async function createOrgEmployee(req: OrgRequest, res: Response): Promise
     } else {
       // A caller-supplied module list (Staff/Intern) can only grant modules
       // the org actually has enabled — never trust the client alone here.
+      // A sub-section key (e.g. "CARS.BUYER") is allowed whenever its parent
+      // module ("CARS") is enabled — the org's enabledModules list never
+      // contains the dotted sub-key itself.
+      const isAllowedModuleKey = (m: string) => orgModules.includes(m) || orgModules.includes(m.split(".")[0]);
       moduleKeys = modules && modules.length > 0
-        ? modules.filter((m) => orgModules.includes(m))
+        ? modules.filter(isAllowedModuleKey)
         : [...preset.defaultModules];
     }
 

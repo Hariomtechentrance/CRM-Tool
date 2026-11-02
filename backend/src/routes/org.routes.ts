@@ -16,6 +16,7 @@ import {
   listMembers,
   updateMemberRole,
   removeMember,
+  resetMemberPassword,
   requestOrgModule,
   listOrgModuleRequests,
   createOrgEmployee,
@@ -45,6 +46,7 @@ router.get("/current/members/invites", requireOrgContext, listPendingInvites);
 router.post("/current/members/invites/:inviteId/resend", requireOrgContext, resendInvite);
 router.delete("/current/members/invites/:inviteId", requireOrgContext, cancelInvite);
 router.patch("/current/members/:memberId/role", requireOrgContext, updateMemberRole);
+router.patch("/current/members/:memberId/password", requireOrgContext, resetMemberPassword);
 router.delete("/current/members/:memberId", requireOrgContext, removeMember);
 router.post("/current/module-requests", requireOrgContext, requestOrgModule);
 router.get("/current/module-requests", requireOrgContext, listOrgModuleRequests);

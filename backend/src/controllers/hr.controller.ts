@@ -273,9 +273,13 @@ export async function createEmployeeLogin(req: OrgRequest, res: Response): Promi
       where: { id: req.organizationId! }, select: { enabledModules: true },
     });
     const orgModules = org?.enabledModules ?? [];
+    // A sub-section key (e.g. "CARS.BUYER") is allowed whenever its parent
+    // module ("CARS") is enabled — enabledModules never contains the dotted
+    // sub-key itself.
+    const isAllowedModuleKey = (m: string) => orgModules.includes(m) || orgModules.includes(m.split(".")[0]);
     let moduleKeys: string[] = preset.defaultModules === "ALL_ENABLED"
       ? orgModules
-      : (modules && modules.length > 0 ? modules.filter((m) => orgModules.includes(m)) : [...preset.defaultModules]);
+      : (modules && modules.length > 0 ? modules.filter(isAllowedModuleKey) : [...preset.defaultModules]);
     if ((jobRole === "PROJECT_MANAGER" || jobRole === "EXECUTIVE") && orgModules.includes("WBA") && !moduleKeys.includes("WBA")) {
       moduleKeys = [...moduleKeys, "WBA"];
     }
