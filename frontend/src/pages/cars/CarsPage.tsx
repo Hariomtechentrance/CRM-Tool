@@ -2797,7 +2797,6 @@ export default function CarsPage() {
             })() : []),
             ...(tab === "vehicles" || tab === "warranty" ? [
               { label: "Total Vehicles", value: stats.totalVehicles, color: "#38bdf8", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
-              { label: "In Stock", value: stats.inStock, color: "#818cf8", onClick: () => { setTab("vehicles"); setStatusFilter("IN_STOCK"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
               { label: "Sold", value: stats.sold, color: "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter("SOLD"); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
               { label: "Insurance Due (30d)", value: stats.expiringSoon, color: stats.expiringSoon > 0 ? "#f87171" : "#4ade80", onClick: () => { setTab("vehicles"); setStatusFilter(""); setNotContactedFilter(false); setContactedFilter(false); setNotContactedSince(""); } },
             ] : []),
@@ -2851,7 +2850,7 @@ export default function CarsPage() {
           {tab !== "vehicles" && LEAD_STATUSES.map(s => <option key={s} value={s}>{LEAD_STATUS[s].label}</option>)}
           {tab === "vehicles" && <option value="__ORIGIN_BUYER__">From Buyer Lead</option>}
           {tab === "vehicles" && <option value="__ORIGIN_SELLER__">From Seller Lead</option>}
-          {tab === "vehicles" && <option value="__ORIGIN_DIRECT__">Direct entry (no lead)</option>}
+          {tab === "vehicles" && <option value="__ORIGIN_DIRECT__">New</option>}
           {tab === "leads" && <option value="__NOT_CONTACTED__">Not Contacted</option>}
           {tab === "leads" && <option value="__CONTACTED__">Contacted (Lead Status set)</option>}
         </select>
