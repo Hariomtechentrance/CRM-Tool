@@ -4111,6 +4111,15 @@ enum CarLeadStage {
   CNR
   BUSY
   PRODUCT_NOT_FOUND
+  // Seller-side pipeline (Shreya Cars' own vehicle-acquisition process) —
+  // CNR above is shared with Buyer leads as the common "couldn't reach them"
+  // call outcome; these six are seller-only.
+  ENQUIRY
+  VALUATION
+  INSPECTION
+  OFFER_MADE
+  DOCUMENTATION
+  ACQUIRED
 }
 
 enum CarRegistrationPref {

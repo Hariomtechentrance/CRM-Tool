@@ -148,7 +148,7 @@ const carLeadSchema = z.object({
   status: z.enum(["NEW", "HOT", "WARM", "COLD", "URGENT", "CONTACTED", "NOT_INTERESTED", "CONVERTED", "LOST"]).default("NEW"),
   // "Lead Status" pipeline filter — separate from `status` ("Lead Rating")
   // above, per the client's two-filter tracking sheet.
-  leadStage: z.enum(["SEARCHING_CAR", "DETAILS_SENT", "TEST_DRIVE_PLANNED", "TEST_DRIVE_DONE", "IN_NEGOTIATION", "BOOKED", "CNR", "BUSY", "PRODUCT_NOT_FOUND"]).default("SEARCHING_CAR"),
+  leadStage: z.enum(["SEARCHING_CAR", "DETAILS_SENT", "TEST_DRIVE_PLANNED", "TEST_DRIVE_DONE", "IN_NEGOTIATION", "BOOKED", "CNR", "BUSY", "PRODUCT_NOT_FOUND", "ENQUIRY", "VALUATION", "INSPECTION", "OFFER_MADE", "DOCUMENTATION", "ACQUIRED"]).optional(),
   notes: z.string().optional(),
   isDoNotCall: z.boolean().optional(),
   testDriveDone: z.boolean().optional(),
@@ -429,7 +429,10 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const data = parsed.data;
     if (!(await assertCarsSection(req, res, data.leadType as CarsSection))) return;
-    if (CAR_LEAD_FOLLOWUP_REQUIRED_STAGES.has(data.leadStage) && !data.nextFollowUpDate) {
+    // Buyer and Seller leads have their own pipeline — default each to its
+    // own first stage rather than one shared default.
+    const leadStage = data.leadStage ?? (data.leadType === "SELLER" ? "ENQUIRY" : "SEARCHING_CAR");
+    if (CAR_LEAD_FOLLOWUP_REQUIRED_STAGES.has(leadStage) && !data.nextFollowUpDate) {
       badRequest(res, "A next follow-up date is required for this call outcome", { nextFollowUpDate: ["Required when Lead Status is CNR, Busy, or Product Not Found"] });
       return;
     }
@@ -462,7 +465,7 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
         assignedToId: data.assignedToLabel?.trim() ? undefined : (data.assignedToId || undefined),
         assignedToLabel: data.assignedToLabel?.trim() ? up(data.assignedToLabel) : undefined,
         status: data.status,
-        leadStage: data.leadStage,
+        leadStage,
         notes: data.notes || undefined,
         isDoNotCall: data.isDoNotCall ?? false,
         testDriveDone: data.testDriveDone ?? false,

@@ -52,8 +52,20 @@ const LEAD_STAGE: Record<string, { label: string; color: string; bg: string }> =
   CNR:                  { label: "CNR",            color: "#f87171", bg: "#450a0a" },
   BUSY:                 { label: "Busy",           color: "#f472b6", bg: "#500724" },
   PRODUCT_NOT_FOUND:    { label: "Product Not Found", color: "#9ca3af", bg: "#374151" },
+  // Seller-only pipeline (CNR above is shared with Buyer as the common
+  // "couldn't reach them" call outcome).
+  ENQUIRY:              { label: "Enquiry",       color: "#818cf8", bg: "#1e1b4b" },
+  VALUATION:            { label: "Valuation",     color: "#60a5fa", bg: "#1e3a5f" },
+  INSPECTION:           { label: "Inspection",    color: "#fbbf24", bg: "#451a03" },
+  OFFER_MADE:           { label: "Offer Made",    color: "#fb923c", bg: "#431407" },
+  DOCUMENTATION:        { label: "Documentation", color: "#a78bfa", bg: "#2e1065" },
+  ACQUIRED:             { label: "Acquired",      color: "#4ade80", bg: "#14532d" },
 };
-const LEAD_STAGES = Object.keys(LEAD_STAGE);
+// Pickable (non-legacy) stage lists per lead type — BUSY/PRODUCT_NOT_FOUND
+// stay in LEAD_STAGE only so an existing lead on one of those still renders
+// its badge correctly, same as before; CNR is offered on both.
+const BUYER_LEAD_STAGES = ["SEARCHING_CAR", "DETAILS_SENT", "TEST_DRIVE_PLANNED", "TEST_DRIVE_DONE", "IN_NEGOTIATION", "BOOKED", "CNR"];
+const SELLER_LEAD_STAGES = ["ENQUIRY", "VALUATION", "INSPECTION", "OFFER_MADE", "DOCUMENTATION", "ACQUIRED", "CNR"];
 
 // Matches the client's own tracking sheet — RS, DS and CTE are their exact
 // shorthand (not spelled out further since even they use them as-is).
@@ -517,7 +529,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
     hasExchangeVehicle: lead?.hasExchangeVehicle ?? false,
     tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? "", sourceOther: lead?.sourceOther ?? "",
     status: lead?.status ?? "NEW", notes: lead?.notes ?? "",
-    leadStage: lead?.leadStage ?? "SEARCHING_CAR",
+    leadStage: lead?.leadStage ?? (isNewSellerLead ? "ENQUIRY" : "SEARCHING_CAR"),
     isDoNotCall: lead?.isDoNotCall ?? false,
     testDriveDone: lead?.testDriveDone ?? false,
     bookingDone: lead?.bookingDone ?? false,
@@ -816,8 +828,9 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
               {/* BUSY / PRODUCT_NOT_FOUND removed from the pickable list — still
                   valid LEAD_STAGE entries (so any existing lead already on one
                   of those stages still renders its badge correctly elsewhere),
-                  just no longer offered here. */}
-              {LEAD_STAGES.filter(s => s !== "BUSY" && s !== "PRODUCT_NOT_FOUND").map(s => <option key={s} value={s}>{LEAD_STAGE[s].label}</option>)}
+                  just no longer offered here. Buyer and Seller leads each get
+                  their own pipeline (shopping stages vs. acquisition stages). */}
+              {(form.leadType === "SELLER" ? SELLER_LEAD_STAGES : BUYER_LEAD_STAGES).map(s => <option key={s} value={s}>{LEAD_STAGE[s].label}</option>)}
             </select>
           </div>
         </div>
@@ -2877,7 +2890,7 @@ export default function CarsPage() {
         {(tab === "leads" || tab === "sellerleads") && (
           <select style={S.inp} value={leadStageFilter} onChange={e => setLeadStageFilter(e.target.value)}>
             <option value="">All stages</option>
-            {LEAD_STAGES.map(s => <option key={s} value={s}>{LEAD_STAGE[s].label}</option>)}
+            {(tab === "sellerleads" ? SELLER_LEAD_STAGES : BUYER_LEAD_STAGES).map(s => <option key={s} value={s}>{LEAD_STAGE[s].label}</option>)}
           </select>
         )}
         {tab === "leads" && notContactedFilter && (
