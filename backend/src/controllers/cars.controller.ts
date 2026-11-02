@@ -6,6 +6,7 @@ import { ok, created, badRequest, notFound, forbidden, serverError, conflict } f
 import { assertCarsSection, hasCarsSectionAccess, hasAnyCarsSectionAccess, CarsSection } from "../middleware/requireModuleAccess";
 import { bustCache } from "../middleware/cacheMiddleware";
 import { writeAuditLog, getIp } from "../utils/auditLog";
+import { isShreyaCarsOrgId } from "../utils/shreyaCarsOrg";
 import { MemberRole, Prisma } from "@prisma/client";
 
 const db = () => (prisma as any);
@@ -362,6 +363,16 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
     } else {
       if (!(await assertCarsSection(req, res, "BUYER"))) return;
       where.leadType = "BUYER";
+    }
+    // Shreya Cars: several logins are shared section accounts (Buyer
+    // Section, Seller Section, Buyer & Seller Section, ...), not personal
+    // ones — so "assigned to me" has to be enforced server-side rather than
+    // left as an optional filter. Only the Owner sees the full pool;
+    // everyone else (including Manager-role logins) only ever sees leads
+    // already assigned to their own account. Overrides any assignedToId the
+    // request tried to set, so it can't be bypassed.
+    if (await isShreyaCarsOrgId(req.organizationId!)) {
+      if (req.memberRole !== MemberRole.OWNER) where.assignedToId = req.userId;
     }
     if (search) {
       where.OR = [
