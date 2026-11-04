@@ -14,6 +14,20 @@ export function isWBAOrg(org?: OrganizationSummary | null): boolean {
   );
 }
 
+/**
+ * Shreya Cars — resilient id/slug/name match, same pattern as isWBAOrg.
+ * See backend/src/utils/shreyaCarsOrg.ts for the server-side enforcement
+ * this UI hint mirrors.
+ */
+export function isShreyaCarsOrg(org?: OrganizationSummary | null): boolean {
+  if (!org) return false;
+  return (
+    org.id === "cmtwopdf700002tgratd6cymj" ||
+    (org.slug ?? "").toLowerCase() === "shreya-cars" ||
+    (org.name ?? "").trim().toLowerCase() === "shreya cars"
+  );
+}
+
 // WBA: assigning a lead/project to an employee is restricted to this one
 // person, not a role — matches the same check enforced server-side in
 // backend/src/utils/wbaOrg.ts (the UI hint here is cosmetic; the API call

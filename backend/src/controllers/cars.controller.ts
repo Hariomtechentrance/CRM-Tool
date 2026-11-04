@@ -411,6 +411,19 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
   } catch (e) { serverError(res, e); }
 }
 
+// Shreya Cars: the listCarLeads restriction (only Owner sees everyone's
+// leads) would otherwise be bypassable by reaching a lead directly by id —
+// every per-lead endpoint (get/update/delete/booking/delivery/activities/
+// convert) has to deny a non-Owner login the same way for a lead that isn't
+// assigned to them, not just the list view. Returns true if the caller is
+// allowed to proceed; on false it has already written the response.
+async function assertShreyaCarsLeadAccess(req: OrgRequest, res: Response, lead: { assignedToId: string | null }): Promise<boolean> {
+  if (!(await isShreyaCarsOrgId(req.organizationId!))) return true;
+  if (req.memberRole === MemberRole.OWNER || lead.assignedToId === req.userId) return true;
+  notFound(res, "Lead not found");
+  return false;
+}
+
 export async function getCarLead(req: OrgRequest, res: Response): Promise<void> {
   try {
     const lead = await db().carLead.findFirst({
@@ -419,6 +432,7 @@ export async function getCarLead(req: OrgRequest, res: Response): Promise<void> 
     });
     if (!lead) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, lead))) return;
     ok(res, lead);
   } catch (e) { serverError(res, e); }
 }
@@ -508,9 +522,16 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
     const existing = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, existing.leadType as CarsSection))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, existing))) return;
     const parsed = carLeadSchema.partial().safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const data = parsed.data;
+    // Shreya Cars: reassigning a lead to a different salesperson is Owner-
+    // only — a staff login can update their own lead's status/notes/follow-
+    // up freely, but not who it's assigned to.
+    if ((await isShreyaCarsOrgId(req.organizationId!)) && req.memberRole !== MemberRole.OWNER && (data.assignedToId !== undefined || data.assignedToLabel !== undefined)) {
+      forbidden(res, "Only an Admin can reassign a lead to a different salesperson"); return;
+    }
     // Changing leadType itself isn't a normal edit path, but guard it anyway
     // so a Buyer-only user can't flip a lead to SELLER (or vice versa) as a
     // way around not having that section.
@@ -572,6 +593,7 @@ export async function deleteCarLead(req: OrgRequest, res: Response): Promise<voi
     const existing = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!existing) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, existing.leadType as CarsSection))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, existing))) return;
     await db().carLead.delete({ where: { id: existing.id } });
     bustCache(req.organizationId!, "/api/cars");
     ok(res, null, "Lead deleted");
@@ -585,6 +607,7 @@ export async function upsertCarBooking(req: OrgRequest, res: Response): Promise<
     const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, lead))) return;
 
     const parsed = carBookingSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
@@ -607,6 +630,7 @@ export async function upsertCarDelivery(req: OrgRequest, res: Response): Promise
     const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, lead))) return;
 
     const parsed = carDeliverySchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
@@ -642,6 +666,7 @@ export async function listCarLeadActivities(req: OrgRequest, res: Response): Pro
     const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, lead))) return;
     const activities = await db().carLeadActivity.findMany({
       where: { carLeadId: lead.id },
       orderBy: { createdAt: "desc" },
@@ -656,6 +681,7 @@ export async function addCarLeadActivity(req: OrgRequest, res: Response): Promis
     const lead = await db().carLead.findFirst({ where: { id: req.params.id, organizationId: req.organizationId! } });
     if (!lead) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, lead))) return;
 
     const parsed = activityLogSchema.safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
@@ -1102,6 +1128,7 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
     // Vehicles & Insurance (creating the Vehicle + first policy) — needs both.
     if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
     if (!(await assertCarsSection(req, res, "VEHICLES_INSURANCE"))) return;
+    if (!(await assertShreyaCarsLeadAccess(req, res, lead))) return;
     if (lead.convertedVehicleId) { conflict(res, "This lead was already converted"); return; }
 
     const vParsed = vehicleSchema.safeParse(req.body.vehicle);

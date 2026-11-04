@@ -10,6 +10,7 @@ import CustomFieldRenderer from "@/components/CustomFieldRenderer";
 import DocumentsPanel from "@/components/DocumentsPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuthStore } from "@/stores/authStore";
+import { isShreyaCarsOrg } from "@/lib/org";
 import {
   VEHICLE_MAKES, modelsForMake, variantsForModel,
   FUEL_TYPES, TRANSMISSION_TYPES, INSURANCE_PROVIDERS, yearOptions,
@@ -637,8 +638,13 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   const [assigneeLabels, setAssigneeLabels] = useState<string[]>([]);
   const [sourceLabels, setSourceLabels] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const role = useAuthStore(s => s.activeOrg?.role);
+  const { activeOrg } = useAuthStore();
+  const role = activeOrg?.role;
   const canDelete = !!lead && !!role && !["STAFF", "VIEWER"].includes(role);
+  // Shreya Cars: reassigning a lead to a different salesperson is Owner-
+  // only — matches the server-side rejection in updateCarLead. Cosmetic
+  // only; the API call is what actually enforces it.
+  const canReassign = !isShreyaCarsOrg(activeOrg) || role === "OWNER";
   // Older buyer-only preference fields + imported custom fields are real but
   // rarely touched day-to-day — collapsed by default so the curated field
   // set stays the first thing anyone sees on Edit; a chevron reveals them.
@@ -863,9 +869,16 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 
           <div>
             <label style={S.label}>Assign To{form.leadType === "BUYER" ? " *" : ""}</label>
-            <AssignToSelect assignedToId={form.assignedToId} assignedToLabel={form.assignedToLabel}
-              employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
-              onChange={next => setForm({ ...form, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />
+            {canReassign ? (
+              <AssignToSelect assignedToId={form.assignedToId} assignedToLabel={form.assignedToLabel}
+                employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
+                onChange={next => setForm({ ...form, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />
+            ) : (
+              <div style={{ ...S.inp, width: "100%", color: "var(--text-ghost)" }}>
+                {form.assignedToLabel || employees.find(e => e.id === form.assignedToId)?.name || "Unassigned"}
+                <span style={{ fontSize: 10, marginLeft: 6 }}>(Only an Admin can reassign)</span>
+              </div>
+            )}
           </div>
           <div className="sm:col-span-2">
             <label style={S.label}>Next Follow-up Date</label>
