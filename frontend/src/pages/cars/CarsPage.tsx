@@ -2539,6 +2539,7 @@ export default function CarsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [leadOriginFilter, setLeadOriginFilter] = useState(""); // Vehicles & Insurance tab: BUYER | SELLER | DIRECT
   const [leadStageFilter, setLeadStageFilter] = useState("");
+  const [assignedToFilter, setAssignedToFilter] = useState(""); // Buyer/Seller Leads tabs: see how many leads a specific person has
   const [notContactedFilter, setNotContactedFilter] = useState(false);
   const [contactedFilter, setContactedFilter] = useState(false);
   // "" = backend's default recency window (currently 60 days), "all" = every
@@ -2722,7 +2723,7 @@ export default function CarsPage() {
       const statsPromise = needsStats ? api.get(`/cars/stats?${statsParams}`) : Promise.resolve(null);
 
       if (tab === "leads" || tab === "sellerleads") {
-        const filterSig = `${tab}|${search}|${statusFilter}|${leadStageFilter}|${notContactedFilter}|${contactedFilter}|${notContactedSince}`;
+        const filterSig = `${tab}|${search}|${statusFilter}|${leadStageFilter}|${assignedToFilter}|${notContactedFilter}|${contactedFilter}|${notContactedSince}`;
         let page = leadsPage;
         if (filterSig !== prevLeadsFilterSig.current) {
           prevLeadsFilterSig.current = filterSig;
@@ -2731,6 +2732,7 @@ export default function CarsPage() {
         }
         const params = new URLSearchParams();
         if (search) params.set("search", search);
+        if (assignedToFilter) params.set("assignedToId", assignedToFilter);
         if (contactedFilter) {
           params.set("contacted", "true");
         } else if (notContactedFilter) {
@@ -2812,7 +2814,7 @@ export default function CarsPage() {
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [tab, search, statusFilter, leadOriginFilter, leadStageFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, preOrdersPage, salesPeriod, insuranceFrom, insuranceTo, dndPage, canSeeBuyer, canSeeSeller, canSeeInsurance]);
+  }, [tab, search, statusFilter, leadOriginFilter, leadStageFilter, assignedToFilter, notContactedFilter, contactedFilter, notContactedSince, leadsPage, preOrdersPage, salesPeriod, insuranceFrom, insuranceTo, dndPage, canSeeBuyer, canSeeSeller, canSeeInsurance]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -2969,6 +2971,12 @@ export default function CarsPage() {
             {(tab === "sellerleads" ? SELLER_LEAD_STAGES : BUYER_LEAD_STAGES).map(s => <option key={s} value={s}>{LEAD_STAGE[s].label}</option>)}
           </select>
         )}
+        {(tab === "leads" || tab === "sellerleads") && (
+          <select style={S.inp} value={assignedToFilter} onChange={e => setAssignedToFilter(e.target.value)}>
+            <option value="">All salespeople</option>
+            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+          </select>
+        )}
         {tab === "leads" && notContactedFilter && (
           <div className="flex items-center gap-2">
             <span style={{ fontSize: 11, color: "var(--text-ghost)" }}>Created since</span>
@@ -2990,6 +2998,11 @@ export default function CarsPage() {
             <option value="this_year">Sales: This Year</option>
             <option value="all">Sales: All Time</option>
           </select>
+        )}
+        {(tab === "leads" || tab === "sellerleads") && (
+          <span className="text-xs ml-auto" style={{ color: "var(--text-ghost)" }}>
+            {leadsTotal} lead{leadsTotal !== 1 ? "s" : ""}{assignedToFilter ? ` assigned to ${employees.find(e => e.id === assignedToFilter)?.name ?? ""}` : ""}
+          </span>
         )}
       </div>
       )}
