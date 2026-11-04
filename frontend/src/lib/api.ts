@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { useAuthStore } from "@/stores/authStore";
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000/api";
 
@@ -54,6 +55,17 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   const orgId = localStorage.getItem("activeOrgId");
   if (orgId) config.headers["x-organization-id"] = orgId;
   config.headers["x-request-timestamp"] = String(Date.now());
+  // Belt-and-suspenders alongside the httpOnly bos_access cookie: iOS
+  // Safari (and every iOS browser, all WebKit) applies Intelligent Tracking
+  // Prevention to cross-site cookies by default, which can silently block
+  // or evict SameSite=None cookies — frontend and backend are on different
+  // domains, so that's exactly our cookie. The backend's auth middleware
+  // already prefers this header over the cookie when both are present
+  // (backend/src/middleware/auth.ts), so this keeps a session alive on
+  // devices/browsers that drop the cookie, without storing the token
+  // anywhere persistent — it's only ever read from in-memory store state.
+  const { accessToken } = useAuthStore.getState();
+  if (accessToken && !config.headers.Authorization) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
 
@@ -102,11 +114,16 @@ function waitForOtherTabRefresh(): Promise<void> {
 async function performRefresh(): Promise<boolean> {
   // Cookie carries the refresh token; body is empty. /auth/refresh is behind
   // replayGuard, hence the timestamp header. The response's Set-Cookie
-  // headers refresh bos_access/bos_refresh directly — nothing to store.
-  await axios.post(`${BASE_URL}/auth/refresh`, {}, {
+  // headers refresh bos_access/bos_refresh directly for cookie-capable
+  // clients; the body also carries the new accessToken, which is stored
+  // here purely to keep the Authorization-header fallback above valid past
+  // the first refresh (see the request interceptor's comment).
+  const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {}, {
     withCredentials: true,
     headers: { "X-Request-Timestamp": String(Date.now()) },
   });
+  const newAccessToken = data?.data?.accessToken;
+  if (newAccessToken) useAuthStore.getState().setAccessToken(newAccessToken);
   return true;
 }
 

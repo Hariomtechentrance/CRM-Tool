@@ -25,6 +25,7 @@ interface AuthState {
   employeeProfile: EmployeeProfile | null;
 
   setAuth: (data: AuthResponse) => void;
+  setAccessToken: (token: string) => void;
   setActiveOrg: (org: OrganizationSummary) => void;
   addOrganization: (org: OrganizationSummary) => void;
   logout: () => Promise<void>;
@@ -78,6 +79,12 @@ export const useAuthStore = create<AuthState>()(
           employeeProfile: null, // always reset on login — prevents stale orgRole from previous session
         });
       },
+
+      // Keeps the in-memory accessToken (used as an Authorization: Bearer
+      // fallback by the api.ts request interceptor — see there for why)
+      // fresh after a token refresh, which rotates bos_access but doesn't
+      // otherwise touch this store.
+      setAccessToken: (token: string) => set({ accessToken: token }),
 
       setActiveOrg: (org: OrganizationSummary) => {
         localStorage.setItem("activeOrgId", org.id);
