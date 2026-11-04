@@ -499,6 +499,65 @@ function AssignToSelect({ assignedToId, assignedToLabel, employees, labels, onCh
   );
 }
 
+// "Lead Source" — the fixed SOURCES enum plus a growing, org-managed list of
+// quick-add labels (Organization.carsSourceLabels), same idea as Assign To
+// above. Picking a label stores source="OTHER" + sourceOther=<label> under
+// the hood, so no schema migration is ever needed as the list grows. Picking
+// the raw "Other" option still shows a free-text box for a genuine one-off
+// that isn't worth saving to the list.
+function SourceSelect({ source, sourceOther, labels, onChange, onAddLabel }: {
+  source: string; sourceOther: string; labels: string[];
+  onChange: (next: { source: string; sourceOther: string }) => void;
+  onAddLabel: (name: string) => Promise<void>;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [busy, setBusy] = useState(false);
+  // A saved label and raw "Other" both store source="OTHER" — only treat it
+  // as a picked label when sourceOther exactly matches one on the list;
+  // anything else under OTHER is a genuine ad-hoc entry needing the free-text box.
+  const matchedLabel = source === "OTHER" && labels.includes(sourceOther) ? sourceOther : null;
+  const value = matchedLabel ? `label:${matchedLabel}` : source;
+
+  function handleSelect(v: string) {
+    if (v.startsWith("label:")) onChange({ source: "OTHER", sourceOther: v.slice(6) });
+    else onChange({ source: v, sourceOther: v === "OTHER" ? sourceOther : "" });
+  }
+
+  async function addName() {
+    const name = newName.trim();
+    if (!name || busy) return;
+    setBusy(true);
+    try {
+      await onAddLabel(name);
+      onChange({ source: "OTHER", sourceOther: name.toUpperCase() });
+      setNewName(""); setAdding(false);
+    } catch { /* onAddLabel's caller surfaces the error */ }
+    setBusy(false);
+  }
+
+  return (
+    <div>
+      <select style={{ ...S.inp, width: "100%" }} value={value} onChange={e => handleSelect(e.target.value)}>
+        <option value="" disabled>Select source…</option>
+        {Object.entries(SOURCES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        {labels.map(name => <option key={name} value={`label:${name}`}>{name}</option>)}
+      </select>
+      {adding ? (
+        <div className="flex gap-1" style={{ marginTop: 6 }}>
+          <input style={{ ...S.inp, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="e.g. Google" autoFocus
+            value={newName} onChange={e => setNewName(sanitizeAlpha(e.target.value))}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addName(); } }} />
+          <button type="button" onClick={addName} disabled={busy || !newName.trim()} style={{ ...S.ghost, padding: "0 8px", fontSize: 11 }}>Add</button>
+          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} style={{ ...S.ghost, padding: "0 8px", fontSize: 11 }}>✕</button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setAdding(true)} style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 11, cursor: "pointer", padding: "4px 0 0", textAlign: "left" }}>+ Add source</button>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Add / Edit Lead modal
 // ═══════════════════════════════════════════════════════════════
@@ -576,6 +635,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   const [err, setErr] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assigneeLabels, setAssigneeLabels] = useState<string[]>([]);
+  const [sourceLabels, setSourceLabels] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const role = useAuthStore(s => s.activeOrg?.role);
   const canDelete = !!lead && !!role && !["STAFF", "VIEWER"].includes(role);
@@ -593,11 +653,17 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   useEffect(() => {
     api.get("/organizations/current/directory").then(r => setEmployees(r.data.data ?? [])).catch(() => {});
     api.get("/cars/assignee-labels").then(r => setAssigneeLabels(r.data.data ?? [])).catch(() => {});
+    api.get("/cars/source-labels").then(r => setSourceLabels(r.data.data ?? [])).catch(() => {});
   }, []);
 
   async function addAssigneeLabel(name: string) {
     const r = await api.post("/cars/assignee-labels", { name });
     setAssigneeLabels(r.data.data ?? []);
+  }
+
+  async function addSourceLabel(name: string) {
+    const r = await api.post("/cars/source-labels", { name });
+    setSourceLabels(r.data.data ?? []);
   }
 
   async function save() {
@@ -681,13 +747,10 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 
           <div>
             <label style={S.label}>Lead Source *</label>
-            <select style={{ ...S.inp, width: "100%" }} value={form.source}
-              onChange={e => { const v = e.target.value; setForm({ ...form, source: v, sourceOther: v === "OTHER" ? form.sourceOther : "" }); }}>
-              <option value="" disabled>Select source…</option>
-              {Object.entries(SOURCES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </select>
+            <SourceSelect source={form.source} sourceOther={form.sourceOther} labels={sourceLabels} onAddLabel={addSourceLabel}
+              onChange={next => setForm({ ...form, source: next.source, sourceOther: next.sourceOther })} />
           </div>
-          {form.source === "OTHER" ? (
+          {form.source === "OTHER" && !sourceLabels.includes(form.sourceOther) ? (
             <div>
               <label style={S.label}>Specify Source *</label>
               <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. Newspaper Ad" value={form.sourceOther} onChange={e => setForm({ ...form, sourceOther: sanitizeAlpha(e.target.value) })} />

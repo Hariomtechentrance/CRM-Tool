@@ -12,6 +12,7 @@ import {
   getCarsStats, getSalesReport, getMonthlyLeadReport, listWarranties,
   listHistoricalStats, bulkImportHistoricalStats, deleteHistoricalStat,
   listCarsAssigneeLabels, addCarsAssigneeLabel,
+  listCarsSourceLabels, addCarsSourceLabel,
 } from "../controllers/cars.controller";
 
 const router = Router();
@@ -30,6 +31,8 @@ router.get("/sales-report",          requireAnyCarsSection(), getSalesReport);
 router.get("/leads/monthly-report",  requireAnyCarsSection(), getMonthlyLeadReport);
 router.get("/assignee-labels",       requireAnyCarsSection(), listCarsAssigneeLabels);
 router.post("/assignee-labels",      requireAnyCarsSection(), addCarsAssigneeLabel);
+router.get("/source-labels",         requireAnyCarsSection(), listCarsSourceLabels);
+router.post("/source-labels",        requireAnyCarsSection(), addCarsSourceLabel);
 
 router.get("/historical-stats",              requireCarsSection("VEHICLES_INSURANCE"), listHistoricalStats);
 router.post("/historical-stats/bulk-import", requireCarsSection("VEHICLES_INSURANCE"), bulkImportHistoricalStats);

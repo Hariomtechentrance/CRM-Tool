@@ -158,6 +158,12 @@ model Organization {
   // labels any Cars-section staff can add on the fly (not real Employee
   // records, no login/role implications). See cars.controller.ts.
   carsAssigneeLabels String[]             @default([])
+  // Same idea as carsAssigneeLabels, for the "Lead Source" dropdown on a
+  // Buyer/Seller Lead — a quick-add label selecting it stores
+  // CarLead.source="OTHER" + sourceOther=<this label> under the hood, so no
+  // enum migration is needed as the list grows. See cars.controller.ts
+  // listCarsSourceLabels/addCarsSourceLabel.
+  carsSourceLabels   String[]             @default([])
   isActive           Boolean              @default(true)
   plan               String               @default("FREE")
   planExpiresAt      DateTime?

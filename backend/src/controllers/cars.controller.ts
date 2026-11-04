@@ -1376,6 +1376,36 @@ export async function addCarsAssigneeLabel(req: OrgRequest, res: Response): Prom
   } catch (e) { serverError(res, e); }
 }
 
+// ── "Lead Source" quick-add labels ──────────────────────────────
+// Same idea as the Assign To labels above — any Cars-section staff can add
+// a new named source on the fly instead of being stuck with the fixed
+// CarLeadSource enum. Selecting one stores source="OTHER" +
+// sourceOther=<this label>, so no enum migration is ever needed as the
+// list grows. See Organization.carsSourceLabels.
+export async function listCarsSourceLabels(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (!(await hasAnyCarsSectionAccess(req))) { forbidden(res, "You do not have access to the Cars module."); return; }
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { carsSourceLabels: true } });
+    ok(res, org?.carsSourceLabels ?? []);
+  } catch (e) { serverError(res, e); }
+}
+
+export async function addCarsSourceLabel(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    if (!(await hasAnyCarsSectionAccess(req))) { forbidden(res, "You do not have access to the Cars module."); return; }
+    const parsed = assigneeLabelSchema.safeParse(req.body);
+    if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
+    const name = up(parsed.data.name)!;
+    const org = await prisma.organization.findUnique({ where: { id: req.organizationId! }, select: { carsSourceLabels: true } });
+    const existing = org?.carsSourceLabels ?? [];
+    const next = existing.includes(name) ? existing : [...existing, name];
+    if (next !== existing) {
+      await prisma.organization.update({ where: { id: req.organizationId! }, data: { carsSourceLabels: next } });
+    }
+    created(res, next);
+  } catch (e) { serverError(res, e); }
+}
+
 // Header aliases for a real client's vehicle+insurance tracking sheet
 // (NAME/MOB NUMBER/REG NO/DATE OF REG/ADDRESS/ENG NO/CHASSIS NO/MAKE/
 // MODEL-VAR/FUEL/INS TYPE/INS CO NAME/IDV/OD/NCB/PREM/EXPIRY-RENEWAL/
