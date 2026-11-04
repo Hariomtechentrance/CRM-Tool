@@ -6,6 +6,7 @@ import { ok, created, badRequest, notFound, forbidden, serverError } from "../ut
 import { bustCache } from "../middleware/cacheMiddleware";
 import { isWBAOrgId, isWBAAssignmentManager, LEAD_DEFAULT_FOLLOWUP_MS } from "../utils/wbaOrg";
 import { isDeployraOrgId, isDeployraSalesEmployee } from "../utils/deployraOrg";
+import { getEmployeeIdForUser } from "../utils/employeeLookup";
 import { MemberRole } from "@prisma/client";
 
 const db = () => (prisma as any);
@@ -100,7 +101,12 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
     if (city) where.city = city;
     if (assignedToId) where.assignedToId = assignedToId;
     if (myQueue === "true") {
-      where.assignedToId = req.userId;
+      // assignedToId stores the caller's Employee.id (set via the Assign To
+      // dropdown, sourced from the Employee directory), not their User.id —
+      // resolve it first or "My Queue" never matches anything they're
+      // actually assigned. Pre-existing bug, not introduced by the Deployra
+      // restriction below — fixed here since it's the same root cause.
+      where.assignedToId = (await getEmployeeIdForUser(req.userId, req.organizationId!)) ?? "__NO_EMPLOYEE_RECORD__";
       where.status = { notIn: ["WON", "LOST"] };
     }
     // "Due today" worklist: anything with a follow-up date at or before the end
@@ -160,7 +166,9 @@ export async function listLeads(req: OrgRequest, res: Response): Promise<void> {
     if (await isDeployraOrgId(req.organizationId!)) {
       const privilegedRole = req.memberRole === MemberRole.OWNER || req.memberRole === MemberRole.ADMIN || req.memberRole === MemberRole.MANAGER;
       if (!privilegedRole && !(await isDeployraSalesEmployee(req.userId, req.organizationId!))) {
-        where.assignedToId = req.userId;
+        // assignedToId stores Employee.id, not the caller's User.id —
+        // resolve it first or this never matches a real assignment.
+        where.assignedToId = (await getEmployeeIdForUser(req.userId, req.organizationId!)) ?? "__NO_EMPLOYEE_RECORD__";
       }
     }
 

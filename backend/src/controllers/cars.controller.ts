@@ -7,6 +7,7 @@ import { assertCarsSection, hasCarsSectionAccess, hasAnyCarsSectionAccess, CarsS
 import { bustCache } from "../middleware/cacheMiddleware";
 import { writeAuditLog, getIp } from "../utils/auditLog";
 import { isShreyaCarsOrgId } from "../utils/shreyaCarsOrg";
+import { getEmployeeIdForUser } from "../utils/employeeLookup";
 import { MemberRole, Prisma } from "@prisma/client";
 
 const db = () => (prisma as any);
@@ -372,7 +373,12 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
     // already assigned to their own account. Overrides any assignedToId the
     // request tried to set, so it can't be bypassed.
     if (await isShreyaCarsOrgId(req.organizationId!)) {
-      if (req.memberRole !== MemberRole.OWNER) where.assignedToId = req.userId;
+      if (req.memberRole !== MemberRole.OWNER) {
+        // assignedToId stores the caller's Employee.id (set via the Assign
+        // To dropdown), not their User.id — resolve it first or this never
+        // matches a real assignment. No linked Employee record = sees nothing.
+        where.assignedToId = (await getEmployeeIdForUser(req.userId, req.organizationId!)) ?? "__NO_EMPLOYEE_RECORD__";
+      }
     }
     if (search) {
       where.OR = [
@@ -419,7 +425,11 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
 // allowed to proceed; on false it has already written the response.
 async function assertShreyaCarsLeadAccess(req: OrgRequest, res: Response, lead: { assignedToId: string | null }): Promise<boolean> {
   if (!(await isShreyaCarsOrgId(req.organizationId!))) return true;
-  if (req.memberRole === MemberRole.OWNER || lead.assignedToId === req.userId) return true;
+  if (req.memberRole === MemberRole.OWNER) return true;
+  // assignedToId stores Employee.id, not the caller's User.id — resolve it
+  // first (see getEmployeeIdForUser) or this never matches a real assignment.
+  const employeeId = await getEmployeeIdForUser(req.userId, req.organizationId!);
+  if (employeeId && lead.assignedToId === employeeId) return true;
   notFound(res, "Lead not found");
   return false;
 }
