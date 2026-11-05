@@ -3,7 +3,7 @@ import { authenticate } from "../middleware/auth";
 import { requireOrgContext } from "../middleware/orgContext";
 import { requireCarsSection, requireAnyCarsSection } from "../middleware/requireModuleAccess";
 import {
-  listCarLeads, getCarLead, createCarLead, updateCarLead, deleteCarLead,
+  listCarLeads, getCarLead, createCarLead, updateCarLead, deleteCarLead, listCarLeadPhoneMatches,
   bulkImportCarLeads, convertCarLead, upsertCarBooking, upsertCarDelivery,
   listCarLeadActivities, addCarLeadActivity,
   listVehicles, getVehicle, createVehicle, updateVehicle, bulkImportVehicles,
@@ -41,6 +41,7 @@ router.delete("/historical-stats/:id",       requireCarsSection("VEHICLES_INSURA
 router.get("/leads",                 listCarLeads);
 router.post("/leads",                createCarLead);
 router.post("/leads/bulk-import",    bulkImportCarLeads);
+router.get("/leads/phone-matches",   requireAnyCarsSection(), listCarLeadPhoneMatches);
 router.get("/leads/:id",             getCarLead);
 router.patch("/leads/:id",           updateCarLead);
 router.delete("/leads/:id",          deleteCarLead);

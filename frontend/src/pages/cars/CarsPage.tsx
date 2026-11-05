@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
-  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2, Clock, Tag, MessageCircle,
+  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2, Clock, Tag, MessageCircle, ArrowLeftRight,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
@@ -145,6 +145,33 @@ interface CarLead {
   // Buyer-only: deal terms + delivery checklist, present once saved
   booking?: CarBooking | null;
   delivery?: CarDelivery | null;
+  // Same customer's lead in the other section (Buyer ↔ Seller), matched by
+  // phone number server-side — only the ones this login can open.
+  linkedLeads?: { id: string; leadType: string; name: string; car: string }[];
+}
+// GET /cars/leads/phone-matches — existing leads with the number being typed.
+interface PhoneMatch { id: string; leadType: string; name: string; car: string; assignedTo: string | null }
+// Contact details carried over when the same customer is added to the other section.
+type LeadSeed = {
+  name?: string; phone?: string; email?: string; location?: string; source?: string; sourceOther?: string;
+  interestedMake?: string; interestedModel?: string; assignedToId?: string; assignedToLabel?: string;
+};
+
+// The card badge for a customer who is also in the other section — click to
+// open that lead.
+function LinkedLeadChips({ lead, onOpen }: { lead: CarLead; onOpen: (id: string) => void }) {
+  if (!lead.linkedLeads?.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1" style={{ marginBottom: 10 }}>
+      {lead.linkedLeads.map(o => (
+        <button key={o.id} onClick={e => { e.stopPropagation(); onOpen(o.id); }}
+          title={`Open ${o.name}'s ${o.leadType === "SELLER" ? "Seller" : "Buyer"} lead`}
+          style={{ background: "#2e1065", color: "#c4b5fd", border: "none", padding: "2px 8px", borderRadius: 5, cursor: "pointer", fontSize: 10, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <ArrowLeftRight size={10} /> Also {o.leadType === "SELLER" ? "selling" : "buying"}{o.car ? `: ${tidyCase(o.car)}` : " a car"}
+        </button>
+      ))}
+    </div>
+  );
 }
 interface CarBooking {
   id: string; carPrice?: number; commission?: number; paymentType?: string;
@@ -562,14 +589,19 @@ function SourceSelect({ source, sourceOther, labels, onChange, onAddLabel }: {
 // ═══════════════════════════════════════════════════════════════
 // Add / Edit Lead modal
 // ═══════════════════════════════════════════════════════════════
-export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved, onConvert, onExchangeToSell }: {
+export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved, onConvert, onAddCounterpart, onOpenLead }: {
   lead: CarLead | null; defaultLeadType?: "BUYER" | "SELLER";
-  // Pre-fills a brand-new lead (lead must be null) — used when spinning off a
-  // Seller Lead from a Buyer's exchange car, so the customer's contact info
-  // and car details don't have to be retyped.
-  seedValues?: { name?: string; phone?: string; interestedMake?: string; interestedModel?: string };
+  // Pre-fills a brand-new lead (lead must be null) — used when the same
+  // customer is added to the other section (selling their car and buying
+  // another), so their contact details don't have to be retyped.
+  seedValues?: LeadSeed;
   onClose: () => void; onSaved: () => void; onConvert?: (lead: CarLead) => void;
-  onExchangeToSell?: (seed: { name: string; phone: string; interestedMake: string; interestedModel: string }) => void;
+  // Opens a new lead in the other section for this same customer, after
+  // this one has been saved.
+  onAddCounterpart?: (seed: { leadType: "BUYER" | "SELLER"; values: LeadSeed }) => void;
+  // Jumps to another existing lead (this customer's other-section lead, or
+  // a duplicate with the same number).
+  onOpenLead?: (id: string) => void;
 }) {
   // Default-prefilled fields for a brand-new Seller lead (Make, Model,
   // Transmission, Manufacturing Year) — speeds up data entry for the most
@@ -582,20 +614,20 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
 
   const [form, setForm] = useState({
     leadType: lead?.leadType ?? defaultLeadType ?? "BUYER",
-    name: lead?.name ?? seedValues?.name ?? "", phone: lead?.phone ?? seedValues?.phone ?? "", email: lead?.email ?? "",
+    name: lead?.name ?? seedValues?.name ?? "", phone: lead?.phone ?? seedValues?.phone ?? "", email: lead?.email ?? seedValues?.email ?? "",
     interestedMake: lead?.interestedMake ?? seedValues?.interestedMake ?? (isNewSellerLead ? DEFAULT_SELLER_MAKE : ""),
     interestedModel: lead?.interestedModel ?? seedValues?.interestedModel ?? (isNewSellerLead ? DEFAULT_SELLER_MODEL : ""),
     budgetMin: lead?.budgetMin?.toString() ?? "", budgetMax: lead?.budgetMax?.toString() ?? "",
     hasExchangeVehicle: lead?.hasExchangeVehicle ?? false,
-    tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? "", sourceOther: lead?.sourceOther ?? "",
+    tradeInVehicle: lead?.tradeInVehicle ?? "", source: lead?.source ?? seedValues?.source ?? "", sourceOther: lead?.sourceOther ?? seedValues?.sourceOther ?? "",
     status: lead?.status ?? "NEW", notes: lead?.notes ?? "",
     leadStage: lead?.leadStage ?? (isNewSellerLead ? "ENQUIRY" : "SEARCHING_CAR"),
     isDoNotCall: lead?.isDoNotCall ?? false,
     testDriveDone: lead?.testDriveDone ?? false,
     bookingDone: lead?.bookingDone ?? false,
-    assignedToId: lead?.assignedToId ?? "", assignedToLabel: lead?.assignedToLabel ?? "",
+    assignedToId: lead?.assignedToId ?? seedValues?.assignedToId ?? "", assignedToLabel: lead?.assignedToLabel ?? seedValues?.assignedToLabel ?? "",
     nextFollowUpDate: lead?.nextFollowUpDate ? lead.nextFollowUpDate.slice(0, 10) : "",
-    location: lead?.location ?? "",
+    location: lead?.location ?? seedValues?.location ?? "",
     // Buyer-only
     preferredYearFrom: lead?.preferredYearFrom?.toString() ?? "", preferredYearTo: lead?.preferredYearTo?.toString() ?? "",
     fuelPreferences: lead?.fuelPreferences?.join(", ") ?? "", transmissionPreferences: lead?.transmissionPreferences?.join(", ") ?? "",
@@ -673,48 +705,108 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
     setSourceLabels(r.data.data ?? []);
   }
 
+  // Who already has this phone number — a duplicate in this section, or this
+  // customer's lead in the other one (linked by phone automatically).
+  // A read-only lookup: nothing is saved until Save is pressed.
+  const [phoneMatches, setPhoneMatches] = useState<PhoneMatch[]>([]);
+  useEffect(() => {
+    if (form.phone.length !== 10) { setPhoneMatches([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/cars/leads/phone-matches?phone=${form.phone}`)
+        .then(r => setPhoneMatches(((r.data.data ?? []) as PhoneMatch[]).filter(m => m.id !== lead?.id)))
+        .catch(() => setPhoneMatches([]));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form.phone, lead?.id]);
+  const otherLeadType = form.leadType === "SELLER" ? "BUYER" : "SELLER";
+  const duplicateMatches = phoneMatches.filter(m => m.leadType === form.leadType);
+  const counterpartMatches = phoneMatches.filter(m => m.leadType === otherLeadType);
+
+  // What the form held when it opened — an edit only sends fields that differ
+  // from this (see persist).
+  const initialValues = useRef({ form, extraVehicles });
+  const toPayload = (f: typeof form, extras: typeof extraVehicles): Record<string, unknown> => ({
+    ...f,
+    budgetMin: f.budgetMin ? Number(f.budgetMin) : undefined,
+    budgetMax: f.budgetMax ? Number(f.budgetMax) : undefined,
+    nextFollowUpDate: f.nextFollowUpDate || undefined,
+    additionalInterestedVehicles: extras.filter(v => v.make || v.model),
+    preferredYearFrom: f.preferredYearFrom ? Number(f.preferredYearFrom) : undefined,
+    preferredYearTo: f.preferredYearTo ? Number(f.preferredYearTo) : undefined,
+    fuelPreferences: f.fuelPreferences ? f.fuelPreferences.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+    transmissionPreferences: f.transmissionPreferences ? f.transmissionPreferences.split(",").map(s => s.trim()).filter(Boolean) : undefined,
+    registrationPref: f.registrationPref || undefined,
+    purchasePlan: f.purchasePlan || undefined,
+    paymentPreference: f.paymentPreference || undefined,
+    mfgYear: f.mfgYear || undefined,
+    mfgMonth: f.mfgMonth ? Number(f.mfgMonth) : undefined,
+    regYear: f.regYear ? Number(f.regYear) : undefined,
+    regMonth: f.regMonth ? Number(f.regMonth) : undefined,
+    sellerInsuranceType: f.sellerInsuranceType || undefined,
+    insuranceValidTill: f.insuranceValidTill || undefined,
+    kms: f.kms ? Number(f.kms) : undefined,
+    showroomHistory: f.showroomHistory || undefined,
+    hypothecationStatus: f.hypothecationStatus || undefined,
+  });
+
   async function save() {
-    if (!form.name.trim()) { setErr("Name is required"); return; }
-    if (form.phone.length !== 10) { setErr("Phone number must be exactly 10 digits"); return; }
-    if (!form.source) { setErr("Lead Source is required"); return; }
-    if (form.source === "OTHER" && !form.sourceOther.trim()) { setErr("Please specify the lead source"); return; }
+    if (await persist()) { onSaved(); onClose(); }
+  }
+
+  // Same customer, other section: save this lead first so nothing typed here
+  // is lost, then open the other section's form with their details filled in
+  // (and, for an Admin, the same salesperson).
+  async function saveAndAddCounterpart() {
+    if (!onAddCounterpart || !(await persist())) return;
+    onSaved();
+    onAddCounterpart({
+      leadType: otherLeadType,
+      values: {
+        name: form.name, phone: form.phone, email: form.email, location: form.location,
+        source: form.source, sourceOther: form.sourceOther,
+        assignedToId: form.assignedToId, assignedToLabel: form.assignedToLabel,
+        interestedMake: "",
+        interestedModel: form.leadType === "BUYER" && form.hasExchangeVehicle ? form.tradeInVehicle : "",
+      },
+    });
+  }
+
+  // Validates and saves the form; false (with the error shown) if it didn't.
+  async function persist(): Promise<boolean> {
+    if (!form.name.trim()) { setErr("Name is required"); return false; }
+    if (form.phone.length !== 10) { setErr("Phone number must be exactly 10 digits"); return false; }
+    if (!form.source) { setErr("Lead Source is required"); return false; }
+    if (form.source === "OTHER" && !form.sourceOther.trim()) { setErr("Please specify the lead source"); return false; }
     if (["CNR", "BUSY", "PRODUCT_NOT_FOUND"].includes(form.leadStage) && !form.nextFollowUpDate) {
-      setErr("Set a Next Follow-up Date — required for CNR / Busy / Product Not Found so this lead doesn't go cold."); return;
+      setErr("Set a Next Follow-up Date — required for CNR / Busy / Product Not Found so this lead doesn't go cold."); return false;
     }
     if (canReassign && form.leadType === "BUYER" && !form.assignedToId && !form.assignedToLabel.trim()) {
-      setErr("Assign To is required for buyer leads"); return;
+      setErr("Assign To is required for buyer leads"); return false;
     }
     setSaving(true); setErr("");
     try {
-      const payload: any = {
-        ...form,
-        budgetMin: form.budgetMin ? Number(form.budgetMin) : undefined,
-        budgetMax: form.budgetMax ? Number(form.budgetMax) : undefined,
-        nextFollowUpDate: form.nextFollowUpDate || undefined,
-        additionalInterestedVehicles: extraVehicles.filter(v => v.make || v.model),
-        preferredYearFrom: form.preferredYearFrom ? Number(form.preferredYearFrom) : undefined,
-        preferredYearTo: form.preferredYearTo ? Number(form.preferredYearTo) : undefined,
-        fuelPreferences: form.fuelPreferences ? form.fuelPreferences.split(",").map(s => s.trim()).filter(Boolean) : undefined,
-        transmissionPreferences: form.transmissionPreferences ? form.transmissionPreferences.split(",").map(s => s.trim()).filter(Boolean) : undefined,
-        registrationPref: form.registrationPref || undefined,
-        purchasePlan: form.purchasePlan || undefined,
-        paymentPreference: form.paymentPreference || undefined,
-        mfgYear: form.mfgYear || undefined,
-        mfgMonth: form.mfgMonth ? Number(form.mfgMonth) : undefined,
-        regYear: form.regYear ? Number(form.regYear) : undefined,
-        regMonth: form.regMonth ? Number(form.regMonth) : undefined,
-        sellerInsuranceType: form.sellerInsuranceType || undefined,
-        insuranceValidTill: form.insuranceValidTill || undefined,
-        kms: form.kms ? Number(form.kms) : undefined,
-        showroomHistory: form.showroomHistory || undefined,
-        hypothecationStatus: form.hypothecationStatus || undefined,
-      };
+      const payload = toPayload(form, extraVehicles);
       if (!canReassign) { delete payload.assignedToId; delete payload.assignedToLabel; }
-      if (lead) await api.patch(`/cars/leads/${lead.id}`, payload);
-      else await api.post("/cars/leads", payload);
-      onSaved(); onClose();
-    } catch (e) { setErr(getApiError(e)); }
-    setSaving(false);
+      if (lead) {
+        // Only what was actually changed in this form. Re-sending untouched
+        // fields rewrote them on every save — the follow-up time reset to
+        // midnight (the input is date-only) and empty fields went from
+        // null to "" — so a lead someone merely opened and saved changed.
+        const before = toPayload(initialValues.current.form, initialValues.current.extraVehicles);
+        for (const k of Object.keys(payload)) {
+          if (JSON.stringify(payload[k]) === JSON.stringify(before[k])) delete payload[k];
+        }
+        if (Object.keys(payload).length > 0) await api.patch(`/cars/leads/${lead.id}`, payload);
+      } else {
+        await api.post("/cars/leads", payload);
+      }
+      return true;
+    } catch (e) {
+      setErr(getApiError(e));
+      return false;
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function doDelete() {
@@ -932,6 +1024,31 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           </label>
         </div>
 
+        {(phoneMatches.length > 0 || onAddCounterpart) && (
+          <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-hover)", display: "flex", flexDirection: "column", gap: 6 }}>
+            {duplicateMatches.map(m => (
+              <div key={m.id} className="flex items-center gap-2 flex-wrap" style={{ fontSize: 12, color: "#d97706" }}>
+                <AlertTriangle size={12} />
+                <span>This number is already a {m.leadType === "SELLER" ? "Seller" : "Buyer"} lead: <strong>{m.name}</strong>{m.assignedTo ? ` (${m.assignedTo})` : ""}</span>
+                {onOpenLead && <button type="button" onClick={() => onOpenLead(m.id)} style={{ ...S.ghost, padding: "2px 8px", fontSize: 11 }}>Open it</button>}
+              </div>
+            ))}
+            {counterpartMatches.map(m => (
+              <div key={m.id} className="flex items-center gap-2 flex-wrap" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                <ArrowLeftRight size={12} style={{ color: "#8b5cf6" }} />
+                <span>Also {m.leadType === "SELLER" ? "selling" : "buying"}{m.car ? `: ${tidyCase(m.car)}` : " a car"} — {m.leadType === "SELLER" ? "Seller" : "Buyer"} lead <strong>{m.name}</strong>{m.assignedTo ? ` (${m.assignedTo})` : ""}</span>
+                {onOpenLead && <button type="button" onClick={() => onOpenLead(m.id)} style={{ ...S.ghost, padding: "2px 8px", fontSize: 11 }}>Open</button>}
+              </div>
+            ))}
+            {counterpartMatches.length === 0 && onAddCounterpart && (
+              <button type="button" onClick={() => void saveAndAddCounterpart()} disabled={saving}
+                style={{ ...S.ghost, fontSize: 12, justifyContent: "center" }}>
+                <ArrowLeftRight size={12} /> {form.leadType === "SELLER" ? "Also wants to buy a car? Save & add Buyer lead" : "Also selling their car? Save & add Seller lead"}
+              </button>
+            )}
+          </div>
+        )}
+
         <button type="button" onClick={() => setShowMore(s => !s)}
           style={{ ...S.ghost, width: "100%", justifyContent: "center", marginTop: 14 }}>
           {showMore ? "▲ Hide more fields" : "▼ Show more fields"}
@@ -1010,12 +1127,12 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
                   {form.hasExchangeVehicle && (
                     <>
                       <input style={{ ...S.inp, width: "100%" }} placeholder="e.g. 2018 Honda City" value={form.tradeInVehicle} onChange={e => setForm({ ...form, tradeInVehicle: e.target.value })} />
-                      {onExchangeToSell && (
+                      {onAddCounterpart && counterpartMatches.length === 0 && (
                         <button type="button"
-                          onClick={() => onExchangeToSell({ name: form.name, phone: form.phone, interestedMake: "", interestedModel: form.tradeInVehicle })}
-                          disabled={!form.name.trim()}
+                          onClick={() => void saveAndAddCounterpart()}
+                          disabled={saving || !form.name.trim()}
                           style={{ ...S.ghost, fontSize: 12, marginTop: 8 }}>
-                          <ArrowRight style={{ width: 12, height: 12 }} /> Create Seller Lead for this car
+                          <ArrowRight style={{ width: 12, height: 12 }} /> Save & create Seller Lead for this car
                         </button>
                       )}
                     </>
@@ -2747,7 +2864,15 @@ export default function CarsPage() {
     } catch (e) { setActionError(getApiError(e)); }
   }
   const [convertLead, setConvertLead] = useState<CarLead | null>(null);
-  const [exchangeSeed, setExchangeSeed] = useState<{ name: string; phone: string; interestedMake: string; interestedModel: string } | null>(null);
+  // Same customer being added to the other section (Buyer ↔ Seller) — the
+  // pre-filled form that opens after their first lead is saved.
+  const [counterpartSeed, setCounterpartSeed] = useState<{ leadType: "BUYER" | "SELLER"; values: LeadSeed } | null>(null);
+  // Opens any lead's Edit form by id — how the Buyer ↔ Seller links on cards
+  // and inside the form jump to the customer's other lead.
+  function openLeadById(id: string) {
+    setCounterpartSeed(null);
+    api.get(`/cars/leads/${id}`).then(r => { setEditLead(r.data.data); setShowLeadModal(true); }).catch(e => setActionError(getApiError(e)));
+  }
   const [acquireLead, setAcquireLead] = useState<CarLead | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [insuranceFor, setInsuranceFor] = useState<Vehicle | null>(null);
@@ -3207,6 +3332,7 @@ export default function CarsPage() {
                   <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
                   <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: stage.bg, color: stage.color, fontWeight: 700 }}>{stage.label}</span>
                 </div>
+                <LinkedLeadChips lead={l} onOpen={openLeadById} />
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
                   <button onClick={() => setFollowUpHistoryFor({ kind: "lead", id: l.id, name: l.name, nextFollowUpDate: l.nextFollowUpDate })} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up <ArrowRight size={11} /></button>
@@ -3675,6 +3801,7 @@ export default function CarsPage() {
                                 <span style={{ fontSize: 11, fontWeight: 700, color: due.color }}>{due.text}</span>
                               </div>
                               {(l.assignedToLabel || l.assignedTo?.name) && <div style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 6 }}>Assigned to: <strong style={{ color: "var(--text-secondary)" }}>{l.assignedToLabel || l.assignedTo?.name}</strong></div>}
+                              {!!l.linkedLeads?.length && <div style={{ marginTop: 8 }}><LinkedLeadChips lead={l} onOpen={openLeadById} /></div>}
                               <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
                                 <button onClick={() => { setEditLead(l); setShowLeadModal(true); }} style={{ ...S.ghost, flex: 1, justifyContent: "center" }}><Pencil size={11} /> Edit</button>
                                 <button onClick={() => setFollowUpHistoryFor({ kind: "lead", id: l.id, name: l.name, nextFollowUpDate: l.nextFollowUpDate })} style={{ ...S.btn, flex: 1, justifyContent: "center" }}>Follow Up</button>
@@ -3792,21 +3919,24 @@ export default function CarsPage() {
 
       {showLeadModal && (
         <LeadModal
+          key={editLead?.id ?? "new"}
           lead={editLead}
           defaultLeadType={tab === "sellerleads" ? "SELLER" : "BUYER"}
           onClose={() => setShowLeadModal(false)}
           onSaved={load}
           onConvert={(l) => { setShowLeadModal(false); if (l.leadType === "SELLER") setAcquireLead(l); else setConvertLead(l); }}
-          onExchangeToSell={(seed) => { setShowLeadModal(false); setExchangeSeed(seed); }}
+          onAddCounterpart={(seed) => { setShowLeadModal(false); setCounterpartSeed(seed); }}
+          onOpenLead={openLeadById}
         />
       )}
-      {exchangeSeed && (
+      {counterpartSeed && (
         <LeadModal
           lead={null}
-          defaultLeadType="SELLER"
-          seedValues={exchangeSeed}
-          onClose={() => setExchangeSeed(null)}
+          defaultLeadType={counterpartSeed.leadType}
+          seedValues={counterpartSeed.values}
+          onClose={() => setCounterpartSeed(null)}
           onSaved={load}
+          onOpenLead={openLeadById}
         />
       )}
       {showImport && <ImportModal leadType={tab === "sellerleads" ? "SELLER" : "BUYER"} onClose={() => setShowImport(false)} onImported={load} />}

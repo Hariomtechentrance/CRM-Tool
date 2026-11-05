@@ -395,17 +395,14 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
       db().carLead.count({ where }),
     ]);
 
-    // assignedToId has no Prisma relation to User — attach display names
-    // manually for the cross-assignee follow-up worklists.
+    // assignedToId has no Prisma relation — attach display names manually
+    // for the cross-assignee follow-up worklists.
     let leadsOut: any[] = leads;
     if (followUp === "due" || followUp === "all") {
-      const assigneeIds = [...new Set(leads.map((l: any) => l.assignedToId).filter(Boolean))];
-      const assignees = assigneeIds.length
-        ? await prisma.user.findMany({ where: { id: { in: assigneeIds as string[] } }, select: { id: true, name: true } })
-        : [];
-      const nameById = new Map(assignees.map((u) => [u.id, u.name]));
+      const nameById = await assigneeNamesById(req.organizationId!, leads.map((l: any) => l.assignedToId));
       leadsOut = leads.map((l: any) => ({ ...l, assignedTo: l.assignedToId ? { name: nameById.get(l.assignedToId) ?? "Unknown" } : null }));
     }
+    leadsOut = await attachLinkedLeads(req, leadsOut);
 
     ok(res, { leads: leadsOut, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (e) { serverError(res, e); }
@@ -438,6 +435,68 @@ async function shreyaCarsOwnLeadsScope(req: OrgRequest): Promise<{ assignedToId:
 const NO_EMPLOYEE_RECORD = "__NO_EMPLOYEE_RECORD__";
 const NO_EMPLOYEE_RECORD_MESSAGE = "Your login isn't linked to a salesperson record yet — ask an Admin to set it up";
 
+// assignedToId holds an Employee.id (see employeeLookup.ts); leads assigned
+// under the older User.id convention still resolve through the fallback.
+async function assigneeNamesById(organizationId: string, ids: (string | null | undefined)[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids.filter(Boolean))] as string[];
+  if (unique.length === 0) return new Map();
+  const employees = await prisma.employee.findMany({ where: { organizationId, id: { in: unique } }, select: { id: true, name: true } });
+  const names = new Map(employees.map((e) => [e.id, e.name]));
+  const unresolved = unique.filter((id) => !names.has(id));
+  if (unresolved.length) {
+    const users = await prisma.user.findMany({ where: { id: { in: unresolved } }, select: { id: true, name: true } });
+    for (const u of users) names.set(u.id, u.name);
+  }
+  return names;
+}
+
+// Buyer ↔ Seller: a customer selling their car and buying another is two
+// leads, one per section, linked by phone number. Worked out on read —
+// nothing is stored, so existing leads link up without being touched. Only
+// leads the caller could open themselves count (section access + the Shreya
+// Cars own-leads scope).
+async function visibleLeadsByPhone(req: OrgRequest, phones: string[]) {
+  if (phones.length === 0) return [];
+  const sections: CarsSection[] = [];
+  for (const s of ["BUYER", "SELLER"] as const) if (await hasCarsSectionAccess(req, s)) sections.push(s);
+  if (sections.length === 0) return [];
+  const ownLeads = await shreyaCarsOwnLeadsScope(req);
+  return db().carLead.findMany({
+    where: { organizationId: req.organizationId!, phone: { in: phones }, leadType: { in: sections }, ...(ownLeads ?? {}) },
+    select: { id: true, phone: true, leadType: true, name: true, interestedMake: true, interestedModel: true, assignedToId: true, assignedToLabel: true },
+    orderBy: { createdAt: "asc" },
+  }) as Promise<{ id: string; phone: string; leadType: string; name: string; interestedMake: string | null; interestedModel: string | null; assignedToId: string | null; assignedToLabel: string | null }[]>;
+}
+const carText = (l: { interestedMake: string | null; interestedModel: string | null }) => [l.interestedMake, l.interestedModel].filter(Boolean).join(" ");
+
+async function attachLinkedLeads<T extends { phone: string | null; leadType: string }>(req: OrgRequest, leads: T[]) {
+  const isBuySell = (t: string) => t === "BUYER" || t === "SELLER";
+  const phones = [...new Set(leads.filter((l) => l.phone && isBuySell(l.leadType)).map((l) => l.phone as string))];
+  const matches = await visibleLeadsByPhone(req, phones);
+  return leads.map((l) => ({
+    ...l,
+    linkedLeads: isBuySell(l.leadType)
+      ? matches.filter((m) => m.phone === l.phone && m.leadType !== l.leadType).map((m) => ({ id: m.id, leadType: m.leadType, name: m.name, car: carText(m) }))
+      : [],
+  }));
+}
+
+// Add/Edit Lead form: leads that already have this phone number — a
+// duplicate in the same section, or this customer's lead in the other one
+// (which a new lead is linked to automatically). Read-only.
+export async function listCarLeadPhoneMatches(req: OrgRequest, res: Response): Promise<void> {
+  try {
+    const phone = String(req.query.phone ?? "").trim();
+    if (!/^\d{10}$/.test(phone)) { ok(res, []); return; }
+    const matches = await visibleLeadsByPhone(req, [phone]);
+    const names = await assigneeNamesById(req.organizationId!, matches.map((m) => m.assignedToId));
+    ok(res, matches.map((m) => ({
+      id: m.id, leadType: m.leadType, name: m.name, car: carText(m),
+      assignedTo: m.assignedToLabel || (m.assignedToId ? names.get(m.assignedToId) : null) || null,
+    })));
+  } catch (e) { serverError(res, e); }
+}
+
 export async function getCarLead(req: OrgRequest, res: Response): Promise<void> {
   try {
     const lead = await db().carLead.findFirst({
@@ -447,7 +506,8 @@ export async function getCarLead(req: OrgRequest, res: Response): Promise<void> 
     if (!lead) { notFound(res, "Lead not found"); return; }
     if (!(await assertCarsSection(req, res, lead.leadType as CarsSection))) return;
     if (!(await assertShreyaCarsLeadAccess(req, res, lead))) return;
-    ok(res, lead);
+    const [withLinks] = await attachLinkedLeads(req, [lead]);
+    ok(res, withLinks);
   } catch (e) { serverError(res, e); }
 }
 
@@ -549,7 +609,11 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
     if (!(await assertShreyaCarsLeadAccess(req, res, existing))) return;
     const parsed = carLeadSchema.partial().safeParse(req.body);
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
-    const data = parsed.data;
+    // Only keys actually sent — see onlyProvided(). Without it, every partial
+    // update (the DND toggle, "Converted", an edit of one field) also got
+    // leadType/status schema defaults: a Seller lead became a Buyer lead and
+    // its status reset to NEW.
+    const data = onlyProvided(req.body, parsed.data);
     // Shreya Cars: reassigning a lead to a different salesperson is Owner-
     // only — a staff login can update their own lead's status/notes/follow-
     // up freely, but not who it's assigned to. The Edit form sends the
