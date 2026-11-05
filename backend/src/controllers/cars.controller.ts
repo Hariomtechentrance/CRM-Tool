@@ -119,6 +119,33 @@ function onlyProvided<T extends Record<string, unknown>>(body: Record<string, un
   return out;
 }
 
+// A registration number identifies one physical vehicle, so it's the
+// duplicate key for Vehicles (the same owner/phone with several vehicles is
+// normal). Compared with spaces/dashes stripped — "MH 15 KC 8870" is
+// "MH15KC8870". A value with no digits ("NEW", "NA", "TBA") is a placeholder
+// for a not-yet-registered car, never a duplicate of another one.
+function regNoKey(reg?: string | null): string | null {
+  const key = (reg ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return /\d/.test(key) ? key : null;
+}
+
+async function findVehicleByRegNo(organizationId: string, reg: string | null | undefined, excludeId?: string) {
+  const key = regNoKey(reg);
+  if (!key) return null;
+  const rows = await prisma.$queryRaw<{ id: string; make: string; model: string; ownerName: string | null; sellerName: string | null }[]>`
+    SELECT id, make, model, "ownerName", "sellerName" FROM "Vehicle"
+    WHERE "organizationId" = ${organizationId}
+      AND regexp_replace(upper(coalesce("registrationNo", '')), '[^A-Z0-9]', '', 'g') = ${key}
+      AND id <> ${excludeId ?? ""}
+    LIMIT 1`;
+  return rows[0] ?? null;
+}
+
+function regNoTakenMessage(reg: string, v: { make: string; model: string; ownerName: string | null; sellerName: string | null }): string {
+  const who = v.ownerName || v.sellerName;
+  return `Registration number ${reg} is already in Vehicles & Insurance (${v.make} ${v.model}${who ? ` — ${who}` : ""}). Open that vehicle instead of adding it again.`;
+}
+
 // ── Validators ───────────────────────────────────────────────
 const carLeadSchema = z.object({
   leadType: z.enum(["BUYER", "SELLER", "PRE_ORDER"]).default("BUYER"),
@@ -1241,22 +1268,43 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
       insuranceInput = iParsed.data;
     }
 
+    // The car may already be in Vehicles & Insurance (bought in earlier, or
+    // entered for its insurance) — then this sale is that same vehicle, not a
+    // new one: mark it sold to this customer and attach the policy and the
+    // lead to it, instead of creating a second record for one reg no.
+    const existingVehicle = await findVehicleByRegNo(req.organizationId!, v.registrationNo);
+    if (existingVehicle) {
+      const linkedLead = await db().carLead.findFirst({ where: { convertedVehicleId: existingVehicle.id }, select: { name: true } });
+      if (linkedLead) {
+        conflict(res, `Registration number ${up(v.registrationNo)} is already recorded as sold through ${linkedLead.name}'s lead — open that vehicle instead.`);
+        return;
+      }
+    }
+    const sale = {
+      status: "SOLD" as const,
+      ownerName: up(v.ownerName) || lead.name,
+      ownerPhone: v.ownerPhone || lead.phone,
+      ownerEmail: v.ownerEmail || lead.email,
+      soldAt: v.soldAt ? new Date(v.soldAt) : new Date(),
+    };
+
     const result = await prisma.$transaction(async (tx) => {
-      const vehicle = await (tx as any).vehicle.create({
-        data: {
-          organizationId: req.organizationId!,
-          make: up(v.make), model: up(v.model), variant: up(v.variant), year: v.year,
-          registrationNo: up(v.registrationNo), chassisNo: up(v.chassisNo), engineNo: up(v.engineNo),
-          color: up(v.color), odometer: v.odometer, fuelType: v.fuelType, transmission: v.transmission,
-          purchasePrice: v.purchasePrice, salePrice: v.salePrice,
-          status: "SOLD",
-          ownerName: up(v.ownerName) || lead.name,
-          ownerPhone: v.ownerPhone || lead.phone,
-          ownerEmail: v.ownerEmail || lead.email,
-          soldAt: v.soldAt ? new Date(v.soldAt) : new Date(),
-          notes: v.notes,
-        },
-      });
+      const vehicle = existingVehicle
+        ? await (tx as any).vehicle.update({
+            where: { id: existingVehicle.id },
+            data: { ...sale, ...(v.salePrice !== undefined ? { salePrice: v.salePrice } : {}) },
+          })
+        : await (tx as any).vehicle.create({
+            data: {
+              organizationId: req.organizationId!,
+              make: up(v.make), model: up(v.model), variant: up(v.variant), year: v.year,
+              registrationNo: up(v.registrationNo), chassisNo: up(v.chassisNo), engineNo: up(v.engineNo),
+              color: up(v.color), odometer: v.odometer, fuelType: v.fuelType, transmission: v.transmission,
+              purchasePrice: v.purchasePrice, salePrice: v.salePrice,
+              ...sale,
+              notes: v.notes,
+            },
+          });
 
       if (insuranceInput) {
         await (tx as any).vehicleInsurance.create({
@@ -1305,7 +1353,9 @@ export async function convertCarLead(req: OrgRequest, res: Response): Promise<vo
     } catch (e) {
       console.error("[convertCarLead] post-conversion side effect failed (sale still succeeded):", e);
     }
-    created(res, result, "Lead converted to a sale");
+    created(res, result, existingVehicle
+      ? "Lead converted — recorded on the vehicle already in Vehicles & Insurance with this registration number"
+      : "Lead converted to a sale");
   } catch (e) { serverError(res, e); }
 }
 
@@ -1333,6 +1383,8 @@ export async function listVehicles(req: OrgRequest, res: Response): Promise<void
         { registrationNo: { contains: search, mode: "insensitive" } },
         { ownerName: { contains: search, mode: "insensitive" } },
         { ownerPhone: { contains: search } },
+        { sellerName: { contains: search, mode: "insensitive" } },
+        { sellerPhone: { contains: search } },
       ];
     }
     const [vehicles, total] = await Promise.all([
@@ -1377,10 +1429,8 @@ export async function createVehicle(req: OrgRequest, res: Response): Promise<voi
     // vehicles under the same owner name/phone is completely normal and
     // must NOT be blocked — only the reg no itself is the dedup key.)
     const registrationNo = up(v.registrationNo);
-    if (registrationNo) {
-      const dupe = await db().vehicle.findFirst({ where: { organizationId: req.organizationId!, registrationNo } });
-      if (dupe) { conflict(res, `Registration number ${registrationNo} is already in inventory.`); return; }
-    }
+    const dupe = await findVehicleByRegNo(req.organizationId!, registrationNo);
+    if (dupe) { conflict(res, regNoTakenMessage(registrationNo!, dupe)); return; }
 
     const soldAt = v.soldAt ? new Date(v.soldAt) : undefined;
     const vehicle = await db().vehicle.create({
@@ -1427,11 +1477,9 @@ export async function updateVehicle(req: OrgRequest, res: Response): Promise<voi
     // registration number is one physical vehicle, but the same person can
     // legitimately own several. Only check when the reg no is actually
     // changing, and only against OTHER vehicles.
-    if (data.registrationNo && data.registrationNo !== existing.registrationNo) {
-      const dupe = await db().vehicle.findFirst({
-        where: { organizationId: req.organizationId!, registrationNo: data.registrationNo, id: { not: existing.id } },
-      });
-      if (dupe) { conflict(res, `Registration number ${data.registrationNo} is already used by another vehicle in inventory.`); return; }
+    if (data.registrationNo && regNoKey(data.registrationNo) !== regNoKey(existing.registrationNo)) {
+      const dupe = await findVehicleByRegNo(req.organizationId!, data.registrationNo, existing.id);
+      if (dupe) { conflict(res, regNoTakenMessage(data.registrationNo, dupe)); return; }
     }
 
     const effectiveCustomerType = data.customerType ?? existing.customerType;
@@ -1646,9 +1694,12 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
     // One query for every registration number this org already has, instead
     // of a findFirst per row — at a few thousand rows that was thousands of
     // sequential round-trips and the real reason large imports timed out.
+    // Compared as regNoKey()s, so spacing differences still match and "NEW"
+    // placeholders never block each other.
     const existingRegNos = new Set(
       (await db().vehicle.findMany({ where: { organizationId: orgId, registrationNo: { not: null } }, select: { registrationNo: true } }))
-        .map((v: { registrationNo: string }) => v.registrationNo)
+        .map((v: { registrationNo: string }) => regNoKey(v.registrationNo))
+        .filter(Boolean)
     );
 
     async function importRow(rawRow: Record<string, any>) {
@@ -1662,9 +1713,10 @@ export async function bulkImportVehicles(req: OrgRequest, res: Response): Promis
       const regNo = up(vpick(row, VEHICLE_FIELD_ALIASES.registrationNo));
       if (!ownerName && !regNo) { results.skipped++; return; }
 
-      if (regNo) {
-        if (existingRegNos.has(regNo)) { results.skipped++; return; }
-        existingRegNos.add(regNo); // guards duplicate reg numbers within the same sheet too
+      const regKey = regNoKey(regNo);
+      if (regKey) {
+        if (existingRegNos.has(regKey)) { results.skipped++; return; }
+        existingRegNos.add(regKey); // guards duplicate reg numbers within the same sheet too
       }
 
       const vehicle = await db().vehicle.create({

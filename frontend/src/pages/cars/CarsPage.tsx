@@ -3574,7 +3574,7 @@ export default function CarsPage() {
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerName}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerName || v.sellerName}</div>
                       </div>
                       {badge && <span style={{ fontSize: 10, fontWeight: 700, color: badge.color }}>{badge.text}</span>}
                     </div>
@@ -3615,9 +3615,11 @@ export default function CarsPage() {
                         <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)", borderBottom: "1px solid var(--bg-hover)" }}>{v.registrationNo || "—"}</td>
                         <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)", borderBottom: "1px solid var(--bg-hover)" }}>
                           {v.status === "SOLD" ? (
+                            // Vehicles entered via Add Vehicle keep the customer in the
+                            // seller fields even once sold — show them rather than "—".
                             <>
-                              <div>{v.ownerName || "—"}</div>
-                              {v.ownerPhone && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerPhone}</div>}
+                              <div>{v.ownerName || v.sellerName || "—"}</div>
+                              {(v.ownerPhone || v.sellerPhone) && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerPhone || v.sellerPhone}</div>}
                             </>
                           ) : v.sellerName ? (
                             <>
@@ -3714,8 +3716,8 @@ export default function CarsPage() {
                       </td>
                       <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)", borderBottom: "1px solid var(--bg-hover)" }}>{v.registrationNo || "—"}</td>
                       <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)", borderBottom: "1px solid var(--bg-hover)" }}>
-                        <div>{v.ownerName || "—"}</div>
-                        {v.ownerPhone && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerPhone}</div>}
+                        <div>{v.ownerName || v.sellerName || "—"}</div>
+                        {(v.ownerPhone || v.sellerPhone) && <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>{v.ownerPhone || v.sellerPhone}</div>}
                       </td>
                       <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)", borderBottom: "1px solid var(--bg-hover)" }}>
                         {v.soldAt ? new Date(v.soldAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
