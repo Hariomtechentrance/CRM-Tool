@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, X, Upload, Download, Phone, Mail, Car, ShieldAlert,
-  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2, Clock, Tag,
+  AlertTriangle, CheckCircle, ArrowRight, Pencil, MoreVertical, FileText, Trash2, Clock, Tag, MessageCircle,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getApiError } from "@/lib/utils";
@@ -1336,6 +1336,149 @@ function FollowUpHistoryModal({ title, listUrl, postUrl, currentFollowUpDate, on
 }
 
 // ═══════════════════════════════════════════════════════════════
+// WhatsApp — opens the chat with a lead in the business's own WhatsApp
+// (WhatsApp Web on a computer, the app on a phone) with a ready message
+// filled in, and logs it as a follow-up on the lead. No Meta API: they stay
+// logged in to their existing WhatsApp Business number, so there are no
+// templates, 24-hour window or per-message charges.
+// ═══════════════════════════════════════════════════════════════
+
+// Lead phones are mostly bare 10-digit Indian mobiles; WhatsApp needs the
+// country code. null = nothing dialable, so no WhatsApp button is shown.
+function whatsAppNumber(phone?: string): string | null {
+  const d = (phone ?? "").replace(/\D/g, "");
+  if (d.length === 10) return `91${d}`;
+  if (d.length === 11 && d.startsWith("0")) return `91${d.slice(1)}`;
+  return d.length > 10 ? d : null;
+}
+
+// Imported names and cars are often ALL CAPS — "Hi SARANG" reads as
+// shouting in a chat. Short all-caps words in a car name (MG, BMW, A4, I20)
+// are left alone.
+function tidyCase(s: string, keepShortWords = true): string {
+  if (s !== s.toUpperCase()) return s;
+  return s.split(/\s+/).map(w => (keepShortWords && w.length <= 3) ? w : w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+}
+
+type WhatsAppVars = { name: string; car: string; sender: string; org: string };
+// "Hi Sarang, this is Bhavna from Shreya Cars."
+const greeting = (v: WhatsAppVars) => `Hi ${v.name}, this is ${v.sender ? `${v.sender} from ${v.org}` : v.org}.`;
+const WHATSAPP_MESSAGES: Record<"BUYER" | "SELLER", { key: string; label: string; text: (v: WhatsAppVars) => string }[]> = {
+  BUYER: [
+    { key: "first", label: "First message", text: v => `${greeting(v)} Thank you for your enquiry${v.car ? ` about the ${v.car}` : ""}. Can I share the details and photos with you here?` },
+    { key: "followup", label: "Follow-up", text: v => `${greeting(v)} Just checking in${v.car ? ` about the ${v.car}` : ""} — are you still looking? Happy to share more options in your budget.` },
+    { key: "testdrive", label: "Test drive / visit", text: v => `${greeting(v)} Would you like to come for a test drive${v.car ? ` of the ${v.car}` : ""}? Tell me a day and time that suits you and I'll arrange it.` },
+    { key: "blank", label: "Blank", text: () => "" },
+  ],
+  SELLER: [
+    { key: "first", label: "First message", text: v => `${greeting(v)} Thank you for reaching out about selling your ${v.car || "car"}. Could you share a few photos, the kms driven and your expected price?` },
+    { key: "followup", label: "Follow-up", text: v => `${greeting(v)} Following up about your ${v.car || "car"} — are you still planning to sell? We can arrange a quick inspection whenever it suits you.` },
+    { key: "inspection", label: "Inspection", text: v => `${greeting(v)} We'd like to inspect your ${v.car || "car"}. Please share a convenient day, time and location.` },
+    { key: "blank", label: "Blank", text: () => "" },
+  ],
+};
+
+function WhatsAppChip({ lead, onClick }: { lead: CarLead; onClick: (lead: CarLead) => void }) {
+  if (lead.isDoNotCall || !whatsAppNumber(lead.phone)) return null;
+  return (
+    <button onClick={e => { e.stopPropagation(); onClick(lead); }} title={`Chat with ${lead.name} on WhatsApp`}
+      style={{ background: "#16a34a", border: "none", color: "#fff", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+      <MessageCircle size={11} /> WhatsApp
+    </button>
+  );
+}
+
+function WhatsAppModal({ lead, onClose, onLogged }: { lead: CarLead; onClose: () => void; onLogged?: () => void }) {
+  const { user, activeOrg } = useAuthStore();
+  const number = whatsAppNumber(lead.phone);
+  const vars: WhatsAppVars = {
+    name: tidyCase(lead.name.trim().split(/\s+/)[0] ?? "", false),
+    car: tidyCase([lead.interestedMake, lead.interestedModel].filter(Boolean).join(" ")),
+    sender: tidyCase((user?.name ?? "").trim().split(/\s+/)[0] ?? "", false),
+    org: activeOrg?.name ?? "our showroom",
+  };
+  const options = WHATSAPP_MESSAGES[lead.leadType === "SELLER" ? "SELLER" : "BUYER"];
+  const [choice, setChoice] = useState(options[0].key);
+  const [text, setText] = useState(() => options[0].text(vars));
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function openChat() {
+    if (!number) return;
+    const message = text.trim();
+    // Opened before any await — browsers block a window opened after one.
+    // On a computer every chat reuses the same WhatsApp Web tab instead of
+    // piling up new ones (WhatsApp Web only runs in one tab at a time).
+    const onPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const url = onPhone
+      ? `https://wa.me/${number}${message ? `?text=${encodeURIComponent(message)}` : ""}`
+      : `https://web.whatsapp.com/send?phone=${number}${message ? `&text=${encodeURIComponent(message)}` : ""}`;
+    const win = window.open(url, onPhone ? "_blank" : "bos-whatsapp");
+    if (win) win.opener = null;
+
+    setSaving(true); setErr("");
+    try {
+      await api.post(`/cars/leads/${lead.id}/activities`, {
+        note: message ? `WhatsApp message:\n${message}` : "Opened WhatsApp chat",
+        followUpDate: followUpDate || undefined,
+      });
+      onLogged?.();
+      onClose();
+    } catch (e) {
+      setErr(`WhatsApp opened, but saving this as a follow-up failed: ${getApiError(e)}`);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-lg mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+            <MessageCircle size={15} style={{ color: "#16a34a" }} /> WhatsApp — {lead.name}
+          </h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-ghost)" }}><X style={{ width: 16, height: 16 }} /></button>
+        </div>
+        {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 8, fontSize: 12, color: "#f87171" }}>{err}</div>}
+
+        <div style={{ fontSize: 12, color: "var(--text-ghost)", marginBottom: 12 }} className="flex items-center gap-1">
+          <Phone size={11} /> +{number}
+        </div>
+
+        <label style={S.label}>Message</label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {options.map(o => (
+            <button key={o.key} onClick={() => { setChoice(o.key); setText(o.text(vars)); }}
+              style={{ ...S.ghost, padding: "4px 10px", fontSize: 11, ...(choice === o.key ? { background: "#16a34a", borderColor: "#16a34a", color: "#fff" } : {}) }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <textarea style={{ ...S.inp, width: "100%", minHeight: 110, resize: "vertical" } as React.CSSProperties}
+          placeholder="Type a message, or leave blank to just open the chat" value={text} onChange={e => setText(e.target.value)} />
+
+        <div style={{ marginTop: 10 }}>
+          <label style={S.label}>Next Follow-up Date (optional)</label>
+          <input type="date" style={{ ...S.inp, width: "100%" }} value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} />
+        </div>
+
+        <p style={{ fontSize: 11, color: "var(--text-ghost)", marginTop: 12, lineHeight: 1.5 }}>
+          Opens this chat in your WhatsApp with the message ready — check it and press send there. On a computer it uses WhatsApp Web: the first time, scan the QR code with the business phone (WhatsApp → Linked devices). The message is saved to this lead's follow-up history.
+        </p>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} style={S.ghost}>Cancel</button>
+          <button onClick={() => void openChat()} disabled={saving || !number} style={{ ...S.btn, background: "#16a34a" }}>
+            <MessageCircle size={12} /> {saving ? "Saving…" : "Open WhatsApp"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Import CSV modal
 // ═══════════════════════════════════════════════════════════════
 // Same exact header/example row shown inside each Import CSV modal — kept as
@@ -2608,6 +2751,7 @@ export default function CarsPage() {
     { kind: "lead"; id: string; name: string; nextFollowUpDate?: string } |
     { kind: "insurance"; id: string; name: string; nextFollowUpDate?: string } | null
   >(null);
+  const [whatsAppFor, setWhatsAppFor] = useState<CarLead | null>(null);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showVehicleImport, setShowVehicleImport] = useState(false);
   const [showHistoricalImport, setShowHistoricalImport] = useState(false);
@@ -3040,9 +3184,12 @@ export default function CarsPage() {
               const stage = LEAD_STAGE[l.leadStage || "SEARCHING_CAR"] || LEAD_STAGE.SEARCHING_CAR;
               return (
               <div key={l.id} style={{ ...S.card, cursor: "pointer" }} onClick={() => { setEditLead(l); setShowLeadModal(true); }}>
-                <div className="flex items-start justify-between" style={{ marginBottom: 8 }}>
+                <div className="flex items-start justify-between gap-2" style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{l.name}</div>
-                  {l.phone && <span style={{ fontSize: 11, color: "var(--text-ghost)" }} className="flex items-center gap-1"><Phone size={10} /> {l.phone}</span>}
+                  <div className="flex flex-col items-end gap-1" style={{ flexShrink: 0 }}>
+                    {l.phone && <span style={{ fontSize: 11, color: "var(--text-ghost)" }} className="flex items-center gap-1"><Phone size={10} /> {l.phone}</span>}
+                    <WhatsAppChip lead={l} onClick={setWhatsAppFor} />
+                  </div>
                 </div>
                 {(l.interestedMake || l.interestedModel) && (
                   <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>
@@ -3514,6 +3661,7 @@ export default function CarsPage() {
                               )}
                               <div className="flex items-center gap-3 mb-2" style={{ fontSize: 12, color: "var(--text-ghost)" }}>
                                 {l.phone && <span className="flex items-center gap-1"><Phone size={11} /> {l.phone}</span>}
+                                <WhatsAppChip lead={l} onClick={setWhatsAppFor} />
                               </div>
                               <div className="flex items-center justify-between">
                                 <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
@@ -3672,6 +3820,9 @@ export default function CarsPage() {
           onClose={() => setFollowUpHistoryFor(null)}
           onLogged={load}
         />
+      )}
+      {whatsAppFor && (
+        <WhatsAppModal lead={whatsAppFor} onClose={() => setWhatsAppFor(null)} onLogged={load} />
       )}
       {detailVehicle && (
         <VehicleDetailModal vehicle={detailVehicle} onClose={() => setDetailVehicle(null)}
