@@ -161,7 +161,7 @@ export default function SettingsPage() {
   };
 
   const removeMember = async (m: Member) => {
-    if (!confirm(`Remove ${m.name} (${m.email}) from this organization? They'll immediately lose access — this can be undone by re-adding them.`)) return;
+    if (!confirm(`Delete ${m.name}'s login (${m.email})? They'll lose access immediately and disappear from the team and salespeople lists — reassign their leads first if someone else should follow them up. You can add them again later with the same email.`)) return;
     setRemovingMemberId(m.id);
     try {
       await api.delete(`/organizations/current/members/${m.id}`);

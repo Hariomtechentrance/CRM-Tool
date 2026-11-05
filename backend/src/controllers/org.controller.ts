@@ -550,13 +550,43 @@ export async function removeMember(req: OrgRequest, res: Response): Promise<void
     if (!target) { notFound(res, "Member not found"); return; }
     if (target.role === MemberRole.OWNER) { forbidden(res, "Cannot remove the organization owner"); return; }
 
-    await prisma.organizationMember.update({
-      where: { userId_organizationId: { userId: memberId, organizationId: req.organizationId! } },
-      data: { isActive: false },
-    });
-    // Cut live access: revoke this user's refresh tokens for the whole platform
-    // is too broad (they may belong to other orgs), so just drop cached auth
-    // state — requireOrgContext re-checks membership.isActive on the next call.
+    // Out of this org entirely — including their Employee record, which is
+    // what the directory (Assign To / "All salespeople" lists) is built from.
+    // Leads already assigned to them keep that assignment for the admin to
+    // reassign.
+    await prisma.$transaction([
+      prisma.organizationMember.update({
+        where: { userId_organizationId: { userId: memberId, organizationId: req.organizationId! } },
+        data: { isActive: false },
+      }),
+      prisma.userModuleAccess.deleteMany({ where: { userId: memberId, organizationId: req.organizationId! } }),
+      prisma.employee.updateMany({
+        where: { organizationId: req.organizationId!, userId: memberId, status: "ACTIVE" },
+        data: { status: "INACTIVE", leavingDate: new Date() },
+      }),
+    ]);
+
+    // A login that only belonged to this org is deleted outright, so it can't
+    // sign in and its email is free to re-add. If it authored records that
+    // block deletion (e.g. lead follow-up notes), disable it and free the
+    // email instead — that history stays, attributed by name. A login still
+    // in other orgs only loses this one.
+    const user = await prisma.user.findUnique({ where: { id: memberId }, select: { isSuperAdmin: true } });
+    const otherOrgs = await prisma.organizationMember.count({ where: { userId: memberId, isActive: true, organizationId: { not: req.organizationId! } } });
+    if (user && !user.isSuperAdmin && otherOrgs === 0) {
+      try {
+        await prisma.user.delete({ where: { id: memberId } });
+      } catch (err) {
+        if (!(err instanceof Prisma.PrismaClientKnownRequestError && (err.code === "P2003" || err.code === "P2014"))) throw err;
+        await prisma.$transaction([
+          prisma.user.update({ where: { id: memberId }, data: { isActive: false, email: `deleted-${memberId}@removed.invalid` } }),
+          prisma.refreshToken.deleteMany({ where: { userId: memberId } }),
+          prisma.userSession.deleteMany({ where: { userId: memberId } }),
+        ]);
+      }
+    }
+    // Drop cached auth state so the next request re-checks the user and
+    // membership instead of riding a still-valid access token.
     invalidateUserSecState(memberId);
     writeAuditLog({ organizationId: req.organizationId!, userId: req.userId, userEmail: req.userEmail, action: "MEMBER_REMOVED", resource: "OrganizationMember", resourceId: memberId, description: `Removed member (was ${target.role})`, ipAddress: getIp(req as any) });
     ok(res, null, "Member removed");
@@ -680,9 +710,11 @@ export async function createOrgEmployee(req: OrgRequest, res: Response): Promise
 
     // An employee record with this email may already exist from the HR module
     // (which creates employees without a login). Creating a second one here
-    // would leave two rows for the same person — flag it instead.
+    // would leave two rows for the same person — flag it instead. An
+    // INACTIVE record is someone whose login was removed; re-adding them is
+    // a fresh start, not a duplicate.
     const existingEmployee = await prisma.employee.findFirst({
-      where: { organizationId: req.organizationId!, email: normalizedEmail },
+      where: { organizationId: req.organizationId!, email: normalizedEmail, status: "ACTIVE" },
       select: { id: true },
     });
     if (existingEmployee) {

@@ -372,14 +372,8 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
     // everyone else (including Manager-role logins) only ever sees leads
     // already assigned to their own account. Overrides any assignedToId the
     // request tried to set, so it can't be bypassed.
-    if (await isShreyaCarsOrgId(req.organizationId!)) {
-      if (req.memberRole !== MemberRole.OWNER) {
-        // assignedToId stores the caller's Employee.id (set via the Assign
-        // To dropdown), not their User.id — resolve it first or this never
-        // matches a real assignment. No linked Employee record = sees nothing.
-        where.assignedToId = (await getEmployeeIdForUser(req.userId, req.organizationId!)) ?? "__NO_EMPLOYEE_RECORD__";
-      }
-    }
+    const ownLeads = await shreyaCarsOwnLeadsScope(req);
+    if (ownLeads) where.assignedToId = ownLeads.assignedToId;
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -424,14 +418,22 @@ export async function listCarLeads(req: OrgRequest, res: Response): Promise<void
 // assigned to them, not just the list view. Returns true if the caller is
 // allowed to proceed; on false it has already written the response.
 async function assertShreyaCarsLeadAccess(req: OrgRequest, res: Response, lead: { assignedToId: string | null }): Promise<boolean> {
-  if (!(await isShreyaCarsOrgId(req.organizationId!))) return true;
-  if (req.memberRole === MemberRole.OWNER) return true;
-  // assignedToId stores Employee.id, not the caller's User.id — resolve it
-  // first (see getEmployeeIdForUser) or this never matches a real assignment.
-  const employeeId = await getEmployeeIdForUser(req.userId, req.organizationId!);
-  if (employeeId && lead.assignedToId === employeeId) return true;
+  const ownLeads = await shreyaCarsOwnLeadsScope(req);
+  if (!ownLeads || lead.assignedToId === ownLeads.assignedToId) return true;
   notFound(res, "Lead not found");
   return false;
+}
+
+// Shreya Cars: the CarLead filter every non-Owner login is held to (list,
+// per-lead endpoints, stat tiles, monthly report), or null when the caller
+// sees the whole pool (the Owner, or any other org). assignedToId stores the
+// caller's Employee.id (set via the Assign To dropdown), not their User.id —
+// resolve it first or this never matches a real assignment. No linked
+// Employee record = matches nothing.
+async function shreyaCarsOwnLeadsScope(req: OrgRequest): Promise<{ assignedToId: string } | null> {
+  if (req.memberRole === MemberRole.OWNER) return null;
+  if (!(await isShreyaCarsOrgId(req.organizationId!))) return null;
+  return { assignedToId: (await getEmployeeIdForUser(req.userId, req.organizationId!)) ?? "__NO_EMPLOYEE_RECORD__" };
 }
 
 export async function getCarLead(req: OrgRequest, res: Response): Promise<void> {
@@ -1930,7 +1932,11 @@ export async function getMonthlyLeadReport(req: OrgRequest, res: Response): Prom
     rangeStart.setDate(1);
     rangeStart.setHours(0, 0, 0, 0);
 
-    const historical = await db().carHistoricalStat.findMany({ where: { organizationId: orgId }, orderBy: { month: "asc" } });
+    // A login held to its own leads gets a report of just those — and none
+    // of the historical rows, which are org-wide pre-software totals.
+    const ownLeads = await shreyaCarsOwnLeadsScope(req);
+    const ownLeadsSql = ownLeads ? Prisma.sql`AND "assignedToId" = ${ownLeads.assignedToId}` : Prisma.empty;
+    const historical = ownLeads ? [] : await db().carHistoricalStat.findMany({ where: { organizationId: orgId }, orderBy: { month: "asc" } });
 
     // Historical months can reach further back than the default rolling
     // window (e.g. a client's pre-software tracking sheet) — extend the
@@ -1956,19 +1962,19 @@ export async function getMonthlyLeadReport(req: OrgRequest, res: Response): Prom
           COUNT(*) AS total,
           COUNT(*) FILTER (WHERE "testDriveDone") AS test_drives
         FROM "CarLead"
-        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart}
+        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart} ${ownLeadsSql}
         GROUP BY DATE_TRUNC('month', "createdAt")
       `,
       prisma.$queryRaw<{ month_key: string; source: string; count: bigint }[]>`
         SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month_key, "source", COUNT(*) AS count
         FROM "CarLead"
-        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart}
+        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart} ${ownLeadsSql}
         GROUP BY DATE_TRUNC('month', "createdAt"), "source"
       `,
       prisma.$queryRaw<{ month_key: string; status: string; count: bigint }[]>`
         SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month_key, "status", COUNT(*) AS count
         FROM "CarLead"
-        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart}
+        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${rangeStart} ${ownLeadsSql}
         GROUP BY DATE_TRUNC('month', "createdAt"), "status"
       `,
     ]);
@@ -2102,17 +2108,20 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
   try {
     const orgId = req.organizationId!;
     const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() + 30); cutoff30.setHours(23, 59, 59, 999);
+    // Lead tiles count the same leads the caller's list shows — a login held
+    // to its own leads must not see org-wide totals.
+    const ownLeads = (await shreyaCarsOwnLeadsScope(req)) ?? {};
 
     const [totalLeads, byStatus, buyerLeads, byStatusBuyer, sellerLeads, byStatusSeller, totalVehicles, inStock, sold, expiringSoonRows] = await Promise.all([
-      db().carLead.count({ where: { organizationId: orgId, isDoNotCall: false } }),
-      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, isDoNotCall: false }, _count: true }),
+      db().carLead.count({ where: { organizationId: orgId, isDoNotCall: false, ...ownLeads } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, isDoNotCall: false, ...ownLeads }, _count: true }),
       // Buyer/Seller are shown as separate tabs in the UI, so "Total Leads /
       // Hot / Urgent" needs its own count per category — a single combined
       // number was hiding how many of each type there actually were.
-      db().carLead.count({ where: { organizationId: orgId, leadType: "BUYER", isDoNotCall: false } }),
-      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "BUYER", isDoNotCall: false }, _count: true }),
-      db().carLead.count({ where: { organizationId: orgId, leadType: "SELLER", isDoNotCall: false } }),
-      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "SELLER", isDoNotCall: false }, _count: true }),
+      db().carLead.count({ where: { organizationId: orgId, leadType: "BUYER", isDoNotCall: false, ...ownLeads } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "BUYER", isDoNotCall: false, ...ownLeads }, _count: true }),
+      db().carLead.count({ where: { organizationId: orgId, leadType: "SELLER", isDoNotCall: false, ...ownLeads } }),
+      db().carLead.groupBy({ by: ["status"], where: { organizationId: orgId, leadType: "SELLER", isDoNotCall: false, ...ownLeads }, _count: true }),
       db().vehicle.count({ where: { organizationId: orgId, isDoNotCall: false } }),
       db().vehicle.count({ where: { organizationId: orgId, status: "IN_STOCK", isDoNotCall: false } }),
       db().vehicle.count({ where: { organizationId: orgId, status: "SOLD", isDoNotCall: false } }),
@@ -2144,7 +2153,7 @@ export async function getCarsStats(req: OrgRequest, res: Response): Promise<void
     // stat tile and the list it links to always agree on the exact same count.
     const notContactedSinceResolved = resolveNotContactedSince(req.query.notContactedSince as string | undefined);
     const notContactedBuyer = await db().carLead.count({
-      where: await notContactedWhere(orgId, notContactedSinceResolved),
+      where: { ...(await notContactedWhere(orgId, notContactedSinceResolved)), ...ownLeads },
     });
 
     ok(res, {
