@@ -433,8 +433,10 @@ async function assertShreyaCarsLeadAccess(req: OrgRequest, res: Response, lead: 
 async function shreyaCarsOwnLeadsScope(req: OrgRequest): Promise<{ assignedToId: string } | null> {
   if (req.memberRole === MemberRole.OWNER) return null;
   if (!(await isShreyaCarsOrgId(req.organizationId!))) return null;
-  return { assignedToId: (await getEmployeeIdForUser(req.userId, req.organizationId!)) ?? "__NO_EMPLOYEE_RECORD__" };
+  return { assignedToId: (await getEmployeeIdForUser(req.userId, req.organizationId!)) ?? NO_EMPLOYEE_RECORD };
 }
+const NO_EMPLOYEE_RECORD = "__NO_EMPLOYEE_RECORD__";
+const NO_EMPLOYEE_RECORD_MESSAGE = "Your login isn't linked to a salesperson record yet — ask an Admin to set it up";
 
 export async function getCarLead(req: OrgRequest, res: Response): Promise<void> {
   try {
@@ -455,6 +457,16 @@ export async function createCarLead(req: OrgRequest, res: Response): Promise<voi
     if (!parsed.success) { badRequest(res, "Validation failed", parsed.error.flatten().fieldErrors); return; }
     const data = parsed.data;
     if (!(await assertCarsSection(req, res, data.leadType as CarsSection))) return;
+    // Shreya Cars: a lead a salesperson adds is theirs — assigned to them
+    // automatically whatever the form sent, so it lands in their own-leads
+    // list instead of being rejected for a missing Assign To (which they
+    // can't set) or saved unassigned and vanishing from their view.
+    const ownLeads = await shreyaCarsOwnLeadsScope(req);
+    if (ownLeads) {
+      if (ownLeads.assignedToId === NO_EMPLOYEE_RECORD) { forbidden(res, NO_EMPLOYEE_RECORD_MESSAGE); return; }
+      data.assignedToId = ownLeads.assignedToId;
+      data.assignedToLabel = undefined;
+    }
     // Buyer and Seller leads have their own pipeline — default each to its
     // own first stage rather than one shared default.
     const leadStage = data.leadStage ?? (data.leadType === "SELLER" ? "ENQUIRY" : "SEARCHING_CAR");
@@ -540,9 +552,15 @@ export async function updateCarLead(req: OrgRequest, res: Response): Promise<voi
     const data = parsed.data;
     // Shreya Cars: reassigning a lead to a different salesperson is Owner-
     // only — a staff login can update their own lead's status/notes/follow-
-    // up freely, but not who it's assigned to.
-    if ((await isShreyaCarsOrgId(req.organizationId!)) && req.memberRole !== MemberRole.OWNER && (data.assignedToId !== undefined || data.assignedToLabel !== undefined)) {
-      forbidden(res, "Only an Admin can reassign a lead to a different salesperson"); return;
+    // up freely, but not who it's assigned to. The Edit form sends the
+    // current assignee back on every save, so only an actual change counts.
+    if (await shreyaCarsOwnLeadsScope(req)) {
+      const changesAssignee =
+        (data.assignedToId !== undefined && (data.assignedToId || null) !== existing.assignedToId) ||
+        (data.assignedToLabel !== undefined && (data.assignedToLabel.trim() || null) !== existing.assignedToLabel);
+      if (changesAssignee) { forbidden(res, "Only an Admin can reassign a lead to a different salesperson"); return; }
+      delete data.assignedToId;
+      delete data.assignedToLabel;
     }
     // Changing leadType itself isn't a normal edit path, but guard it anyway
     // so a Buyer-only user can't flip a lead to SELLER (or vice versa) as a
@@ -943,6 +961,11 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
     if (!(await assertCarsSection(req, res, leadType as CarsSection))) return;
     if (!Array.isArray(rawLeads) || rawLeads.length === 0) { badRequest(res, "leads array is required"); return; }
     if (rawLeads.length > 5000) { badRequest(res, "Max 5000 leads per import — split larger files into multiple batches"); return; }
+    // Shreya Cars: everything a salesperson imports is theirs, same as
+    // adding a lead by hand (see createCarLead) — any salesperson column in
+    // the sheet is ignored for them.
+    const ownLeads = await shreyaCarsOwnLeadsScope(req);
+    if (ownLeads?.assignedToId === NO_EMPLOYEE_RECORD) { forbidden(res, NO_EMPLOYEE_RECORD_MESSAGE); return; }
 
     const orgId = req.organizationId!;
     const results = { created: 0, skipped: 0, errors: [] as string[] };
@@ -1045,7 +1068,7 @@ export async function bulkImportCarLeads(req: OrgRequest, res: Response): Promis
         const source = LEAD_SOURCE_MAP[rawSource] || "OTHER";
 
         const salesperson = pick(row, FIELD_ALIASES.assignedSalesperson);
-        const matchedEmployeeId = salesperson ? employeeByName.get(salesperson.toLowerCase()) : undefined;
+        const matchedEmployeeId = ownLeads ? ownLeads.assignedToId : (salesperson ? employeeByName.get(salesperson.toLowerCase()) : undefined);
 
         if (leadType === "BUYER" && !matchedEmployeeId && !assignedToId) {
           results.skipped++;

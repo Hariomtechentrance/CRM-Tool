@@ -638,12 +638,13 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
   const [assigneeLabels, setAssigneeLabels] = useState<string[]>([]);
   const [sourceLabels, setSourceLabels] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const { activeOrg } = useAuthStore();
+  const { activeOrg, user } = useAuthStore();
   const role = activeOrg?.role;
   const canDelete = !!lead && !!role && !["STAFF", "VIEWER"].includes(role);
   // Shreya Cars: reassigning a lead to a different salesperson is Owner-
-  // only — matches the server-side rejection in updateCarLead. Cosmetic
-  // only; the API call is what actually enforces it.
+  // only, and a lead a salesperson adds is assigned to them automatically —
+  // both enforced server-side (createCarLead / updateCarLead); this just
+  // keeps the form from asking for something it can't set.
   const canReassign = !isShreyaCarsOrg(activeOrg) || role === "OWNER";
   // Older buyer-only preference fields + imported custom fields are real but
   // rarely touched day-to-day — collapsed by default so the curated field
@@ -680,7 +681,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
     if (["CNR", "BUSY", "PRODUCT_NOT_FOUND"].includes(form.leadStage) && !form.nextFollowUpDate) {
       setErr("Set a Next Follow-up Date — required for CNR / Busy / Product Not Found so this lead doesn't go cold."); return;
     }
-    if (form.leadType === "BUYER" && !form.assignedToId && !form.assignedToLabel.trim()) {
+    if (canReassign && form.leadType === "BUYER" && !form.assignedToId && !form.assignedToLabel.trim()) {
       setErr("Assign To is required for buyer leads"); return;
     }
     setSaving(true); setErr("");
@@ -708,6 +709,7 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
         showroomHistory: form.showroomHistory || undefined,
         hypothecationStatus: form.hypothecationStatus || undefined,
       };
+      if (!canReassign) { delete payload.assignedToId; delete payload.assignedToLabel; }
       if (lead) await api.patch(`/cars/leads/${lead.id}`, payload);
       else await api.post("/cars/leads", payload);
       onSaved(); onClose();
@@ -868,11 +870,16 @@ export function LeadModal({ lead, defaultLeadType, seedValues, onClose, onSaved,
           )}
 
           <div>
-            <label style={S.label}>Assign To{form.leadType === "BUYER" ? " *" : ""}</label>
+            <label style={S.label}>Assign To{canReassign && form.leadType === "BUYER" ? " *" : ""}</label>
             {canReassign ? (
               <AssignToSelect assignedToId={form.assignedToId} assignedToLabel={form.assignedToLabel}
                 employees={employees} labels={assigneeLabels} onAddLabel={addAssigneeLabel}
                 onChange={next => setForm({ ...form, assignedToId: next.assignedToId ?? "", assignedToLabel: next.assignedToLabel ?? "" })} />
+            ) : !lead ? (
+              <div style={{ ...S.inp, width: "100%", color: "var(--text-ghost)" }}>
+                {user?.name ?? "You"}
+                <span style={{ fontSize: 10, marginLeft: 6 }}>(leads you add are assigned to you)</span>
+              </div>
             ) : (
               <div style={{ ...S.inp, width: "100%", color: "var(--text-ghost)" }}>
                 {form.assignedToLabel || employees.find(e => e.id === form.assignedToId)?.name || "Unassigned"}
